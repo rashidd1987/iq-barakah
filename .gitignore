@@ -1,0 +1,29 @@
+# Не публикуем в GitHub
+*.pdf
+*.docx
+*.pptx
+*.zip
+*.doc
+graphify-out/
+gstack-main/
+gstack-main.zip
+iq\ baraka.zip
+IQ_Barakah_Landing_Updated.html
+IQ_Barakah_Landing_Light*.html
+IQ_Barakah_Landing_Premium.html
+IQ_Barakah_Landing_Quiz*.html
+IQ_Barakah_Map*.html
+IQ_Barakah_Master.html
+IQ_Barakah_Presentation.html
+IQ_Barakah_SPA.html
+IQ_Barakah_Tabbed.html
+IQ_Barakah_v2.html
+IQ_Barakah_v3.html
+IQ_Barakah_Bot_TZ.html
+VAKT_IQ_Bridge.html
+VAKT_Secular_Landing.html
+Celostnost_Landing.html
+IQ_Barakah_Landing.html
+ОБНОВЛЕНИЕ_НАВИГАЦИИ.md
+00_ИНСТРУКЦИЯ*.md
+iq\ baraka/

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Контакты и реквизиты - IQ Barakah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Mulish:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green:#1A3D08; --green2:#2A5C10; --green4:#EDF5E5;
+  --dark:#0A0F06; --text:#1A2810; --gold:#C9A84C; --gold2:#E8C97A;
+  --cream:#FAFDF6;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Mulish', sans-serif;
+  background: var(--cream);
+  color: var(--text);
+}
+.wrap { max-width: 960px; margin: 0 auto; padding: 60px 32px; }
+h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 48px;
+}
+h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--green);
+  margin: 48px 0 24px;
+}
+.back-link {
+  display: inline-block;
+  margin-bottom: 32px;
+  color: var(--green2);
+  text-decoration: none;
+  font-weight: 600;
+}
+.section {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+tr:nth-child(even) { background: #f9f9f9; }
+td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #eee;
+}
+td:first-child {
+  font-weight: 700;
+  color: var(--green2);
+  width: 35%;
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+.contact-item {
+  background: var(--green4);
+  padding: 28px;
+  border-radius: 12px;
+  text-align: center;
+}
+.contact-item h3 {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+.contact-item p {
+  font-size: 15px;
+  margin: 8px 0;
+}
+.contact-item a {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
+}
+.contact-item a:hover {
+  color: var(--gold);
+}
+.contact-item small {
+  font-size: 12px;
+  color: #888;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" class="back-link">← Вернуться на главную</a>
+  
+  <h1>Контакты и реквизиты</h1>
+
+  <!-- Юридическая информация -->
+  <div class="section">
+    <h2>Юридическая информация</h2>
+    <table>
+      <tr>
+        <td>Полное наименование</td>
+        <td>Индивидуальный предприниматель Мамедова Мерджанат Магомедовна</td>
+      </tr>
+      <tr>
+        <td>Сокращенное наименование</td>
+        <td>ИП Мамедова М.М.</td>
+      </tr>
+      <tr>
+        <td>ОГРНИП</td>
+        <td>323057100027665 от 15.03.2023</td>
+      </tr>
+      <tr>
+        <td>ИНН</td>
+        <td>054401401104</td>
+      </tr>
+      <tr>
+        <td>ОКПО</td>
+        <td>2021080196</td>
+      </tr>
+      <tr>
+        <td>Юридический адрес</td>
+        <td>[необходимо заполнить адрес прописки]</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Банковские реквизиты -->
+  <div class="section">
+    <h2>Банковские реквизиты</h2>
+    <table>
+      <tr>
+        <td>Расчетный счет</td>
+        <td>40802810100006487148</td>
+      </tr>
+      <tr>
+        <td>Банк</td>
+        <td>АО "ТБанк"</td>
+      </tr>
+      <tr>
+        <td>БИК</td>
+        <td>044525974</td>
+      </tr>
+      <tr>
+        <td>Корр. счет</td>
+        <td>30101810145250000974</td>
+      </tr>
+      <tr>
+        <td>Юридический адрес банка</td>
+        <td>Москва, 127287, ул. 2-я Хуторская, д. 38А, стр. 26</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Контактная информация -->
+  <div class="section">
+    <h2>Контакты для связи</h2>
+    <div class="contact-grid">
+      <div class="contact-item">
+        <h3>📧</h3>
+        <p><strong>Email</strong></p>
+        <p><a href="mailto:info@iqbarakah.ru">info@iqbarakah.ru</a></p>
+        <p><small>Ответ в течение 24 часов</small></p>
+      </div>
+      
+      <div class="contact-item">
+        <h3>📱</h3>
+        <p><strong>Телефон</strong></p>
+        <p><a href="tel:[номер]">[необходимо заполнить]</a></p>
+        <p><small>Пн-Пт: 9:00-18:00 (МСК)</small></p>
+      </div>
+      
+      <div class="contact-item">
+        <h3>💬</h3>
+        <p><strong>Telegram</strong></p>
+        <p><a href="https://t.me/iqbarakah_bot">@iqbarakah_bot</a></p>
+        <p><small>Техподдержка онлайн</small></p>
+      </div>
+      
+      <div class="contact-item">
+        <h3>🌐</h3>
+        <p><strong>Сайт</strong></p>
+        <p><a href="index.html">IQ Barakah</a></p>
+        <p><small>Программы развития</small></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Персональные данные -->
+  <div class="section">
+    <h2>Обработка персональных данных</h2>
+    <p style="margin-bottom: 16px;"><strong>Оператор персональных данных:</strong> ИП Мамедова Мерджанат Магомедовна</p>
+    <p style="margin-bottom: 16px;"><strong>Регистрационный номер в реестре Роскомнадзора:</strong> [будет заполнен после регистрации]</p>
+    <p style="margin-bottom: 16px;"><strong>Ответственный за обработку ПД:</strong> [ФИО, должность]</p>
+    <p style="margin-bottom: 16px;">
+      <a href="privacy-policy.html" style="color: var(--green2); font-weight: 600;">Политика конфиденциальности</a> | 
+      <a href="https://pd.rkn.gov.ru/" target="_blank" style="color: var(--green2); font-weight: 600;">Проверить в реестре Роскомнадзора</a>
+    </p>
+  </div>
+
+  <!-- Режим работы -->
+  <div class="section">
+    <h2>Режим работы</h2>
+    <table>
+      <tr>
+        <td>Понедельник - Пятница</td>
+        <td>9:00 - 18:00 (МСК)</td>
+      </tr>
+      <tr>
+        <td>Суббота</td>
+        <td>10:00 - 15:00 (МСК)</td>
+      </tr>
+      <tr>
+        <td>Воскресенье</td>
+        <td>Выходной</td>
+      </tr>
+    </table>
+    <p style="margin-top: 16px; font-size: 13px; color: #888;">* Telegram-бот работает круглосуточно, но ответы наставников в рабочие часы</p>
+  </div>
+
+  <p style="text-align: center; margin-top: 48px; font-style: italic; color: var(--gold);">БаракаЛлаху фикум!</p>
+  
+  <p style="text-align: center; margin-top: 32px;">
+    <a href="index.html" class="back-link">← Вернуться на главную</a>
+  </p>
+</div>
+</body>
+</html>
