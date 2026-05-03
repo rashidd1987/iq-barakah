@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>IQ Barakah</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --g1: #1a3d1b;
+  --g2: #2c5f2d;
+  --g3: #3d7a3e;
+  --gpale: #e8f5e9;
+  --gsoft: #d4ead5;
+  --gold: #c9a84c;
+  --gold2: #e8c96a;
+  --goldpale: #fdf6e3;
+  --bg: #f2f2ed;
+  --card: #ffffff;
+  --text: #111827;
+  --sub: #4b5563;
+  --muted: #9ca3af;
+  --border: #e9eaeb;
+  --nav-h: 68px;
+  --safe: env(safe-area-inset-bottom, 0px);
+  --r: 18px;
+  --shadow: 0 2px 16px rgba(0,0,0,.08), 0 1px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
+}
+
+html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+/* ── APP SHELL ── */
+#app { height: 100%; display: flex; flex-direction: column; }
+.screens { flex: 1; overflow: hidden; position: relative; }
+.screen {
+  position: absolute; inset: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding-bottom: calc(var(--nav-h) + var(--safe) + 20px);
+  opacity: 0; pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.screen.active { opacity: 1; pointer-events: all; transform: translateY(0); }
+
+/* ── NAV ── */
+nav {
+  height: calc(var(--nav-h) + var(--safe));
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0,0,0,.06);
+  display: flex; align-items: flex-start;
+  padding-top: 6px; padding-bottom: var(--safe);
+  flex-shrink: 0;
+}
+.nb {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+  border: none; background: none; cursor: pointer;
+  color: var(--muted); font-size: 10px; font-weight: 600;
+  letter-spacing: .2px; padding: 6px 0;
+  transition: color .15s;
+  position: relative;
+}
+.nb .ni {
+  width: 32px; height: 32px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .15s;
+}
+.nb.active { color: var(--g2); }
+.nb.active .ni { background: var(--gpale); transform: scale(1.05); }
+.nb .badge-dot {
+  position: absolute; top: 4px; right: calc(50% - 18px);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold); border: 2px solid white;
+  display: none;
+}
+.nb .badge-dot.show { display: block; }
+
+/* ── HEADER ── */
+.hdr {
+  background: linear-gradient(160deg, var(--g1) 0%, var(--g2) 55%, var(--g3) 100%);
+  padding: 20px 20px 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.hdr::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 80% -20%, rgba(201,168,76,.25) 0%, transparent 60%);
+  pointer-events: none;
+}
+.hdr-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; position: relative; }
+.logo { font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+.logo em { color: var(--gold2); font-style: normal; }
+.hdr-title { font-size: 24px; font-weight: 800; letter-spacing: -.4px; margin-bottom: 3px; position: relative; }
+.hdr-sub { font-size: 14px; opacity: .72; position: relative; }
+.avatar-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,.18);
+  border: 1.5px solid rgba(255,255,255,.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; cursor: pointer;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px;
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.25);
+  font-size: 12px; font-weight: 600; color: white;
+}
+
+/* ── CONTENT ── */
+.c { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--card);
+  border-radius: var(--r);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.cb { padding: 16px; }
+.ct {
+  font-size: 11px; font-weight: 700;
+  color: var(--muted); text-transform: uppercase;
+  letter-spacing: .8px; margin-bottom: 12px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 20px; border-radius: 14px; border: none;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  width: 100%; font-family: inherit;
+  transition: opacity .15s, transform .1s;
+}
+.btn:active { opacity: .82; transform: scale(.97); }
+.btn-p { background: linear-gradient(135deg, var(--g2), var(--g3)); color: white; box-shadow: 0 4px 16px rgba(44,95,45,.35); }
+.btn-o { background: var(--gpale); color: var(--g2); }
+.btn-g { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: white; box-shadow: 0 4px 16px rgba(201,168,76,.35); }
+
+/* ── HOME SCREEN ── */
+.ring-wrap { display: flex; justify-content: center; align-items: center; padding: 8px 0 16px; position: relative; height: 164px; }
+.ring-label { position: absolute; text-align: center; pointer-events: none; }
+.ring-label .pct { font-size: 30px; font-weight: 800; color: var(--g2); display: block; }
+.ring-label .rs { font-size: 12px; color: var(--muted); }
+
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat {
+  background: var(--card); border-radius: 14px;
+  padding: 14px; box-shadow: var(--shadow);
+}
+.stat-e { font-size: 20px; margin-bottom: 2px; }
+.stat-v { font-size: 22px; font-weight: 800; color: var(--g2); }
+.stat-l { font-size: 11px; color: var(--muted); margin-top: 1px; font-weight: 500; }
+
+.current-week {
+  background: linear-gradient(135deg, var(--g1), var(--g2));
+  border-radius: var(--r);
+  padding: 16px;
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer; color: white;
+  box-shadow: 0 6px 24px rgba(26,61,27,.35);
+  transition: opacity .15s;
+}
+.current-week:active { opacity: .85; }
+.cw-icon {
+  width: 46px; height: 46px; border-radius: 14px;
+  background: rgba(255,255,255,.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.cw-info { flex: 1; }
+.cw-info .t { font-weight: 800; font-size: 15px; margin-bottom: 2px; }
+.cw-info .s { font-size: 13px; opacity: .75; }
+.cw-arr { font-size: 20px; opacity: .6; }
+
+.act-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; border-radius: 14px;
+  background: var(--card); box-shadow: var(--shadow);
+  cursor: pointer; transition: background .12s;
+}
+.act-item:active { background: var(--gpale); }
+.act-ic {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.act-ic.gr { background: var(--gpale); }
+.act-ic.gd { background: var(--goldpale); }
+.act-ic.bl { background: #eff6ff; }
+.act-ic.pu { background: #f5f3ff; }
+.act-tx { flex: 1; }
+.act-tx .t { font-weight: 700; font-size: 14px; }
+.act-tx .s { font-size: 12px; color: var(--muted); margin-top: 1px; }
+
+/* ── TRACKER SCREEN ── */
+.date-strip {
+  display: flex; gap: 7px;
+  overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.date-strip::-webkit-scrollbar { display: none; }
+.day-chip {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+  min-width: 40px; padding: 8px 4px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.day-chip .dn { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+.day-chip .dd { font-size: 17px; font-weight: 700; color: var(--sub); }
+.day-chip.today { background: var(--g2); }
+.day-chip.today .dn { color: rgba(255,255,255,.7); }
+.day-chip.today .dd { color: white; }
+.day-chip.done-day .dd { color: var(--g2); }
+.day-chip .dc { width: 5px; height: 5px; border-radius: 50%; background: var(--g2); margin-top: 2px; opacity: 0; }
+.day-chip.done-day .dc { opacity: 1; }
+
+.tracker-progress {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 4px;
+}
+.tp-text { flex: 1; }
+.tp-text .t { font-size: 15px; font-weight: 700; }
+.tp-text .s { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.tp-count { font-size: 22px; font-weight: 800; color: var(--g2); }
+.prog-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.prog-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--g2), var(--g3)); transition: width .5s ease; }
+
+.habit-section-label {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .8px;
+  padding: 0 2px;
+}
+
+.habit-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px; border-radius: 14px;
+  background: var(--card); box-shadow: var(--shadow);
+  cursor: pointer; transition: background .12s;
+  user-select: none;
+}
+.habit-item.checked { background: #f0faf0; }
+.habit-item:active { transform: scale(.99); }
+
+.hcheck {
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .2s cubic-bezier(.34,1.56,.64,1);
+  font-size: 14px; background: white;
+}
+.habit-item.checked .hcheck {
+  background: var(--g2); border-color: var(--g2);
+  transform: scale(1.1);
+}
+
+.habit-info { flex: 1; min-width: 0; }
+.habit-info .t { font-size: 14px; font-weight: 600; }
+.habit-info .s { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.habit-item.checked .habit-info .t { color: var(--g2); }
+
+.habit-streak {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 12px; font-weight: 700; color: var(--gold);
+  background: var(--goldpale); padding: 3px 8px; border-radius: 20px;
+  flex-shrink: 0;
+}
+
+.namaz-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+}
+.namaz-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 4px; border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: white; cursor: pointer;
+  transition: all .2s cubic-bezier(.34,1.56,.64,1);
+  font-family: inherit;
+}
+.namaz-btn .nl { font-size: 10px; font-weight: 700; color: var(--muted); }
+.namaz-btn .ni { font-size: 20px; }
+.namaz-btn.done {
+  background: var(--gpale); border-color: var(--g2);
+  transform: scale(1.04);
+}
+.namaz-btn.done .nl { color: var(--g2); }
+
+.weekly-card {
+  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden;
+}
+.weekly-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .12s;
+}
+.weekly-item:last-child { border-bottom: none; }
+.weekly-item:active { background: var(--bg); }
+.weekly-item.done-w { background: #f0faf0; }
+.wi-icon { font-size: 22px; width: 32px; text-align: center; flex-shrink: 0; }
+.wi-info { flex: 1; }
+.wi-info .t { font-size: 14px; font-weight: 600; }
+.wi-info .s { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.wi-check {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: 2px solid var(--border); background: white;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .2s cubic-bezier(.34,1.56,.64,1);
+}
+.weekly-item.done-w .wi-check { background: var(--g2); border-color: var(--g2); }
+
+/* ── WHEEL ── */
+.wheel-wrap { display: flex; justify-content: center; padding: 8px 0 4px; }
+
+.sl-row { display: flex; flex-direction: column; gap: 4px; }
+.sl-label { display: flex; justify-content: space-between; font-size: 13px; }
+.sl-label .sn { font-weight: 600; }
+.sl-label .sv { color: var(--g2); font-weight: 700; }
+
+input[type=range] {
+  width: 100%; height: 5px;
+  -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 3px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--g2); box-shadow: 0 2px 8px rgba(44,95,45,.4); cursor: pointer;
+}
+
+/* ── LESSONS ── */
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  padding: 7px 16px; border-radius: 20px;
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap; cursor: pointer; border: none;
+  font-family: inherit; transition: all .15s; flex-shrink: 0;
+}
+.chip.on { background: var(--g2); color: white; }
+.chip.off { background: var(--card); color: var(--sub); box-shadow: var(--shadow); }
+
+.week-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 14px; border-radius: 14px;
+  background: var(--card); box-shadow: var(--shadow);
+  cursor: pointer; transition: opacity .15s;
+}
+.week-item:active { opacity: .8; }
+.wnum {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; flex-shrink: 0;
+}
+.wnum.done { background: var(--g2); color: white; }
+.wnum.cur { background: var(--gold); color: white; }
+.wnum.lock { background: var(--border); color: var(--muted); }
+.winfo { flex: 1; min-width: 0; }
+.winfo .t { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.winfo .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.wstat { font-size: 18px; flex-shrink: 0; }
+.phase-lbl {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .8px; padding: 0 2px; margin-bottom: -2px;
+}
+
+/* ── BOTTOM SHEET ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+  z-index: 100; opacity: 0; pointer-events: none;
+  transition: opacity .25s ease;
+}
+.overlay.open { opacity: 1; pointer-events: all; }
+.sheet {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--card); border-radius: 24px 24px 0 0;
+  z-index: 101;
+  padding: 0 20px calc(24px + var(--safe));
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(.32,1,.23,1);
+  max-height: 85vh; overflow-y: auto;
+}
+.sheet.open { transform: translateY(0); }
+.sh { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 12px auto 18px; }
+.s-icon { font-size: 48px; text-align: center; margin-bottom: 8px; }
+.s-title { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 3px; }
+.s-sub { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 18px; }
+.s-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.s-row:last-of-type { border-bottom: none; }
+.s-ri { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.s-rt .l { font-size: 11px; color: var(--muted); margin-bottom: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.s-rt .v { font-size: 14px; font-weight: 500; line-height: 1.5; }
+.s-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+
+/* ── REVIEW ── */
+.rv-form { display: flex; flex-direction: column; gap: 14px; }
+.fl { display: flex; flex-direction: column; gap: 6px; }
+.fl label { font-size: 13px; font-weight: 700; color: var(--text); }
+textarea {
+  width: 100%; border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; font-size: 15px; font-family: inherit;
+  color: var(--text); background: var(--card); outline: none; resize: none;
+  transition: border-color .15s;
+}
+textarea:focus { border-color: var(--g2); }
+.emoji-row { display: flex; gap: 8px; }
+.em-btn {
+  flex: 1; padding: 10px 4px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: var(--card);
+  font-size: 22px; cursor: pointer; text-align: center;
+  transition: all .18s cubic-bezier(.34,1.56,.64,1);
+}
+.em-btn.sel { border-color: var(--gold); background: var(--goldpale); transform: scale(1.12); }
+.rating-row { display: flex; gap: 7px; flex-wrap: wrap; }
+.rb {
+  padding: 8px 14px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--card);
+  font-size: 15px; cursor: pointer; font-family: inherit; font-weight: 700; color: var(--muted);
+  transition: all .15s;
+}
+.rb.sel { border-color: var(--g2); background: var(--gpale); color: var(--g2); }
+.ok-state {
+  display: none; text-align: center; padding: 28px 16px;
+  flex-direction: column; align-items: center; gap: 10px;
+}
+.ok-state.show { display: flex; }
+.ok-icon {
+  width: 72px; height: 72px; background: var(--gpale); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 36px;
+}
+.ok-t { font-size: 20px; font-weight: 800; color: var(--g2); }
+.ok-s { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+/* ── MISC ── */
+.badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.bg { background: var(--gpale); color: var(--g2); }
+.ba { background: var(--goldpale); color: #7a5500; }
+.pbar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.pfill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--g2), var(--g3)); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+.pop { animation: pop .3s ease; }
+
+/* ── DIAGNOSTIC OVERLAY ── */
+#diag-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: linear-gradient(160deg, var(--g1) 0%, var(--g2) 60%, var(--g3) 100%);
+  display: flex; flex-direction: column;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+#diag-overlay.hidden { display: none; }
+
+.diag-logo {
+  padding: 28px 24px 0;
+  font-size: 20px; font-weight: 800; color: white; letter-spacing: -.2px;
+}
+.diag-logo em { color: var(--gold2); font-style: normal; }
+
+.diag-panel {
+  flex: 1; background: var(--bg);
+  border-radius: 24px 24px 0 0;
+  margin-top: 20px;
+  overflow-y: auto; padding: 24px 20px 40px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+.diag-step { display: none; flex-direction: column; gap: 14px; }
+.diag-step.active { display: flex; }
+
+.diag-headline { font-size: 22px; font-weight: 800; line-height: 1.2; }
+.diag-sub { font-size: 14px; color: var(--sub); line-height: 1.5; }
+
+/* Choice cards */
+.choice-card {
+  background: var(--card); border-radius: var(--r);
+  box-shadow: var(--shadow); padding: 18px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: all .18s; display: flex; align-items: center; gap: 14px;
+}
+.choice-card:active { transform: scale(.98); }
+.choice-card.selected { border-color: var(--g2); background: var(--gpale); }
+.choice-icon { font-size: 32px; flex-shrink: 0; }
+.choice-text .t { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.choice-text .s { font-size: 13px; color: var(--muted); }
+
+/* Quick level buttons */
+.level-cards { display: flex; flex-direction: column; gap: 10px; }
+.lcard {
+  background: var(--card); border-radius: var(--r);
+  box-shadow: var(--shadow); padding: 16px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: all .18s;
+}
+.lcard:active { transform: scale(.98); }
+.lcard.selected { border-color: var(--g2); background: var(--gpale); }
+.lcard-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.lcard-letter {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: var(--g2); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 800; flex-shrink: 0;
+}
+.lcard-name { font-size: 14px; font-weight: 700; }
+.lcard-who { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* Quiz */
+.quiz-prog { display: flex; gap: 5px; margin-bottom: 4px; }
+.qpd { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background .2s; }
+.qpd.done { background: var(--g2); }
+.qpd.cur { background: var(--gold); }
+
+.q-num { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.q-text { font-size: 18px; font-weight: 800; line-height: 1.3; }
+
+.q-opts { display: flex; flex-direction: column; gap: 9px; }
+.q-opt {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border-radius: 14px;
+  box-shadow: var(--shadow); padding: 13px 16px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: all .15s; font-family: inherit;
+  text-align: left; width: 100%;
+}
+.q-opt:active { transform: scale(.98); }
+.q-opt.sel { border-color: var(--g2); background: var(--gpale); }
+.q-opt .oi { font-size: 20px; flex-shrink: 0; }
+.q-opt .ol { font-size: 14px; font-weight: 600; color: var(--text); }
+.q-opt.sel .ol { color: var(--g2); }
+
+.quiz-nav { display: flex; gap: 10px; margin-top: 4px; }
+.qbk {
+  padding: 12px 18px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: var(--card);
+  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--sub);
+  transition: all .15s;
+}
+.qbk:active { opacity: .7; }
+
+/* Result */
+.res-header {
+  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 20px; text-align: center;
+}
+.res-pct-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 50%;
+  font-size: 20px; font-weight: 800; color: white;
+  margin-bottom: 10px;
+}
+.res-level { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+.res-intro { font-size: 13px; color: var(--sub); line-height: 1.5; }
+
+.wheel-block {
+  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 16px;
+}
+.wheel-block-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; text-align: center; }
+.wheel-block svg { display: block; margin: 0 auto; }
+
+.pains-list { display: flex; flex-direction: column; gap: 8px; }
+.pain-item {
+  background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 12px 14px; font-size: 13px; color: var(--sub); line-height: 1.4;
+}
+
+.res-path {
+  background: var(--gpale); border-radius: 12px; padding: 14px;
+  font-size: 13px; color: var(--g2); font-weight: 600; line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<!-- ══════════════ DIAGNOSTIC OVERLAY ══════════════ -->
+<div id="diag-overlay" class="hidden">
+  <div class="diag-logo">IQ <em>Barakah</em></div>
+  <div class="diag-panel">
+
+    <!-- Step 0: выбор варианта -->
+    <div class="diag-step active" id="ds-choice">
+      <div class="diag-headline">Определим твой<br>уровень 🌱</div>
+      <div class="diag-sub">Прежде чем начать — выбери как удобнее</div>
+      <div class="choice-card" onclick="diagChoose('quick')">
+        <div class="choice-icon">⚡</div>
+        <div class="choice-text">
+          <div class="t">Я знаю свой уровень</div>
+          <div class="s">Выбрать А, Б или В вручную — займёт 10 секунд</div>
+        </div>
+      </div>
+      <div class="choice-card" onclick="diagChoose('quiz')">
+        <div class="choice-icon">🎯</div>
+        <div class="choice-text">
+          <div class="t">Пройти диагностику</div>
+          <div class="s">8 вопросов — точный результат с колесом баланса</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 1a: быстрый выбор уровня -->
+    <div class="diag-step" id="ds-quick">
+      <div class="diag-headline">Выбери свой уровень</div>
+      <div class="diag-sub">Честно — можно сменить позже</div>
+      <div class="level-cards">
+        <div class="lcard" id="lcard-a" onclick="selectLevel('a',this)">
+          <div class="lcard-head">
+            <div class="lcard-letter">А</div>
+            <div class="lcard-name">Начинаю с нуля</div>
+          </div>
+          <div class="lcard-who">Намаз бывает, азкары нет. Хочу выстроить основы. День управляется обстоятельствами.</div>
+        </div>
+        <div class="lcard" id="lcard-b" onclick="selectLevel('b',this)">
+          <div class="lcard-head">
+            <div class="lcard-letter" style="background:var(--gold);">Б</div>
+            <div class="lcard-name">Иногда практикую</div>
+          </div>
+          <div class="lcard-who">Намаз есть, Коран иногда. Система не держится. Хочу стабильности.</div>
+        </div>
+        <div class="lcard" id="lcard-c" onclick="selectLevel('c',this)">
+          <div class="lcard-head">
+            <div class="lcard-letter" style="background:#1E4D0A;">В</div>
+            <div class="lcard-name">Практикую регулярно</div>
+          </div>
+          <div class="lcard-who">МашаАллах! Намаз, азкары, Коран — есть. Хочу глубины и осознанности.</div>
+        </div>
+      </div>
+      <button class="btn btn-p" id="quick-confirm" onclick="confirmQuick()" disabled style="opacity:.5;margin-top:4px;">Начать программу →</button>
+      <button class="btn btn-o" onclick="diagChoose('choice')" style="margin-top:-4px;">← Назад</button>
+    </div>
+
+    <!-- Step 1b: квиз -->
+    <div class="diag-step" id="ds-quiz">
+      <div class="quiz-prog" id="qprog"></div>
+      <div class="q-num" id="qnum">ВОПРОС 1 ИЗ 8</div>
+      <div class="q-text" id="qtext"></div>
+      <div class="q-opts" id="qopts"></div>
+      <div class="quiz-nav">
+        <button class="qbk" id="qback" onclick="qNav(-1)">← Назад</button>
+        <button class="btn btn-p" id="qnext" onclick="qNav(1)" style="flex:1;opacity:.5;" disabled>Далее →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: результат -->
+    <div class="diag-step" id="ds-result">
+      <div class="diag-headline">Твой результат 🎯</div>
+      <div class="res-header">
+        <div class="res-pct-badge" id="res-badge">72%</div>
+        <div class="res-level" id="res-level">Уровень Б</div>
+        <div class="res-intro" id="res-intro"></div>
+      </div>
+      <div class="wheel-block">
+        <div class="wheel-block-title" id="wt-label">ТВОЁ КОЛЕСО БАЛАНСА СЕЙЧАС</div>
+        <svg id="res-wheel" width="200" height="200" viewBox="0 0 156 156"></svg>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;justify-content:center;" id="wheel-legend"></div>
+      </div>
+      <div class="card"><div class="cb">
+        <div class="ct">Узнаю себя</div>
+        <div class="pains-list" id="res-pains"></div>
+      </div></div>
+      <div class="res-path" id="res-path"></div>
+      <button class="btn btn-p" onclick="finishDiag()">Начать программу →</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="app">
+<div class="screens">
+
+<!-- ══════════════ HOME ══════════════ -->
+<div class="screen active" id="sc-home">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">IQ <em>Barakah</em></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pill" id="lvl-pill">🌱 Уровень А</div>
+        <div class="avatar-btn" id="ava">👤</div>
+      </div>
+    </div>
+    <div class="hdr-title" id="greet">Ас-саляму алейкум 👋</div>
+    <div class="hdr-sub" id="uname-sub">Загружаем данные...</div>
+  </div>
+
+  <div class="c">
+    <!-- Week banner -->
+    <div class="current-week" onclick="switchScreen('lessons')">
+      <div class="cw-icon">📖</div>
+      <div class="cw-info">
+        <div class="t" id="cw-title">Неделя 3: Намаз</div>
+        <div class="s" id="cw-sub">Сезон 1 · Уровень А · Активна</div>
+      </div>
+      <div class="cw-arr">›</div>
+    </div>
+
+    <!-- Ring + stats -->
+    <div class="card">
+      <div class="cb">
+        <div class="ct">Общий прогресс</div>
+        <div class="ring-wrap">
+          <svg width="148" height="148" viewBox="0 0 148 148">
+            <circle cx="74" cy="74" r="62" fill="none" stroke="#e5e7eb" stroke-width="11"/>
+            <circle id="ring" cx="74" cy="74" r="62" fill="none"
+              stroke="url(#rg)" stroke-width="11" stroke-linecap="round"
+              stroke-dasharray="389.6" stroke-dashoffset="311.7"
+              transform="rotate(-90 74 74)" style="transition:stroke-dashoffset 1s ease;"/>
+            <defs>
+              <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#2c5f2d"/>
+                <stop offset="100%" stop-color="#3d7a3e"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="ring-label">
+            <span class="pct" id="rpct">20%</span>
+            <span class="rs">пройдено</span>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-e">🔥</div><div class="stat-v" id="sv-streak">7</div><div class="stat-l">дней подряд</div></div>
+          <div class="stat"><div class="stat-e">✅</div><div class="stat-v" id="sv-weeks">3</div><div class="stat-l">недель сдано</div></div>
+          <div class="stat"><div class="stat-e">🙏</div><div class="stat-v" id="sv-deeds">18</div><div class="stat-l">добрых дел</div></div>
+          <div class="stat"><div class="stat-e">⭐</div><div class="stat-v" id="sv-xp">360</div><div class="stat-l">баракат-баллов</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:0 2px;">Перейти</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="act-item" onclick="switchScreen('tracker')">
+        <div class="act-ic gr">📋</div>
+        <div class="act-tx"><div class="t">Трекер дня</div><div class="s">Намаз, азкар, мухасаба</div></div>
+        <span style="color:var(--muted)">›</span>
+      </div>
+      <div class="act-item" onclick="switchScreen('lessons')">
+        <div class="act-ic gr">📚</div>
+        <div class="act-tx"><div class="t">Текущий урок</div><div class="s">Неделя 3 · Намаз и внутреннее состояние</div></div>
+        <span style="color:var(--muted)">›</span>
+      </div>
+      <div class="act-item" onclick="switchScreen('wheel')">
+        <div class="act-ic gd">🎯</div>
+        <div class="act-tx"><div class="t">Колесо баланса</div><div class="s">8 сфер жизни</div></div>
+        <span style="color:var(--muted)">›</span>
+      </div>
+      <div class="act-item" onclick="openReviewSheet()">
+        <div class="act-ic bl">✍️</div>
+        <div class="act-tx"><div class="t">Мухасаба вечера</div><div class="s">Три вопроса — займёт 2 минуты</div></div>
+        <span style="color:var(--muted)">›</span>
+      </div>
+      <div class="act-item" onclick="openDiag()">
+        <div class="act-ic pu">🎯</div>
+        <div class="act-tx"><div class="t">Диагностика уровня</div><div class="s">Пройти заново или сменить уровень</div></div>
+        <span style="color:var(--muted)">›</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TRACKER ══════════════ -->
+<div class="screen" id="sc-tracker">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">IQ <em>Barakah</em></div>
+      <div class="badge ba">Трекер</div>
+    </div>
+    <div class="hdr-title" id="tracker-date">Сегодня</div>
+    <div class="hdr-sub">Отмечайте выполненное</div>
+  </div>
+
+  <div class="c">
+    <!-- Week strip -->
+    <div class="card"><div class="cb" style="padding-bottom:12px;">
+      <div class="ct">Эта неделя</div>
+      <div class="date-strip" id="week-strip"></div>
+    </div></div>
+
+    <!-- Daily progress -->
+    <div class="card"><div class="cb">
+      <div class="tracker-progress">
+        <div class="tp-text">
+          <div class="t">Прогресс дня</div>
+          <div class="s" id="tp-sub">0 из 10 выполнено</div>
+        </div>
+        <div class="tp-count" id="tp-count">0/10</div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="tp-bar" style="width:0%"></div></div>
+    </div></div>
+
+    <!-- Намаз -->
+    <div class="habit-section-label">🕌 Намаз (5 раз в день)</div>
+    <div class="card"><div class="cb" style="padding:14px;">
+      <div class="namaz-grid" id="namaz-grid"></div>
+    </div></div>
+
+    <!-- Daily habits -->
+    <div class="habit-section-label">☀️ Ежедневные практики</div>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="daily-habits"></div>
+
+    <!-- Weekly -->
+    <div class="habit-section-label">📅 На этой неделе</div>
+    <div class="weekly-card" id="weekly-habits"></div>
+
+    <!-- One-time -->
+    <div class="habit-section-label">🌱 Один раз</div>
+    <div class="weekly-card" id="onetime-habits"></div>
+
+  </div>
+</div>
+
+<!-- ══════════════ LESSONS ══════════════ -->
+<div class="screen" id="sc-lessons">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">IQ <em>Barakah</em></div>
+      <div class="badge bg">Программа</div>
+    </div>
+    <div class="hdr-title">Карта пути</div>
+    <div class="hdr-sub">30 недель · ВАКТ + 3 сезона</div>
+    <div class="pbar" style="margin-top:12px;"><div class="pfill" style="width:20%"></div></div>
+  </div>
+  <div class="c">
+    <div class="chips">
+      <button class="chip on" onclick="filterPhase('all',this)">Все</button>
+      <button class="chip off" onclick="filterPhase('vakt',this)">ВАКТ</button>
+      <button class="chip off" onclick="filterPhase('s1',this)">Сезон 1</button>
+      <button class="chip off" onclick="filterPhase('s2',this)">Сезон 2</button>
+      <button class="chip off" onclick="filterPhase('s3',this)">Сезон 3</button>
+    </div>
+    <div id="week-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════ WHEEL ══════════════ -->
+<div class="screen" id="sc-wheel">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">IQ <em>Barakah</em></div>
+      <div class="badge ba">Баланс</div>
+    </div>
+    <div class="hdr-title">Колесо жизни</div>
+    <div class="hdr-sub">Оцените каждую сферу от 1 до 10</div>
+  </div>
+  <div class="c">
+    <div class="card"><div class="cb" style="padding:10px 6px;">
+      <div class="wheel-wrap">
+        <canvas id="wcanvas" width="290" height="290"></canvas>
+      </div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="ct">Настройте значения</div>
+      <div id="sliders" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div></div>
+    <button class="btn btn-p" onclick="saveWheel()">💾 Сохранить оценку</button>
+  </div>
+</div>
+
+</div><!-- /screens -->
+
+<!-- ── NAV ── -->
+<nav>
+  <button class="nb active" onclick="switchScreen('home')" id="nb-home">
+    <div class="ni">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/>
+      </svg>
+    </div>
+    Главная
+  </button>
+  <button class="nb" onclick="switchScreen('tracker')" id="nb-tracker">
+    <div class="ni">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
+      </svg>
+    </div>
+    Трекер
+    <div class="badge-dot show" id="tracker-dot"></div>
+  </button>
+  <button class="nb" onclick="switchScreen('lessons')" id="nb-lessons">
+    <div class="ni">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
+      </svg>
+    </div>
+    Уроки
+  </button>
+  <button class="nb" onclick="switchScreen('wheel')" id="nb-wheel">
+    <div class="ni">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <circle cx="12" cy="12" r="9"/><path d="M12 3v9l5 3"/>
+      </svg>
+    </div>
+    Баланс
+  </button>
+</nav>
+</div><!-- /app -->
+
+<!-- ── LESSON SHEET ── -->
+<div class="overlay" id="ov-lesson" onclick="closeSheet('lesson')"></div>
+<div class="sheet" id="sh-lesson">
+  <div class="sh"></div>
+  <div class="s-icon" id="sl-icon"></div>
+  <div class="s-title" id="sl-title"></div>
+  <div class="s-sub" id="sl-sub"></div>
+  <div id="sl-rows"></div>
+  <div class="s-btns" id="sl-btns"></div>
+</div>
+
+<!-- ── REVIEW SHEET ── -->
+<div class="overlay" id="ov-review" onclick="closeSheet('review')"></div>
+<div class="sheet" id="sh-review">
+  <div class="sh"></div>
+  <div class="s-icon">✍️</div>
+  <div class="s-title">Мухасаба вечера</div>
+  <div class="s-sub" id="rv-week-lbl">Неделя 3 · Три вопроса</div>
+
+  <div class="ok-state" id="rv-ok">
+    <div class="ok-icon">🌿</div>
+    <div class="ok-t">БаракаЛлаху фик!</div>
+    <div class="ok-s">Отзыв принят. Куратор откроет следующую неделю.</div>
+    <button class="btn btn-p" style="margin-top:8px;" onclick="closeSheet('review'); switchScreen('lessons')">К карте пути</button>
+  </div>
+
+  <div id="rv-form" class="rv-form">
+    <div class="card"><div class="cb">
+      <div class="ct">Как прошла неделя?</div>
+      <div class="emoji-row" id="emoji-row">
+        <button class="em-btn" onclick="selEmoji(this,'😔')">😔</button>
+        <button class="em-btn" onclick="selEmoji(this,'😐')">😐</button>
+        <button class="em-btn" onclick="selEmoji(this,'🙂')">🙂</button>
+        <button class="em-btn" onclick="selEmoji(this,'😊')">😊</button>
+        <button class="em-btn" onclick="selEmoji(this,'🤩')">🤩</button>
+      </div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="ct">Оцените</div>
+      <div class="fl">
+        <label>Насколько выполнили задание?</label>
+        <div class="rating-row" id="rt-task"></div>
+      </div>
+      <div class="fl" style="margin-top:12px;">
+        <label>Насколько было полезно?</label>
+        <div class="rating-row" id="rt-useful"></div>
+      </div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="ct">Напишите</div>
+      <div class="fl">
+        <label>Что получилось? Что было сложно?</label>
+        <textarea id="rv-text" rows="3" placeholder="Куратор обязательно ответит..."></textarea>
+      </div>
+      <div class="fl" style="margin-top:10px;">
+        <label>Главный инсайт недели</label>
+        <textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea>
+      </div>
+    </div></div>
+    <button class="btn btn-p" id="rv-btn" onclick="submitReview()">Отправить отзыв</button>
+  </div>
+</div>
+
+<script>
+// ── TELEGRAM ──
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); tg.enableClosingConfirmation(); }
+function haptic(t='impact') {
+  if (!tg?.HapticFeedback) return;
+  t === 'impact' ? tg.HapticFeedback.impactOccurred('light') : tg.HapticFeedback.notificationOccurred(t);
+}
+
+// ── USER DATA ──
+const U = { name:'Участник', gender:'M', level:'A', currentWeek:3, weeksCompleted:[1,2], streak:7, deeds:18, xp:360 };
+
+function initUser() {
+  if (tg?.initDataUnsafe?.user) {
+    const u = tg.initDataUnsafe.user;
+    U.name = u.first_name || 'Участник';
+    document.getElementById('ava').textContent = (u.first_name||'У')[0].toUpperCase();
+  }
+  const h = new Date().getHours();
+  const gs = ['Ас-саляму алейкум','Доброе утро','Добрый день','Добрый вечер','Доброй ночи'];
+  const gi = h<5?4:h<12?1:h<17?2:h<22?3:4;
+  document.getElementById('greet').textContent = gs[gi] + ' 👋';
+  document.getElementById('uname-sub').textContent = U.name + ' · ' + (U.gender==='M'?'Брат':'Сестра');
+  document.getElementById('lvl-pill').textContent = '🌱 Уровень ' + U.level;
+
+  document.getElementById('sv-streak').textContent = U.streak;
+  document.getElementById('sv-weeks').textContent = U.weeksCompleted.length;
+  document.getElementById('sv-deeds').textContent = U.deeds;
+  document.getElementById('sv-xp').textContent = U.xp;
+
+  const pct = Math.round((U.weeksCompleted.length / 30) * 100);
+  document.getElementById('rpct').textContent = pct + '%';
+  const circ = 2 * Math.PI * 62;
+  document.getElementById('ring').setAttribute('stroke-dashoffset', (circ * (1 - pct/100)).toFixed(1));
+}
+
+// ── NAV ──
+let cur = 'home';
+const SC = { home:'sc-home', tracker:'sc-tracker', lessons:'sc-lessons', wheel:'sc-wheel' };
+const NB = { home:'nb-home', tracker:'nb-tracker', lessons:'nb-lessons', wheel:'nb-wheel' };
+
+function switchScreen(id) {
+  haptic();
+  document.getElementById(SC[cur])?.classList.remove('active');
+  document.getElementById(NB[cur])?.classList.remove('active');
+  document.getElementById(SC[id])?.classList.add('active');
+  document.getElementById(NB[id])?.classList.add('active');
+  cur = id;
+  if (id==='wheel') renderWheel();
+  if (id==='lessons') renderLessons('all');
+  if (id==='tracker') renderTracker();
+}
+
+// ── TRACKER ──
+const NAMAZ = [
+  {id:'fajr', label:'Фаджр', icon:'🌅'},
+  {id:'zuhr', label:'Зухр', icon:'☀️'},
+  {id:'asr', label:'Аср', icon:'🌤'},
+  {id:'maghrib', label:'Магриб', icon:'🌇'},
+  {id:'isha', label:'Иша', icon:'🌙'},
+];
+const DAILY = [
+  {id:'azkar_m', icon:'📿', label:'Азкар утро', sub:'7:00 · Слово + полный вирд', streak:12},
+  {id:'azkar_e', icon:'🌙', label:'Азкар вечер', sub:'21:00 · Мухасаба 3 вопроса', streak:9},
+  {id:'quran',   icon:'📖', label:'Коран', sub:'1 страница в день', streak:5},
+  {id:'deed',    icon:'🤲', label:'Доброе дело', sub:'Любое благо — запишите', streak:7},
+];
+const WEEKLY = [
+  {id:'lesson',   icon:'📚', label:'Урок недели', sub:'Пн · 9:00 — бот пришлёт урок и задания'},
+  {id:'call',     icon:'🎙', label:'Живой созвон', sub:'Пт · 14:00 — с Рашидом, 60-90 мин'},
+  {id:'guest',    icon:'🎤', label:'Пятничный гость', sub:'Пт — шейх, врач или предприниматель'},
+  {id:'mirror',   icon:'📊', label:'Зеркало прогресса', sub:'Каждые 2 нед — авто-отчёт бота'},
+];
+const ONETIME = [
+  {id:'letter',  icon:'✉️', label:'Письмо себе', sub:'День нулевой — прочтёшь в конце'},
+  {id:'anchor',  icon:'👥', label:'Якорный брат', sub:'При входе — брат с похожим уровнем'},
+];
+
+let checked = JSON.parse(localStorage.getItem('iq_checked') || '{}');
+function saveChecked() { localStorage.setItem('iq_checked', JSON.stringify(checked)); }
+
+const todayKey = () => new Date().toISOString().split('T')[0];
+
+function isChecked(id) { return !!(checked[todayKey()]?.[id]); }
+function toggleHabit(id, el) {
+  haptic();
+  const k = todayKey();
+  if (!checked[k]) checked[k] = {};
+  if (checked[k][id]) { delete checked[k][id]; } else { checked[k][id] = true; }
+  saveChecked();
+  updateHabitEl(id, el);
+  updateProgress();
+  if (checked[k][id]) el.classList.add('pop');
+  setTimeout(() => el.classList.remove('pop'), 350);
+}
+function toggleWeekly(id, el) {
+  haptic();
+  if (checked['weekly']?.[id]) { delete checked['weekly'][id]; }
+  else { if (!checked['weekly']) checked['weekly'] = {}; checked['weekly'][id] = true; }
+  saveChecked();
+  el.classList.toggle('done-w', !!(checked['weekly']?.[id]));
+  const wc = el.querySelector('.wi-check');
+  if (wc) wc.innerHTML = checked['weekly']?.[id] ? '<span style="font-size:13px;color:white;">✓</span>' : '';
+}
+function toggleOnetime(id, el) {
+  haptic();
+  if (checked['onetime']?.[id]) { delete checked['onetime'][id]; }
+  else { if (!checked['onetime']) checked['onetime'] = {}; checked['onetime'][id] = true; }
+  saveChecked();
+  el.classList.toggle('done-w', !!(checked['onetime']?.[id]));
+  const wc = el.querySelector('.wi-check');
+  if (wc) wc.innerHTML = checked['onetime']?.[id] ? '<span style="font-size:13px;color:white;">✓</span>' : '';
+}
+
+function updateHabitEl(id, el) {
+  const done = isChecked(id);
+  el.classList.toggle('checked', done);
+  const hc = el.querySelector('.hcheck');
+  if (hc) hc.innerHTML = done ? '<span style="color:white;font-size:14px;">✓</span>' : '';
+}
+function updateNamazEl(id, btn) {
+  const done = isChecked(id);
+  btn.classList.toggle('done', done);
+}
+function updateProgress() {
+  const all = [...NAMAZ.map(n=>n.id), ...DAILY.map(d=>d.id)];
+  const total = all.length;
+  const done = all.filter(id => isChecked(id)).length;
+  document.getElementById('tp-sub').textContent = done + ' из ' + total + ' выполнено';
+  document.getElementById('tp-count').textContent = done + '/' + total;
+  document.getElementById('tp-bar').style.width = Math.round((done/total)*100) + '%';
+  if (done === total) document.getElementById('tracker-dot').classList.remove('show');
+}
+
+function renderWeekStrip() {
+  const strip = document.getElementById('week-strip');
+  strip.innerHTML = '';
+  const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+  const today = new Date();
+  const dow = today.getDay();
+  const monday = new Date(today); monday.setDate(today.getDate() - ((dow+6)%7));
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const isToday = d.toDateString() === today.toDateString();
+    const dk = d.toISOString().split('T')[0];
+    const hasDone = checked[dk] && Object.keys(checked[dk]).length > 0;
+    const chip = document.createElement('div');
+    chip.className = 'day-chip' + (isToday?' today':hasDone?' done-day':'');
+    chip.innerHTML = `<span class="dn">${days[d.getDay()]}</span><span class="dd">${d.getDate()}</span><span class="dc"></span>`;
+    strip.appendChild(chip);
+    if (isToday) setTimeout(() => chip.scrollIntoView({inline:'center',block:'nearest'}), 100);
+  }
+}
+
+function renderTracker() {
+  // date header
+  const d = new Date();
+  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+  const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+  document.getElementById('tracker-date').textContent = d.getDate() + ' ' + months[d.getMonth()] + ', ' + days[d.getDay()];
+
+  renderWeekStrip();
+
+  // Намаз grid
+  const ng = document.getElementById('namaz-grid');
+  ng.innerHTML = '';
+  NAMAZ.forEach(n => {
+    const btn = document.createElement('button');
+    btn.className = 'namaz-btn' + (isChecked(n.id) ? ' done' : '');
+    btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${isChecked(n.id)?'✅':n.icon}</span>`;
+    btn.onclick = () => {
+      haptic();
+      toggleHabit(n.id, btn);
+      const done = isChecked(n.id);
+      btn.className = 'namaz-btn' + (done?' done':'');
+      btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${done?'✅':n.icon}</span>`;
+      updateProgress();
+    };
+    ng.appendChild(btn);
+  });
+
+  // Daily habits
+  const dh = document.getElementById('daily-habits');
+  dh.innerHTML = '';
+  DAILY.forEach(h => {
+    const el = document.createElement('div');
+    el.className = 'habit-item' + (isChecked(h.id) ? ' checked' : '');
+    el.innerHTML = `
+      <div class="hcheck">${isChecked(h.id)?'<span style="color:white;font-size:14px;">✓</span>':''}</div>
+      <div class="act-ic gr" style="width:38px;height:38px;border-radius:10px;font-size:18px;">${h.icon}</div>
+      <div class="habit-info">
+        <div class="t">${h.label}</div>
+        <div class="s">${h.sub}</div>
+      </div>
+      <div class="habit-streak">🔥${h.streak}</div>`;
+    el.onclick = () => toggleHabit(h.id, el);
+    dh.appendChild(el);
+  });
+
+  // Weekly
+  const wh = document.getElementById('weekly-habits');
+  wh.innerHTML = '';
+  WEEKLY.forEach(w => {
+    const done = !!(checked['weekly']?.[w.id]);
+    const el = document.createElement('div');
+    el.className = 'weekly-item' + (done ? ' done-w' : '');
+    el.innerHTML = `
+      <div class="wi-icon">${w.icon}</div>
+      <div class="wi-info"><div class="t">${w.label}</div><div class="s">${w.sub}</div></div>
+      <div class="wi-check">${done?'<span style="font-size:13px;color:white;">✓</span>':''}</div>`;
+    el.onclick = () => toggleWeekly(w.id, el);
+    wh.appendChild(el);
+  });
+
+  // One-time
+  const oh = document.getElementById('onetime-habits');
+  oh.innerHTML = '';
+  ONETIME.forEach(w => {
+    const done = !!(checked['onetime']?.[w.id]);
+    const el = document.createElement('div');
+    el.className = 'weekly-item' + (done ? ' done-w' : '');
+    el.innerHTML = `
+      <div class="wi-icon">${w.icon}</div>
+      <div class="wi-info"><div class="t">${w.label}</div><div class="s">${w.sub}</div></div>
+      <div class="wi-check">${done?'<span style="font-size:13px;color:white;">✓</span>':''}</div>`;
+    el.onclick = () => toggleOnetime(w.id, el);
+    oh.appendChild(el);
+  });
+
+  updateProgress();
+}
+
+// ── WHEEL ──
+const SECTORS = [
+  {name:'Вера (Иман)', color:'#2c5f2d', val:7},
+  {name:'Намаз',       color:'#3d7a3e', val:6},
+  {name:'Семья',       color:'#c9a84c', val:8},
+  {name:'Здоровье',    color:'#5b8fa8', val:5},
+  {name:'Ризк',        color:'#7b5ea7', val:6},
+  {name:'Знание',      color:'#e07b39', val:7},
+  {name:'Ахляк',       color:'#d4547a', val:8},
+  {name:'Уммет',       color:'#4a9e8c', val:5},
+];
+
+function renderWheel() { drawWheel(); buildSliders(); }
+
+function drawWheel() {
+  const cv = document.getElementById('wcanvas'); if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const cx=145, cy=145, r=122, n=SECTORS.length, step=(2*Math.PI)/n;
+  ctx.clearRect(0,0,290,290);
+  for (let i=1;i<=10;i++) {
+    ctx.beginPath(); ctx.arc(cx,cy,(r/10)*i,0,2*Math.PI);
+    ctx.strokeStyle = i===10?'#ccc':'#eee'; ctx.lineWidth = i===10?1.5:1; ctx.stroke();
+  }
+  SECTORS.forEach((s,i) => {
+    const a=-Math.PI/2+i*step, ea=a+step, sr=(r/10)*s.val;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,sr,a,ea); ctx.closePath();
+    ctx.fillStyle=s.color+'4a'; ctx.fill();
+    ctx.strokeStyle=s.color; ctx.lineWidth=2; ctx.stroke();
+  });
+  SECTORS.forEach((_,i) => {
+    const a=-Math.PI/2+i*step;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a));
+    ctx.strokeStyle='#ddd'; ctx.lineWidth=1; ctx.stroke();
+  });
+  ctx.font='bold 11px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  SECTORS.forEach((s,i) => {
+    const a=-Math.PI/2+(i+.5)*step, lr=r+16;
+    ctx.fillStyle=s.color; ctx.fillText(s.val, cx+lr*Math.cos(a), cy+lr*Math.sin(a));
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,5,0,2*Math.PI); ctx.fillStyle='#2c5f2d'; ctx.fill();
+}
+
+function buildSliders() {
+  const w = document.getElementById('sliders'); if (!w) return;
+  w.innerHTML = '';
+  SECTORS.forEach((s,i) => {
+    const d = document.createElement('div'); d.className='sl-row';
+    d.innerHTML=`<div class="sl-label"><span class="sn" style="color:${s.color};">● ${s.name}</span><span class="sv" id="sv${i}">${s.val}</span></div><input type="range" min="1" max="10" value="${s.val}" style="accent-color:${s.color};" oninput="updSector(${i},this.value)">`;
+    w.appendChild(d);
+  });
+}
+
+function updSector(i,v) {
+  SECTORS[i].val=parseInt(v);
+  document.getElementById('sv'+i).textContent=v;
+  drawWheel();
+}
+
+function saveWheel() {
+  haptic('success');
+  if (tg) { tg.showPopup({title:'Сохранено',message:'Колесо баланса обновлено.',buttons:[{type:'ok'}]}); }
+  else { showToast('Колесо сохранено ✓'); }
+}
+
+// ── LESSONS ──
+const WEEKS = [
+  {id:'v1',phase:'vakt',num:'В1',title:'Намерение',sub:'ВАКТ · Неделя 1',icon:'🌱'},
+  {id:'v2',phase:'vakt',num:'В2',title:'Фитра',sub:'ВАКТ · Неделя 2',icon:'🌿'},
+  {id:'v3',phase:'vakt',num:'В3',title:'Тауба',sub:'ВАКТ · Неделя 3',icon:'💧'},
+  {id:'v4',phase:'vakt',num:'В4',title:'Сабр',sub:'ВАКТ · Неделя 4',icon:'⚖️'},
+  {id:'v5',phase:'vakt',num:'В5',title:'Зикр',sub:'ВАКТ · Неделя 5',icon:'📿'},
+  {id:'v6',phase:'vakt',num:'В6',title:'Итог ВАКТ',sub:'ВАКТ · Неделя 6',icon:'🏆'},
+  {id:'s1_1',phase:'s1',num:'С1.1',title:'Акыда',sub:'Сезон 1 · Неделя 1',icon:'🕌'},
+  {id:'s1_2',phase:'s1',num:'С1.2',title:'Намаз (основы)',sub:'Сезон 1 · Неделя 2',icon:'🙏'},
+  {id:'s1_3',phase:'s1',num:'С1.3',title:'Намаз (внутри)',sub:'Сезон 1 · Неделя 3',icon:'💎'},
+  {id:'s1_4',phase:'s1',num:'С1.4',title:'Коран',sub:'Сезон 1 · Неделя 4',icon:'📖'},
+  {id:'s1_5',phase:'s1',num:'С1.5',title:'Семья',sub:'Сезон 1 · Неделя 5',icon:'👨‍👩‍👦'},
+  {id:'s1_6',phase:'s1',num:'С1.6',title:'Ризк',sub:'Сезон 1 · Неделя 6',icon:'💼'},
+  {id:'s1_7',phase:'s1',num:'С1.7',title:'Здоровье',sub:'Сезон 1 · Неделя 7',icon:'🏃'},
+  {id:'s1_8',phase:'s1',num:'С1.8',title:'Итог С1',sub:'Сезон 1 · Неделя 8',icon:'🌟'},
+  {id:'s2_1',phase:'s2',num:'С2.1',title:'Нафс (изучение)',sub:'Сезон 2 · Неделя 1',icon:'🧠'},
+  {id:'s2_2',phase:'s2',num:'С2.2',title:'Нафс (работа)',sub:'Сезон 2 · Неделя 2',icon:'⚙️'},
+  {id:'s2_3',phase:'s2',num:'С2.3',title:'Ахляк',sub:'Сезон 2 · Неделя 3',icon:'✨'},
+  {id:'s2_4',phase:'s2',num:'С2.4',title:'Уммет',sub:'Сезон 2 · Неделя 4',icon:'🤝'},
+  {id:'s2_5',phase:'s2',num:'С2.5',title:'Лидерство',sub:'Сезон 2 · Неделя 5',icon:'👑'},
+  {id:'s2_6',phase:'s2',num:'С2.6',title:'Даават',sub:'Сезон 2 · Неделя 6',icon:'📢'},
+  {id:'s2_7',phase:'s2',num:'С2.7',title:'Такуа',sub:'Сезон 2 · Неделя 7',icon:'🌙'},
+  {id:'s2_8',phase:'s2',num:'С2.8',title:'Итог С2',sub:'Сезон 2 · Неделя 8',icon:'🌟'},
+  {id:'s3_1',phase:'s3',num:'С3.1',title:'Трансформация',sub:'Сезон 3 · Неделя 1',icon:'🦋'},
+  {id:'s3_2',phase:'s3',num:'С3.2',title:'Миссия',sub:'Сезон 3 · Неделя 2',icon:'🎯'},
+  {id:'s3_3',phase:'s3',num:'С3.3',title:'Уровень В',sub:'Сезон 3 · Неделя 3',icon:'⬆️'},
+  {id:'s3_4',phase:'s3',num:'С3.4',title:'Влияние',sub:'Сезон 3 · Неделя 4',icon:'💥'},
+  {id:'s3_5',phase:'s3',num:'С3.5',title:'Наследие',sub:'Сезон 3 · Неделя 5',icon:'🏛️'},
+  {id:'s3_6',phase:'s3',num:'С3.6',title:'Интеграция',sub:'Сезон 3 · Неделя 6',icon:'🔗'},
+  {id:'s3_7',phase:'s3',num:'С3.7',title:'Выпуск',sub:'Сезон 3 · Неделя 7',icon:'🎓'},
+  {id:'s3_8',phase:'s3',num:'С3.8',title:'Итог пути',sub:'Сезон 3 · Неделя 8',icon:'🌟'},
+];
+const PH = {vakt:'ВАКТ (6 недель)',s1:'Сезон 1 (8 недель)',s2:'Сезон 2 (8 недель)',s3:'Сезон 3 (8 недель)'};
+const WC = {
+  vakt:{az:'Ежедневный азкар утром и вечером — 10 мин',qu:'Аль-Фатиха + 3 коротких суры',deed:'Совершить один добровольный намаз'},
+  s1:  {az:'Истигфар 100 раз в день',qu:'Сура Аль-Бакара — 1 стр. в день',deed:'Накормить нуждающегося или сделать садака'},
+  s2:  {az:'Салавату на Пророка ﷺ — 100 раз',qu:'Сура Аль-Имран — 1 стр. в день',deed:'Навестить родителей или позвонить'},
+  s3:  {az:'ЛяИляха ИллаЛлах — 100 раз',qu:'Сура Аль-Кахф — в пятницу полностью',deed:'Обучить кого-то одному исламскому знанию'},
+};
+
+function filterPhase(ph, btn) {
+  haptic();
+  document.querySelectorAll('.chip').forEach(c=>{c.classList.remove('on');c.classList.add('off');});
+  btn.classList.add('on'); btn.classList.remove('off');
+  renderLessons(ph);
+}
+
+function renderLessons(ph) {
+  const list = document.getElementById('week-list'); list.innerHTML='';
+  const filtered = ph==='all' ? WEEKS : WEEKS.filter(w=>w.phase===ph);
+  let lastPh = null;
+  filtered.forEach(w => {
+    if (w.phase !== lastPh) {
+      const l=document.createElement('div'); l.className='phase-lbl'; l.textContent=PH[w.phase];
+      list.appendChild(l); lastPh=w.phase;
+    }
+    const wi = WEEKS.indexOf(w)+1;
+    const done = U.weeksCompleted.includes(wi) || wi < U.currentWeek;
+    const isCur = w.id==='s1_3';
+    const locked = !done && !isCur;
+    const el = document.createElement('div'); el.className='week-item';
+    el.innerHTML=`
+      <div class="wnum ${locked?'lock':done?'done':'cur'}">${w.num}</div>
+      <div class="winfo"><div class="t">${w.icon} ${w.title}</div><div class="s">${w.sub}</div></div>
+      <div class="wstat">${locked?'🔒':done?'✅':'📖'}</div>`;
+    el.onclick=()=>openLessonSheet(w,done,isCur,locked);
+    list.appendChild(el);
+  });
+}
+
+function openLessonSheet(w, done, isCur, locked) {
+  haptic();
+  document.getElementById('sl-icon').textContent=w.icon;
+  document.getElementById('sl-title').textContent=w.title;
+  document.getElementById('sl-sub').textContent=w.sub+' · '+(locked?'🔒 Заблокировано':done?'✅ Завершена':'📖 Текущая');
+  const c=WC[w.phase]||WC.s1;
+  const rows=document.getElementById('sl-rows');
+  rows.innerHTML = locked
+    ? `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">Как открыть</div><div class="v">Сдайте мухасабу за текущую неделю — куратор откроет следующую</div></div></div>`
+    : `<div class="s-row"><div class="s-ri">📿</div><div class="s-rt"><div class="l">Азкар недели</div><div class="v">${c.az}</div></div></div>
+       <div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">Коран</div><div class="v">${c.qu}</div></div></div>
+       <div class="s-row"><div class="s-ri">🤲</div><div class="s-rt"><div class="l">Доброе дело</div><div class="v">${c.deed}</div></div></div>`;
+  const btns=document.getElementById('sl-btns');
+  btns.innerHTML = (locked||done)
+    ? `<button class="btn btn-o" onclick="closeSheet('lesson')">Закрыть</button>`
+    : `<button class="btn btn-p" onclick="closeSheet('lesson');openReviewSheet()">✍️ Сдать мухасабу</button>
+       <button class="btn btn-o" onclick="closeSheet('lesson')">Закрыть</button>`;
+  openSheet('lesson');
+}
+
+// ── SHEETS ──
+function openSheet(id) {
+  document.getElementById('ov-'+id).classList.add('open');
+  document.getElementById('sh-'+id).classList.add('open');
+}
+function closeSheet(id) {
+  document.getElementById('ov-'+id).classList.remove('open');
+  document.getElementById('sh-'+id).classList.remove('open');
+}
+function openReviewSheet() { haptic(); openSheet('review'); }
+
+// ── REVIEW ──
+let rEmoji=null, rTask=null, rUseful=null;
+
+function buildReview() {
+  ['rt-task','rt-useful'].forEach(id=>{
+    const w=document.getElementById(id); if(!w) return;
+    w.innerHTML='';
+    [1,2,3,4,5].forEach(n=>{
+      const b=document.createElement('button'); b.className='rb'; b.textContent=n;
+      b.onclick=()=>{
+        haptic();
+        w.querySelectorAll('.rb').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel');
+        if(id==='rt-task') rTask=n; else rUseful=n;
+      };
+      w.appendChild(b);
+    });
+  });
+}
+
+function selEmoji(btn, e) {
+  haptic();
+  document.querySelectorAll('.em-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel'); rEmoji=e;
+}
+
+function submitReview() {
+  const text=document.getElementById('rv-text')?.value?.trim();
+  if (!rEmoji||!rTask||!text) {
+    haptic('error');
+    showToast('Выберите настроение, оценку и напишите отзыв');
+    return;
+  }
+  const btn=document.getElementById('rv-btn');
+  btn.innerHTML='<div class="spin"></div> Отправляем...';
+  btn.disabled=true;
+  setTimeout(()=>{
+    haptic('success');
+    document.getElementById('rv-form').style.display='none';
+    document.getElementById('rv-ok').classList.add('show');
+    if (tg) tg.sendData(JSON.stringify({type:'review',week:3,emoji:rEmoji,task:rTask,useful:rUseful,text}));
+  }, 1100);
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  let t=document.getElementById('toast');
+  if (!t) {
+    t=document.createElement('div');
+    t.id='toast';
+    t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a3d1b;color:white;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:200;opacity:0;transition:all .25s ease;white-space:nowrap;max-width:90vw;text-align:center;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  requestAnimationFrame(()=>{
+    t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
+    setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2200);
+  });
+}
+
+// ══════════════════════════════════════════════
+//  DIAGNOSTIC / ONBOARDING
+// ══════════════════════════════════════════════
+const QDATA = [
+  {q:'Встаёшь на Фаджр?',opts:[['😔','Никогда',0],['🔄','Иногда',1],['✅','Регулярно',2],['⭐','Всегда + тахаджуд',3]]},
+  {q:'Читаешь утренние азкары?',opts:[['❌','Не читаю',0],['🔄','Иногда',1],['📖','Не каждый день',2],['✅','Каждый день',3]]},
+  {q:'Планируешь свой день?',opts:[['🌊','Живу как идёт',0],['💭','В голове',1],['📝','Иногда пишу',2],['⭐','Фаджр-лист каждый день',3]]},
+  {q:'Делаешь мухасабу вечером?',opts:[['❓','Что это?',0],['💭','Иногда',1],['🔄','Пробовал — бросил',2],['✅','Каждый вечер',3]]},
+  {q:'Как у тебя с телефоном утром?',opts:[['📱','Телефон управляет мной',0],['🔄','Пытаюсь ограничить',1],['⚖️','Есть правила — срываюсь',2],['✅','Контролирую осознанно',3]]},
+  {q:'Читаешь Коран?',opts:[['❌','Не читаю',0],['🌙','По праздникам',1],['📖','Иногда в неделю',2],['✅','Каждый день',3]]},
+  {q:'Как твой бизнес или работа?',opts:[['🌀','Полный хаос',0],['⚙️','Без системы',1],['📊','Система есть — нет баракта',2],['✨','Ищу смысл',3]]},
+  {q:'Как дела в твоей семье?',opts:[['🏃','Почти не бываю дома',0],['📱','Бываю — но в телефоне',1],['❤️','Уделяю — хочу больше',2],['🏠','Семья — моя крепость',3]]},
+];
+const WHEEL_LABELS = ['Иман','Время','Привычки','Тело','Бизнес','Характер','Семья','Миссия'];
+const WHEEL_COLORS = ['#2c5f2d','#c9a84c','#5b8fa8','#e07b39','#7b5ea7','#d4547a','#4a9e8c','#3d7a3e'];
+const QRESULTS = {
+  a:{color:'#C0420A',level:'Уровень А — Начинаю с нуля',levelKey:'А',
+     wheel:[1,1,1,2,2,2,2,1],
+     intro:'Это честный результат. Точка силы, не слабости. Ты узнал(а) где находишься — большинство людей никогда не задают себе этот вопрос.',
+     pains:['😔 День управляется обстоятельствами — не твоими целями','📱 Телефон — первое что видишь утром. Задаёт тон всему дню.','🌙 Фаджр уходит мимо. Самое баракатное время потеряно.','🔄 Начинаешь с понедельника — срыв через 3-7 дней.'],
+     path:'➤ Твой старт: ВАКТ — 1 500 ₽ · Уровень А · Без давления и стыда'},
+  b:{color:'#0C3D7A',level:'Уровень Б — Иногда практикую',levelKey:'Б',
+     wheel:[3,4,3,3,4,3,3,2],
+     intro:'Ты уже на пути. Есть база — намаз бывает, Коран иногда. Но система не держится. И ты это знаешь.',
+     pains:['📉 Знаешь как надо — но не делаешь стабильно.','🔁 Привычки: неделя хорошо — срыв — стыд — снова старт.','⏰ Утро без системы. Нет якоря который держит день.','🎯 Нет ясности зачем всё это.'],
+     path:'➤ Твой старт: ВАКТ → IQ Barakah Сезон 1 · Уровень Б · Постоянство'},
+  c:{color:'#1E4D0A',level:'Уровень В — Практикую регулярно',levelKey:'В',
+     wheel:[6,6,6,6,6,6,5,4],
+     intro:'МашаАллах! Намаз, азкары, Коран — это есть. Но ты здесь потому что чувствуешь: чего-то не хватает.',
+     pains:['🔍 Намаз без присутствия. Азкары без осознанности.','🏔️ Плато. Вырос(ла) — и застрял(а). Непонятно куда дальше.','💰 Бизнес есть — но нет ощущения баракта.','🕊️ Хочешь передать знание — но нет инструмента.'],
+     path:'➤ Твой старт: IQ Barakah Сезон 1 → Сезон 2 · Уровень В · Глубина'},
+  d:{color:'#1A3D08',level:'Уровень В+ — Готов к наследию',levelKey:'В',
+     wheel:[8,8,8,8,8,8,8,6],
+     intro:'МашаАллах! Практика есть, система есть. Но ты чувствуешь что готов(а) к чему-то большему.',
+     pains:['🌍 Хочешь влиять на Умму — но нет структуры.','🔗 Достижения заканчиваются на тебе. Садака джария не запущена.','👑 Ты лидер — но без сообщества с миссией.','🏛️ Хочешь оставить наследие — не знаешь как начать.'],
+     path:'➤ Твой старт: Джамаат или Лидер Уммы'},
+};
+
+let qCur = 0, qAnsList = new Array(8).fill(null), selectedQuickLevel = null;
+
+function diagChoose(mode) {
+  haptic();
+  if (mode === 'choice') { showDiagStep('choice'); return; }
+  if (mode === 'quick')  { showDiagStep('quick'); return; }
+  if (mode === 'quiz')   { qCur=0; qAnsList=new Array(8).fill(null); renderQuiz(); showDiagStep('quiz'); }
+}
+
+function showDiagStep(id) {
+  document.querySelectorAll('.diag-step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('ds-'+id).classList.add('active');
+}
+
+function selectLevel(k, el) {
+  haptic();
+  document.querySelectorAll('.lcard').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedQuickLevel = k;
+  const btn = document.getElementById('quick-confirm');
+  btn.disabled = false; btn.style.opacity = '1';
+}
+
+function confirmQuick() {
+  if (!selectedQuickLevel) return;
+  haptic('success');
+  const r = QRESULTS[selectedQuickLevel];
+  showResult(r, null);
+}
+
+function renderQuiz() {
+  const q = QDATA[qCur];
+  // progress dots
+  document.getElementById('qprog').innerHTML = QDATA.map((_,i)=>
+    `<div class="qpd ${i<qCur?'done':i===qCur?'cur':''}"></div>`).join('');
+  document.getElementById('qnum').textContent = 'ВОПРОС '+(qCur+1)+' ИЗ '+QDATA.length;
+  document.getElementById('qtext').textContent = q.q;
+  document.getElementById('qopts').innerHTML = q.opts.map((o,i)=>
+    `<button class="q-opt${qAnsList[qCur]===o[2]?' sel':''}" onclick="qSelect(${o[2]},this)">
+      <span class="oi">${o[0]}</span><span class="ol">${o[1]}</span></button>`).join('');
+  const nx = document.getElementById('qnext');
+  nx.textContent = qCur===QDATA.length-1 ? 'Узнать результат →' : 'Далее →';
+  nx.disabled = qAnsList[qCur]===null; nx.style.opacity = qAnsList[qCur]===null?'.5':'1';
+  document.getElementById('qback').style.opacity = qCur===0?'.4':'1';
+}
+
+function qSelect(score, el) {
+  haptic();
+  qAnsList[qCur] = score;
+  document.querySelectorAll('.q-opt').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  const nx = document.getElementById('qnext');
+  nx.disabled = false; nx.style.opacity = '1';
+}
+
+function qNav(dir) {
+  haptic();
+  if (dir===-1 && qCur===0) { diagChoose('choice'); return; }
+  if (dir===1 && qAnsList[qCur]===null) return;
+  if (dir===1 && qCur===QDATA.length-1) { calcResult(); return; }
+  qCur += dir;
+  renderQuiz();
+}
+
+function calcResult() {
+  const total = qAnsList.reduce((s,a)=>s+(a||0),0);
+  const pct = Math.round(total/(QDATA.length*3)*100);
+  const key = pct>75?'d':pct>50?'c':pct>25?'b':'a';
+  showResult(QRESULTS[key], pct);
+}
+
+function showResult(R, pct) {
+  // badge
+  const badge = document.getElementById('res-badge');
+  badge.style.background = R.color;
+  badge.textContent = pct!==null ? pct+'%' : R.levelKey;
+  // level + intro
+  document.getElementById('res-level').textContent = R.level;
+  document.getElementById('res-level').style.color = R.color;
+  document.getElementById('res-intro').textContent = R.intro;
+  // wheel
+  drawDiagWheel(R.wheel, R.color);
+  // legend
+  const leg = document.getElementById('wheel-legend');
+  leg.innerHTML = WHEEL_LABELS.map((l,i)=>
+    `<span style="font-size:11px;font-weight:600;color:${WHEEL_COLORS[i]};background:${WHEEL_COLORS[i]}18;padding:2px 8px;border-radius:10px;">${l}</span>`).join('');
+  // pains
+  document.getElementById('res-pains').innerHTML = R.pains.map(p=>
+    `<div class="pain-item">${p}</div>`).join('');
+  // path
+  document.getElementById('res-path').textContent = R.path;
+  // save
+  localStorage.setItem('iq_level', R.levelKey);
+  localStorage.setItem('iq_diag_done', '1');
+  showDiagStep('result');
+}
+
+function drawDiagWheel(vals, color) {
+  const N=8, R=68, cx=78, cy=78;
+  let html='';
+  function pt(i,v){ const a=(i/N)*Math.PI*2-Math.PI/2, r=(v/10)*R; return [cx+r*Math.cos(a),cy+r*Math.sin(a)]; }
+  function pf(i){ const a=(i/N)*Math.PI*2-Math.PI/2; return [cx+R*Math.cos(a),cy+R*Math.sin(a)]; }
+  for(let g=2;g<=10;g+=2){
+    const gp=Array.from({length:N},(_,i)=>pt(i,g));
+    html+=`<polygon points="${gp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(0,0,0,.07)" stroke-width="0.7"/>`;
+  }
+  for(let i=0;i<N;i++){ const fp=pf(i); html+=`<line x1="${cx}" y1="${cy}" x2="${fp[0]}" y2="${fp[1]}" stroke="rgba(0,0,0,.07)" stroke-width="0.7"/>`; }
+  // colored sectors
+  for(let i=0;i<N;i++){
+    const a=-Math.PI/2+(i/N)*Math.PI*2, ea=-Math.PI/2+((i+1)/N)*Math.PI*2;
+    const r=(vals[i]/10)*R;
+    const x1=cx+r*Math.cos(a), y1=cy+r*Math.sin(a), x2=cx+r*Math.cos(ea), y2=cy+r*Math.sin(ea);
+    html+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r},0,0,1,${x2},${y2} Z" fill="${WHEEL_COLORS[i]}55" stroke="${WHEEL_COLORS[i]}" stroke-width="1.5"/>`;
+  }
+  const cp=Array.from({length:N},(_,i)=>pt(i,vals[i]));
+  cp.forEach(p=>{ html+=`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}"/>`; });
+  const avg=(vals.reduce((a,b)=>a+b,0)/N).toFixed(1);
+  html+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="16" fill="${color}" font-weight="800">${avg}</text>`;
+  html+=`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="9" fill="#9ca3af">из 10</text>`;
+  document.getElementById('res-wheel').innerHTML = html;
+}
+
+function finishDiag() {
+  haptic('success');
+  document.getElementById('diag-overlay').classList.add('hidden');
+  // apply level to home
+  const lvl = localStorage.getItem('iq_level') || 'А';
+  U.level = lvl;
+  document.getElementById('lvl-pill').textContent = '🌱 Уровень ' + lvl;
+}
+
+function openDiag() {
+  selectedQuickLevel = null;
+  qCur=0; qAnsList=new Array(8).fill(null);
+  showDiagStep('choice');
+  document.getElementById('diag-overlay').classList.remove('hidden');
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', ()=>{
+  initUser();
+  renderTracker();
+  renderLessons('all');
+  buildReview();
+  // show diagnostic on first launch
+  if (!localStorage.getItem('iq_diag_done')) {
+    document.getElementById('diag-overlay').classList.remove('hidden');
+  } else {
+    const lvl = localStorage.getItem('iq_level') || 'А';
+    U.level = lvl;
+    document.getElementById('lvl-pill').textContent = '🌱 Уровень ' + lvl;
+  }
+});
+</script>
+</body>
+</html>
