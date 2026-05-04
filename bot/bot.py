@@ -608,22 +608,51 @@ async def job_weekly_lesson(ctx: ContextTypes.DEFAULT_TYPE):
     if not active:
         return
     sent = 0
+    graduated: list = []
     for uid_str, entry in list(active.items()):
-        uid = int(uid_str)
+        uid   = int(uid_str)
         level = entry["level"]
         max_weeks = LEVEL_WEEKS.get(level, 8)
+
+        # Участник завершил программу
         if entry["week"] > max_weeks:
+            if not entry.get("completed_notified"):
+                entry["completed_notified"] = True
+                name = entry.get("name", "Участник")
+                graduated.append((uid_str, name, level))
+                try:
+                    await ctx.bot.send_message(
+                        chat_id=uid,
+                        parse_mode="Markdown",
+                        text=(
+                            f"🎓 *МашаАллах, {name.split()[0]}!*\n\n"
+                            f"Ты завершил *{LEVEL_NAMES[level]}*!\n\n"
+                            f"Это большой шаг — ты дошёл до конца. "
+                            f"Аллах видит каждое твоё усилие.\n\n"
+                            f"🌿 _Твой сертификат готовится — куратор свяжется с тобой._"
+                        )
+                    )
+                except Exception:
+                    pass
             continue
+
         await send_week_lesson(ctx.bot, uid, entry)
         entry["week"] += 1
         sent += 1
-    logger.info(f"Еженедельная рассылка: отправлено {sent} уроков")
+
+    logger.info(f"Еженедельная рассылка: отправлено {sent} уроков, завершили: {len(graduated)}")
+
     # уведомить куратора
+    lines = [f"📬 *Еженедельная рассылка завершена*\n\nОтправлено уроков: *{sent}*"]
+    if graduated:
+        lines.append("\n🎓 *Завершили программу:*")
+        for uid_str, name, level in graduated:
+            lines.append(f"  • {name} (`{uid_str}`) — {LEVEL_NAMES[level].split('·')[0].strip()}")
     for cid in CURATOR_IDS:
         try:
             await ctx.bot.send_message(
                 chat_id=cid,
-                text=f"📬 Еженедельная рассылка завершена. Отправлено уроков: *{sent}*",
+                text="\n".join(lines),
                 parse_mode="Markdown"
             )
         except Exception:
@@ -797,8 +826,17 @@ async def cmd_myprogram(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def cb_week_ack(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Нажата кнопка 'Понял, иду делать'."""
+    """Нажата кнопка 'Понял, иду делать' — записываем подтверждение."""
     query = update.callback_query
+    uid_str = str(update.effective_user.id)
+    active  = get_active_users(ctx)
+    entry   = active.get(uid_str, {})
+    # week уже увеличен после отправки, поэтому текущий = week - 1
+    acks = ctx.bot_data.setdefault("week_acks", {})
+    acks[uid_str] = {
+        "week": max(1, entry.get("week", 2) - 1),
+        "ts":   datetime.now(timezone.utc).isoformat(),
+    }
     await query.answer("МашаАллах! Баракат в каждом шаге 🌿", show_alert=False)
 
 
@@ -1735,6 +1773,121 @@ async def job_friday_checkin(ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ЭТАП 8 — СТАТИСТИКА И ОТЧЁТЫ
+# ══════════════════════════════════════════════════════════════════
+
+def _build_report(ctx: ContextTypes.DEFAULT_TYPE) -> str:
+    """Формирует полный текстовый отчёт для куратора."""
+    active  = get_active_users(ctx)
+    pairs   = get_pairs(ctx)
+    names   = ctx.bot_data.get("user_names", {})
+    acks    = ctx.bot_data.get("week_acks", {})
+    today   = datetime.now(timezone.utc).strftime("%d.%m.%Y")
+
+    lvl_count: dict = {}
+    for e in active.values():
+        lvl_count[e["level"]] = lvl_count.get(e["level"], 0) + 1
+
+    pair_count = len(set(
+        tuple(sorted([k, str(v)])) for k, v in pairs.items()
+    ))
+
+    # Кто подтвердил урок этой недели
+    acked_uids   = set(acks.keys())
+    active_uids  = set(active.keys())
+    acked_count  = len(acked_uids & active_uids)
+    silent_uids  = active_uids - acked_uids
+
+    lines = [
+        f"📊 *Отчёт IQ Barakah · {today}*\n",
+        f"🎯 Прошли диагностику: *{len(names)}*",
+        f"👥 Активных участников: *{len(active)}*",
+    ]
+    for lvl, lname in LEVEL_NAMES.items():
+        n = lvl_count.get(lvl, 0)
+        if n:
+            lines.append(f"  • {lname.split('·')[0].strip()}: *{n}*")
+    lines.append(f"🤝 Якорных пар: *{pair_count}*")
+    lines.append(f"✅ Подтвердили урок: *{acked_count}* / {len(active)}")
+
+    if silent_uids:
+        silent_names = [
+            active.get(u, {}).get("name", f"ID {u}").split()[0]
+            for u in list(silent_uids)[:5]
+        ]
+        more = len(silent_uids) - len(silent_names)
+        suffix = f" +ещё {more}" if more > 0 else ""
+        lines.append(f"🔕 Нет активности: {', '.join(silent_names)}{suffix}")
+
+    return "\n".join(lines)
+
+
+async def cmd_report(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """/report — полный отчёт по запросу."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    await update.message.reply_text(
+        _build_report(ctx),
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🎛 Панель куратора", callback_data="cur_back")
+        ]])
+    )
+
+
+async def job_weekly_report(ctx: ContextTypes.DEFAULT_TYPE):
+    """Воскресенье 20:00 МСК — авто-отчёт куратору."""
+    report = _build_report(ctx)
+    # Сбросить acks после отчёта (новая неделя)
+    ctx.bot_data["week_acks"] = {}
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(
+                chat_id=cid,
+                text=report,
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.warning(f"Еженедельный отчёт → {cid}: {e}")
+    logger.info("Еженедельный отчёт куратору отправлен")
+
+
+async def cmd_broadcast(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """/broadcast <текст> — разослать сообщение всем активным участникам."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    if not ctx.args:
+        await update.message.reply_text(
+            "Использование: `/broadcast <текст>`\n\nПример: `/broadcast Ассаляму алейкум! Завтра созвон в 14:00.`",
+            parse_mode="Markdown"
+        )
+        return
+    text    = " ".join(ctx.args)
+    active  = get_active_users(ctx)
+    if not active:
+        await update.message.reply_text("Нет активных участников.")
+        return
+    sent = 0
+    failed = 0
+    for uid_str in active:
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                text=f"📢 *Сообщение от куратора:*\n\n{text}",
+                parse_mode="Markdown"
+            )
+            sent += 1
+        except Exception:
+            failed += 1
+    await update.message.reply_text(
+        f"✅ Разослано: *{sent}* участникам" + (f"\n⚠️ Не доставлено: {failed}" if failed else ""),
+        parse_mode="Markdown"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
 #  ЭТАП 7 — ПАНЕЛЬ КУРАТОРА
 # ══════════════════════════════════════════════════════════════════
 
@@ -2165,8 +2318,10 @@ def main():
     app.add_handler(CommandHandler("unpair",       cmd_unpair))
     app.add_handler(CommandHandler("pairs",        cmd_pairs))
     app.add_handler(CommandHandler("setcalllink",  cmd_setcalllink))
-    app.add_handler(CommandHandler("curator",      cmd_curator))
-    app.add_handler(CommandHandler("msg",          cmd_msg))
+    app.add_handler(CommandHandler("curator",    cmd_curator))
+    app.add_handler(CommandHandler("msg",        cmd_msg))
+    app.add_handler(CommandHandler("report",     cmd_report))
+    app.add_handler(CommandHandler("broadcast",  cmd_broadcast))
 
     # Панель куратора — inline callback
     app.add_handler(CallbackQueryHandler(cb_cur_back,         pattern="^cur_back$"))
@@ -2223,6 +2378,14 @@ def main():
         time=time(10, 45, tzinfo=timezone.utc),
         days=(4,),
         name="friday_call",
+    )
+
+    # Еженедельный отчёт куратору — воскресенье 20:00 МСК (17:00 UTC)
+    app.job_queue.run_daily(
+        job_weekly_report,
+        time=time(17, 0, tzinfo=timezone.utc),
+        days=(6,),
+        name="weekly_report",
     )
 
     print("🤖 IQ Barakah бот запущен. Ctrl+C для остановки.")
