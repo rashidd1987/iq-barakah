@@ -1735,6 +1735,353 @@ async def job_friday_checkin(ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ЭТАП 7 — ПАНЕЛЬ КУРАТОРА
+# ══════════════════════════════════════════════════════════════════
+
+def curator_main_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("👥 Участники",   callback_data="cur_participants"),
+            InlineKeyboardButton("📊 Статистика",  callback_data="cur_stats"),
+        ],
+        [
+            InlineKeyboardButton("🤝 Пары",         callback_data="cur_pairs"),
+            InlineKeyboardButton("📬 Урок сейчас", callback_data="cur_sendnow"),
+        ],
+        [
+            InlineKeyboardButton("✉️ Написать участнику", callback_data="cur_msg_start"),
+        ],
+    ])
+
+
+def _curator_summary(ctx: ContextTypes.DEFAULT_TYPE) -> str:
+    active = get_active_users(ctx)
+    pairs  = get_pairs(ctx)
+    names  = ctx.bot_data.get("user_names", {})
+    lvl_count: dict = {}
+    for e in active.values():
+        lvl_count[e["level"]] = lvl_count.get(e["level"], 0) + 1
+    pair_count = len(set(
+        tuple(sorted([k, str(v)])) for k, v in pairs.items()
+    ))
+    lines = [
+        "🎛 *Панель куратора IQ Barakah*\n",
+        f"👥 Активных участников: *{len(active)}*",
+    ]
+    for lvl in ["А", "Б", "В"]:
+        n = lvl_count.get(lvl, 0)
+        if n:
+            lines.append(f"  • {LEVEL_NAMES[lvl].split('·')[0].strip()}: *{n}*")
+    lines.append(f"🤝 Якорных пар: *{pair_count}*")
+    lines.append(f"🎯 Прошли диагностику: *{len(names)}*")
+    return "\n".join(lines)
+
+
+async def cmd_curator(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Панель куратора /curator"""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    await update.message.reply_text(
+        _curator_summary(ctx),
+        parse_mode="Markdown",
+        reply_markup=curator_main_keyboard()
+    )
+
+
+async def cb_cur_back(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    await query.edit_message_text(
+        _curator_summary(ctx),
+        parse_mode="Markdown",
+        reply_markup=curator_main_keyboard()
+    )
+
+
+async def cb_cur_stats(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    active = get_active_users(ctx)
+    pairs  = get_pairs(ctx)
+    names  = ctx.bot_data.get("user_names", {})
+    lvl_count: dict = {}
+    for e in active.values():
+        lvl_count[e["level"]] = lvl_count.get(e["level"], 0) + 1
+    pair_count = len(set(
+        tuple(sorted([k, str(v)])) for k, v in pairs.items()
+    ))
+    lines = [
+        "📊 *Статистика IQ Barakah*\n",
+        f"🎯 Прошли диагностику: *{len(names)}*",
+        f"👥 Активных участников: *{len(active)}*",
+    ]
+    for lvl, lname in LEVEL_NAMES.items():
+        n = lvl_count.get(lvl, 0)
+        lines.append(f"  • {lname.split('·')[0].strip()}: *{n}*")
+    lines.append(f"🤝 Якорных пар: *{pair_count}*")
+    await query.edit_message_text(
+        "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("◀️ Назад", callback_data="cur_back")
+        ]])
+    )
+
+
+async def cb_cur_participants(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    active = get_active_users(ctx)
+    if not active:
+        await query.edit_message_text(
+            "Нет активных участников.",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("◀️ Назад", callback_data="cur_back")
+            ]])
+        )
+        return
+    rows = []
+    for uid, e in active.items():
+        level = e["level"]
+        max_w = LEVEL_WEEKS.get(level, 8)
+        short = e.get("name", f"ID {uid}").split()[0]
+        rows.append([InlineKeyboardButton(
+            f"👤 {short} · {level} · нед {e['week']}/{max_w}",
+            callback_data=f"cur_user_{uid}"
+        )])
+    rows.append([InlineKeyboardButton("◀️ Назад", callback_data="cur_back")])
+    await query.edit_message_text(
+        "👥 *Активные участники*\n\nНажми на участника:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(rows)
+    )
+
+
+async def cb_cur_user(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Карточка участника."""
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    uid_str = query.data.replace("cur_user_", "")
+    active  = get_active_users(ctx)
+    e = active.get(uid_str)
+    if not e:
+        await query.answer("Участник не найден.", show_alert=True)
+        return
+    level   = e["level"]
+    max_w   = LEVEL_WEEKS.get(level, 8)
+    done    = e["week"] - 1
+    bar     = "🟩" * done + "⬜️" * (max_w - done)
+    un      = ctx.bot_data.get("user_usernames", {}).get(uid_str)
+    un_text = f"@{un}" if un else f"`{uid_str}`"
+    since   = e.get("activated_at", "—")[:10]
+    text = (
+        f"👤 *{e.get('name','—')}*  ({un_text})\n\n"
+        f"📍 {LEVEL_NAMES[level]}\n"
+        f"📅 Неделя *{e['week']}* из *{max_w}*\n"
+        f"{bar} {round(done / max_w * 100)}%\n\n"
+        f"🕐 Активирован: {since}"
+    )
+    await query.edit_message_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✉️ Написать", callback_data=f"cur_write_{uid_str}"),
+                InlineKeyboardButton("📬 Урок сейчас", callback_data=f"cur_lesson_{uid_str}"),
+            ],
+            [InlineKeyboardButton("❌ Деактивировать", callback_data=f"cur_deact_{uid_str}")],
+            [InlineKeyboardButton("◀️ К списку", callback_data="cur_participants")],
+        ])
+    )
+
+
+async def cb_cur_lesson_one(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Отправить урок одному участнику."""
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    uid_str = query.data.replace("cur_lesson_", "")
+    active  = get_active_users(ctx)
+    e = active.get(uid_str)
+    if not e:
+        await query.answer("Участник не найден.", show_alert=True)
+        return
+    await send_week_lesson(ctx.bot, int(uid_str), e)
+    name = e.get("name", uid_str)
+    await query.answer(f"✅ Урок отправлен {name}!", show_alert=True)
+
+
+async def cb_cur_deact(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Деактивировать участника из панели."""
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    uid_str = query.data.replace("cur_deact_", "")
+    active  = get_active_users(ctx)
+    name    = active.get(uid_str, {}).get("name", uid_str)
+    if uid_str in active:
+        del active[uid_str]
+        await query.edit_message_text(
+            f"✅ *{name}* (`{uid_str}`) деактивирован.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("◀️ К списку", callback_data="cur_participants")
+            ]])
+        )
+    else:
+        await query.answer("Участник уже не активен.", show_alert=True)
+
+
+async def cb_cur_pairs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    pairs = get_pairs(ctx)
+    names = ctx.bot_data.get("user_names", {})
+    if not pairs:
+        await query.edit_message_text(
+            "Нет активных пар.",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("◀️ Назад", callback_data="cur_back")
+            ]])
+        )
+        return
+    seen: set = set()
+    lines = ["🤝 *Якорные пары:*\n"]
+    for uid, partner in pairs.items():
+        key = tuple(sorted([uid, str(partner)]))
+        if key in seen:
+            continue
+        seen.add(key)
+        n1 = names.get(uid, f"ID {uid}").split()[0]
+        n2 = names.get(str(partner), f"ID {partner}").split()[0]
+        lines.append(f"• {n1} (`{uid}`)  🤝  {n2} (`{partner}`)")
+    await query.edit_message_text(
+        "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("◀️ Назад", callback_data="cur_back")
+        ]])
+    )
+
+
+async def cb_cur_sendnow(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer("Отправляю уроки…")
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    await job_weekly_lesson(ctx)
+    await query.answer("✅ Уроки отправлены всем активным участникам!", show_alert=True)
+
+
+async def cb_cur_msg_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Выбор получателя для написания через панель."""
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    active = get_active_users(ctx)
+    if not active:
+        await query.answer("Нет активных участников.", show_alert=True)
+        return
+    rows = []
+    for uid, e in active.items():
+        short = e.get("name", f"ID {uid}").split()[0]
+        rows.append([InlineKeyboardButton(
+            f"👤 {short} · {e['level']}",
+            callback_data=f"cur_write_{uid}"
+        )])
+    rows.append([InlineKeyboardButton("◀️ Отмена", callback_data="cur_back")])
+    await query.edit_message_text(
+        "✉️ *Кому написать?*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(rows)
+    )
+
+
+async def cb_cur_write(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Устанавливает режим написания: следующее текстовое сообщение куратора → участнику."""
+    query = update.callback_query
+    await query.answer()
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    uid_str = query.data.replace("cur_write_", "")
+    name    = get_active_users(ctx).get(uid_str, {}).get("name", uid_str)
+    ctx.user_data["cur_write_uid"] = uid_str
+    await query.message.reply_text(
+        f"✉️ Напиши сообщение для *{name}*:\n_Оно придёт от имени бота. Отправь /cancel чтобы отменить._",
+        parse_mode="Markdown"
+    )
+
+
+async def handle_curator_write(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Перехватывает следующее сообщение куратора когда он в режиме написания."""
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    uid_str = ctx.user_data.get("cur_write_uid")
+    if not uid_str:
+        return
+    text = update.message.text
+    name = get_active_users(ctx).get(uid_str, {}).get("name", uid_str)
+    try:
+        await ctx.bot.send_message(
+            chat_id=int(uid_str),
+            text=f"💬 *Сообщение от куратора:*\n\n{text}",
+            parse_mode="Markdown"
+        )
+        await update.message.reply_text(
+            f"✅ Отправлено *{name}*.",
+            parse_mode="Markdown",
+            reply_markup=curator_main_keyboard()
+        )
+    except Exception as exc:
+        await update.message.reply_text(f"❌ Ошибка: {exc}")
+    ctx.user_data.pop("cur_write_uid", None)
+
+
+async def cmd_msg(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """/msg <user_id> <текст> — написать участнику напрямую."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    args = ctx.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "Использование: `/msg <user_id> <текст>`\n\nПример: `/msg 123456789 Привет, как дела?`",
+            parse_mode="Markdown"
+        )
+        return
+    try:
+        uid = int(args[0])
+    except ValueError:
+        await update.message.reply_text("❌ Неверный user_id — должно быть число.")
+        return
+    text = " ".join(args[1:])
+    name = get_active_users(ctx).get(str(uid), {}).get("name", str(uid))
+    try:
+        await ctx.bot.send_message(
+            chat_id=uid,
+            text=f"💬 *Сообщение от куратора:*\n\n{text}",
+            parse_mode="Markdown"
+        )
+        await update.message.reply_text(f"✅ Отправлено *{name}*.", parse_mode="Markdown")
+    except Exception as exc:
+        await update.message.reply_text(f"❌ Ошибка: {exc}")
+
+
+# ══════════════════════════════════════════════════════════════════
 #  MAIN
 # ══════════════════════════════════════════════════════════════════
 
@@ -1818,6 +2165,26 @@ def main():
     app.add_handler(CommandHandler("unpair",       cmd_unpair))
     app.add_handler(CommandHandler("pairs",        cmd_pairs))
     app.add_handler(CommandHandler("setcalllink",  cmd_setcalllink))
+    app.add_handler(CommandHandler("curator",      cmd_curator))
+    app.add_handler(CommandHandler("msg",          cmd_msg))
+
+    # Панель куратора — inline callback
+    app.add_handler(CallbackQueryHandler(cb_cur_back,         pattern="^cur_back$"))
+    app.add_handler(CallbackQueryHandler(cb_cur_stats,        pattern="^cur_stats$"))
+    app.add_handler(CallbackQueryHandler(cb_cur_participants, pattern="^cur_participants$"))
+    app.add_handler(CallbackQueryHandler(cb_cur_user,         pattern=r"^cur_user_"))
+    app.add_handler(CallbackQueryHandler(cb_cur_lesson_one,   pattern=r"^cur_lesson_"))
+    app.add_handler(CallbackQueryHandler(cb_cur_deact,        pattern=r"^cur_deact_"))
+    app.add_handler(CallbackQueryHandler(cb_cur_pairs,        pattern="^cur_pairs$"))
+    app.add_handler(CallbackQueryHandler(cb_cur_sendnow,      pattern="^cur_sendnow$"))
+    app.add_handler(CallbackQueryHandler(cb_cur_msg_start,    pattern="^cur_msg_start$"))
+    app.add_handler(CallbackQueryHandler(cb_cur_write,        pattern=r"^cur_write_"))
+
+    # Перехват сообщения куратора в режиме написания (должен быть ПОСЛЕ conv)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & filters.User(CURATOR_IDS),
+        handle_curator_write
+    ), group=1)
 
     # Якорный брат — для участников
     app.add_handler(CommandHandler("mybrother",   cmd_mybrother))
