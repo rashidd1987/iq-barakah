@@ -694,7 +694,6 @@ async def cmd_activate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             pass
 
     active = get_active_users(ctx)
-    # получить имя если есть в bot_data
     name = ctx.bot_data.get("user_names", {}).get(str(target_id), "Участник")
 
     active[str(target_id)] = {
@@ -704,26 +703,12 @@ async def cmd_activate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "activated_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    # уведомить участника
+    # Запустить онбординг
     try:
-        await ctx.bot.send_message(
-            chat_id=target_id,
-            parse_mode="Markdown",
-            text=(
-                f"🎉 *Твоя программа активирована!*\n\n"
-                f"📍 {LEVEL_NAMES[level]}\n"
-                f"📅 Старт с недели {week}\n\n"
-                f"Каждый понедельник в 9:00 ты будешь получать урок недели.\n"
-                f"Используй /myprogram чтобы видеть свой прогресс.\n\n"
-                f"🌿 _Баракат в каждом шаге!_"
-            ),
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("📱 Открыть личный кабинет", web_app=WebAppInfo(url=MINIAPP_URL))
-            ]])
-        )
-        participant_notified = "✅ Участник уведомлён"
+        await run_onboarding(ctx.bot, target_id, name, level, week, ctx)
+        participant_notified = "✅ Онбординг запущен"
     except Exception as e:
-        participant_notified = f"⚠️ Не удалось уведомить: {e}"
+        participant_notified = f"⚠️ Не удалось запустить онбординг: {e}"
 
     await update.message.reply_text(
         f"✅ *Активировано*\n\n"
@@ -1773,6 +1758,180 @@ async def job_friday_checkin(ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ЭТАП 9 — ОНБОРДИНГ
+# ══════════════════════════════════════════════════════════════════
+
+async def run_onboarding(bot, user_id: int, name: str, level: str, week: int,
+                         ctx: ContextTypes.DEFAULT_TYPE):
+    """Запускает полный онбординг после активации участника."""
+    first = name.split()[0] if name else "Брат"
+
+    # ── Сообщение 1: тёплое приветствие ─────────────────────────
+    await bot.send_message(
+        chat_id=user_id,
+        parse_mode="Markdown",
+        text=(
+            f"🌿 *БисмиЛлях, {first}!*\n\n"
+            f"Ты вступил в программу *IQ Barakah*.\n\n"
+            f"Это не просто курс. Это путь — к себе, к Аллаху, к своему наследию.\n\n"
+            f"Аллах ﷻ сказал:\n"
+            f"_«Поистине, Аллах не меняет положение народа, пока они сами не изменят то, что в них»_ (Ар-Ра'd, 11)\n\n"
+            f"Ты уже сделал шаг. Это и есть начало изменений."
+        )
+    )
+
+    # ── Сообщение 2: как работает программа ─────────────────────
+    level_name  = LEVEL_NAMES[level]
+    total_weeks = LEVEL_WEEKS[level]
+    await bot.send_message(
+        chat_id=user_id,
+        parse_mode="Markdown",
+        text=(
+            f"📋 *Как работает программа*\n\n"
+            f"📍 *Твой путь:* {level_name}\n"
+            f"📅 *{total_weeks} недель* — один урок каждый понедельник в 9:00\n\n"
+            f"*Что тебя ждёт каждую неделю:*\n"
+            f"🌅 Утро — азкар и намерение\n"
+            f"📖 Урок понедельника — тема + 3 задания\n"
+            f"🌙 Вечер — мухасаба: что сделал, что упустил\n"
+            f"🤝 Пятница — чек-ин с якорным братом\n"
+            f"📞 Пятница 14:00 — живой созвон с основателем IQ Barakah\n\n"
+            f"🌿 _Маленький шаг каждый день — это и есть барakat_"
+        ),
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔔 Включить напоминания", callback_data="onb_reminders")],
+            [InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(url=MINIAPP_URL))],
+        ])
+    )
+
+    # ── Сообщение 3: первый урок прямо сейчас ───────────────────
+    entry = ctx.bot_data.get("active_users", {}).get(str(user_id), {})
+    if not entry:
+        entry = {"level": level, "week": week, "name": name}
+    await bot.send_message(
+        chat_id=user_id,
+        parse_mode="Markdown",
+        text="📬 *А вот твой первый урок — прямо сейчас:*"
+    )
+    await send_week_lesson(bot, user_id, entry)
+
+    # ── Запланировать day-2 follow-up (через 24ч) ────────────────
+    from datetime import timedelta
+    ctx.application.job_queue.run_once(
+        _job_onboarding_day2,
+        when=timedelta(hours=24),
+        data={"uid": user_id, "name": name, "level": level},
+        name=f"onb_day2_{user_id}",
+    )
+
+    # ── Запланировать day-7 check-in (через 7 дней) ──────────────
+    ctx.application.job_queue.run_once(
+        _job_onboarding_day7,
+        when=timedelta(days=7),
+        data={"uid": user_id, "name": name, "level": level},
+        name=f"onb_day7_{user_id}",
+    )
+
+
+async def _job_onboarding_day2(ctx: ContextTypes.DEFAULT_TYPE):
+    """Через 24ч после активации — мягкий follow-up."""
+    data  = ctx.job.data
+    uid   = data["uid"]
+    first = data["name"].split()[0] if data.get("name") else "Брат"
+    try:
+        await ctx.bot.send_message(
+            chat_id=uid,
+            parse_mode="Markdown",
+            text=(
+                f"🌅 *{first}, как прошёл первый день?*\n\n"
+                f"Вчера начался твой путь. Небольшой вопрос:\n\n"
+                f"✅ Ты прочитал урок?\n"
+                f"✅ Сделал хотя бы одно задание?\n"
+                f"✅ Включил напоминания?\n\n"
+                f"Не нужно делать всё сразу. Одно действие — уже баракат.\n\n"
+                f"🌿 _«Самое любимое дело для Аллаха — то, что делается постоянно, даже если оно мало»_ (Бухари)"
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Да, всё сделал",      callback_data="onb_done_yes")],
+                [InlineKeyboardButton("🔄 Ещё не успел",        callback_data="onb_done_no")],
+                [InlineKeyboardButton("🔔 Включить напоминания", callback_data="onb_reminders")],
+            ])
+        )
+    except Exception as e:
+        logger.warning(f"Онбординг day2 → {uid}: {e}")
+
+
+async def _job_onboarding_day7(ctx: ContextTypes.DEFAULT_TYPE):
+    """Через 7 дней — итог первой недели."""
+    data  = ctx.job.data
+    uid   = data["uid"]
+    first = data["name"].split()[0] if data.get("name") else "Брат"
+    level = data.get("level", "А")
+    try:
+        await ctx.bot.send_message(
+            chat_id=uid,
+            parse_mode="Markdown",
+            text=(
+                f"🌟 *{first}, прошла первая неделя!*\n\n"
+                f"МашаАллах — ты уже 7 дней на пути.\n\n"
+                f"Возьми 5 минут и ответь себе честно:\n"
+                f"📌 Что изменилось за эту неделю?\n"
+                f"📌 Что было легко, что трудно?\n"
+                f"📌 Что хочу сделать иначе на следующей неделе?\n\n"
+                f"_Напиши ответы в дневник или прямо здесь — бот передаст куратору._\n\n"
+                f"🌿 _Ты идёшь. Это главное._"
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📊 Мой прогресс",       callback_data="my_prog")],
+                [InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(url=MINIAPP_URL))],
+                [InlineKeyboardButton("💬 Написать куратору",  callback_data="contact_curator")],
+            ])
+        )
+    except Exception as e:
+        logger.warning(f"Онбординг day7 → {uid}: {e}")
+
+
+async def cb_onb_reminders(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Кнопка онбординга — включить напоминания."""
+    query = update.callback_query
+    await query.answer()
+    uid = str(update.effective_user.id)
+    rems = ctx.bot_data.setdefault("reminders", {})
+    rems[uid] = {k: True for k, *_ in REMINDER_TYPES}
+    await query.message.reply_text(
+        "🔔 *Напоминания включены!*\n\n"
+        "🌅 06:00 — утренний азкар\n"
+        "🕛 13:30 — обеденный намаз\n"
+        "🌇 20:00 — вечерний азкар\n"
+        "🌙 22:00 — мухасаба\n\n"
+        "_Изменить можно в любое время через /reminders_\n\n"
+        "🌿 _Баракат в постоянстве!_",
+        parse_mode="Markdown"
+    )
+
+
+async def cb_onb_done_yes(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer("МашаАллах! Продолжай! 🌿", show_alert=False)
+    await query.edit_message_reply_markup(reply_markup=None)
+
+
+async def cb_onb_done_no(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        query.message.text + "\n\n"
+        "💪 *Ничего страшного — начни прямо сейчас.*\n"
+        "Открой урок, прочитай первое задание, сделай одно действие.\n\n"
+        "🌿 _Один шаг лучше, чем ноль._",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("📚 Открыть мою программу", callback_data="my_prog")
+        ]])
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
 #  ЭТАП 8 — СТАТИСТИКА И ОТЧЁТЫ
 # ══════════════════════════════════════════════════════════════════
 
@@ -2301,6 +2460,11 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_week_ack,        pattern="^week_ack$"))
     app.add_handler(CallbackQueryHandler(cb_contact_curator, pattern="^contact_curator$"))
     app.add_handler(CallbackQueryHandler(cb_my_prog,         pattern="^my_prog$"))
+
+    # Онбординг
+    app.add_handler(CallbackQueryHandler(cb_onb_reminders, pattern="^onb_reminders$"))
+    app.add_handler(CallbackQueryHandler(cb_onb_done_yes,  pattern="^onb_done_yes$"))
+    app.add_handler(CallbackQueryHandler(cb_onb_done_no,   pattern="^onb_done_no$"))
 
     # Программа — команды для участников
     app.add_handler(CommandHandler("myprogram",   cmd_myprogram))
