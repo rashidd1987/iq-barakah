@@ -24,7 +24,7 @@ _curator_env = os.environ.get("CURATOR_ID", "140700248")
 CURATOR_IDS = [int(x.strip()) for x in _curator_env.split(",") if x.strip()]
 
 SITE        = "https://iq-barakah.ru"
-MINIAPP_URL = "https://rashidd1987.github.io/iq-barakah/miniapp.html"
+MINIAPP_URL = "https://rashidd1987.github.io/iq-barakah/miniapp.html"  # GitHub Pages
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
