@@ -696,10 +696,10 @@ textarea:focus { border-color: var(--g2); }
   <div class="c">
     <!-- Week banner -->
     <div class="current-week" onclick="switchScreen('lessons')">
-      <div class="cw-icon">📖</div>
+      <div class="cw-icon" id="cw-icon">📖</div>
       <div class="cw-info">
-        <div class="t" id="cw-title">Неделя 3: Намаз</div>
-        <div class="s" id="cw-sub">Сезон 1 · Уровень А · Активна</div>
+        <div class="t" id="cw-title">Загрузка...</div>
+        <div class="s" id="cw-sub">Открыть карту пути →</div>
       </div>
       <div class="cw-arr">›</div>
     </div>
@@ -746,7 +746,7 @@ textarea:focus { border-color: var(--g2); }
       </div>
       <div class="act-item" onclick="switchScreen('lessons')">
         <div class="act-ic gr">📚</div>
-        <div class="act-tx"><div class="t">Текущий урок</div><div class="s">Неделя 3 · Намаз и внутреннее состояние</div></div>
+        <div class="act-tx"><div class="t">Текущий урок</div><div class="s" id="act-cur-week">Открыть карту уроков</div></div>
         <span style="color:var(--muted)">›</span>
       </div>
       <div class="act-item" onclick="switchScreen('wheel')">
@@ -923,7 +923,7 @@ textarea:focus { border-color: var(--g2); }
   <div class="sh"></div>
   <div class="s-icon">✍️</div>
   <div class="s-title">Мухасаба вечера</div>
-  <div class="s-sub" id="rv-week-lbl">Неделя 3 · Три вопроса</div>
+  <div class="s-sub" id="rv-week-lbl">Три вопроса честности перед собой</div>
 
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
@@ -1021,6 +1021,27 @@ function initUser() {
   document.getElementById('rpct').textContent = pct + '%';
   const circ = 2 * Math.PI * 62;
   document.getElementById('ring').setAttribute('stroke-dashoffset', (circ * (1 - pct/100)).toFixed(1));
+
+  // Заполнить карточку текущей недели
+  if (U.currentWeek > 0 && U.currentWeek <= WEEKS.length) {
+    const cw = WEEKS[U.currentWeek - 1];
+    const cwIcon = document.getElementById('cw-icon');
+    const cwTitle = document.getElementById('cw-title');
+    const cwSub   = document.getElementById('cw-sub');
+    const actCur  = document.getElementById('act-cur-week');
+    if (cw) {
+      if (cwIcon)  cwIcon.textContent  = cw.icon;
+      if (cwTitle) cwTitle.textContent = cw.num + ' · ' + cw.title;
+      if (cwSub)   cwSub.textContent   = cw.sub + ' · Активна';
+      if (actCur)  actCur.textContent  = cw.num + ' · ' + cw.title;
+    }
+  } else {
+    const cwTitle = document.getElementById('cw-title');
+    const cwSub   = document.getElementById('cw-sub');
+    if (cwTitle) cwTitle.textContent = 'Программа не начата';
+    if (cwSub)   cwSub.textContent   = 'Открой в боте /start';
+  }
+
 }
 
 // ── NAV ──
@@ -1049,14 +1070,16 @@ const NAMAZ = [
   {id:'isha', label:'Иша', icon:'🌙'},
 ];
 const DAILY = [
-  {id:'azkar_m', icon:'📿', label:'Азкар утро', sub:'7:00 · Слово + полный вирд', streak:12},
-  {id:'azkar_e', icon:'🌙', label:'Азкар вечер', sub:'21:00 · Мухасаба 3 вопроса', streak:9},
+  {id:'azkar_m', icon:'📿', label:'Утренний азкар', sub:'06:00 · Азкары + Фаджр', streak:12},
+  {id:'dhuhr',   icon:'🕛', label:'Обеденный намаз', sub:'13:30 · Зухр + азкары после', streak:8},
+  {id:'azkar_e', icon:'🌇', label:'Вечерний азкар', sub:'20:00 · Азкары + Магриб/Иша', streak:9},
+  {id:'muhasaba',icon:'🌙', label:'Мухасаба', sub:'22:00 · 3 вопроса перед сном', streak:7},
   {id:'quran',   icon:'📖', label:'Коран', sub:'1 страница в день', streak:5},
   {id:'deed',    icon:'🤲', label:'Доброе дело', sub:'Любое благо — запишите', streak:7},
 ];
 const WEEKLY = [
   {id:'lesson',   icon:'📚', label:'Урок недели', sub:'Пн · 9:00 — бот пришлёт урок и задания'},
-  {id:'call',     icon:'🎙', label:'Живой созвон', sub:'Пт · 14:00 — с Рашидом, 60-90 мин'},
+  {id:'call',     icon:'🎙', label:'Живой созвон', sub:'Пт · 14:00 — с основателем IQ Barakah'},
   {id:'guest',    icon:'🎤', label:'Пятничный гость', sub:'Пт — шейх, врач или предприниматель'},
   {id:'mirror',   icon:'📊', label:'Зеркало прогресса', sub:'Каждые 2 нед — авто-отчёт бота'},
 ];
@@ -1390,7 +1413,16 @@ function closeSheet(id) {
   document.getElementById('ov-'+id).classList.remove('open');
   document.getElementById('sh-'+id).classList.remove('open');
 }
-function openReviewSheet() { haptic(); openSheet('review'); }
+function openReviewSheet() {
+  haptic();
+  // Подставить текущую неделю в заголовок
+  const lbl = document.getElementById('rv-week-lbl');
+  if (lbl && U.currentWeek > 0 && U.currentWeek <= WEEKS.length) {
+    const cw = WEEKS[U.currentWeek - 1];
+    if (cw) lbl.textContent = cw.num + ' · ' + cw.title + ' · Три вопроса';
+  }
+  openSheet('review');
+}
 
 // ── REVIEW ──
 let rEmoji=null, rTask=null, rUseful=null;
