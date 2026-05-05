@@ -355,6 +355,7 @@ input[type=range]::-webkit-slider-thumb {
   cursor: pointer; transition: opacity .15s;
 }
 .week-item:active { opacity: .8; }
+.week-item-current { border: 2px solid var(--g2); background: linear-gradient(135deg, #f0f9f0, #e8f5e8); }
 .wnum {
   width: 42px; height: 42px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
@@ -978,9 +979,25 @@ function haptic(t='impact') {
 }
 
 // ── USER DATA ──
-const U = { name:'Участник', gender:'M', level:'A', currentWeek:3, weeksCompleted:[1,2], streak:7, deeds:18, xp:360 };
+const U = { name:'Участник', gender:'M', level:'', currentWeek:0, streak:7, deeds:18, xp:360 };
+
+// Смещения уровней в глобальном массиве WEEKS (30 недель)
+const LEVEL_OFFSET = { 'А':0, 'Б':6, 'В':14, 'Г':22 };
+const LEVEL_ICONS  = { 'А':'🌱', 'Б':'📗', 'В':'📘', 'Г':'📙' };
+const LEVEL_LABELS = { 'А':'ВАКТ','Б':'Сезон 1','В':'Сезон 2','Г':'Сезон 3' };
+
+function readUrlParams() {
+  const p = new URLSearchParams(window.location.search);
+  const lvl = p.get('lvl') || '';
+  const wk  = parseInt(p.get('wk') || '0', 10);
+  if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
+    U.level       = lvl;
+    U.currentWeek = LEVEL_OFFSET[lvl] + wk; // глобальный номер (1-30)
+  }
+}
 
 function initUser() {
+  readUrlParams();
   if (tg?.initDataUnsafe?.user) {
     const u = tg.initDataUnsafe.user;
     U.name = u.first_name || 'Участник';
@@ -990,15 +1007,17 @@ function initUser() {
   const gs = ['Ас-саляму алейкум','Доброе утро','Добрый день','Добрый вечер','Доброй ночи'];
   const gi = h<5?4:h<12?1:h<17?2:h<22?3:4;
   document.getElementById('greet').textContent = gs[gi] + ' 👋';
-  document.getElementById('uname-sub').textContent = U.name + ' · ' + (U.gender==='M'?'Брат':'Сестра');
-  document.getElementById('lvl-pill').textContent = '🌱 Уровень ' + U.level;
+  document.getElementById('uname-sub').textContent = U.name + (U.level ? ' · ' + (LEVEL_LABELS[U.level]||U.level) : '');
+  document.getElementById('lvl-pill').textContent = U.level
+    ? (LEVEL_ICONS[U.level]||'🌱') + ' ' + (LEVEL_LABELS[U.level]||U.level)
+    : '🌱 IQ Barakah';
 
   document.getElementById('sv-streak').textContent = U.streak;
-  document.getElementById('sv-weeks').textContent = U.weeksCompleted.length;
+  document.getElementById('sv-weeks').textContent = U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0;
   document.getElementById('sv-deeds').textContent = U.deeds;
   document.getElementById('sv-xp').textContent = U.xp;
 
-  const pct = Math.round((U.weeksCompleted.length / 30) * 100);
+  const pct = U.currentWeek > 0 ? Math.round(Math.max(0, U.currentWeek - 1) / 30 * 100) : 0;
   document.getElementById('rpct').textContent = pct + '%';
   const circ = 2 * Math.PI * 62;
   document.getElementById('ring').setAttribute('stroke-dashoffset', (circ * (1 - pct/100)).toFixed(1));
@@ -1317,23 +1336,29 @@ function renderLessons(ph) {
   const list = document.getElementById('week-list'); list.innerHTML='';
   const filtered = ph==='all' ? WEEKS : WEEKS.filter(w=>w.phase===ph);
   let lastPh = null;
+  let curEl   = null;
   filtered.forEach(w => {
     if (w.phase !== lastPh) {
       const l=document.createElement('div'); l.className='phase-lbl'; l.textContent=PH[w.phase];
       list.appendChild(l); lastPh=w.phase;
     }
-    const wi = WEEKS.indexOf(w)+1;
-    const done = U.weeksCompleted.includes(wi) || wi < U.currentWeek;
-    const isCur = w.id==='s1_3';
-    const locked = !done && !isCur;
-    const el = document.createElement('div'); el.className='week-item';
+    const wi     = WEEKS.indexOf(w) + 1;          // глобальный номер 1-30
+    const hasCur = U.currentWeek > 0;
+    const done   = hasCur ? wi < U.currentWeek : false;
+    const isCur  = hasCur ? wi === U.currentWeek : false;
+    const locked = hasCur ? wi > U.currentWeek  : (wi > 1);
+    const el = document.createElement('div');
+    el.className = 'week-item' + (isCur ? ' week-item-current' : '');
     el.innerHTML=`
       <div class="wnum ${locked?'lock':done?'done':'cur'}">${w.num}</div>
       <div class="winfo"><div class="t">${w.icon} ${w.title}</div><div class="s">${w.sub}</div></div>
       <div class="wstat">${locked?'🔒':done?'✅':'📖'}</div>`;
     el.onclick=()=>openLessonSheet(w,done,isCur,locked);
     list.appendChild(el);
+    if (isCur) curEl = el;
   });
+  // Прокрутить к текущей неделе
+  if (curEl) setTimeout(()=>curEl.scrollIntoView({behavior:'smooth',block:'center'}), 120);
 }
 
 function openLessonSheet(w, done, isCur, locked) {

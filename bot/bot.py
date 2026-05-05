@@ -838,13 +838,14 @@ async def send_week_lesson(bot, user_id: int, entry: dict):
         f"{text}\n\n"
         f"*Задания на эту неделю:*\n{tasks}"
     )
+    map_url = f"{MINIAPP_URL}?lvl={level}&wk={entry['week']}"
     try:
         await bot.send_message(
             chat_id=user_id,
             text=msg,
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("📱 Открыть трекер", web_app=WebAppInfo(url=MINIAPP_URL)),
+                InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(url=map_url)),
                 InlineKeyboardButton("✅ Понял, иду делать", callback_data="week_ack"),
             ]])
         )
@@ -1062,17 +1063,48 @@ async def cmd_myprogram(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cb_week_ack(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Нажата кнопка 'Понял, иду делать' — записываем подтверждение."""
-    query = update.callback_query
+    query   = update.callback_query
     uid_str = str(update.effective_user.id)
+    uid     = update.effective_user.id
     active  = get_active_users(ctx)
     entry   = active.get(uid_str, {})
-    # week уже увеличен после отправки, поэтому текущий = week - 1
+
+    # Записать подтверждение
+    current_week = max(1, entry.get("week", 2) - 1)
     acks = ctx.bot_data.setdefault("week_acks", {})
     acks[uid_str] = {
-        "week": max(1, entry.get("week", 2) - 1),
+        "week": current_week,
         "ts":   datetime.now(timezone.utc).isoformat(),
     }
+
+    # Обновить last_active
+    if uid_str in active:
+        active[uid_str]["last_active"] = datetime.now(timezone.utc).isoformat()
+
     await query.answer("МашаАллах! Баракат в каждом шаге 🌿", show_alert=False)
+
+    # Проверить завершение программы — вернуть письмо себе
+    level     = entry.get("level", "")
+    max_weeks = LEVEL_WEEKS.get(level, 8)
+    if current_week >= max_weeks:
+        letter = ctx.user_data.get("letter")
+        if letter and not ctx.user_data.get("letter_returned"):
+            ctx.user_data["letter_returned"] = True
+            try:
+                await ctx.bot.send_message(
+                    chat_id=uid,
+                    parse_mode="Markdown",
+                    text=(
+                        "✍️ *Твоё письмо себе — из самого начала пути:*\n\n"
+                        f"_{letter}_\n\n"
+                        "━━━━━━━━━━━━━━━\n"
+                        "Ты написал это когда только начинал.\n"
+                        "Посмотри как далеко ты прошёл. 🌿\n\n"
+                        "БаракАллах фикум! 🤲"
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"letter_return → {uid}: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1288,13 +1320,19 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def cmd_miniapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Открыть Mini App"""
+    """Открыть Mini App с параметрами прогресса участника."""
+    uid_str = str(update.effective_user.id)
+    active  = get_active_users(ctx)
+    entry   = active.get(uid_str, {})
+    level   = entry.get("level", "")
+    week    = entry.get("week", 1)
+    map_url = f"{MINIAPP_URL}?lvl={level}&wk={week}" if level else MINIAPP_URL
     await update.message.reply_text(
         "📱 *Личный кабинет IQ Barakah*\n\n"
-        "Трекер намаза и привычек, колесо баланса, карта пути и мухасаба — всё внутри.",
+        "Карта пути, трекер прогресса, колесо баланса и мухасаба — всё внутри.",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("📱 Открыть личный кабинет", web_app=WebAppInfo(url=MINIAPP_URL))
+            InlineKeyboardButton("📱 Открыть личный кабинет", web_app=WebAppInfo(url=map_url))
         ]])
     )
 
@@ -2054,7 +2092,27 @@ async def run_onboarding(bot, user_id: int, name: str, level: str, week: int,
         ])
     )
 
-    # ── Сообщение 3: первый урок прямо сейчас ───────────────────
+    # ── Сообщение 3: письмо себе будущему ───────────────────────
+    await bot.send_message(
+        chat_id=user_id,
+        parse_mode="Markdown",
+        text=(
+            "✍️ *Письмо себе будущему*\n\n"
+            "Прямо сейчас — напиши несколько слов себе будущему.\n\n"
+            "Что хочешь изменить? Чего хочешь достичь? "
+            "Каким человеком хочешь стать?\n\n"
+            "Я сохраню это письмо и верну тебе в конце программы. "
+            "Ты увидишь кем ты был — и кем стал. 📜\n\n"
+            "_Напиши прямо сейчас — любое количество слов._"
+        ),
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("⏭️ Пропустить", callback_data="letter_skip"),
+        ]])
+    )
+    # Установить флаг ожидания письма
+    ctx.bot_data.setdefault("pending_letter", {})[str(user_id)] = True
+
+    # ── Сообщение 4: первый урок прямо сейчас ───────────────────
     entry = ctx.bot_data.get("active_users", {}).get(str(user_id), {})
     if not entry:
         entry = {"level": level, "week": week, "name": name}
@@ -2644,6 +2702,257 @@ async def cmd_msg(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ЭТАП 10 — ДЕТЕКТОР МОЛЧАНИЯ (3 / 7 дней)
+# ══════════════════════════════════════════════════════════════════
+
+async def job_silence_check(ctx: ContextTypes.DEFAULT_TYPE):
+    """Ежедневно 10:00 МСК — проверяет молчание активных участников."""
+    active = get_active_users(ctx)
+    now    = datetime.now(timezone.utc)
+
+    for uid_str, entry in list(active.items()):
+        last_raw = entry.get("last_active")
+        if not last_raw:
+            continue
+        try:
+            last_dt = datetime.fromisoformat(last_raw)
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+        days       = (now - last_dt).days
+        uid        = int(uid_str)
+        first_name = (entry.get("name") or "Брат").split()[0]
+
+        if days == 3:
+            try:
+                await ctx.bot.send_message(
+                    chat_id=uid,
+                    parse_mode="Markdown",
+                    text=(
+                        f"🌿 Ас-саляму алейкум, *{first_name}*!\n\n"
+                        "Мы заметили что тебя не было 3 дня.\n\n"
+                        "Всё хорошо? Жизнь бывает разной — и это нормально. "
+                        "Мы здесь, без осуждения. 🤍\n\n"
+                        "Когда будешь готов — просто нажми кнопку или напиши что-нибудь."
+                    ),
+                    reply_markup=InlineKeyboardMarkup([[
+                        InlineKeyboardButton("💪 Я здесь, продолжаю", callback_data="silence_back"),
+                    ]])
+                )
+            except Exception as e:
+                logger.warning(f"silence_check day3 → {uid}: {e}")
+
+        elif days == 7:
+            uname = entry.get("username", "")
+            ref   = f"@{uname}" if uname else f"ID {uid}"
+            level = entry.get("level", "?")
+            week  = entry.get("week",  "?")
+            for cid in CURATOR_IDS:
+                try:
+                    await ctx.bot.send_message(
+                        chat_id=cid,
+                        parse_mode="Markdown",
+                        text=(
+                            f"⚠️ *Молчание 7 дней*\n\n"
+                            f"👤 {entry.get('name', '?')} ({ref})\n"
+                            f"📊 Уровень {level} · Неделя {week}\n\n"
+                            "Напиши ему лично — бот уже отправлял мягкое напоминание на 3-й день."
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"silence_check day7 curator {cid}: {e}")
+
+
+async def cb_silence_back(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Участник нажал «Я здесь» после молчания."""
+    query   = update.callback_query
+    uid_str = str(update.effective_user.id)
+    await query.answer("МашаАллах! Рады что ты здесь 🌿")
+    active = get_active_users(ctx)
+    if uid_str in active:
+        active[uid_str]["last_active"] = datetime.now(timezone.utc).isoformat()
+    await query.edit_message_text(
+        "🌿 *Рады что ты вернулся!*\n\n"
+        "Продолжай в своём темпе — Аллах видит каждое усилие.\n\n"
+        "Отправь /week чтобы вернуться к текущему уроку. 📖",
+        parse_mode="Markdown"
+    )
+
+
+async def track_last_active(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Обновляет last_active при любом сообщении участника (group=2).
+    Также перехватывает письмо себе если участник в режиме ожидания письма."""
+    if not update.message or not update.message.text:
+        return
+    uid_str = str(update.effective_user.id)
+    active  = get_active_users(ctx)
+
+    # Обновить last_active
+    if uid_str in active:
+        active[uid_str]["last_active"] = datetime.now(timezone.utc).isoformat()
+
+    # Проверить: ждём ли письмо от этого участника?
+    pending = ctx.bot_data.get("pending_letter", {})
+    if not pending.get(uid_str):
+        return
+
+    letter = update.message.text.strip()
+    if len(letter) < 10:
+        await update.message.reply_text(
+            "Напиши чуть больше — хотя бы пару предложений 🌿",
+        )
+        return
+
+    # Сохранить письмо
+    ctx.user_data["letter"] = letter
+    pending.pop(uid_str, None)
+    await update.message.reply_text(
+        "🌿 *МашаАллах!*\n\n"
+        "Письмо сохранено. Я верну его тебе в конце программы — "
+        "и ты увидишь свой путь. 📜\n\n"
+        "БаракАллах фикум! 🤲",
+        parse_mode="Markdown"
+    )
+
+
+async def cb_letter_skip(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Участник нажал «Пропустить» вместо письма."""
+    query   = update.callback_query
+    uid_str = str(update.effective_user.id)
+    await query.answer()
+    ctx.bot_data.get("pending_letter", {}).pop(uid_str, None)
+    await query.edit_message_text(
+        "Хорошо. Ты всегда можешь написать его позже — просто отправь мне текст, "
+        "начиная со слов «Письмо себе:». 🌿"
+    )
+
+
+# ══════════════════════════════════════════════════════════════════
+#  ЭТАП 11 — ПЯТНИЧНЫЙ ГОСТЬ
+# ══════════════════════════════════════════════════════════════════
+
+async def cmd_setguest(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор устанавливает контент пятничного гостя (/setguest текст)."""
+    if update.effective_user.id not in CURATOR_IDS:
+        return
+    text = " ".join(ctx.args) if ctx.args else ""
+    if not text:
+        current = ctx.bot_data.get("friday_guest", "_не установлен_")
+        await update.message.reply_text(
+            f"*Пятничный гость*\n\nТекущий:\n{current}\n\n"
+            "Чтобы обновить:\n`/setguest Текст сообщения от гостя`\n\n"
+            "Будет отправлен всем активным участникам в пятницу в 12:00 МСК.",
+            parse_mode="Markdown"
+        )
+        return
+    ctx.bot_data["friday_guest"] = text
+    await update.message.reply_text(
+        f"✅ Пятничный гость установлен!\n\n"
+        f"Будет отправлен в ближайшую пятницу в 12:00 МСК всем активным участникам.",
+    )
+
+
+async def job_friday_guest(ctx: ContextTypes.DEFAULT_TYPE):
+    """Пятница 12:00 МСК (09:00 UTC) — отправить пятничного гостя."""
+    guest_text = ctx.bot_data.get("friday_guest")
+    if not guest_text:
+        return
+    active = get_active_users(ctx)
+    sent = 0
+    for uid_str in active:
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                parse_mode="Markdown",
+                text=(
+                    "🎤 *Пятничный гость*\n\n"
+                    f"{guest_text}\n\n"
+                    "🌿 _БаракАллах фикум!_"
+                )
+            )
+            sent += 1
+        except Exception as e:
+            logger.warning(f"friday_guest → {uid_str}: {e}")
+    logger.info(f"friday_guest: отправлено {sent} участникам")
+
+
+# ══════════════════════════════════════════════════════════════════
+#  ЭТАП 12 — ЗЕРКАЛО ПРОГРЕССА (каждые 2 недели)
+# ══════════════════════════════════════════════════════════════════
+
+async def job_progress_mirror(ctx: ContextTypes.DEFAULT_TYPE):
+    """Воскресенье 19:00 МСК (16:00 UTC) — личный отчёт участнику раз в 2 недели."""
+    active  = get_active_users(ctx)
+    acks    = ctx.bot_data.get("week_acks", {})
+    mirrors = ctx.bot_data.setdefault("progress_mirrors", {})
+    now     = datetime.now(timezone.utc)
+
+    for uid_str, entry in list(active.items()):
+        level = entry.get("level", "?")
+        week  = entry.get("week",  1)
+
+        # Отправлять только на чётных неделях (2, 4, 6, 8)
+        if week % 2 != 0:
+            continue
+
+        # Уже отправляли на этой неделе этому участнику?
+        key = f"{uid_str}_{level}_{week}"
+        if key in mirrors:
+            continue
+        mirrors[key] = True
+
+        first     = (entry.get("name") or "Брат").split()[0]
+        total     = LEVEL_WEEKS.get(level, 8)
+        pct       = round(week / total * 100)
+        ack_data  = acks.get(uid_str, {})
+        ack_week  = ack_data.get("week", 0)
+
+        # Отметки за последние 2 недели
+        w2 = max(1, week - 1)
+        w1 = max(1, week - 2)
+        mark2 = "✅" if ack_week >= w2 else "⬜️"
+        mark1 = "✅" if ack_week >= w1 else "⬜️"
+
+        # Дней в программе
+        days_str = ""
+        joined = entry.get("joined_at")
+        if joined:
+            try:
+                j = datetime.fromtimestamp(joined, tz=timezone.utc)
+                days_in = (now - j).days
+                days_str = f"📅 *Дней в программе:* {days_in}\n"
+            except Exception:
+                pass
+
+        level_name = LEVEL_NAMES.get(level, level)
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                parse_mode="Markdown",
+                text=(
+                    f"📊 *Зеркало прогресса — {first}*\n\n"
+                    f"{days_str}"
+                    f"📈 *Прогресс:* Неделя {week} из {total} ({pct}%)\n"
+                    f"🎯 *Программа:* {level_name}\n\n"
+                    f"*Последние 2 недели:*\n"
+                    f"{mark1} Неделя {w1} — урок подтверждён\n"
+                    f"{mark2} Неделя {w2} — урок подтверждён\n\n"
+                    "Продолжай — каждый шаг считается. 🌱\n"
+                    "_БаракАллах фикум!_"
+                ),
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(
+                        url=f"{MINIAPP_URL}?lvl={level}&wk={week}"
+                    )),
+                ]])
+            )
+        except Exception as e:
+            logger.warning(f"progress_mirror → {uid_str}: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════
 #  MAIN
 # ══════════════════════════════════════════════════════════════════
 
@@ -2759,6 +3068,21 @@ def main():
     app.add_handler(CommandHandler("mybrother",   cmd_mybrother))
     app.add_handler(CommandHandler("mysister",    cmd_mybrother))
 
+    # Детектор молчания — inline-кнопка «Я здесь»
+    app.add_handler(CallbackQueryHandler(cb_silence_back, pattern="^silence_back$"))
+
+    # Письмо себе — inline-кнопка «Пропустить»
+    app.add_handler(CallbackQueryHandler(cb_letter_skip, pattern="^letter_skip$"))
+
+    # Пятничный гость — команда куратора
+    app.add_handler(CommandHandler("setguest", cmd_setguest))
+
+    # Обновление last_active + перехват письма (group=2, низкий приоритет)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        track_last_active
+    ), group=2)
+
     # Еженедельная рассылка — каждый понедельник в 9:00 МСК (UTC+3 = 06:00 UTC)
     app.job_queue.run_daily(
         job_weekly_lesson,
@@ -2800,6 +3124,29 @@ def main():
         time=time(17, 0, tzinfo=timezone.utc),
         days=(6,),
         name="weekly_report",
+    )
+
+    # Детектор молчания — ежедневно 10:00 МСК (07:00 UTC)
+    app.job_queue.run_daily(
+        job_silence_check,
+        time=time(7, 0, tzinfo=timezone.utc),
+        name="silence_check",
+    )
+
+    # Пятничный гость — пятница 12:00 МСК (09:00 UTC)
+    app.job_queue.run_daily(
+        job_friday_guest,
+        time=time(9, 0, tzinfo=timezone.utc),
+        days=(4,),
+        name="friday_guest",
+    )
+
+    # Зеркало прогресса — воскресенье 19:00 МСК (16:00 UTC)
+    app.job_queue.run_daily(
+        job_progress_mirror,
+        time=time(16, 0, tzinfo=timezone.utc),
+        days=(6,),
+        name="progress_mirror",
     )
 
     print("🤖 IQ Barakah бот запущен. Ctrl+C для остановки.")
