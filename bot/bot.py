@@ -814,7 +814,13 @@ def get_active_users(ctx: ContextTypes.DEFAULT_TYPE) -> dict:
     return ctx.bot_data.setdefault("active_users", {})
 
 
-async def send_week_lesson(bot, user_id: int, entry: dict):
+def get_lesson_video(ctx, level: str, week: int) -> str | None:
+    """Возвращает ссылку на видео для уровня+недели или None."""
+    key = f"{level}_{week}"
+    return ctx.bot_data.get("lesson_videos", {}).get(key)
+
+
+async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
     """Отправить урок недели конкретному пользователю."""
     level = entry["level"]
     week_idx = entry["week"] - 1
@@ -850,7 +856,20 @@ async def send_week_lesson(bot, user_id: int, entry: dict):
         f"*Задания на эту неделю:*\n{tasks}"
     )
     map_url = f"{MINIAPP_URL}?lvl={level}&wk={entry['week']}"
+
+    # Видео для урока
+    video_url = get_lesson_video(ctx, level, entry["week"]) if ctx else None
+
     try:
+        # Если есть видео — отправляем его первым
+        if video_url:
+            await bot.send_message(
+                chat_id=user_id,
+                text=f"🎬 *Видео-урок — Неделя {entry['week']}*\n\n{video_url}",
+                parse_mode="Markdown",
+                disable_web_page_preview=False,
+            )
+
         await bot.send_message(
             chat_id=user_id,
             text=msg,
@@ -862,6 +881,54 @@ async def send_week_lesson(bot, user_id: int, entry: dict):
         )
     except Exception as e:
         logger.warning(f"Не удалось отправить урок пользователю {user_id}: {e}")
+
+
+async def cmd_setvideo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор: /setvideo <уровень> <неделя> <ссылка>
+    Пример: /setvideo Б 3 https://disk.yandex.ru/i/XXXXX"""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    args = ctx.args
+    if len(args) < 3:
+        await update.message.reply_text(
+            "Использование: `/setvideo <уровень> <неделя> <ссылка>`\n\n"
+            "Пример: `/setvideo Б 3 https://disk.yandex.ru/i/XXXXX`\n\n"
+            "Уровни: А (ВАКТ), Б (Сезон 1), В (Сезон 2), Г (Сезон 3)",
+            parse_mode="Markdown"
+        )
+        return
+    level = args[0].upper()
+    try:
+        week = int(args[1])
+    except ValueError:
+        await update.message.reply_text("❌ Неделя должна быть числом.")
+        return
+    url = args[2]
+    key = f"{level}_{week}"
+    ctx.bot_data.setdefault("lesson_videos", {})[key] = url
+    await update.message.reply_text(
+        f"✅ Видео сохранено\n\n"
+        f"📍 Уровень *{level}*, Неделя *{week}*\n"
+        f"🔗 {url}",
+        parse_mode="Markdown"
+    )
+
+
+async def cmd_listvideos(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор: /listvideos — список всех видео."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    videos = ctx.bot_data.get("lesson_videos", {})
+    if not videos:
+        await update.message.reply_text("📹 Видео ещё не добавлены.\n\nИспользуй `/setvideo`", parse_mode="Markdown")
+        return
+    lines = ["📹 *Видео-уроки:*\n"]
+    for key in sorted(videos.keys()):
+        level, week = key.split("_")
+        lines.append(f"• Уровень *{level}*, Неделя *{week}*: {videos[key]}")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
 async def job_weekly_lesson(ctx: ContextTypes.DEFAULT_TYPE):
@@ -898,7 +965,7 @@ async def job_weekly_lesson(ctx: ContextTypes.DEFAULT_TYPE):
                     pass
             continue
 
-        await send_week_lesson(ctx.bot, uid, entry)
+        await send_week_lesson(ctx.bot, uid, entry, ctx)
         entry["week"] += 1
         sent += 1
 
@@ -2886,7 +2953,7 @@ async def cb_cur_lesson_one(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not e:
         await query.answer("Участник не найден.", show_alert=True)
         return
-    await send_week_lesson(ctx.bot, int(uid_str), e)
+    await send_week_lesson(ctx.bot, int(uid_str), e, ctx)
     name = e.get("name", uid_str)
     await query.answer(f"✅ Урок отправлен {name}!", show_alert=True)
 
@@ -3411,7 +3478,9 @@ def main():
     app.add_handler(CommandHandler("curator",    cmd_curator))
     app.add_handler(CommandHandler("msg",        cmd_msg))
     app.add_handler(CommandHandler("report",     cmd_report))
-    app.add_handler(CommandHandler("broadcast",  cmd_broadcast))
+    app.add_handler(CommandHandler("broadcast",   cmd_broadcast))
+    app.add_handler(CommandHandler("setvideo",    cmd_setvideo))
+    app.add_handler(CommandHandler("listvideos",  cmd_listvideos))
 
     # Панель куратора — inline callback
     app.add_handler(CallbackQueryHandler(cb_cur_back,         pattern="^cur_back$"))
