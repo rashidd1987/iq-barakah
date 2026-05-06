@@ -18,7 +18,7 @@ from telegram import (
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes, ConversationHandler,
-    PicklePersistence
+    PicklePersistence, PreCheckoutQueryHandler
 )
 
 # ── CONFIG ───────────────────────────────────────────────────────
@@ -32,6 +32,7 @@ MINIAPP_URL = "https://rashidd1987.github.io/iq-barakah/miniapp.html"  # GitHub 
 # ── ЮКАССА ───────────────────────────────────────────────────────
 YOOKASSA_SHOP_ID     = os.environ.get("YOOKASSA_SHOP_ID", "")
 YOOKASSA_SECRET_KEY  = os.environ.get("YOOKASSA_SECRET_KEY", "")
+PAYMENTS_TOKEN       = os.environ.get("PAYMENTS_TOKEN", "")
 if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
     YooConfig.account_id = YOOKASSA_SHOP_ID
     YooConfig.secret_key  = YOOKASSA_SECRET_KEY
@@ -1631,7 +1632,7 @@ async def cb_show_tariffs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Обработка нажатия 'Оплатить' — создаёт ссылку ЮКасса."""
+    """Обработка нажатия 'Оплатить' — нативный Telegram Payments."""
     query = update.callback_query
     await query.answer()
     tariff_id = query.data.replace("pay_", "")
@@ -1643,7 +1644,30 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     username = f"@{user.username}" if user.username else f"ID {user.id}"
     price_rub = f"{t['price']:,}".replace(",", " ")
 
-    # Создаём платёж через ЮКасса
+    # Нативный Telegram Payments
+    if PAYMENTS_TOKEN:
+        try:
+            await ctx.bot.send_invoice(
+                chat_id=user.id,
+                title=t["name"],
+                description=t["desc"],
+                payload=f"{tariff_id}:{user.id}",
+                provider_token=PAYMENTS_TOKEN,
+                currency="RUB",
+                prices=[{"label": t["name"], "amount": t["price"] * 100}],
+                start_parameter=f"pay_{tariff_id}",
+                photo_url="https://iq-barakah.ru/og-image.jpg",
+                need_name=True,
+                need_phone_number=False,
+                need_email=False,
+                is_flexible=False,
+            )
+            await query.answer()
+            return
+        except Exception as e:
+            logger.error(f"Telegram Payments error: {e}")
+
+    # Fallback через ЮКасса API
     if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
         try:
             idempotency_key = str(uuid.uuid4())
@@ -1749,6 +1773,49 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("◀️ Все тарифы", callback_data="show_tariffs")],
         ])
     )
+
+
+async def pre_checkout_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Подтверждение платежа перед списанием."""
+    await update.pre_checkout_query.answer(ok=True)
+
+
+async def successful_payment_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Платёж прошёл успешно."""
+    payment = update.message.successful_payment
+    payload = payment.invoice_payload  # "tariff_id:user_id"
+    tariff_id = payload.split(":")[0]
+    t = next((x for x in TARIFFS if x["id"] == tariff_id), None)
+    user = update.effective_user
+    username = f"@{user.username}" if user.username else f"ID {user.id}"
+    amount = payment.total_amount // 100
+
+    await update.message.reply_text(
+        f"✅ *Оплата прошла успешно!*\n\n"
+        f"📦 {t['name'] if t else tariff_id}\n"
+        f"💰 {amount:,} ₽\n\n".replace(",", " ") +
+        f"Куратор активирует тебя в программе в течение нескольких часов. "
+        f"Получишь уведомление здесь.\n\n"
+        f"🌿 _Баракат в каждом шаге_",
+        parse_mode="Markdown",
+        reply_markup=MAIN_MENU
+    )
+
+    # Уведомить куратора
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(
+                chat_id=cid, parse_mode="Markdown",
+                text=(
+                    f"✅ *Оплата подтверждена!*\n\n"
+                    f"👤 {user.full_name} ({username})\n"
+                    f"📦 Тариф: *{t['name'] if t else tariff_id}*\n"
+                    f"💰 Сумма: *{amount:,} ₽*\n\n".replace(",", " ") +
+                    f"Активируйте участника:\n`/activate {user.id} А`"
+                )
+            )
+        except Exception:
+            pass
 
 
 async def cb_check_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3449,6 +3516,8 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_show_tariffs,   pattern="^show_tariffs$"))
     app.add_handler(CallbackQueryHandler(cb_pay,             pattern="^pay_"))
     app.add_handler(CallbackQueryHandler(cb_check_payment,   pattern="^check_pay_"))
+    app.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
+    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
     app.add_handler(CallbackQueryHandler(restart_diag,    pattern="^restart$"))
     app.add_handler(CallbackQueryHandler(cb_week_ack,        pattern="^week_ack$"))
     app.add_handler(CallbackQueryHandler(cb_contact_curator, pattern="^contact_curator$"))
