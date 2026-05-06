@@ -1632,7 +1632,7 @@ async def cb_show_tariffs(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Обработка нажатия 'Оплатить' — нативный Telegram Payments."""
+    """Обработка нажатия 'Оплатить' — ЮКасса."""
     query = update.callback_query
     await query.answer()
     tariff_id = query.data.replace("pay_", "")
@@ -1644,106 +1644,65 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     username = f"@{user.username}" if user.username else f"ID {user.id}"
     price_rub = f"{t['price']:,}".replace(",", " ")
 
-    # Нативный Telegram Payments
-    if PAYMENTS_TOKEN:
-        try:
-            await ctx.bot.send_invoice(
-                chat_id=user.id,
-                title=t["name"],
-                description=t["desc"],
-                payload=f"{tariff_id}:{user.id}",
-                provider_token=PAYMENTS_TOKEN,
-                currency="RUB",
-                prices=[{"label": t["name"], "amount": t["price"] * 100}],
-                start_parameter=f"pay_{tariff_id}",
-                photo_url="https://iq-barakah.ru/og-image.jpg",
-                need_name=True,
-                need_phone_number=False,
-                need_email=False,
-                is_flexible=False,
-            )
-            await query.answer()
-            return
-        except Exception as e:
-            logger.error(f"Telegram Payments error: {e}")
+    # Оплата через ЮКасса
+    try:
+        idempotency_key = str(uuid.uuid4())
+        payment = YooPayment.create({
+            "amount": {"value": f"{t['price']}.00", "currency": "RUB"},
+            "confirmation": {"type": "redirect", "return_url": "https://t.me/iqbarakah_bot"},
+            "capture": True,
+            "description": f"{t['name']} — IQ Barakah",
+            "metadata": {"tariff_id": tariff_id, "user_id": str(user.id)},
+        }, idempotency_key)
 
-    # Fallback через ЮКасса API
-    if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
-        try:
-            idempotency_key = str(uuid.uuid4())
-            payment = YooPayment.create({
-                "amount": {
-                    "value": str(t["price"]) + ".00",
-                    "currency": "RUB"
-                },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": f"https://t.me/iqbarakah_bot"
-                },
-                "capture": True,
-                "description": f"{t['name']} — IQ Barakah (user: {user.id})",
-                "metadata": {
-                    "tariff_id": tariff_id,
-                    "user_id": str(user.id),
-                    "username": user.username or "",
-                },
-                "receipt": {
-                    "customer": {"email": "info@iqbarakah.ru"},
-                    "tax_system_code": 2,  # УСН доходы
-                    "items": [{
-                        "description": t["name"],
-                        "quantity": "1.00",
-                        "amount": {"value": str(t["price"]) + ".00", "currency": "RUB"},
-                        "vat_code": 1,  # без НДС
-                        "payment_mode": "full_payment",
-                        "payment_subject": "service",
-                    }]
-                }
-            }, idempotency_key)
+        pay_url = payment.confirmation.confirmation_url
+        payment_id = payment.id
 
-            pay_url = payment.confirmation.confirmation_url
-            payment_id = payment.id
+        ctx.bot_data.setdefault("pending_payments", {})[str(user.id)] = {
+            "payment_id": payment_id,
+            "tariff_id": tariff_id,
+            "tariff_name": t["name"],
+            "price": t["price"],
+        }
 
-            # Сохраняем payment_id для проверки
-            ctx.bot_data.setdefault("pending_payments", {})[str(user.id)] = {
-                "payment_id": payment_id,
-                "tariff_id": tariff_id,
-                "tariff_name": t["name"],
-                "price": t["price"],
-            }
-
-            # Уведомить куратора
-            for cid in CURATOR_IDS:
-                try:
-                    await ctx.bot.send_message(
-                        chat_id=cid, parse_mode="Markdown",
-                        text=(
-                            f"💳 *Создан счёт на оплату*\n\n"
-                            f"👤 {user.full_name} ({username})\n"
-                            f"📦 Тариф: *{t['name']}*\n"
-                            f"💰 Сумма: *{price_rub} ₽*\n"
-                            f"🔑 ID платежа: `{payment_id}`"
-                        )
+        for cid in CURATOR_IDS:
+            try:
+                await ctx.bot.send_message(
+                    chat_id=cid, parse_mode="Markdown",
+                    text=(
+                        f"💳 *Создан счёт на оплату*\n\n"
+                        f"👤 {user.full_name} ({username})\n"
+                        f"📦 Тариф: *{t['name']}*\n"
+                        f"💰 Сумма: *{price_rub} ₽*\n"
+                        f"🔑 ID: `{payment_id}`"
                     )
-                except Exception:
-                    pass
+                )
+            except Exception:
+                pass
 
-            await query.edit_message_text(
-                f"💳 *Оплата — {t['name']}*\n\n"
-                f"💰 Сумма: *{price_rub} ₽*\n\n"
-                f"Нажмите кнопку ниже чтобы перейти к оплате. "
-                f"После оплаты вернитесь в бот и нажмите «✅ Я оплатил».",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💳 Перейти к оплате", url=pay_url)],
-                    [InlineKeyboardButton("✅ Я оплатил", callback_data=f"check_pay_{tariff_id}")],
-                    [InlineKeyboardButton("◀️ Назад", callback_data="show_tariffs")],
-                ])
-            )
-            return
+        await query.edit_message_text(
+            f"💳 *{t['name']}*\n\n"
+            f"💰 Сумма: *{price_rub} ₽*\n\n"
+            f"Нажмите кнопку ниже для оплаты. После оплаты нажмите «✅ Я оплатил».",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💳 Перейти к оплате", url=pay_url)],
+                [InlineKeyboardButton("✅ Я оплатил", callback_data=f"check_pay_{tariff_id}")],
+                [InlineKeyboardButton("◀️ Назад", callback_data="show_tariffs")],
+            ])
+        )
+        return
 
-        except Exception as e:
-            logger.error(f"YooKassa error: {e}")
+    except Exception as e:
+        logger.error(f"YooKassa error: {e}")
+        await query.edit_message_text(
+            f"⚠️ Ошибка создания платежа: `{e}`\n\nСвяжитесь с куратором.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("💬 Написать куратору", callback_data="contact_curator")
+            ]])
+        )
+        return
 
     # Fallback — ручная оплата если ЮКасса не настроена
     for cid in CURATOR_IDS:
