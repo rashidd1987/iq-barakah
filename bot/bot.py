@@ -697,8 +697,9 @@ MAIN_MENU = ReplyKeyboardMarkup(
 # ── СОСТОЯНИЯ ────────────────────────────────────────────────────
 (
     NAME, GENDER, OCCUPATION, AGE, SOURCE,
-    Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8
-) = range(13)
+    Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
+    REG_GENDER, REG_ACTIVITY, REG_AGE, REG_FIO
+) = range(17)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -1291,25 +1292,116 @@ async def notify_curators(ctx, user, data: dict, result: dict):
 # ══════════════════════════════════════════════════════════════════
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    ctx.user_data.clear()
-    ctx.user_data["scores"] = []
     user = update.effective_user
-    # сохранить username глобально для якорных пар
     uid = str(user.id)
     ctx.bot_data.setdefault("user_usernames", {})[uid] = user.username
     name = user.first_name or "друг"
+
+    # Если уже зарегистрирован — сразу меню
+    profiles = ctx.bot_data.setdefault("reg_profiles", {})
+    if uid in profiles:
+        await update.message.reply_text(
+            f"*Ассаляму алейкум, {name}!*\n\n"
+            "Вы на пороге системы, которая изменит ваше отношение ко времени, делам и внутреннему состоянию. "
+            "Здесь начинается путь к жизни с баракатом и осознанной эффективностью.\n\n"
+            "Это не просто курс по тайм-менеджменту. Это 24-недельный путь, который соединяет ваши дела "
+            "(бизнес, работа) с вашим внутренним миром (намерение, вера, сердце).\n\n"
+            "Здесь вы можете:\n"
+            "✔️ узнать о системе подробнее\n"
+            "✔️ задать вопрос\n"
+            "✔️ сделать первый шаг к жизни, где успех в делах идёт вровень с духовным ростом.\n\n"
+            "За 24 недели вы получите: ясность в целях, дисциплину и настоящий баракат — "
+            "когда время и энергия работают на вас.",
+            parse_mode="Markdown",
+            reply_markup=MAIN_MENU
+        )
+        return ConversationHandler.END
+
+    # Новый пользователь — начинаем регистрацию
     await update.message.reply_text(
         f"*Ассаляму алейкум, {name}!*\n\n"
+        "Вы на пороге системы IQ-Barakah — платформы исламского личностного роста.\n\n"
+        "Прежде чем начать, ответьте на несколько коротких вопросов 👇",
+        parse_mode="Markdown"
+    )
+    await update.message.reply_text(
+        "*Вопрос 1 из 4*\n\nКто вы?",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🧔 Брат", callback_data="reg_gender_m"),
+            InlineKeyboardButton("🧕 Сестра", callback_data="reg_gender_f"),
+        ]])
+    )
+    return REG_GENDER
+
+
+async def reg_got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    is_female = query.data == "reg_gender_f"
+    ctx.user_data["reg_is_female"] = is_female
+    uid = str(update.effective_user.id)
+    ctx.bot_data.setdefault("user_genders", {})[uid] = is_female
+
+    await query.edit_message_text(
+        "*Вопрос 2 из 4*\n\nВид деятельности:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("💼 Предприниматель", callback_data="reg_act_entrepreneur")],
+            [InlineKeyboardButton("🧑‍💻 Самозанятый",    callback_data="reg_act_freelance")],
+            [InlineKeyboardButton("👔 Наёмный сотрудник", callback_data="reg_act_employee")],
+            [InlineKeyboardButton("🎓 Студент",           callback_data="reg_act_student")],
+        ])
+    )
+    return REG_ACTIVITY
+
+
+async def reg_got_activity(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    ctx.user_data["reg_activity"] = query.data.replace("reg_act_", "")
+    await query.edit_message_text(
+        "*Вопрос 3 из 4*\n\nСколько вам лет? _(напишите число)_",
+        parse_mode="Markdown"
+    )
+    return REG_AGE
+
+
+async def reg_got_age(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text.strip()
+    if not text.isdigit() or not (10 <= int(text) <= 100):
+        await update.message.reply_text("Пожалуйста, введите возраст числом (например: 28)")
+        return REG_AGE
+    ctx.user_data["reg_age"] = int(text)
+    await update.message.reply_text(
+        "*Вопрос 4 из 4*\n\nВаше ФИО _(Фамилия Имя Отчество)_:",
+        parse_mode="Markdown"
+    )
+    return REG_FIO
+
+
+async def reg_got_fio(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    fio = update.message.text.strip()
+    uid = str(update.effective_user.id)
+    is_female = ctx.user_data.get("reg_is_female", False)
+
+    profile = {
+        "fio":      fio,
+        "activity": ctx.user_data.get("reg_activity", ""),
+        "age":      ctx.user_data.get("reg_age", 0),
+        "gender":   "f" if is_female else "m",
+    }
+    ctx.bot_data.setdefault("reg_profiles", {})[uid] = profile
+    ctx.bot_data.setdefault("user_names", {})[uid] = fio
+
+    word = "Сестра" if is_female else "Брат"
+    await update.message.reply_text(
+        f"✅ *{word} {fio.split()[0]}, добро пожаловать!*\n\n"
         "Вы на пороге системы, которая изменит ваше отношение ко времени, делам и внутреннему состоянию. "
         "Здесь начинается путь к жизни с баракатом и осознанной эффективностью.\n\n"
-        "Это не просто курс по тайм-менеджменту. Это 24-недельный путь, который соединяет ваши дела "
-        "(бизнес, работа) с вашим внутренним миром (намерение, вера, сердце).\n\n"
-        "Здесь вы можете:\n"
-        "✔️ узнать о системе подробнее\n"
-        "✔️ задать вопрос\n"
-        "✔️ сделать первый шаг к жизни, где успех в делах идёт вровень с духовным ростом.\n\n"
         "За 24 недели вы получите: ясность в целях, дисциплину и настоящий баракат — "
-        "когда время и энергия работают на вас.",
+        "когда время и энергия работают на вас.\n\n"
+        "Используйте меню ниже 👇",
         parse_mode="Markdown",
         reply_markup=MAIN_MENU
     )
@@ -1837,21 +1929,25 @@ def get_pairs(ctx: ContextTypes.DEFAULT_TYPE) -> dict:
 
 
 async def auto_pair(bot, uid: int, ctx) -> bool:
-    """Автоматически ищет свободного партнёра того же пола и назначает пару.
-    Возвращает True если пара найдена."""
+    """Автоматически ищет свободного партнёра того же пола и уровня.
+    Парит ТОЛЬКО если пол известен у обоих и совпадает. Возвращает True если пара найдена."""
     uid_str = str(uid)
     pairs = get_pairs(ctx)
     if uid_str in pairs:
         return False  # уже есть пара
 
-    genders = ctx.bot_data.get("user_genders", {})
-    active  = get_active_users(ctx)
-    names   = ctx.bot_data.get("user_names", {})
+    genders   = ctx.bot_data.get("user_genders", {})
+    active    = get_active_users(ctx)
+    names     = ctx.bot_data.get("user_names", {})
     usernames = ctx.bot_data.get("user_usernames", {})
 
     is_female = genders.get(uid_str)
+    if is_female is None:
+        return False  # пол неизвестен — не паровать
 
-    # Ищем активного участника без пары того же пола
+    my_level = active.get(uid_str, {}).get("level")
+
+    # Ищем активного участника без пары: строго тот же пол + тот же уровень
     partner_id = None
     for pid_str, entry in active.items():
         if pid_str == uid_str:
@@ -1859,7 +1955,9 @@ async def auto_pair(bot, uid: int, ctx) -> bool:
         if pid_str in pairs:
             continue
         p_gender = genders.get(pid_str)
-        if is_female is not None and p_gender is not None and p_gender != is_female:
+        if p_gender is None or p_gender != is_female:
+            continue
+        if my_level and entry.get("level") != my_level:
             continue
         partner_id = int(pid_str)
         break
@@ -3104,9 +3202,25 @@ def main():
 
     app.add_handler(conv)
 
+    # Регистрация при первом /start
+    reg_conv = ConversationHandler(
+        entry_points=[
+            CommandHandler("start", cmd_start),
+            CommandHandler("menu",  cmd_start),
+        ],
+        states={
+            REG_GENDER:   [CallbackQueryHandler(reg_got_gender,   pattern="^reg_gender_")],
+            REG_ACTIVITY: [CallbackQueryHandler(reg_got_activity, pattern="^reg_act_")],
+            REG_AGE:      [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_age)],
+            REG_FIO:      [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_fio)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+        allow_reentry=True,
+        per_user=True, per_chat=True, per_message=False,
+    )
+    app.add_handler(reg_conv)
+
     # Статические кнопки меню
-    app.add_handler(CommandHandler("start",   cmd_start))
-    app.add_handler(CommandHandler("menu",    cmd_start))
     app.add_handler(CommandHandler("site",    cmd_site))
     app.add_handler(CommandHandler("prices",  cmd_prices))
     app.add_handler(CommandHandler("payment", cmd_payment))
