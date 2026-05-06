@@ -1,1 +1,2 @@
 python-telegram-bot[job-queue]>=21.0
+yookassa>=3.0.0
