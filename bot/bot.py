@@ -961,12 +961,17 @@ async def cmd_activate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         participant_notified = f"⚠️ Не удалось запустить онбординг: {e}"
 
+    # Автоназначение якорного брата/сестры
+    paired = await auto_pair(ctx.bot, target_id, ctx)
+    pair_status = "🤝 Якорный брат назначен автоматически" if paired else "⏳ Якорный брат — ждёт пары"
+
     await update.message.reply_text(
         f"✅ *Активировано*\n\n"
         f"👤 ID: `{target_id}`\n"
         f"📍 Уровень: *{level}* ({LEVEL_NAMES[level]})\n"
         f"📅 Начинает с недели: *{week}*\n"
-        f"{participant_notified}",
+        f"{participant_notified}\n"
+        f"{pair_status}",
         parse_mode="Markdown"
     )
 
@@ -1588,6 +1593,7 @@ async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
+    ctx.bot_data.setdefault("user_genders", {})[str(update.effective_user.id)] = ctx.user_data["is_female"]
     await query.edit_message_text(
         "Понял 🌿\n\n*Чем ты занимаешься?*",
         parse_mode="Markdown",
@@ -1828,6 +1834,81 @@ async def cb_my_prog(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 def get_pairs(ctx: ContextTypes.DEFAULT_TYPE) -> dict:
     """bot_data['pairs'] = {uid: partner_uid, ...} — двусторонний словарь."""
     return ctx.bot_data.setdefault("pairs", {})
+
+
+async def auto_pair(bot, uid: int, ctx) -> bool:
+    """Автоматически ищет свободного партнёра того же пола и назначает пару.
+    Возвращает True если пара найдена."""
+    uid_str = str(uid)
+    pairs = get_pairs(ctx)
+    if uid_str in pairs:
+        return False  # уже есть пара
+
+    genders = ctx.bot_data.get("user_genders", {})
+    active  = get_active_users(ctx)
+    names   = ctx.bot_data.get("user_names", {})
+    usernames = ctx.bot_data.get("user_usernames", {})
+
+    is_female = genders.get(uid_str)
+
+    # Ищем активного участника без пары того же пола
+    partner_id = None
+    for pid_str, entry in active.items():
+        if pid_str == uid_str:
+            continue
+        if pid_str in pairs:
+            continue
+        p_gender = genders.get(pid_str)
+        if is_female is not None and p_gender is not None and p_gender != is_female:
+            continue
+        partner_id = int(pid_str)
+        break
+
+    if not partner_id:
+        return False
+
+    # Назначаем пару двусторонне
+    pairs[uid_str] = partner_id
+    pairs[str(partner_id)] = uid
+
+    name1    = names.get(uid_str, "Участник")
+    name2    = names.get(str(partner_id), "Участник")
+    link1    = _user_link(uid, name1, usernames.get(uid_str))
+    link2    = _user_link(partner_id, name2, usernames.get(str(partner_id)))
+    word     = lambda f: "якорная сестра" if f else "якорный брат"
+
+    msg = (
+        "🤝 *{title} назначен{a}!*\n\n"
+        "👤 {link}\n\n"
+        "📋 *Правила:*\n"
+        "• Пиши каждую пятницу — как дела, как практики\n"
+        "• Делай дуа за него/неё по имени\n"
+        "• Поддерживай — не осуждай\n\n"
+        "🌿 _Баракат приходит через связь_"
+    )
+
+    await bot.send_message(
+        uid,
+        msg.format(
+            title=word(is_female).capitalize(),
+            a="а" if is_female else "",
+            link=link2
+        ),
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )
+    p_female = genders.get(str(partner_id))
+    await bot.send_message(
+        partner_id,
+        msg.format(
+            title=word(p_female).capitalize(),
+            a="а" if p_female else "",
+            link=link1
+        ),
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )
+    return True
 
 
 def _user_link(uid: int, name: str, username: str | None) -> str:
