@@ -2006,6 +2006,23 @@ async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"✅ Email `{email}` сохранён.", parse_mode="Markdown")
 
 
+async def cmd_resetme(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Сброс регистрации — только для куратора/тестирования"""
+    uid = str(update.effective_user.id)
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔ Команда недоступна.")
+        return
+    # Чистим все данные пользователя
+    ctx.bot_data.get("reg_profiles", {}).pop(uid, None)
+    ctx.bot_data.get("pd_consents", {}).pop(uid, None)
+    ctx.bot_data.get("user_emails", {}).pop(uid, None)
+    ctx.bot_data.get("user_phones", {}).pop(uid, None)
+    ctx.user_data.clear()
+    await update.message.reply_text(
+        "✅ Твои данные сброшены. Теперь напиши /start — откроется экран новго пользователя."
+    )
+
+
 async def cmd_contact(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Связь с куратором"""
     user = update.effective_user
@@ -3688,6 +3705,7 @@ def main():
 
     # Email для чеков
     app.add_handler(CommandHandler("setemail",    cmd_setemail))
+    app.add_handler(CommandHandler("resetme",     cmd_resetme))
 
     # Якорный брат — для участников
     app.add_handler(CommandHandler("mybrother",   cmd_mybrother))
