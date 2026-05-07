@@ -1404,7 +1404,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         "персональных данных в соответствии с Федеральным законом №152-ФЗ «О персональных данных».\n\n"
         "Мы собираем: ФИО, дату рождения, пол, вид деятельности, номер телефона.\n"
         "Данные используются исключительно для работы платформы и не передаются третьим лицам.\n\n"
-        "Ознакомьтесь с [Политикой конфиденциальности](https://iq-barakah.ru/privacy) и нажмите «Даю согласие» для продолжения.",
+        "Ознакомьтесь с [Политикой конфиденциальности](https://iq-barakah.ru/privacy-policy.html) и нажмите «Даю согласие» для продолжения.",
         parse_mode="Markdown",
         disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup([[
@@ -1767,7 +1767,7 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"💳 *{t['name']}*\n\n"
             f"💰 Сумма: *{price_rub} ₽*\n\n"
             f"Нажмите кнопку ниже для оплаты. После оплаты нажмите «✅ Я оплатил».\n\n"
-            f"_Нажимая «Перейти к оплате», вы принимаете условия [публичной оферты](https://iq-barakah.ru/oferta)._",
+            f"_Нажимая «Перейти к оплате», вы принимаете условия [публичной оферты](https://iq-barakah.ru/oferta.html)._",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("💳 Перейти к оплате", url=pay_url)],
