@@ -1507,12 +1507,55 @@ async def cb_week_ack(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     logger.warning(f"letter_return → {uid}: {e}")
 
 
+VAKT_DIAG_QUESTIONS = [
+    {
+        "text": "🕌 *Вопрос 1 из 3*\n\nКак часто ты совершаешь намаз?",
+        "options": [
+            ("Почти не совершаю или совсем не совершаю", "А"),
+            ("Совершаю фард-намазы, но не всегда", "Б"),
+            ("Совершаю все 5 намазов регулярно", "В"),
+        ]
+    },
+    {
+        "text": "📖 *Вопрос 2 из 3*\n\nКак часто ты читаешь Коран?",
+        "options": [
+            ("Редко или не читаю", "А"),
+            ("Читаю иногда, но без системы", "Б"),
+            ("Читаю регулярно, есть вирд (норма)", "В"),
+        ]
+    },
+    {
+        "text": "🎯 *Вопрос 3 из 3*\n\nЧего ты хочешь от ВАКТ?",
+        "options": [
+            ("Начать с малого, без давления — просто первый шаг", "А"),
+            ("Выстроить систему и постоянство в практике", "Б"),
+            ("Углубиться: смиренность, искренность, передача знаний", "В"),
+        ]
+    },
+]
+
+
 async def cb_vakt_level(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Участник выбирает уровень ВАКТ (А/Б/В) в начале программы."""
+    """Участник выбирает уровень ВАКТ (А/Б/В) или запускает диагностику."""
     query = update.callback_query
     await query.answer()
     uid = str(update.effective_user.id)
     level_choice = query.data.replace("vakt_level_", "")
+
+    # Запуск диагностики уровня
+    if level_choice == "diag":
+        ctx.user_data["vakt_diag_scores"] = []
+        ctx.user_data["vakt_diag_step"] = 0
+        q = VAKT_DIAG_QUESTIONS[0]
+        await query.edit_message_text(
+            q["text"],
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(opt, callback_data=f"vakt_diag_0_{score}")]
+                for opt, score in q["options"]
+            ])
+        )
+        return
 
     # Сохранить выбранный уровень
     entry = ctx.bot_data.get("active_users", {}).get(uid)
@@ -1525,9 +1568,61 @@ async def cb_vakt_level(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"БисмиЛлях! Вот твой первый урок 👇",
         parse_mode="Markdown"
     )
-
     if entry:
         await send_week_lesson(ctx.bot, update.effective_user.id, entry, ctx)
+
+
+async def cb_vakt_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Диагностика уровня ВАКТ — 3 вопроса, подсчёт голосов А/Б/В."""
+    query = update.callback_query
+    await query.answer()
+    uid = str(update.effective_user.id)
+
+    # Парсим: vakt_diag_<step>_<score>
+    parts = query.data.split("_")  # ['vakt', 'diag', step, score]
+    step = int(parts[2])
+    score = parts[3]
+
+    scores = ctx.user_data.setdefault("vakt_diag_scores", [])
+    scores.append(score)
+    next_step = step + 1
+
+    if next_step < len(VAKT_DIAG_QUESTIONS):
+        q = VAKT_DIAG_QUESTIONS[next_step]
+        await query.edit_message_text(
+            q["text"],
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(opt, callback_data=f"vakt_diag_{next_step}_{sc}")]
+                for opt, sc in q["options"]
+            ])
+        )
+    else:
+        # Подсчёт: большинство голосов определяет уровень
+        from collections import Counter
+        counts = Counter(scores)
+        level_choice = counts.most_common(1)[0][0]
+
+        entry = ctx.bot_data.get("active_users", {}).get(uid)
+        if entry:
+            entry["vakt_level"] = level_choice
+
+        labels = {"А": "🌱 Уровень А", "Б": "📗 Уровень Б", "В": "📘 Уровень В"}
+        descs = {
+            "А": "Начинаешь с нуля — мягко, без давления.",
+            "Б": "Есть основа — выстроим систему и постоянство.",
+            "В": "Готов к глубине — смиренность, искренность, наследие.",
+        }
+        await query.edit_message_text(
+            f"✅ *Твой уровень: {labels.get(level_choice, level_choice)}*\n\n"
+            f"{descs.get(level_choice, '')}\n\n"
+            f"БисмиЛлях! Вот твой первый урок 👇",
+            parse_mode="Markdown"
+        )
+        ctx.user_data.pop("vakt_diag_scores", None)
+        ctx.user_data.pop("vakt_diag_step", None)
+        if entry:
+            await send_week_lesson(ctx.bot, update.effective_user.id, entry, ctx)
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -3239,15 +3334,19 @@ async def run_onboarding(bot, user_id: int, name: str, level: str, week: int,
                 "🌱 *Уровень А* — я этнический мусульманин, "
                 "практикую редко или совсем не практикую. "
                 "Хочу начать с малого, без давления.\n\n"
-                "📗 *Уровень Б* — я иногда молюсь, читаю Коран, "
-                "но нет системы. Хочу выстроить постоянство.\n\n"
+                "📗 *Уровень Б* — я молюсь, но только фард-намазы. "
+                "Читаю Коран, но не каждый день. Нет системы. "
+                "Хочу выстроить постоянство.\n\n"
                 "📘 *Уровень В* — я практикую регулярно. "
-                "Хочу глубины — богословие, передача знаний, наследие."
+                "Хочу смиренности, искренности, глубины — "
+                "передача знаний, наследие.\n\n"
+                "Или пройди короткую диагностику — мы сами определим твой уровень 👇"
             ),
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌱 Уровень А — начинаю с нуля", callback_data="vakt_level_А")],
-                [InlineKeyboardButton("📗 Уровень Б — иногда практикую", callback_data="vakt_level_Б")],
-                [InlineKeyboardButton("📘 Уровень В — практикую регулярно", callback_data="vakt_level_В")],
+                [InlineKeyboardButton("🌱 Уровень А — начинаю с нуля",      callback_data="vakt_level_А")],
+                [InlineKeyboardButton("📗 Уровень Б — хочу постоянство",    callback_data="vakt_level_Б")],
+                [InlineKeyboardButton("📘 Уровень В — хочу глубины",        callback_data="vakt_level_В")],
+                [InlineKeyboardButton("🔍 Пройти диагностику уровня",       callback_data="vakt_level_diag")],
             ])
         )
     else:
@@ -4196,6 +4295,7 @@ def main():
     app.add_handler(CallbackQueryHandler(restart_diag,    pattern="^restart$"))
     app.add_handler(CallbackQueryHandler(cb_week_ack,        pattern="^week_ack$"))
     app.add_handler(CallbackQueryHandler(cb_vakt_level, pattern="^vakt_level_"))
+    app.add_handler(CallbackQueryHandler(cb_vakt_diag,  pattern="^vakt_diag_"))
     app.add_handler(CallbackQueryHandler(cb_contact_curator, pattern="^contact_curator$"))
     app.add_handler(CallbackQueryHandler(cb_my_prog,         pattern="^my_prog$"))
 
