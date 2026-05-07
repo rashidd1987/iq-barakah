@@ -1728,8 +1728,8 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             ctx.user_data["awaiting_pay_email"] = True
             await query.edit_message_text(
                 "📧 *Для получения чека нужен ваш email.*\n\n"
-                "Пожалуйста, введите ваш email _(например: ivan\\@mail\\.ru)_:",
-                parse_mode="MarkdownV2",
+                "Пожалуйста, введите ваш email (например: ivan@mail.ru):",
+                parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("◀️ Назад", callback_data="show_tariffs")
                 ]])
@@ -1780,8 +1780,7 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"YooKassa error: {e}")
         await query.edit_message_text(
-            f"⚠️ Ошибка создания платежа: `{e}`\n\nСвяжитесь с куратором.",
-            parse_mode="Markdown",
+            f"⚠️ Ошибка создания платежа. Свяжитесь с куратором.\n\n(Детали: {e})",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("💬 Написать куратору", callback_data="contact_curator")
             ]])
