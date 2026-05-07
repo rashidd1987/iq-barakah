@@ -709,8 +709,8 @@ MAIN_MENU = ReplyKeyboardMarkup(
 (
     NAME, GENDER, OCCUPATION, AGE, SOURCE,
     Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
-    REG_GENDER, REG_ACTIVITY, REG_AGE, REG_FIO, REG_EMAIL
-) = range(18)
+    REG_CONSENT, REG_FIO, REG_BIRTHDATE, REG_GENDER, REG_ACTIVITY, REG_PHONE, PAY_EMAIL
+) = range(20)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -1395,19 +1395,70 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         )
         return ConversationHandler.END
 
-    # Новый пользователь — начинаем регистрацию
+    # Новый пользователь — запрашиваем согласие на обработку ПД (152-ФЗ)
     await update.message.reply_text(
-        f"*Ассаляму алейкум, {name}!*\n\n"
-        "Вы на пороге системы IQ-Barakah — платформы исламского личностного роста.\n\n"
-        "Прежде чем начать, ответьте на несколько коротких вопросов 👇",
+        f"*Ассаляму алейкум, {name}! 🌙*\n\n"
+        "Добро пожаловать в *IQ-Barakah* — платформу исламского личностного роста.\n\n"
+        "Прежде чем начать, нам нужно заполнить анкету (5 вопросов).\n\n"
+        "⚠️ *Важно:* Для использования платформы необходимо ваше согласие на обработку "
+        "персональных данных в соответствии с Федеральным законом №152-ФЗ «О персональных данных».\n\n"
+        "Мы собираем: ФИО, дату рождения, пол, вид деятельности, номер телефона.\n"
+        "Данные используются исключительно для работы платформы и не передаются третьим лицам.\n\n"
+        "Ознакомьтесь с [Политикой конфиденциальности](https://iq-barakah.ru/privacy) и нажмите «Даю согласие» для продолжения.",
+        parse_mode="Markdown",
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Даю согласие на обработку ПД", callback_data="reg_consent_yes"),
+        ]])
+    )
+    return REG_CONSENT
+
+
+async def reg_got_consent(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    uid = str(update.effective_user.id)
+    ctx.bot_data.setdefault("pd_consents", {})[uid] = {
+        "agreed": True,
+        "date": datetime.now(timezone.utc).isoformat(),
+    }
+    await query.edit_message_text(
+        "*Вопрос 1 из 5*\n\nВаше ФИО _(Фамилия Имя Отчество)_:",
         parse_mode="Markdown"
     )
+    return REG_FIO
+
+
+async def reg_got_fio(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    fio = update.message.text.strip()
+    if len(fio) < 3:
+        await update.message.reply_text("Пожалуйста, введите полное ФИО (Фамилия Имя Отчество):")
+        return REG_FIO
+    ctx.user_data["reg_fio"] = fio
     await update.message.reply_text(
-        "*Вопрос 1 из 4*\n\nКто вы?",
+        "*Вопрос 2 из 5*\n\nДата рождения _(например: 15.03.1990)_:",
+        parse_mode="Markdown"
+    )
+    return REG_BIRTHDATE
+
+
+async def reg_got_birthdate(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    text = update.message.text.strip()
+    # Проверка формата ДД.ММ.ГГГГ
+    import re
+    if not re.match(r"^\d{1,2}\.\d{1,2}\.\d{4}$", text):
+        await update.message.reply_text(
+            "⚠️ Введите дату в формате ДД.ММ.ГГГГ _(например: 15.03.1990)_:",
+            parse_mode="Markdown"
+        )
+        return REG_BIRTHDATE
+    ctx.user_data["reg_birthdate"] = text
+    await update.message.reply_text(
+        "*Вопрос 3 из 5*\n\nВаш пол:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("🧔 Брат", callback_data="reg_gender_m"),
-            InlineKeyboardButton("🧕 Сестра", callback_data="reg_gender_f"),
+            InlineKeyboardButton("🧔 Мужской", callback_data="reg_gender_m"),
+            InlineKeyboardButton("🧕 Женский",  callback_data="reg_gender_f"),
         ]])
     )
     return REG_GENDER
@@ -1422,13 +1473,14 @@ async def reg_got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.bot_data.setdefault("user_genders", {})[uid] = is_female
 
     await query.edit_message_text(
-        "*Вопрос 2 из 4*\n\nВид деятельности:",
+        "*Вопрос 4 из 5*\n\nВид деятельности:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("💼 Предприниматель", callback_data="reg_act_entrepreneur")],
-            [InlineKeyboardButton("🧑‍💻 Самозанятый",    callback_data="reg_act_freelance")],
+            [InlineKeyboardButton("💼 Предприниматель",   callback_data="reg_act_entrepreneur")],
+            [InlineKeyboardButton("🧑‍💻 Самозанятый",      callback_data="reg_act_freelance")],
             [InlineKeyboardButton("👔 Наёмный сотрудник", callback_data="reg_act_employee")],
-            [InlineKeyboardButton("🎓 Студент",           callback_data="reg_act_student")],
+            [InlineKeyboardButton("🎓 Студент",            callback_data="reg_act_student")],
+            [InlineKeyboardButton("🏠 Другое",             callback_data="reg_act_other")],
         ])
     )
     return REG_ACTIVITY
@@ -1439,62 +1491,41 @@ async def reg_got_activity(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> in
     await query.answer()
     ctx.user_data["reg_activity"] = query.data.replace("reg_act_", "")
     await query.edit_message_text(
-        "*Вопрос 3 из 4*\n\nСколько вам лет? _(напишите число)_",
+        "*Вопрос 5 из 5*\n\n📞 Ваш номер телефона:\n\n"
+        "_Нужен для поддержания связи с вами. Формат: +7XXXXXXXXXX_",
         parse_mode="Markdown"
     )
-    return REG_AGE
+    return REG_PHONE
 
 
-async def reg_got_age(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text.strip()
-    if not text.isdigit() or not (10 <= int(text) <= 100):
-        await update.message.reply_text("Пожалуйста, введите возраст числом (например: 28)")
-        return REG_AGE
-    ctx.user_data["reg_age"] = int(text)
-    await update.message.reply_text(
-        "*Вопрос 4 из 4*\n\nВаше ФИО _(Фамилия Имя Отчество)_:",
-        parse_mode="Markdown"
-    )
-    return REG_FIO
-
-
-async def reg_got_fio(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    fio = update.message.text.strip()
-    ctx.user_data["reg_fio"] = fio
-    await update.message.reply_text(
-        "*Вопрос 5 из 5*\n\nВаш email _(нужен для получения чека об оплате)_:",
-        parse_mode="Markdown"
-    )
-    return REG_EMAIL
-
-
-async def reg_got_email(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    email = update.message.text.strip()
+async def reg_got_phone(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    import re
+    phone = update.message.text.strip().replace(" ", "").replace("-", "")
     uid = str(update.effective_user.id)
     is_female = ctx.user_data.get("reg_is_female", False)
     fio = ctx.user_data.get("reg_fio", "")
 
-    # базовая проверка формата
-    if "@" not in email or "." not in email:
+    if not re.match(r"^[\+7\d][\d]{9,14}$", phone):
         await update.message.reply_text(
-            "⚠️ Пожалуйста, введите корректный email (например: ivan@mail.ru):"
+            "⚠️ Введите корректный номер телефона (например: +79001234567):"
         )
-        return REG_EMAIL
+        return REG_PHONE
 
     profile = {
-        "fio":      fio,
-        "activity": ctx.user_data.get("reg_activity", ""),
-        "age":      ctx.user_data.get("reg_age", 0),
-        "gender":   "f" if is_female else "m",
-        "email":    email,
+        "fio":       fio,
+        "birthdate": ctx.user_data.get("reg_birthdate", ""),
+        "activity":  ctx.user_data.get("reg_activity", ""),
+        "gender":    "f" if is_female else "m",
+        "phone":     phone,
     }
     ctx.bot_data.setdefault("reg_profiles", {})[uid] = profile
-    ctx.bot_data.setdefault("user_names", {})[uid] = fio
-    ctx.bot_data.setdefault("user_emails", {})[uid] = email
+    ctx.bot_data.setdefault("user_names",   {})[uid] = fio
+    ctx.bot_data.setdefault("user_phones",  {})[uid] = phone
 
     word = "Сестра" if is_female else "Брат"
+    first_name = fio.split()[1] if len(fio.split()) > 1 else fio.split()[0]
     await update.message.reply_text(
-        f"✅ *{word} {fio.split()[0]}, добро пожаловать!*\n\n"
+        f"✅ *{word} {first_name}, добро пожаловать!*\n\n"
         "Вы на пороге системы, которая изменит ваше отношение ко времени, делам и внутреннему состоянию. "
         "Здесь начинается путь к жизни с баракатом и осознанной эффективностью.\n\n"
         "За 24 недели вы получите: ясность в целях, дисциплину и настоящий баракат — "
@@ -1692,16 +1723,17 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 }]
             }
         else:
-            # Email не найден — просим ввести
+            # Email не найден — запрашиваем прямо здесь
+            ctx.user_data["pending_tariff"] = tariff_id
+            ctx.user_data["awaiting_pay_email"] = True
             await query.edit_message_text(
-                "📧 Для оплаты нужен ваш email (для чека).\n\n"
-                "Пожалуйста, напишите ваш email командой:\n`/setemail ваш@email.ru`",
-                parse_mode="Markdown",
+                "📧 *Для получения чека нужен ваш email.*\n\n"
+                "Пожалуйста, введите ваш email _(например: ivan\\@mail\\.ru)_:",
+                parse_mode="MarkdownV2",
                 reply_markup=InlineKeyboardMarkup([[
                     InlineKeyboardButton("◀️ Назад", callback_data="show_tariffs")
                 ]])
             )
-            ctx.user_data["pending_tariff"] = tariff_id
             return
 
         payment = YooPayment.create(payment_data, idempotency_key)
@@ -1734,7 +1766,8 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"💳 *{t['name']}*\n\n"
             f"💰 Сумма: *{price_rub} ₽*\n\n"
-            f"Нажмите кнопку ниже для оплаты. После оплаты нажмите «✅ Я оплатил».",
+            f"Нажмите кнопку ниже для оплаты. После оплаты нажмите «✅ Я оплатил».\n\n"
+            f"_Нажимая «Перейти к оплате», вы принимаете условия [публичной оферты](https://iq-barakah.ru/oferta)._",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("💳 Перейти к оплате", url=pay_url)],
@@ -1938,6 +1971,39 @@ async def cmd_setemail(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     InlineKeyboardButton(f"Оплатить {t['price']:,} ₽".replace(",", " "), callback_data=f"pay_{pending}")
                 ]])
             )
+
+
+async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Ловит email введённый пользователем перед оплатой."""
+    if not ctx.user_data.get("awaiting_pay_email"):
+        return  # не ждём email — пропускаем
+    import re
+    email = update.message.text.strip()
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        await update.message.reply_text(
+            "⚠️ Некорректный email. Введите снова _(например: ivan@mail.ru)_:",
+            parse_mode="Markdown"
+        )
+        return
+    uid = str(update.effective_user.id)
+    ctx.bot_data.setdefault("user_emails", {})[uid] = email
+    if uid in ctx.bot_data.get("reg_profiles", {}):
+        ctx.bot_data["reg_profiles"][uid]["email"] = email
+    ctx.user_data.pop("awaiting_pay_email", None)
+
+    pending = ctx.user_data.get("pending_tariff")
+    if pending:
+        t = next((x for x in TARIFFS if x["id"] == pending), None)
+        if t:
+            await update.message.reply_text(
+                f"✅ Email сохранён!\n\n💳 Продолжить оплату *{t['name']}* — {t['price']} ₽?",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(f"💳 Оплатить {t['price']} ₽", callback_data=f"pay_{pending}")
+                ]])
+            )
+    else:
+        await update.message.reply_text(f"✅ Email `{email}` сохранён.", parse_mode="Markdown")
 
 
 async def cmd_contact(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3534,11 +3600,12 @@ def main():
             CommandHandler("menu",  cmd_start),
         ],
         states={
-            REG_GENDER:   [CallbackQueryHandler(reg_got_gender,   pattern="^reg_gender_")],
-            REG_ACTIVITY: [CallbackQueryHandler(reg_got_activity, pattern="^reg_act_")],
-            REG_AGE:      [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_age)],
-            REG_FIO:      [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_fio)],
-            REG_EMAIL:    [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_email)],
+            REG_CONSENT:   [CallbackQueryHandler(reg_got_consent,   pattern="^reg_consent_yes$")],
+            REG_FIO:       [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_fio)],
+            REG_BIRTHDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_birthdate)],
+            REG_GENDER:    [CallbackQueryHandler(reg_got_gender,    pattern="^reg_gender_")],
+            REG_ACTIVITY:  [CallbackQueryHandler(reg_got_activity,  pattern="^reg_act_")],
+            REG_PHONE:     [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_phone)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         allow_reentry=True,
@@ -3631,6 +3698,12 @@ def main():
 
     # Пятничный гость — команда куратора
     app.add_handler(CommandHandler("setguest", cmd_setguest))
+
+    # Email при оплате (group=1 — выше track_last_active)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        pay_email_handler
+    ), group=1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
