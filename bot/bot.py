@@ -1822,42 +1822,83 @@ async def pre_checkout_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.pre_checkout_query.answer(ok=True)
 
 
+# Маппинг тариф → уровень программы
+TARIFF_TO_LEVEL = {
+    "vakt":    "А",   # ВАКТ — 6 недель
+    "s1_full": "Б",   # Сезон 1 — 8 недель
+    "s3_full": "Б",   # Все 3 сезона — начинаем с Сезона 1
+    "jamaat":  "Б",   # Джамаат — Сезон 1
+}
+
+
+async def _activate_after_payment(bot, user, tariff_id: str, tariff_name: str, amount: int, ctx):
+    """Автоматически активирует участника сразу после оплаты."""
+    uid = str(user.id)
+    level = TARIFF_TO_LEVEL.get(tariff_id, "А")
+    name = ctx.bot_data.get("user_names", {}).get(uid, user.full_name or "Участник")
+
+    # Активируем
+    get_active_users(ctx)[uid] = {
+        "level": level,
+        "week": 1,
+        "name": name,
+        "activated_at": datetime.now(timezone.utc).isoformat(),
+        "tariff_id": tariff_id,
+    }
+
+    # Онбординг
+    try:
+        await run_onboarding(bot, user.id, name, level, 1, ctx)
+    except Exception as e:
+        logger.error(f"Onboarding error after payment: {e}")
+
+    # Якорный брат/сестра
+    try:
+        await auto_pair(bot, user.id, ctx)
+    except Exception as e:
+        logger.error(f"Auto-pair error after payment: {e}")
+
+    # Уведомить куратора
+    username = f"@{user.username}" if user.username else f"ID {user.id}"
+    for cid in CURATOR_IDS:
+        try:
+            await bot.send_message(
+                chat_id=cid, parse_mode="Markdown",
+                text=(
+                    f"✅ *Оплата + авто-активация*\n\n"
+                    f"👤 {user.full_name} ({username})\n"
+                    f"📦 Тариф: *{tariff_name}*\n"
+                    f"💰 Сумма: *{amount:,} ₽*\n".replace(",", " ") +
+                    f"📍 Уровень: *{level}* — запущен онбординг автоматически"
+                )
+            )
+        except Exception:
+            pass
+
+
 async def successful_payment_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Платёж прошёл успешно."""
+    """Платёж прошёл успешно (Telegram Payments)."""
     payment = update.message.successful_payment
     payload = payment.invoice_payload  # "tariff_id:user_id"
     tariff_id = payload.split(":")[0]
     t = next((x for x in TARIFFS if x["id"] == tariff_id), None)
     user = update.effective_user
-    username = f"@{user.username}" if user.username else f"ID {user.id}"
     amount = payment.total_amount // 100
 
     await update.message.reply_text(
         f"✅ *Оплата прошла успешно!*\n\n"
         f"📦 {t['name'] if t else tariff_id}\n"
         f"💰 {amount:,} ₽\n\n".replace(",", " ") +
-        f"Куратор активирует тебя в программе в течение нескольких часов. "
-        f"Получишь уведомление здесь.\n\n"
-        f"🌿 _Баракат в каждом шаге_",
+        f"🌿 _Баракат в каждом шаге_\n\n"
+        f"Сейчас запустим программу...",
         parse_mode="Markdown",
         reply_markup=MAIN_MENU
     )
 
-    # Уведомить куратора
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(
-                chat_id=cid, parse_mode="Markdown",
-                text=(
-                    f"✅ *Оплата подтверждена!*\n\n"
-                    f"👤 {user.full_name} ({username})\n"
-                    f"📦 Тариф: *{t['name'] if t else tariff_id}*\n"
-                    f"💰 Сумма: *{amount:,} ₽*\n\n".replace(",", " ") +
-                    f"Активируйте участника:\n`/activate {user.id} А`"
-                )
-            )
-        except Exception:
-            pass
+    await _activate_after_payment(
+        ctx.bot, user, tariff_id,
+        t["name"] if t else tariff_id, amount, ctx
+    )
 
 
 async def cb_check_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -1879,31 +1920,18 @@ async def cb_check_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         status = payment.status  # pending / waiting_for_capture / succeeded / canceled
 
         if status == "succeeded":
-            # Оплачено — уведомляем куратора
             user = update.effective_user
-            username = f"@{user.username}" if user.username else f"ID {user.id}"
-            for cid in CURATOR_IDS:
-                try:
-                    await ctx.bot.send_message(
-                        chat_id=cid, parse_mode="Markdown",
-                        text=(
-                            f"✅ *Оплата подтверждена!*\n\n"
-                            f"👤 {user.full_name} ({username})\n"
-                            f"📦 Тариф: *{pending['tariff_name']}*\n"
-                            f"💰 Сумма: *{pending['price']:,} ₽*\n\n".replace(",", " ") +
-                            f"Активируйте участника: `/activate {user.id} А`"
-                        )
-                    )
-                except Exception:
-                    pass
             ctx.bot_data["pending_payments"].pop(uid, None)
             await query.edit_message_text(
                 f"✅ *Оплата подтверждена!*\n\n"
                 f"📦 {pending['tariff_name']}\n\n"
-                f"Куратор активирует тебя в программе в течение нескольких часов. "
-                f"Получишь уведомление здесь.\n\n"
-                f"🌿 _Баракат в каждом шаге_",
+                f"🌿 _Баракат в каждом шаге_\n\n"
+                f"Сейчас запустим программу...",
                 parse_mode="Markdown"
+            )
+            await _activate_after_payment(
+                ctx.bot, user, pending["tariff_id"],
+                pending["tariff_name"], pending["price"], ctx
             )
         elif status == "canceled":
             await query.edit_message_text(
