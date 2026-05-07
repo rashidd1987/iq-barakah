@@ -939,7 +939,7 @@ MAIN_MENU = ReplyKeyboardMarkup(
         ["🎯 Диагностика",     "📱 Личный кабинет"],
         ["📚 Программа",       "💳 Оплата"],
         ["🔔 Напоминания",     "💬 Связаться с куратором"],
-        ["🌐 Сайт"],
+        ["🌙 Мухасаба",        "🌐 Сайт"],
     ],
     resize_keyboard=True,
     is_persistent=True,
@@ -949,8 +949,9 @@ MAIN_MENU = ReplyKeyboardMarkup(
 (
     NAME, GENDER, OCCUPATION, AGE, SOURCE,
     Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
-    REG_CONSENT, REG_FIO, REG_BIRTHDATE, REG_GENDER, REG_ACTIVITY, REG_PHONE, PAY_EMAIL
-) = range(20)
+    REG_CONSENT, REG_FIO, REG_BIRTHDATE, REG_GENDER, REG_ACTIVITY, REG_PHONE, PAY_EMAIL,
+    MUH_Q1, MUH_Q2, MUH_Q3
+) = range(23)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -1578,11 +1579,7 @@ REMINDER_TEXTS = {
     "muhasaba": (
         "🌙 *Время мухасабы*\n\n"
         "«Считайте себя сами прежде чем вас посчитают» — Умар ибн аль-Хаттаб (р.а.)\n\n"
-        "Ответь себе честно:\n"
-        "✅ Что хорошего я сделал сегодня?\n"
-        "🔄 Что я мог сделать лучше?\n"
-        "🤲 За что я благодарю Аллаха?\n\n"
-        "📱 Открой трекер — отметь выполненное\n"
+        "Три минуты честности с собой — нажми кнопку 👇\n\n"
         "🌿 _Астагфируллах — и спи с чистым сердцем_"
     ),
 }
@@ -1654,16 +1651,43 @@ async def cb_rem_off_all(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def cb_start_muhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Кнопка «Начать мухасабу» из напоминания."""
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_reply_markup(reply_markup=None)
+    await ctx.bot.send_message(
+        chat_id=update.effective_user.id,
+        text=(
+            "🌙 *Мухасаба вечера*\n"
+            "_Три вопроса честности перед собой_\n\n"
+            "«Считайте себя прежде, чем будете посчитаны» — Умар ибн аль-Хаттаб (р.а.)\n\n"
+            "Это займёт 2 минуты. Ответы сохранятся только у тебя.\n\n"
+            + MUH_QUESTIONS[0]
+        ),
+        parse_mode="Markdown",
+    )
+    ctx.user_data["muh_answers"] = []
+    ctx.user_data["in_muhasaba"] = True
+    return MUH_Q1
+
+
 async def _send_reminder(bot, uid: int, reminder_key: str):
     text = REMINDER_TEXTS[reminder_key]
+    if reminder_key == "muhasaba":
+        kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🌙 Начать мухасабу", callback_data="start_muhasaba")
+        ]])
+    else:
+        kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📱 Открыть трекер", web_app=WebAppInfo(url=MINIAPP_URL))
+        ]])
     try:
         await bot.send_message(
             chat_id=uid,
             text=text,
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("📱 Открыть трекер", web_app=WebAppInfo(url=MINIAPP_URL))
-            ]])
+            reply_markup=kb,
         )
     except Exception as e:
         logger.warning(f"Reminder {reminder_key} → {uid}: {e}")
@@ -1701,6 +1725,115 @@ async def notify_curators(ctx, user, data: dict, result: dict):
             await ctx.bot.send_message(chat_id=cid, text=text, parse_mode="Markdown")
         except Exception as e:
             logger.warning(f"Куратор {cid}: {e}")
+
+
+# ══════════════════════════════════════════════════════════════════
+#  МУХАСАБА ВЕЧЕРА — три вопроса честности перед собой
+# ══════════════════════════════════════════════════════════════════
+
+MUH_QUESTIONS = [
+    (
+        "🌿 *Вопрос 1 из 3*\n\n"
+        "«Что сегодня получилось — даже самое маленькое?»\n\n"
+        "_Аллах видит каждое усилие, даже если его не видит никто._"
+    ),
+    (
+        "💭 *Вопрос 2 из 3*\n\n"
+        "«Что далось тяжело — и почему?»\n\n"
+        "_Честность с собой — это уже часть поклонения. Не суди себя, просто замечай._"
+    ),
+    (
+        "🌙 *Вопрос 3 из 3*\n\n"
+        "«Что хочу сделать иначе завтра?»\n\n"
+        "_Одно маленькое намерение — уже шаг вперёд. БисмиЛлях._"
+    ),
+]
+
+
+async def cmd_muhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    await update.message.reply_text(
+        "🌙 *Мухасаба вечера*\n"
+        "_Три вопроса честности перед собой_\n\n"
+        "«Считайте себя прежде, чем будете посчитаны» — Умар ибн аль-Хаттаб (р.а.)\n\n"
+        "Это займёт 2 минуты. Ответы сохранятся только у тебя.\n\n"
+        + MUH_QUESTIONS[0],
+        parse_mode="Markdown",
+    )
+    ctx.user_data["muh_answers"] = []
+    return MUH_Q1
+
+
+async def muh_got_q1(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    ctx.user_data.setdefault("muh_answers", []).append(update.message.text.strip())
+    await update.message.reply_text(MUH_QUESTIONS[1], parse_mode="Markdown")
+    return MUH_Q2
+
+
+async def muh_got_q2(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    ctx.user_data.setdefault("muh_answers", []).append(update.message.text.strip())
+    await update.message.reply_text(MUH_QUESTIONS[2], parse_mode="Markdown")
+    return MUH_Q3
+
+
+async def muh_got_q3(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    answers = ctx.user_data.get("muh_answers", [])
+    answers.append(update.message.text.strip())
+
+    uid = str(update.effective_user.id)
+    now = datetime.now(timezone.utc)
+    entry = {
+        "date": now.strftime("%d.%m.%Y"),
+        "time": now.strftime("%H:%M"),
+        "q1": answers[0] if len(answers) > 0 else "—",
+        "q2": answers[1] if len(answers) > 1 else "—",
+        "q3": answers[2] if len(answers) > 2 else "—",
+    }
+
+    logs = ctx.bot_data.setdefault("muhasaba_logs", {})
+    user_logs = logs.setdefault(uid, [])
+    user_logs.append(entry)
+    logs[uid] = user_logs[-30:]  # хранить последние 30 записей
+
+    await update.message.reply_text(
+        "✅ *МашаАллах! Мухасаба записана.*\n\n"
+        "Каждый раз, когда ты останавливаешься и честно смотришь на себя — ты растёшь.\n\n"
+        "جَزَاكَ ٱللَّٰهُ خَيْرًا — Да вознаградит тебя Аллах благом 🌿\n\n"
+        "_Чтобы перечитать свои записи, напиши /mymuhasaba_",
+        parse_mode="Markdown",
+        reply_markup=MAIN_MENU,
+    )
+    ctx.user_data.pop("muh_answers", None)
+    return ConversationHandler.END
+
+
+async def muh_cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    ctx.user_data.pop("muh_answers", None)
+    await update.message.reply_text("Мухасаба отменена.", reply_markup=MAIN_MENU)
+    return ConversationHandler.END
+
+
+async def cmd_mymuhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = str(update.effective_user.id)
+    logs = ctx.bot_data.get("muhasaba_logs", {}).get(uid, [])
+    if not logs:
+        await update.message.reply_text(
+            "📓 У тебя пока нет записей мухасабы.\n\n"
+            "Нажми *🌙 Мухасаба* в меню и ответь на три вопроса.",
+            parse_mode="Markdown",
+        )
+        return
+
+    recent = logs[-5:][::-1]  # последние 5, сначала новые
+    text = f"📓 *Твои записи мухасабы* (последние {len(recent)} из {len(logs)})\n\n"
+    for e in recent:
+        text += (
+            f"📅 *{e['date']}* в {e.get('time', '')} (UTC)\n"
+            f"🌿 {e.get('q1', '—')}\n"
+            f"💭 {e.get('q2', '—')}\n"
+            f"🌙 {e.get('q3', '—')}\n"
+            f"{'─' * 22}\n"
+        )
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -3968,7 +4101,7 @@ def main():
     # Диалог диагностики
     MENU_BUTTONS = filters.Regex(
         "^(🎯 Диагностика|📱 Личный кабинет|📚 Программа|💳 Оплата|💰 Цены"
-        "|🔔 Напоминания|🌐 Сайт|💬 Связаться с куратором)$"
+        "|🔔 Напоминания|🌐 Сайт|💬 Связаться с куратором|🌙 Мухасаба)$"
     )
 
     conv = ConversationHandler(
@@ -4021,6 +4154,25 @@ def main():
         per_user=True, per_chat=True, per_message=False,
     )
     app.add_handler(reg_conv)
+
+    # Мухасаба вечера — диалог из трёх вопросов
+    muh_conv = ConversationHandler(
+        entry_points=[
+            MessageHandler(filters.Regex("^🌙 Мухасаба$"), cmd_muhasaba),
+            CommandHandler("muhasaba", cmd_muhasaba),
+            CallbackQueryHandler(cb_start_muhasaba, pattern="^start_muhasaba$"),
+        ],
+        states={
+            MUH_Q1: [MessageHandler(filters.TEXT & ~filters.COMMAND, muh_got_q1)],
+            MUH_Q2: [MessageHandler(filters.TEXT & ~filters.COMMAND, muh_got_q2)],
+            MUH_Q3: [MessageHandler(filters.TEXT & ~filters.COMMAND, muh_got_q3)],
+        },
+        fallbacks=[CommandHandler("cancel", muh_cancel)],
+        allow_reentry=True,
+        per_user=True, per_chat=True, per_message=False,
+    )
+    app.add_handler(muh_conv)
+    app.add_handler(CommandHandler("mymuhasaba", cmd_mymuhasaba))
 
     # Статические кнопки меню
     app.add_handler(CommandHandler("site",    cmd_site))
