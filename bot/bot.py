@@ -871,14 +871,20 @@ async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
                 disable_web_page_preview=False,
             )
 
+        # Для ВАКТ (уровень А) — кнопка разблокировки следующей недели
+        if level == "А":
+            action_btn = InlineKeyboardButton("✅ Выполнил задания — открыть следующую неделю", callback_data="week_ack")
+        else:
+            action_btn = InlineKeyboardButton("✅ Понял, иду делать", callback_data="week_ack")
+
         await bot.send_message(
             chat_id=user_id,
             text=msg,
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(url=map_url)),
-                InlineKeyboardButton("✅ Понял, иду делать", callback_data="week_ack"),
-            ]])
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(url=map_url))],
+                [action_btn],
+            ])
         )
     except Exception as e:
         logger.warning(f"Не удалось отправить урок пользователю {user_id}: {e}")
@@ -943,6 +949,10 @@ async def job_weekly_lesson(ctx: ContextTypes.DEFAULT_TYPE):
         uid   = int(uid_str)
         level = entry["level"]
         max_weeks = LEVEL_WEEKS.get(level, 8)
+
+        # Уровень А (ВАКТ) — прогресс только через кнопку "Выполнил задания", не по расписанию
+        if level == "А":
+            continue
 
         # Участник завершил программу
         if entry["week"] > max_weeks:
@@ -1146,49 +1156,100 @@ async def cmd_myprogram(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def cb_week_ack(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Нажата кнопка 'Понял, иду делать' — записываем подтверждение."""
+    """Нажата кнопка подтверждения недели.
+    Для уровня А (ВАКТ): инкрементирует неделю и сразу открывает следующую.
+    Для остальных: просто подтверждение, неделя идёт по расписанию."""
     query   = update.callback_query
     uid_str = str(update.effective_user.id)
     uid     = update.effective_user.id
     active  = get_active_users(ctx)
-    entry   = active.get(uid_str, {})
+    entry   = active.get(uid_str)
+
+    if not entry:
+        await query.answer("Запись не найдена. Обратитесь к куратору.", show_alert=True)
+        return
+
+    level     = entry.get("level", "")
+    max_weeks = LEVEL_WEEKS.get(level, 8)
+    current_week = entry.get("week", 1)
+
+    # Обновить last_active
+    entry["last_active"] = datetime.now(timezone.utc).isoformat()
 
     # Записать подтверждение
-    current_week = max(1, entry.get("week", 2) - 1)
     acks = ctx.bot_data.setdefault("week_acks", {})
     acks[uid_str] = {
         "week": current_week,
         "ts":   datetime.now(timezone.utc).isoformat(),
     }
 
-    # Обновить last_active
-    if uid_str in active:
-        active[uid_str]["last_active"] = datetime.now(timezone.utc).isoformat()
+    # ── ВАКТ (уровень А): разблокируем следующую неделю сразу ──────
+    if level == "А":
+        if current_week > max_weeks:
+            await query.answer("Ты уже завершил всю программу! МашаАллах 🎓", show_alert=True)
+            return
 
-    await query.answer("МашаАллах! Баракат в каждом шаге 🌿", show_alert=False)
+        await query.answer("МашаАллах! Открываем следующую неделю 🌿", show_alert=False)
+        await query.edit_message_reply_markup(reply_markup=None)  # убираем кнопку
 
-    # Проверить завершение программы — вернуть письмо себе
-    level     = entry.get("level", "")
-    max_weeks = LEVEL_WEEKS.get(level, 8)
-    if current_week >= max_weeks:
-        letter = ctx.user_data.get("letter")
-        if letter and not ctx.user_data.get("letter_returned"):
-            ctx.user_data["letter_returned"] = True
-            try:
-                await ctx.bot.send_message(
-                    chat_id=uid,
-                    parse_mode="Markdown",
-                    text=(
-                        "✍️ *Твоё письмо себе — из самого начала пути:*\n\n"
-                        f"_{letter}_\n\n"
-                        "━━━━━━━━━━━━━━━\n"
-                        "Ты написал это когда только начинал.\n"
-                        "Посмотри как далеко ты прошёл. 🌿\n\n"
-                        "БаракАллах фикум! 🤲"
-                    )
+        # Проверка: последняя неделя завершена
+        if current_week >= max_weeks:
+            entry["week"] = max_weeks + 1
+            entry["completed_notified"] = True
+            letter = ctx.user_data.get("letter")
+            completion_text = (
+                f"🎓 *МашаАллах, {entry.get('name','').split()[0] or 'Брат'}!*\n\n"
+                f"Ты завершил *{LEVEL_NAMES[level]}*!\n\n"
+                "Аллах видит каждое твоё усилие. Это большой шаг вперёд.\n\n"
+                "🌿 _Твой сертификат готовится — куратор свяжется с тобой._"
+            )
+            if letter and not ctx.user_data.get("letter_returned"):
+                ctx.user_data["letter_returned"] = True
+                completion_text += (
+                    "\n\n✍️ *Твоё письмо себе — из самого начала пути:*\n\n"
+                    f"_{letter}_\n\n"
+                    "━━━━━━━━━━━━━━━\n"
+                    "Посмотри как далеко ты прошёл. 🌿\n\nБаракАллах фикум! 🤲"
                 )
-            except Exception as e:
-                logger.warning(f"letter_return → {uid}: {e}")
+            await ctx.bot.send_message(chat_id=uid, text=completion_text, parse_mode="Markdown")
+            return
+
+        # Открываем следующую неделю
+        entry["week"] = current_week + 1
+        await ctx.bot.send_message(
+            chat_id=uid,
+            parse_mode="Markdown",
+            text=(
+                f"✅ *Неделя {current_week} выполнена!*\n\n"
+                f"БаракАллах фикум! Открываем *Неделю {current_week + 1}* 👇"
+            )
+        )
+        await send_week_lesson(ctx.bot, uid, entry, ctx)
+
+    # ── Остальные уровни: просто подтверждение ──────────────────────
+    else:
+        await query.answer("МашаАллах! Баракат в каждом шаге 🌿", show_alert=False)
+
+        # Проверить завершение программы — вернуть письмо себе
+        if current_week >= max_weeks:
+            letter = ctx.user_data.get("letter")
+            if letter and not ctx.user_data.get("letter_returned"):
+                ctx.user_data["letter_returned"] = True
+                try:
+                    await ctx.bot.send_message(
+                        chat_id=uid,
+                        parse_mode="Markdown",
+                        text=(
+                            "✍️ *Твоё письмо себе — из самого начала пути:*\n\n"
+                            f"_{letter}_\n\n"
+                            "━━━━━━━━━━━━━━━\n"
+                            "Ты написал это когда только начинал.\n"
+                            "Посмотри как далеко ты прошёл. 🌿\n\n"
+                            "БаракАллах фикум! 🤲"
+                        )
+                    )
+                except Exception as e:
+                    logger.warning(f"letter_return → {uid}: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════
