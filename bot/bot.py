@@ -18,7 +18,7 @@ from telegram import (
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes, ConversationHandler,
-    PicklePersistence, PreCheckoutQueryHandler
+    PicklePersistence, PreCheckoutQueryHandler, ApplicationHandlerStop
 )
 
 # ── CONFIG ───────────────────────────────────────────────────────
@@ -1980,10 +1980,9 @@ async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     email = update.message.text.strip()
     if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
         await update.message.reply_text(
-            "⚠️ Некорректный email. Введите снова _(например: ivan@mail.ru)_:",
-            parse_mode="Markdown"
+            "⚠️ Некорректный email. Введите снова (например: ivan@mail.ru):"
         )
-        return
+        raise ApplicationHandlerStop  # не пропускаем в другие обработчики
     uid = str(update.effective_user.id)
     ctx.bot_data.setdefault("user_emails", {})[uid] = email
     if uid in ctx.bot_data.get("reg_profiles", {}):
@@ -2002,7 +2001,8 @@ async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 ]])
             )
     else:
-        await update.message.reply_text(f"✅ Email `{email}` сохранён.", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ Email сохранён.")
+    raise ApplicationHandlerStop  # блокируем попадание в диагностику или рег. опросник
 
 
 async def cmd_resetme(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3719,11 +3719,11 @@ def main():
     # Пятничный гость — команда куратора
     app.add_handler(CommandHandler("setguest", cmd_setguest))
 
-    # Email при оплате (group=1 — выше track_last_active)
+    # Email при оплате (group=-1 — выше ConversationHandler, блокирует диагностику)
     app.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND,
         pay_email_handler
-    ), group=1)
+    ), group=-1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
