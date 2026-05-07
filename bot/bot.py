@@ -1978,7 +1978,7 @@ async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return  # не ждём email — пропускаем
     import re
     email = update.message.text.strip()
-    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+    if not re.match(r"^[^\s@]+@[^\s@]+$", email):
         await update.message.reply_text(
             "⚠️ Некорректный email. Введите снова (например: ivan@mail.ru):"
         )
