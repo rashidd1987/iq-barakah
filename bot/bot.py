@@ -709,8 +709,8 @@ MAIN_MENU = ReplyKeyboardMarkup(
 (
     NAME, GENDER, OCCUPATION, AGE, SOURCE,
     Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
-    REG_GENDER, REG_ACTIVITY, REG_AGE, REG_FIO
-) = range(17)
+    REG_GENDER, REG_ACTIVITY, REG_AGE, REG_FIO, REG_EMAIL
+) = range(18)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -1460,17 +1460,37 @@ async def reg_got_age(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def reg_got_fio(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     fio = update.message.text.strip()
+    ctx.user_data["reg_fio"] = fio
+    await update.message.reply_text(
+        "*Вопрос 5 из 5*\n\nВаш email _(нужен для получения чека об оплате)_:",
+        parse_mode="Markdown"
+    )
+    return REG_EMAIL
+
+
+async def reg_got_email(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    email = update.message.text.strip()
     uid = str(update.effective_user.id)
     is_female = ctx.user_data.get("reg_is_female", False)
+    fio = ctx.user_data.get("reg_fio", "")
+
+    # базовая проверка формата
+    if "@" not in email or "." not in email:
+        await update.message.reply_text(
+            "⚠️ Пожалуйста, введите корректный email (например: ivan@mail.ru):"
+        )
+        return REG_EMAIL
 
     profile = {
         "fio":      fio,
         "activity": ctx.user_data.get("reg_activity", ""),
         "age":      ctx.user_data.get("reg_age", 0),
         "gender":   "f" if is_female else "m",
+        "email":    email,
     }
     ctx.bot_data.setdefault("reg_profiles", {})[uid] = profile
     ctx.bot_data.setdefault("user_names", {})[uid] = fio
+    ctx.bot_data.setdefault("user_emails", {})[uid] = email
 
     word = "Сестра" if is_female else "Брат"
     await update.message.reply_text(
@@ -1647,13 +1667,44 @@ async def cb_pay(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Оплата через ЮКасса
     try:
         idempotency_key = str(uuid.uuid4())
-        payment = YooPayment.create({
+        uid = str(user.id)
+        user_email = ctx.bot_data.get("user_emails", {}).get(uid, "")
+
+        payment_data = {
             "amount": {"value": f"{t['price']}.00", "currency": "RUB"},
             "confirmation": {"type": "redirect", "return_url": "https://t.me/iqbarakah_bot"},
             "capture": True,
             "description": f"{t['name']} — IQ Barakah",
-            "metadata": {"tariff_id": tariff_id, "user_id": str(user.id)},
-        }, idempotency_key)
+            "metadata": {"tariff_id": tariff_id, "user_id": uid},
+        }
+
+        # Добавляем чек если есть email (54-ФЗ)
+        if user_email:
+            payment_data["receipt"] = {
+                "customer": {"email": user_email},
+                "items": [{
+                    "description": t["name"],
+                    "quantity": "1.00",
+                    "amount": {"value": f"{t['price']}.00", "currency": "RUB"},
+                    "vat_code": 1,  # 1 = без НДС
+                    "payment_mode": "full_payment",
+                    "payment_subject": "service",
+                }]
+            }
+        else:
+            # Email не найден — просим ввести
+            await query.edit_message_text(
+                "📧 Для оплаты нужен ваш email (для чека).\n\n"
+                "Пожалуйста, напишите ваш email командой:\n`/setemail ваш@email.ru`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("◀️ Назад", callback_data="show_tariffs")
+                ]])
+            )
+            ctx.user_data["pending_tariff"] = tariff_id
+            return
+
+        payment = YooPayment.create(payment_data, idempotency_key)
 
         pay_url = payment.confirmation.confirmation_url
         payment_id = payment.id
@@ -1851,6 +1902,42 @@ async def cmd_site(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("🌐 Открыть iq-barakah.ru", url=SITE)
         ]])
     )
+
+
+async def cmd_setemail(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Сохранить email пользователя для чеков"""
+    uid = str(update.effective_user.id)
+    args = ctx.args
+    if not args:
+        await update.message.reply_text(
+            "Введите: `/setemail ваш@email.ru`",
+            parse_mode="Markdown"
+        )
+        return
+    email = args[0].strip()
+    if "@" not in email or "." not in email:
+        await update.message.reply_text("⚠️ Некорректный email. Пример: `/setemail ivan@mail.ru`", parse_mode="Markdown")
+        return
+    ctx.bot_data.setdefault("user_emails", {})[uid] = email
+    # Обновить в профиле тоже
+    if uid in ctx.bot_data.get("reg_profiles", {}):
+        ctx.bot_data["reg_profiles"][uid]["email"] = email
+    await update.message.reply_text(
+        f"✅ Email `{email}` сохранён. Теперь можете оплатить тариф.",
+        parse_mode="Markdown"
+    )
+    # Если был отложенный тариф — напомнить
+    pending = ctx.user_data.get("pending_tariff")
+    if pending:
+        t = next((x for x in TARIFFS if x["id"] == pending), None)
+        if t:
+            await update.message.reply_text(
+                f"💳 Продолжить оплату *{t['name']}*?",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton(f"Оплатить {t['price']:,} ₽".replace(",", " "), callback_data=f"pay_{pending}")
+                ]])
+            )
 
 
 async def cmd_contact(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3451,6 +3538,7 @@ def main():
             REG_ACTIVITY: [CallbackQueryHandler(reg_got_activity, pattern="^reg_act_")],
             REG_AGE:      [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_age)],
             REG_FIO:      [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_fio)],
+            REG_EMAIL:    [MessageHandler(filters.TEXT & ~filters.COMMAND, reg_got_email)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         allow_reentry=True,
@@ -3527,6 +3615,9 @@ def main():
         filters.TEXT & ~filters.COMMAND & filters.User(CURATOR_IDS),
         handle_curator_write
     ), group=1)
+
+    # Email для чеков
+    app.add_handler(CommandHandler("setemail",    cmd_setemail))
 
     # Якорный брат — для участников
     app.add_handler(CommandHandler("mybrother",   cmd_mybrother))
