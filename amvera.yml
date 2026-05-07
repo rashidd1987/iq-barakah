@@ -5,8 +5,8 @@ meta:
     version: "3.11"
 
 build:
-  context: bot
+  requirementsPath: bot/requirements.txt
 
 run:
-  command: python bot.py
+  command: python bot/bot.py
   persistenceMount: /data
