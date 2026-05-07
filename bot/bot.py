@@ -3553,7 +3553,10 @@ async def job_progress_mirror(ctx: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════════════════
 
 def main():
-    persistence = PicklePersistence(filepath="bot_state.pkl")
+    # /data — постоянное хранилище (Amvera), fallback — текущая папка (Railway/локально)
+    import pathlib
+    data_dir = pathlib.Path("/data") if pathlib.Path("/data").exists() else pathlib.Path(".")
+    persistence = PicklePersistence(filepath=str(data_dir / "bot_state.pkl"))
     app = Application.builder().token(BOT_TOKEN).persistence(persistence).build()
 
     # Диалог диагностики
