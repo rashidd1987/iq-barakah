@@ -1116,17 +1116,27 @@ async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
     map_url = f"{MINIAPP_URL}?lvl={level}&wk={entry['week']}"
 
     # Видео для урока
-    video_url = get_lesson_video(ctx, level, entry["week"]) if ctx else None
+    video_val = get_lesson_video(ctx, level, entry["week"]) if ctx else None
 
     try:
         # Если есть видео — отправляем его первым
-        if video_url:
-            await bot.send_message(
-                chat_id=user_id,
-                text=f"🎬 *Видео-урок — Неделя {entry['week']}*\n\n{video_url}",
-                parse_mode="Markdown",
-                disable_web_page_preview=False,
-            )
+        if video_val:
+            if video_val.startswith("http"):
+                # Ссылка — отправляем как текст с превью
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=f"🎬 *Видео-урок — Неделя {entry['week']}*\n\n{video_val}",
+                    parse_mode="Markdown",
+                    disable_web_page_preview=False,
+                )
+            else:
+                # file_id — отправляем видео прямо в чат
+                await bot.send_video(
+                    chat_id=user_id,
+                    video=video_val,
+                    caption=f"🎬 *Видео-урок — Неделя {entry['week']}*",
+                    parse_mode="Markdown",
+                )
 
         # Для ВАКТ (уровень А) — кнопка разблокировки следующей недели
         if level == "А":
@@ -1147,17 +1157,51 @@ async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
         logger.warning(f"Не удалось отправить урок пользователю {user_id}: {e}")
 
 
+def _save_video(ctx, level: str, week: int, value: str):
+    ctx.bot_data.setdefault("lesson_videos", {})[f"{level}_{week}"] = value
+
+
 async def cmd_setvideo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Куратор: /setvideo <уровень> <неделя> <ссылка>
-    Пример: /setvideo Б 3 https://disk.yandex.ru/i/XXXXX"""
+    """Куратор: два способа добавить видео-урок.
+
+    Способ 1 — отправить видео с подписью:
+        Отправь видео в бот, в подписи напиши: /setvideo Б 3
+
+    Способ 2 — командой со ссылкой:
+        /setvideo Б 3 https://disk.yandex.ru/i/XXXXX
+    """
     if update.effective_user.id not in CURATOR_IDS:
         await update.message.reply_text("⛔️ Только для кураторов.")
         return
     args = ctx.args
-    if len(args) < 3:
+
+    # Способ 1: команда пришла как подпись к видео
+    if update.message.video and len(args) >= 2:
+        level = args[0].upper()
+        try:
+            week = int(args[1])
+        except ValueError:
+            await update.message.reply_text("❌ Неделя должна быть числом.")
+            return
+        file_id = update.message.video.file_id
+        _save_video(ctx, level, week, file_id)
         await update.message.reply_text(
-            "Использование: `/setvideo <уровень> <неделя> <ссылка>`\n\n"
-            "Пример: `/setvideo Б 3 https://disk.yandex.ru/i/XXXXX`\n\n"
+            f"✅ Видео сохранено как файл Telegram\n\n"
+            f"📍 Уровень *{level}*, Неделя *{week}*\n"
+            f"🎬 Участники получат видео прямо в чат",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Способ 2: команда со ссылкой /setvideo Б 3 https://...
+    if len(args) < 2:
+        await update.message.reply_text(
+            "📹 *Два способа добавить видео-урок:*\n\n"
+            "*Способ 1 — видео прямо в Telegram (рекомендуется):*\n"
+            "Отправь видео в бот, в подписи напиши:\n"
+            "`/setvideo Б 3`\n\n"
+            "*Способ 2 — ссылка:*\n"
+            "`/setvideo Б 3 https://disk.yandex.ru/i/XXXXX`\n\n"
             "Уровни: А (ВАКТ), Б (Сезон 1), В (Сезон 2), Г (Сезон 3)",
             parse_mode="Markdown"
         )
@@ -1168,11 +1212,16 @@ async def cmd_setvideo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     except ValueError:
         await update.message.reply_text("❌ Неделя должна быть числом.")
         return
+    if len(args) < 3:
+        await update.message.reply_text(
+            "❌ Укажи ссылку или отправь видео с подписью `/setvideo Б 3`",
+            parse_mode="Markdown"
+        )
+        return
     url = args[2]
-    key = f"{level}_{week}"
-    ctx.bot_data.setdefault("lesson_videos", {})[key] = url
+    _save_video(ctx, level, week, url)
     await update.message.reply_text(
-        f"✅ Видео сохранено\n\n"
+        f"✅ Видео-ссылка сохранена\n\n"
         f"📍 Уровень *{level}*, Неделя *{week}*\n"
         f"🔗 {url}",
         parse_mode="Markdown"
@@ -1193,6 +1242,33 @@ async def cmd_listvideos(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         level, week = key.split("_")
         lines.append(f"• Уровень *{level}*, Неделя *{week}*: {videos[key]}")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
+async def handle_video_setvideo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор отправляет видео с подписью /setvideo Б 3 — сохраняем file_id."""
+    caption = (update.message.caption or "").strip()
+    parts = caption.split()
+    # parts[0] = /setvideo, parts[1] = уровень, parts[2] = неделя
+    if len(parts) < 3:
+        await update.message.reply_text(
+            "❌ Формат подписи: `/setvideo Б 3`",
+            parse_mode="Markdown"
+        )
+        return
+    level = parts[1].upper()
+    try:
+        week = int(parts[2])
+    except ValueError:
+        await update.message.reply_text("❌ Неделя должна быть числом, например: `/setvideo Б 3`", parse_mode="Markdown")
+        return
+    file_id = update.message.video.file_id
+    _save_video(ctx, level, week, file_id)
+    await update.message.reply_text(
+        f"✅ Видео сохранено!\n\n"
+        f"📍 Уровень *{level}*, Неделя *{week}*\n"
+        f"🎬 Участники получат видео прямо в Telegram",
+        parse_mode="Markdown"
+    )
 
 
 async def job_weekly_lesson(ctx: ContextTypes.DEFAULT_TYPE):
@@ -4280,6 +4356,11 @@ def main():
     app.add_handler(CommandHandler("broadcast",   cmd_broadcast))
     app.add_handler(CommandHandler("setvideo",    cmd_setvideo))
     app.add_handler(CommandHandler("listvideos",  cmd_listvideos))
+    # Куратор отправляет видео с подписью "/setvideo Б 3"
+    app.add_handler(MessageHandler(
+        filters.VIDEO & filters.User(CURATOR_IDS) & filters.CaptionRegex(r"^/setvideo\b"),
+        handle_video_setvideo
+    ))
 
     # Панель куратора — inline callback
     app.add_handler(CallbackQueryHandler(cb_cur_back,         pattern="^cur_back$"))
