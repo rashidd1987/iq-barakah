@@ -22,7 +22,9 @@ from telegram.ext import (
 )
 
 # ── CONFIG ───────────────────────────────────────────────────────
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8610192874:AAGGyI8V4XktYte5Q_OH5XnU_Ukvk2SresI")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise RuntimeError("BOT_TOKEN не задан. Установите переменную окружения BOT_TOKEN.")
 _curator_env = os.environ.get("CURATOR_ID", "140700248")
 CURATOR_IDS = [int(x.strip()) for x in _curator_env.split(",") if x.strip()]
 
@@ -1791,10 +1793,11 @@ async def muh_got_q3(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     answers.append(update.message.text.strip())
 
     uid = str(update.effective_user.id)
-    now = datetime.now(timezone.utc)
+    from datetime import timedelta
+    now_msk = datetime.now(timezone.utc) + timedelta(hours=3)
     entry = {
-        "date": now.strftime("%d.%m.%Y"),
-        "time": now.strftime("%H:%M"),
+        "date": now_msk.strftime("%d.%m.%Y"),
+        "time": now_msk.strftime("%H:%M"),
         "q1": answers[0] if len(answers) > 0 else "—",
         "q2": answers[1] if len(answers) > 1 else "—",
         "q3": answers[2] if len(answers) > 2 else "—",
@@ -1838,7 +1841,7 @@ async def cmd_mymuhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = f"📓 *Твои записи мухасабы* (последние {len(recent)} из {len(logs)})\n\n"
     for e in recent:
         text += (
-            f"📅 *{e['date']}* в {e.get('time', '')} (UTC)\n"
+            f"📅 *{e['date']}* в {e.get('time', '')} (МСК)\n"
             f"🌿 {e.get('q1', '—')}\n"
             f"💭 {e.get('q2', '—')}\n"
             f"🌙 {e.get('q3', '—')}\n"
@@ -2712,18 +2715,33 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await ctx.bot.send_message(chat_id=chat_id, parse_mode="Markdown",
         text=f"*📊 Колесо баланса сейчас:*\n\n{result['wheel']}\n\n_После программы каждая сфера значительно вырастет._")
 
+    # Для уровней А и Б — добавить прямую кнопку оплаты ВАКТ
+    pay_btn_row = []
+    if result["level_key"] in ("А", "Б"):
+        vakt = next((t for t in TARIFFS if t["id"] == "vakt"), None)
+        if vakt:
+            pay_btn_row = [[InlineKeyboardButton(
+                f"💳 Начать ВАКТ — {vakt['price']} ₽", callback_data="pay_vakt"
+            )]]
+
     await ctx.bot.send_message(chat_id=chat_id, parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(result["btn"], url=result["link"])],
-            [InlineKeyboardButton("📱 Открыть личный кабинет", web_app=WebAppInfo(url=MINIAPP_URL))],
-            [InlineKeyboardButton("🔄 Пройти снова", callback_data="restart")],
-        ]),
+        reply_markup=InlineKeyboardMarkup(
+            pay_btn_row + [
+                [InlineKeyboardButton(result["btn"], url=result["link"])],
+                [InlineKeyboardButton("📱 Открыть личный кабинет", web_app=WebAppInfo(url=MINIAPP_URL))],
+                [InlineKeyboardButton("🔄 Пройти снова", callback_data="restart")],
+            ]
+        ),
         text=(
             f"*{brat} {name_first}, вот твой путь:*\n\n"
             f"📍 *{result['path']}*\n_{result['path_desc']}_\n\n"
             f"{result['rec']}\n\n"
             f"🌿 _20% от каждой оплаты → благотворительность_"
         ))
+
+    # Сохранить результат диагностики для автоподстановки уровня ВАКТ
+    uid = str(update.effective_user.id)
+    ctx.bot_data.setdefault("user_diag_level", {})[uid] = result["level_key"]
 
     await notify_curators(ctx, update.effective_user, data, result)
 
@@ -3240,31 +3258,49 @@ async def run_onboarding(bot, user_id: int, name: str, level: str, week: int,
         entry = {"level": level, "week": week, "name": name}
 
     if level == "А":
-        # Для ВАКТ — сначала выбор уровня
-        await bot.send_message(
-            chat_id=user_id,
-            parse_mode="Markdown",
-            text=(
-                "🌱 *Последний шаг — выбери свой уровень*\n\n"
-                "Это не экзамен. Просто честно ответь себе где ты сейчас:\n\n"
-                "🌱 *Уровень А* — я этнический мусульманин, "
-                "практикую редко или совсем не практикую. "
-                "Хочу начать с малого, без давления.\n\n"
-                "📗 *Уровень Б* — я молюсь, но только фард-намазы. "
-                "Читаю Коран, но не каждый день. Нет системы. "
-                "Хочу выстроить постоянство.\n\n"
-                "📘 *Уровень В* — я практикую регулярно. "
-                "Хочу смиренности, искренности, глубины — "
-                "передача знаний, наследие.\n\n"
-                "Или пройди короткую диагностику — мы сами определим твой уровень 👇"
-            ),
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🌱 Уровень А — начинаю с нуля",      callback_data="vakt_level_А")],
-                [InlineKeyboardButton("📗 Уровень Б — хочу постоянство",    callback_data="vakt_level_Б")],
-                [InlineKeyboardButton("📘 Уровень В — хочу глубины",        callback_data="vakt_level_В")],
-                [InlineKeyboardButton("🔍 Пройти диагностику уровня",       callback_data="vakt_level_diag")],
-            ])
-        )
+        # Если пользователь уже проходил диагностику — берём результат автоматически
+        uid_str = str(user_id)
+        diag_level = ctx.bot_data.get("user_diag_level", {}).get(uid_str) if ctx else None
+        if diag_level in ("А", "Б", "В"):
+            entry = ctx.bot_data.get("active_users", {}).get(uid_str)
+            if entry:
+                entry["vakt_level"] = diag_level
+            labels = {"А": "🌱 Уровень А", "Б": "📗 Уровень Б", "В": "📘 Уровень В"}
+            await bot.send_message(
+                chat_id=user_id,
+                parse_mode="Markdown",
+                text=(
+                    f"✅ По результатам диагностики — *{labels[diag_level]}*\n\n"
+                    f"БисмиЛлях! Вот твой первый урок 👇"
+                )
+            )
+            await send_week_lesson(bot, user_id, entry)
+        else:
+            # Для ВАКТ — выбор уровня вручную
+            await bot.send_message(
+                chat_id=user_id,
+                parse_mode="Markdown",
+                text=(
+                    "🌱 *Последний шаг — выбери свой уровень*\n\n"
+                    "Это не экзамен. Просто честно ответь себе где ты сейчас:\n\n"
+                    "🌱 *Уровень А* — я этнический мусульманин, "
+                    "практикую редко или совсем не практикую. "
+                    "Хочу начать с малого, без давления.\n\n"
+                    "📗 *Уровень Б* — я молюсь, но только фард-намазы. "
+                    "Читаю Коран, но не каждый день. Нет системы. "
+                    "Хочу выстроить постоянство.\n\n"
+                    "📘 *Уровень В* — я практикую регулярно. "
+                    "Хочу смиренности, искренности, глубины — "
+                    "передача знаний, наследие.\n\n"
+                    "Или пройди диагностику — мы определим уровень сами 👇"
+                ),
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🌱 Уровень А — начинаю с нуля",   callback_data="vakt_level_А")],
+                    [InlineKeyboardButton("📗 Уровень Б — хочу постоянство", callback_data="vakt_level_Б")],
+                    [InlineKeyboardButton("📘 Уровень В — хочу глубины",     callback_data="vakt_level_В")],
+                    [InlineKeyboardButton("🔍 Пройти диагностику уровня",    callback_data="vakt_level_diag")],
+                ])
+            )
     else:
         await bot.send_message(
             chat_id=user_id,
@@ -4178,11 +4214,14 @@ def main():
             CallbackQueryHandler(cb_start_muhasaba, pattern="^start_muhasaba$"),
         ],
         states={
-            MUH_Q1: [MessageHandler(filters.TEXT & ~filters.COMMAND, muh_got_q1)],
-            MUH_Q2: [MessageHandler(filters.TEXT & ~filters.COMMAND, muh_got_q2)],
-            MUH_Q3: [MessageHandler(filters.TEXT & ~filters.COMMAND, muh_got_q3)],
+            MUH_Q1: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, muh_got_q1)],
+            MUH_Q2: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, muh_got_q2)],
+            MUH_Q3: [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, muh_got_q3)],
         },
-        fallbacks=[CommandHandler("cancel", muh_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", muh_cancel),
+            MessageHandler(MENU_BUTTONS, muh_cancel),
+        ],
         allow_reentry=True,
         per_user=True, per_chat=True, per_message=False,
     )
@@ -4353,6 +4392,30 @@ def main():
         time=time(16, 0, tzinfo=timezone.utc),
         days=(6,),
         name="progress_mirror",
+    )
+
+    # Ежедневный бэкап pickle (03:30 UTC = 06:30 МСК)
+    async def job_backup_pickle(ctx):
+        import shutil
+        import pathlib
+        src = data_dir / "bot_state.pkl"
+        if not src.exists():
+            return
+        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        dst = data_dir / f"bot_state_backup_{today}.pkl"
+        try:
+            shutil.copy2(src, dst)
+            # удалить бэкапы старше 7 дней
+            for old in sorted(data_dir.glob("bot_state_backup_*.pkl"))[:-7]:
+                old.unlink()
+            logger.info(f"Pickle бэкап создан: {dst.name}")
+        except Exception as e:
+            logger.warning(f"Ошибка бэкапа pickle: {e}")
+
+    app.job_queue.run_daily(
+        job_backup_pickle,
+        time=time(3, 30, tzinfo=timezone.utc),
+        name="pickle_backup",
     )
 
     print("🤖 IQ Barakah бот запущен. Ctrl+C для остановки.")
