@@ -1059,9 +1059,17 @@ def get_active_users(ctx: ContextTypes.DEFAULT_TYPE) -> dict:
 
 
 def get_lesson_video(ctx, level: str, week: int) -> str | None:
-    """Возвращает ссылку на видео для уровня+недели или None."""
     key = f"{level}_{week}"
     return ctx.bot_data.get("lesson_videos", {}).get(key)
+
+
+def get_lesson_audio(ctx, level: str, week: int) -> str | None:
+    key = f"{level}_{week}"
+    return ctx.bot_data.get("lesson_audios", {}).get(key)
+
+
+def _save_audio(ctx, level: str, week: int, value: str):
+    ctx.bot_data.setdefault("lesson_audios", {})[f"{level}_{week}"] = value
 
 
 async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
@@ -1117,12 +1125,12 @@ async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
 
     # Видео для урока
     video_val = get_lesson_video(ctx, level, entry["week"]) if ctx else None
+    audio_val = get_lesson_audio(ctx, level, entry["week"]) if ctx else None
 
     try:
-        # Если есть видео — отправляем его первым
+        # 1. Видео
         if video_val:
             if video_val.startswith("http"):
-                # Ссылка — отправляем как текст с превью
                 await bot.send_message(
                     chat_id=user_id,
                     text=f"🎬 *Видео-урок — Неделя {entry['week']}*\n\n{video_val}",
@@ -1130,13 +1138,21 @@ async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
                     disable_web_page_preview=False,
                 )
             else:
-                # file_id — отправляем видео прямо в чат
                 await bot.send_video(
                     chat_id=user_id,
                     video=video_val,
                     caption=f"🎬 *Видео-урок — Неделя {entry['week']}*",
                     parse_mode="Markdown",
                 )
+
+        # 2. Голосовое (для тех кто слушает в дороге)
+        if audio_val:
+            await bot.send_voice(
+                chat_id=user_id,
+                voice=audio_val,
+                caption="🎙 *Аудио-версия* — слушай где удобно",
+                parse_mode="Markdown",
+            )
 
         # Для ВАКТ (уровень А) — кнопка разблокировки следующей недели
         if level == "А":
@@ -1159,6 +1175,60 @@ async def send_week_lesson(bot, user_id: int, entry: dict, ctx=None):
 
 def _save_video(ctx, level: str, week: int, value: str):
     ctx.bot_data.setdefault("lesson_videos", {})[f"{level}_{week}"] = value
+
+
+async def cmd_setaudio(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор: отправь голосовое/аудио с подписью /setaudio Б 1"""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    args = ctx.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "🎙 *Как добавить аудио-версию урока:*\n\n"
+            "Отправь голосовое сообщение или аудио-файл в бот,\n"
+            "в подписи напиши: `/setaudio Б 1`\n\n"
+            "Уровни: А (ВАКТ), Б (Сезон 1), В (Сезон 2), Г (Сезон 3)",
+            parse_mode="Markdown"
+        )
+        return
+    level = args[0].upper()
+    try:
+        week = int(args[1])
+    except ValueError:
+        await update.message.reply_text("❌ Неделя должна быть числом.")
+        return
+    # file_id из голосового или аудио
+    if update.message.voice:
+        file_id = update.message.voice.file_id
+    elif update.message.audio:
+        file_id = update.message.audio.file_id
+    else:
+        await update.message.reply_text("❌ Отправь голосовое сообщение или аудио-файл с этой подписью.")
+        return
+    _save_audio(ctx, level, week, file_id)
+    await update.message.reply_text(
+        f"✅ Аудио сохранено!\n\n"
+        f"📍 Уровень *{level}*, Неделя *{week}*\n"
+        f"🎙 Участники получат голосовое после видео",
+        parse_mode="Markdown"
+    )
+
+
+async def cmd_listaudios(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор: /listaudios — список всех аудио."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Только для кураторов.")
+        return
+    audios = ctx.bot_data.get("lesson_audios", {})
+    if not audios:
+        await update.message.reply_text("🎙 Аудио ещё не добавлены.\n\nИспользуй `/setaudio`", parse_mode="Markdown")
+        return
+    lines = ["🎙 *Аудио-уроки:*\n"]
+    for key in sorted(audios.keys()):
+        level, week = key.split("_")
+        lines.append(f"• Уровень *{level}*, Неделя *{week}*: ✅")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
 async def cmd_setvideo(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -4356,10 +4426,17 @@ def main():
     app.add_handler(CommandHandler("broadcast",   cmd_broadcast))
     app.add_handler(CommandHandler("setvideo",    cmd_setvideo))
     app.add_handler(CommandHandler("listvideos",  cmd_listvideos))
-    # Куратор отправляет видео с подписью "/setvideo Б 3"
+    app.add_handler(CommandHandler("setaudio",    cmd_setaudio))
+    app.add_handler(CommandHandler("listaudios",  cmd_listaudios))
+    # Куратор отправляет видео с подписью "/setvideo Б 1"
     app.add_handler(MessageHandler(
         filters.VIDEO & filters.User(CURATOR_IDS) & filters.CaptionRegex(r"^/setvideo\b"),
         handle_video_setvideo
+    ))
+    # Куратор отправляет голосовое/аудио с подписью "/setaudio Б 1"
+    app.add_handler(MessageHandler(
+        (filters.VOICE | filters.AUDIO) & filters.User(CURATOR_IDS) & filters.CaptionRegex(r"^/setaudio\b"),
+        cmd_setaudio
     ))
 
     # Панель куратора — inline callback
