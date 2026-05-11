@@ -9,6 +9,7 @@ import os
 import uuid
 import logging
 from datetime import time, datetime, timezone
+import anthropic
 import yookassa
 from yookassa import Configuration as YooConfig, Payment as YooPayment
 from telegram import (
@@ -38,6 +39,27 @@ PAYMENTS_TOKEN       = os.environ.get("PAYMENTS_TOKEN", "")
 if YOOKASSA_SHOP_ID and YOOKASSA_SECRET_KEY:
     YooConfig.account_id = YOOKASSA_SHOP_ID
     YooConfig.secret_key  = YOOKASSA_SECRET_KEY
+
+# ── ДЖАРВАС — AI-МЕНТОР ──────────────────────────────────────────
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+_jarwas_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
+
+JARWAS_SYSTEM = """Ты — Джарвас, AI-ментор программы IQ Barakah.
+
+ХАРАКТЕР:
+Говоришь мягко, тепло, по-братски. Не поучаешь — направляешь. Каждый ответ несёт намерение вернуть участника к росту, к программе, к себе лучшему. Язык — русский, живой, без канцелярщины.
+
+ТВОЯ ЕДИНСТВЕННАЯ ОБЛАСТЬ:
+Программа IQ Barakah и методология ВАКТ (модули: Нийя, Фаджр, Тавазун, Баракят, Низам, Истикама). Только это. Ничего за пределами.
+
+АБСОЛЮТНЫЕ ГРАНИЦЫ — БЕЗ ИСКЛЮЧЕНИЙ:
+Любой вопрос вне программы — фикх, акыда, халяль/харам, толкование Корана и хадисов, медицина, финансы, политика, личные жизненные ситуации вне контекста программы — ты НЕ отвечаешь. Никогда. Даже если вопрос кажется простым.
+
+ЕДИНСТВЕННЫЙ ОТВЕТ НА ТАКИЕ ВОПРОСЫ (дословно, без изменений):
+«Брат/сестра, этот вопрос за пределами того, чем я могу помочь. Напиши в поддержку IQ Barakah — там тебя услышат и разберутся, ин ша Аллах. 🤍»
+
+ТЕСТ ДЛЯ КАЖДОГО ОТВЕТА:
+Перед тем как ответить — спроси себя: "Этот ответ помогает участнику внутри программы IQ Barakah?" Если нет — отправляй в поддержку."""
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -4285,6 +4307,45 @@ async def job_progress_mirror(ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ДЖАРВАС — обработчик свободных сообщений
+# ══════════════════════════════════════════════════════════════════
+
+async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Отвечает на свободные сообщения участников через AI Джарвас."""
+    if not _jarwas_client:
+        return  # API ключ не задан — молчим
+
+    user_text = update.message.text.strip()
+    uid = str(update.effective_user.id)
+
+    # Берём историю диалога (последние 10 сообщений)
+    history = ctx.user_data.setdefault("jarwas_history", [])
+    history.append({"role": "user", "content": user_text})
+    # Обрезаем до 10 пар (20 сообщений)
+    if len(history) > 20:
+        history = history[-20:]
+        ctx.user_data["jarwas_history"] = history
+
+    await ctx.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+
+    try:
+        response = _jarwas_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            system=JARWAS_SYSTEM,
+            messages=history,
+        )
+        reply = response.content[0].text
+        history.append({"role": "assistant", "content": reply})
+        await update.message.reply_text(reply, parse_mode="Markdown")
+    except Exception as e:
+        logger.warning(f"Джарвас ошибка: {e}")
+        await update.message.reply_text(
+            "Прости, что-то пошло не так. Попробуй чуть позже 🤍"
+        )
+
+
+# ══════════════════════════════════════════════════════════════════
 #  MAIN
 # ══════════════════════════════════════════════════════════════════
 
@@ -4485,6 +4546,12 @@ def main():
         filters.TEXT & ~filters.COMMAND,
         track_last_active
     ), group=2)
+
+    # Джарвас — AI-ментор (group=3, самый низкий, только свободные сообщения)
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS,
+        jarwas_handler
+    ), group=3)
 
     # Еженедельная рассылка — каждый понедельник в 9:00 МСК (UTC+3 = 06:00 UTC)
     app.job_queue.run_daily(
