@@ -4610,18 +4610,6 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     level  = entry.get("level") if entry else None
     week   = entry.get("week", 1) if entry else None
 
-    # Только для оплативших участников
-    if not level:
-        await update.message.reply_text(
-            "Привет! 🌿 Джарвас — AI-ментор программы IQ Barakah — доступен участникам программы.\n\n"
-            "Начни с диагностики, чтобы войти в программу 👇",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🎯 Пройти диагностику", callback_data="start_diag")],
-                [InlineKeyboardButton("🌱 Начать ВАКТ — 1 500 ₽", callback_data="pay_vakt")],
-            ])
-        )
-        return
-
     # Лимит: 10 сообщений в день
     from datetime import date
     today = str(date.today())
