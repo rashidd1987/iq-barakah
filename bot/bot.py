@@ -4455,6 +4455,50 @@ async def job_progress_mirror(ctx: ContextTypes.DEFAULT_TYPE):
 #  ДЖАРВАС — обработчик свободных сообщений
 # ══════════════════════════════════════════════════════════════════
 
+LEVEL_ORDER = ["А", "Б", "В", "Г"]
+LEVEL_FULL_NAMES = {
+    "А": "ВАКТ · Тайм-менеджмент мусульманина",
+    "Б": "Сезон 1 · Основание",
+    "В": "Сезон 2 · Строительство",
+    "Г": "Сезон 3 · Наследие",
+}
+
+def build_jarwas_system(level: str | None, week: int | None) -> str:
+    """Формирует системный промпт Джарваса с учётом уровня участника."""
+    if not level or level not in LEVEL_ORDER:
+        # Гость или неизвестный — только о программе в целом, без деталей уроков
+        context = (
+            "\n\nКОНТЕКСТ УЧАСТНИКА:\n"
+            "Этот человек ещё не начал программу или только знакомится с ней.\n"
+            "Ты можешь рассказать о структуре программы в целом и помочь выбрать с чего начать.\n"
+            "Детали конкретных уроков не раскрывай — пусть открываются в процессе."
+        )
+    else:
+        idx = LEVEL_ORDER.index(level)
+        current_name = LEVEL_FULL_NAMES[level]
+        passed = [LEVEL_FULL_NAMES[l] for l in LEVEL_ORDER[:idx]]
+        ahead  = [LEVEL_FULL_NAMES[l] for l in LEVEL_ORDER[idx+1:]]
+
+        context = (
+            f"\n\nКОНТЕКСТ УЧАСТНИКА:\n"
+            f"Сейчас проходит: {current_name}, неделя {week}.\n"
+        )
+        if passed:
+            context += f"Уже прошёл: {', '.join(passed)}.\n"
+        if ahead:
+            context += (
+                f"Впереди: {', '.join(ahead)} — но детали этих курсов НЕ раскрывай.\n"
+                "Если спрашивает про будущие уровни — скажи тепло: "
+                "«Это ждёт тебя впереди — сначала давай закрепим то что ты проходишь сейчас 🌿»\n"
+            )
+        context += (
+            f"Твоя задача — помогать участнику именно с его текущим уровнем ({current_name}) "
+            f"и не забегать вперёд."
+        )
+
+    return JARWAS_SYSTEM + context
+
+
 async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Отвечает на свободные сообщения участников через AI Джарвас."""
     if not _jarwas_client:
@@ -4463,10 +4507,18 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text.strip()
     uid = str(update.effective_user.id)
 
-    # Берём историю диалога (последние 10 сообщений)
+    # Определяем уровень и неделю участника
+    active = get_active_users(ctx)
+    entry  = active.get(uid)
+    level  = entry.get("level") if entry else None
+    week   = entry.get("week", 1) if entry else None
+
+    # Строим персональный системный промпт
+    system = build_jarwas_system(level, week)
+
+    # Берём историю диалога (последние 20 сообщений)
     history = ctx.user_data.setdefault("jarwas_history", [])
     history.append({"role": "user", "content": user_text})
-    # Обрезаем до 10 пар (20 сообщений)
     if len(history) > 20:
         history = history[-20:]
         ctx.user_data["jarwas_history"] = history
@@ -4477,7 +4529,7 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         response = _jarwas_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
-            system=JARWAS_SYSTEM,
+            system=system,
             messages=history,
         )
         reply = response.content[0].text
