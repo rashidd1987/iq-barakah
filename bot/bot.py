@@ -4610,14 +4610,44 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     level  = entry.get("level") if entry else None
     week   = entry.get("week", 1) if entry else None
 
+    # Только для оплативших участников
+    if not level:
+        await update.message.reply_text(
+            "Привет! 🌿 Джарвас — AI-ментор программы IQ Barakah — доступен участникам программы.\n\n"
+            "Начни с диагностики, чтобы войти в программу 👇",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🎯 Пройти диагностику", callback_data="start_diag")],
+                [InlineKeyboardButton("🌱 Начать ВАКТ — 1 500 ₽", callback_data="pay_vakt")],
+            ])
+        )
+        return
+
+    # Лимит: 10 сообщений в день
+    from datetime import date
+    today = str(date.today())
+    jarwas_usage = ctx.user_data.setdefault("jarwas_usage", {"date": today, "count": 0})
+    if jarwas_usage["date"] != today:
+        jarwas_usage["date"] = today
+        jarwas_usage["count"] = 0
+    if jarwas_usage["count"] >= 10:
+        await update.message.reply_text(
+            "Брат/сестра, на сегодня лимит общения с Джарвасом исчерпан (10 сообщений в день) 🌙\n\n"
+            "Возвращайся завтра — Джарвас ждёт тебя! Если срочный вопрос — пиши куратору 🤍",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💬 Написать куратору", url=SITE)],
+            ])
+        )
+        return
+    jarwas_usage["count"] += 1
+
     # Строим персональный системный промпт
     system = build_jarwas_system(level, week)
 
-    # Берём историю диалога (последние 20 сообщений)
+    # Берём историю диалога (последние 6 сообщений = 3 обмена)
     history = ctx.user_data.setdefault("jarwas_history", [])
     history.append({"role": "user", "content": user_text})
-    if len(history) > 20:
-        history = history[-20:]
+    if len(history) > 6:
+        history = history[-6:]
         ctx.user_data["jarwas_history"] = history
 
     await ctx.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
@@ -4632,7 +4662,7 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     try:
         response = _jarwas_client.messages.create(
-            model="claude-sonnet-4-6",
+            model="claude-haiku-3-5",
             max_tokens=1024,
             system=system,
             messages=history,
