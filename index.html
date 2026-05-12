@@ -871,6 +871,9 @@ footer{
   .quiz-box{padding:28px 20px}
   .result-wheel-row{grid-template-columns:1fr}
 }
+@media(max-width:640px){
+  .ship-cards-grid{grid-template-columns:1fr!important}
+}
 
 /* ════════════════════════════════════════════
    MOBILE NAVIGATION
@@ -1000,6 +1003,7 @@ footer{
       <li><a href="#program">Программа</a></li>
       <li><a href="#how">Как устроена программа</a></li>
       <li><a href="#diagnosis">Диагностика</a></li>
+      <li><a href="/ship">⚓ Корабль</a></li>
       <li><a href="#tariffs">Тарифы</a></li>
       <li><a href="#impact">Масштаб</a></li>
       <li class="nav-dropdown">
@@ -1219,6 +1223,41 @@ footer{
         </div>
       </div>
 
+    </div>
+  </div>
+</section>
+
+<!-- ── КОРАБЛЬ БАРАКАТА ── -->
+<section id="ship-section" style="padding:60px 0 20px">
+  <div class="wrap">
+    <div class="section-eyebrow reveal"><span class="eyebrow-text">ГЛУБОКАЯ ДИАГНОСТИКА</span></div>
+    <h2 class="section-title reveal">Корабль Бараката — <em>найди пробоины</em></h2>
+    <p class="section-sub reveal">Оцени 15 отсеков своего бизнеса или личной жизни. Джарвас разберёт слабые зоны и подскажет с чего начать исправление.</p>
+
+    <div class="reveal ship-cards-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px">
+
+      <!-- Бизнес -->
+      <a href="/ship?tab=business" style="text-decoration:none;display:block;background:linear-gradient(135deg,#0D1A12,#1A3D2B);border:1.5px solid rgba(197,162,74,0.35);border-radius:20px;padding:28px 24px;transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(197,162,74,0.2)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+        <div style="font-size:32px;margin-bottom:12px">⚓</div>
+        <div style="font-size:11px;letter-spacing:3px;color:#C5A24A;text-transform:uppercase;margin-bottom:8px">Бизнес-диагностика</div>
+        <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.3">Оцени состояние своего бизнеса</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:16px">Стратегия · Финансы · Команда · Продажи · Сервис и ещё 10 отсеков</div>
+        <div style="display:inline-block;padding:10px 22px;background:linear-gradient(135deg,#C5A24A,#E8C96A);color:#0D1A12;border-radius:8px;font-size:13px;font-weight:700">Пройти диагностику →</div>
+      </a>
+
+      <!-- Личная жизнь -->
+      <a href="/ship?tab=personal" style="text-decoration:none;display:block;background:linear-gradient(135deg,#0D1A12,#1A3D2B);border:1.5px solid rgba(44,95,44,0.5);border-radius:20px;padding:28px 24px;transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 12px 40px rgba(44,95,44,0.2)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+        <div style="font-size:32px;margin-bottom:12px">🌙</div>
+        <div style="font-size:11px;letter-spacing:3px;color:#C5A24A;text-transform:uppercase;margin-bottom:8px">Личная жизнь</div>
+        <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.3">Оцени баланс своей жизни</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.6;margin-bottom:16px">Иман · Здоровье · Семья · Время · Финансы и ещё 10 отсеков</div>
+        <div style="display:inline-block;padding:10px 22px;background:linear-gradient(135deg,#2C5F44,#3d7a3e);color:#fff;border-radius:8px;font-size:13px;font-weight:700">Пройти диагностику →</div>
+      </a>
+
+    </div>
+
+    <div class="reveal" style="text-align:center;margin-top:20px;font-size:13px;color:var(--mid);font-style:italic">
+      15 отсеков · бесплатно · результат сохраняется · можно повторить через месяц
     </div>
   </div>
 </section>
