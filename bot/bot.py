@@ -199,7 +199,26 @@ C3.8 · Точка невозврата
 «Брат/сестра, этот вопрос за пределами того, чем я могу помочь. Напиши в поддержку IQ Barakah — там тебя услышат и разберутся, ин ша Аллах. 🤍»
 
 ТЕСТ ДЛЯ КАЖДОГО ОТВЕТА:
-Перед тем как ответить — спроси себя: "Этот ответ помогает участнику внутри программы IQ Barakah?" Если нет — отправляй в поддержку."""
+Перед тем как ответить — спроси себя: "Этот ответ помогает участнику внутри программы IQ Barakah?" Если нет — отправляй в поддержку.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+КНОПКИ ДЕЙСТВИЙ (добавляй в конец ответа когда уместно):
+
+В конце ответа ты можешь добавить ОДИН маркер — он превратится в кнопку:
+
+[BTN:diag] — когда человек не знает с чего начать, сомневается в уровне, хочет понять что ему подходит. Пример: "хочу попробовать но не знаю с чего начать"
+
+[BTN:buy_vakt] — когда гость или незарегистрированный участник готов начать с ВАКТ. Пример: "хочу начать", "как записаться"
+
+[BTN:buy_s1] — когда участник завершил ВАКТ и готов к Сезону 1
+
+[BTN:curator] — когда вопрос требует живого куратора: оплата, технические вопросы, сложная личная ситуация
+
+ПРАВИЛА КНОПОК:
+— Добавляй маркер ТОЛЬКО если он реально уместен, не к каждому ответу
+— Один маркер за ответ, в самом конце после текста
+— Маркер пишется точно как указано, на отдельной строке
+— Если кнопка не нужна — просто не добавляй маркер"""
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -4558,6 +4577,14 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     await ctx.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
 
+    # Кнопки по маркерам
+    BTN_MAP = {
+        "[BTN:diag]":     InlineKeyboardMarkup([[InlineKeyboardButton("🎯 Пройти диагностику", callback_data="start_diag")]]),
+        "[BTN:buy_vakt]": InlineKeyboardMarkup([[InlineKeyboardButton("🌱 Начать ВАКТ — 1 500 ₽", callback_data="pay_vakt")]]),
+        "[BTN:buy_s1]":   InlineKeyboardMarkup([[InlineKeyboardButton("📗 Начать Сезон 1", callback_data="pay_s1_full")]]),
+        "[BTN:curator]":  InlineKeyboardMarkup([[InlineKeyboardButton("💬 Написать куратору", url=SITE)]]),
+    }
+
     try:
         response = _jarwas_client.messages.create(
             model="claude-sonnet-4-6",
@@ -4566,8 +4593,17 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             messages=history,
         )
         reply = response.content[0].text
+
+        # Ищем маркер кнопки в конце ответа
+        markup = None
+        for marker, kb in BTN_MAP.items():
+            if marker in reply:
+                reply = reply.replace(marker, "").strip()
+                markup = kb
+                break
+
         history.append({"role": "assistant", "content": reply})
-        await update.message.reply_text(reply, parse_mode="Markdown")
+        await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=markup)
     except Exception as e:
         logger.warning(f"Джарвас ошибка: {e}")
         await update.message.reply_text(
