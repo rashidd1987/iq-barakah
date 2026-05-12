@@ -1646,8 +1646,9 @@ async def cb_week_ack(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             entry["week"] = max_weeks + 1
             entry["completed_notified"] = True
             letter = ctx.user_data.get("letter")
+            first_name = entry.get('name', '').split()[0] or 'Брат'
             completion_text = (
-                f"🎓 *МашаАллах, {entry.get('name','').split()[0] or 'Брат'}!*\n\n"
+                f"🎓 *МашаАллах, {first_name}!*\n\n"
                 f"Ты завершил *{LEVEL_NAMES[level]}*!\n\n"
                 "Аллах видит каждое твоё усилие. Это большой шаг вперёд.\n\n"
                 "🌿 _Твой сертификат готовится — куратор свяжется с тобой._"
@@ -1661,6 +1662,27 @@ async def cb_week_ack(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                     "Посмотри как далеко ты прошёл. 🌿\n\nБаракАллах фикум! 🤲"
                 )
             await ctx.bot.send_message(chat_id=uid, text=completion_text, parse_mode="Markdown")
+
+            # Уpsell → Сезон 1 (только для ВАКТ, уровень А)
+            upsell_text = (
+                "━━━━━━━━━━━━━━━━\n"
+                "📗 *Следующий шаг — IQ Barakah · Сезон 1*\n\n"
+                f"{first_name}, ты заложил фундамент.\n"
+                "Теперь пора строить — глубже и серьёзнее.\n\n"
+                "*Сезон 1 · Основание* — 8 недель\n"
+                "_«Кто ты есть» — психология, среда, фокус, цель_\n\n"
+                "Еженедельные уроки прямо в боте + живые созвоны с куратором.\n\n"
+                "🌿 _20% от оплаты → благотворительность_"
+            )
+            await ctx.bot.send_message(
+                chat_id=uid,
+                text=upsell_text,
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📗 Начать Сезон 1 — оплатить", callback_data="pay_s1_full")],
+                    [InlineKeyboardButton("💬 Узнать подробнее у куратора", url=SITE)],
+                ])
+            )
             return
 
         # Открываем следующую неделю
