@@ -581,6 +581,50 @@ textarea:focus { border-color: var(--g2); }
   background: var(--gpale); border-radius: 12px; padding: 14px;
   font-size: 13px; color: var(--g2); font-weight: 600; line-height: 1.5;
 }
+
+/* ── SHIP SCREEN ── */
+.ship-launcher { display: flex; flex-direction: column; gap: 14px; }
+.ship-card {
+  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 18px; cursor: pointer; transition: transform .15s, box-shadow .15s;
+  border: 1.5px solid transparent;
+}
+.ship-card:active { transform: scale(.98); }
+.ship-card.ship-biz { border-color: rgba(201,168,76,.3); }
+.ship-card.ship-per { border-color: rgba(44,95,45,.4); }
+.ship-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.ship-card-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+}
+.ship-card-icon.biz { background: var(--goldpale); }
+.ship-card-icon.per { background: var(--gpale); }
+.ship-card-title { font-size: 17px; font-weight: 800; }
+.ship-card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ship-card-result {
+  display: none; margin-top: 8px;
+  background: var(--bg); border-radius: 10px; padding: 10px 12px;
+  align-items: center; justify-content: space-between;
+}
+.ship-result-score { font-size: 20px; font-weight: 800; }
+.ship-result-score.hi { color: var(--gold); }
+.ship-result-score.mid { color: #e8a040; }
+.ship-result-score.lo { color: #e24b4a; }
+.ship-result-label { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.ship-result-date { font-size: 11px; color: var(--muted); }
+.ship-card-btn {
+  display: block; width: 100%; padding: 11px; border-radius: 12px;
+  border: none; font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit; margin-top: 12px; transition: opacity .15s;
+}
+.ship-card-btn:active { opacity: .8; }
+.ship-card-btn.biz { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: white; }
+.ship-card-btn.per { background: linear-gradient(135deg, var(--g2), var(--g3)); color: white; }
+.ship-how { background: var(--card); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px; }
+.ship-how-t { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
+.ship-steps { display: flex; flex-direction: column; gap: 8px; }
+.ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
+.ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 </style>
 </head>
 <body>
@@ -866,6 +910,77 @@ textarea:focus { border-color: var(--g2); }
   </div>
 </div>
 
+<!-- ══════════════ SHIP ══════════════ -->
+<div class="screen" id="sc-ship">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">IQ <em>Barakah</em></div>
+      <div class="badge ba">Диагностика</div>
+    </div>
+    <div class="hdr-title">Корабль Бараката</div>
+    <div class="hdr-sub">15 отсеков · Найди пробоины · Получи разбор</div>
+  </div>
+  <div class="c">
+    <div class="ship-launcher">
+
+      <!-- Бизнес-корабль -->
+      <div class="ship-card ship-biz">
+        <div class="ship-card-head">
+          <div class="ship-card-icon biz">⚓</div>
+          <div>
+            <div class="ship-card-title">Бизнес-диагностика</div>
+            <div class="ship-card-sub">Стратегия · Финансы · Команда · Продажи и ещё 11</div>
+          </div>
+        </div>
+        <div class="ship-card-result" id="ship-result-business">
+          <div>
+            <div class="ship-result-score" id="ship-score-business">—</div>
+            <div class="ship-result-label">Здоровье корабля</div>
+          </div>
+          <div class="ship-result-date" id="ship-date-business"></div>
+        </div>
+        <button class="ship-card-btn biz" id="ship-btn-business" onclick="openShip('business')">
+          ⚓ Пройти диагностику
+        </button>
+      </div>
+
+      <!-- Личная жизнь -->
+      <div class="ship-card ship-per">
+        <div class="ship-card-head">
+          <div class="ship-card-icon per">🌙</div>
+          <div>
+            <div class="ship-card-title">Личная жизнь</div>
+            <div class="ship-card-sub">Иман · Здоровье · Семья · Время и ещё 11</div>
+          </div>
+        </div>
+        <div class="ship-card-result" id="ship-result-personal">
+          <div>
+            <div class="ship-result-score" id="ship-score-personal">—</div>
+            <div class="ship-result-label">Здоровье корабля</div>
+          </div>
+          <div class="ship-result-date" id="ship-date-personal"></div>
+        </div>
+        <button class="ship-card-btn per" id="ship-btn-personal" onclick="openShip('personal')">
+          🌙 Пройти диагностику
+        </button>
+      </div>
+
+    </div><!-- /ship-launcher -->
+
+    <!-- Как это работает -->
+    <div class="ship-how">
+      <div class="ship-how-t">Как это работает</div>
+      <div class="ship-steps">
+        <div class="ship-step"><div class="ship-step-n">1</div>Оцени каждый из 15 отсеков от 0 до 100</div>
+        <div class="ship-step"><div class="ship-step-n">2</div>Увидишь где пробоины — критические и требующие внимания</div>
+        <div class="ship-step"><div class="ship-step-n">3</div>Джарвас даст рекомендации по каждой слабой зоне</div>
+        <div class="ship-step"><div class="ship-step-n">4</div>Результаты сохранятся — можно отслеживать прогресс раз в месяц</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 </div><!-- /screens -->
 
 <!-- ── NAV ── -->
@@ -902,6 +1017,14 @@ textarea:focus { border-color: var(--g2); }
       </svg>
     </div>
     Баланс
+  </button>
+  <button class="nb" onclick="switchScreen('ship')" id="nb-ship">
+    <div class="ni">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <path d="M3 17l3-10h12l3 10H3z"/><path d="M9 7V4m6 3V4M3 17c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4"/><path d="M12 4v3"/>
+      </svg>
+    </div>
+    Корабль
   </button>
 </nav>
 </div><!-- /app -->
@@ -1046,8 +1169,8 @@ function initUser() {
 
 // ── NAV ──
 let cur = 'home';
-const SC = { home:'sc-home', tracker:'sc-tracker', lessons:'sc-lessons', wheel:'sc-wheel' };
-const NB = { home:'nb-home', tracker:'nb-tracker', lessons:'nb-lessons', wheel:'nb-wheel' };
+const SC = { home:'sc-home', tracker:'sc-tracker', lessons:'sc-lessons', wheel:'sc-wheel', ship:'sc-ship' };
+const NB = { home:'nb-home', tracker:'nb-tracker', lessons:'nb-lessons', wheel:'nb-wheel', ship:'nb-ship' };
 
 function switchScreen(id) {
   haptic();
@@ -1059,6 +1182,7 @@ function switchScreen(id) {
   if (id==='wheel') renderWheel();
   if (id==='lessons') renderLessons('all');
   if (id==='tracker') renderTracker();
+  if (id==='ship') renderShip();
 }
 
 // ── TRACKER ──
@@ -1240,6 +1364,50 @@ function renderTracker() {
   });
 
   updateProgress();
+}
+
+// ── SHIP ──
+const SHIP_URL = 'https://iq-barakah.ru/ship';
+
+function renderShip() {
+  ['business','personal'].forEach(type => {
+    const raw = localStorage.getItem('ship_' + type);
+    const resultEl = document.getElementById('ship-result-' + type);
+    const scoreEl  = document.getElementById('ship-score-' + type);
+    const dateEl   = document.getElementById('ship-date-' + type);
+    const btnEl    = document.getElementById('ship-btn-' + type);
+    if (!raw || !resultEl) return;
+    try {
+      const d = JSON.parse(raw);
+      if (!d.scores) return;
+      const avg = Math.round(d.scores.reduce((s,v)=>s+v,0)/d.scores.length);
+      scoreEl.textContent = avg + '%';
+      scoreEl.className = 'ship-result-score ' + (avg>=70?'hi':avg>=45?'mid':'lo');
+      const dt = new Date(d.ts || d.date);
+      dateEl.textContent = dt.toLocaleDateString('ru',{day:'numeric',month:'short'});
+      resultEl.style.display = 'flex';
+      btnEl.textContent = (type==='business'?'⚓':'🌙') + ' Пройти снова';
+    } catch(e) {}
+  });
+  // Try CloudStorage as fallback
+  if (window.Telegram?.WebApp?.CloudStorage) {
+    ['business','personal'].forEach(type => {
+      if (localStorage.getItem('ship_' + type)) return; // already loaded
+      tg.CloudStorage.getItem('ship_' + type, (err, val) => {
+        if (!err && val) {
+          localStorage.setItem('ship_' + type, val);
+          renderShip();
+        }
+      });
+    });
+  }
+}
+
+function openShip(type) {
+  haptic();
+  const url = SHIP_URL + '?tab=' + type;
+  if (tg) tg.openLink(url);
+  else window.open(url, '_blank');
 }
 
 // ── WHEEL ──

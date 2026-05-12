@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Корабль Бараката · IQ Barakah</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--gold:#C5A24A;--gold-dim:rgba(197,162,74,0.35);--gold-faint:rgba(197,162,74,0.08);--green-dark:#0D1A12;--green-mid:#1A3D2B;--green-light:#2C5F44;--text:#FFFFFF;--text-muted:rgba(255,255,255,0.55)}
+body{background:var(--green-dark);color:var(--text);font-family:'Georgia','Times New Roman',serif;min-height:100vh;overflow-x:hidden}
+.hdr{text-align:center;padding:1.4rem 1rem .5rem}
+.hdr-brand{font-size:11px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:5px}
+.hdr-title{font-size:24px;font-weight:normal;letter-spacing:1px;margin-bottom:3px}
+.hdr-sub{font-size:12px;color:var(--text-muted);letter-spacing:.5px}
+.tab-bar{display:flex;justify-content:center;gap:0;margin:.8rem auto .4rem;max-width:400px;border:1px solid var(--gold-dim);border-radius:8px;overflow:hidden}
+.tab-btn{flex:1;padding:.62rem 1.2rem;background:transparent;color:var(--text-muted);font-size:13px;font-family:'Georgia',serif;letter-spacing:1px;border:none;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.tab-btn.active{background:var(--gold);color:#0D1A12;font-weight:bold}
+.tab-btn:not(.active):hover{background:var(--gold-faint);color:var(--gold)}
+.legend-bar{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin:.5rem auto;max-width:700px;padding:.6rem 1.5rem;background:rgba(197,162,74,0.06);border:1px solid var(--gold-dim);border-radius:8px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-muted);font-family:'Calibri',sans-serif}
+.leg-box{width:28px;height:18px;border-radius:3px;flex-shrink:0}
+.score-strip{display:flex;justify-content:center;gap:3rem;padding:.8rem 2rem;margin:.5rem auto;max-width:680px;background:var(--gold-faint);border:1px solid var(--gold-dim);border-radius:10px}
+.si-val{font-size:26px;font-weight:bold;color:var(--gold);line-height:1}
+.si-lbl{font-size:10px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-top:3px}
+.ship-wrap{width:100%;max-width:1420px;margin:0 auto;padding:0 8px}
+#ship-svg{width:100%;display:block}
+.detail{margin:.6rem 1.5rem;padding:1.4rem 1.8rem;background:rgba(26,61,43,0.65);border:1px solid var(--gold-dim);border-radius:14px;display:none;animation:fadeIn .25s ease}
+.detail.open{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.detail-num{font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:5px}
+.detail-title{font-size:19px;color:#fff;margin-bottom:9px}
+.detail-desc{font-size:13.5px;line-height:1.7;color:rgba(255,255,255,0.78);margin-bottom:12px;font-family:'Calibri','Arial',sans-serif}
+.detail-qs{list-style:none;margin-bottom:16px}
+.detail-qs li{font-size:13px;color:var(--gold);padding:3px 0 3px 18px;position:relative;font-family:'Calibri','Arial',sans-serif;line-height:1.5}
+.detail-qs li:before{content:'—';position:absolute;left:0;color:rgba(197,162,74,.6)}
+.slider-row{display:flex;align-items:center;gap:1rem}
+.slider-row label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;width:70px}
+input[type=range]{flex:1;-webkit-appearance:none;height:3px;background:rgba(197,162,74,.25);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--gold);cursor:pointer;box-shadow:0 0 8px rgba(197,162,74,.5)}
+.sval{font-size:24px;font-weight:bold;color:var(--gold);min-width:50px;text-align:right}
+.danger-wrap{margin:.5rem 1.5rem .3rem}
+.danger-lbl{font-size:10px;letter-spacing:2px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px}
+.badges{display:flex;gap:8px;flex-wrap:wrap}
+.bdg{padding:4px 14px;border-radius:20px;font-size:12px;font-family:'Calibri',sans-serif}
+.bdg-r{background:rgba(226,75,74,.18);border:1px solid rgba(226,75,74,.45);color:#F09595}
+.bdg-w{background:rgba(186,117,23,.18);border:1px solid rgba(186,117,23,.45);color:#FAC775}
+.bdg-g{background:rgba(197,162,74,.12);border:1px solid rgba(197,162,74,.4);color:#C5A24A}
+
+/* ── КНОПКА ЗАВЕРШИТЬ ── */
+.finish-wrap{text-align:center;margin:1.4rem 1.5rem .5rem}
+.btn-finish{display:inline-flex;align-items:center;gap:10px;padding:.85rem 2.4rem;background:linear-gradient(135deg,#C5A24A,#E8C96A);color:#0D1A12;font-family:'Georgia',serif;font-size:15px;font-weight:bold;letter-spacing:1px;border:none;border-radius:10px;cursor:pointer;transition:all .2s;box-shadow:0 4px 20px rgba(197,162,74,.35)}
+.btn-finish:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(197,162,74,.5)}
+.btn-finish:active{transform:translateY(0)}
+
+/* ── МОДАЛЬНОЕ ОКНО РЕЗУЛЬТАТОВ ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(7,21,13,.95);z-index:1000;overflow-y:auto;display:none;animation:fadeIn .3s ease}
+.modal-overlay.open{display:block}
+.modal-inner{max-width:680px;margin:0 auto;padding:2rem 1.5rem 3rem}
+.modal-brand{text-align:center;font-size:10px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:.5rem}
+.modal-title{text-align:center;font-size:26px;font-weight:normal;margin-bottom:.3rem}
+.modal-sub{text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:1.8rem}
+
+/* Шкала здоровья */
+.health-ring{text-align:center;margin-bottom:1.6rem}
+.health-num{font-size:72px;font-weight:bold;line-height:1;letter-spacing:-2px}
+.health-label{font-size:11px;letter-spacing:3px;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
+
+/* Карточки пробоин */
+.holes-title{font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:1rem;border-bottom:1px solid var(--gold-dim);padding-bottom:.5rem}
+.hole-card{background:rgba(26,61,43,0.5);border:1px solid var(--gold-dim);border-radius:12px;padding:1.1rem 1.4rem;margin-bottom:.8rem}
+.hole-card.critical{border-color:rgba(226,75,74,.5);background:rgba(226,75,74,.06)}
+.hole-card.warning{border-color:rgba(232,160,64,.4);background:rgba(232,160,64,.05)}
+.hole-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
+.hole-name{font-size:15px;color:#fff}
+.hole-score{font-size:20px;font-weight:bold}
+.hole-card.critical .hole-score{color:#F09595}
+.hole-card.warning .hole-score{color:#FAC775}
+.hole-rec{font-size:13px;line-height:1.65;color:rgba(255,255,255,0.72);font-family:'Calibri','Arial',sans-serif}
+.hole-jarwas{margin-top:.7rem;padding:.7rem 1rem;background:rgba(197,162,74,.07);border-left:2px solid var(--gold);border-radius:0 6px 6px 0;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.82);font-family:'Calibri','Arial',sans-serif;font-style:italic}
+
+/* Сильные стороны */
+.strong-wrap{margin:1.4rem 0}
+.strong-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:.7rem}
+.strong-tag{padding:5px 16px;border-radius:20px;font-size:12px;background:rgba(197,162,74,.12);border:1px solid rgba(197,162,74,.4);color:var(--gold);font-family:'Calibri',sans-serif}
+
+/* CTA кнопки */
+.cta-wrap{margin-top:1.8rem;display:flex;flex-direction:column;gap:.8rem}
+.btn-primary{display:block;width:100%;padding:1rem;background:linear-gradient(135deg,#C5A24A,#E8C96A);color:#0D1A12;font-family:'Georgia',serif;font-size:15px;font-weight:bold;letter-spacing:.5px;border:none;border-radius:10px;cursor:pointer;text-align:center;text-decoration:none;transition:all .2s;box-shadow:0 4px 20px rgba(197,162,74,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(197,162,74,.45)}
+.btn-secondary{display:block;width:100%;padding:.85rem;background:transparent;color:var(--gold);font-family:'Georgia',serif;font-size:14px;letter-spacing:.5px;border:1px solid var(--gold-dim);border-radius:10px;cursor:pointer;text-align:center;text-decoration:none;transition:all .2s}
+.btn-secondary:hover{background:var(--gold-faint)}
+.btn-close-modal{display:block;width:100%;padding:.7rem;background:transparent;color:var(--text-muted);font-family:'Calibri',sans-serif;font-size:13px;border:none;cursor:pointer;text-align:center;margin-top:.5rem}
+.btn-close-modal:hover{color:#fff}
+
+/* Сохранённые результаты */
+.saved-banner{display:none;text-align:center;margin:.5rem 1.5rem;padding:.6rem 1rem;background:rgba(197,162,74,.08);border:1px solid var(--gold-dim);border-radius:8px;font-size:12px;color:var(--text-muted);font-family:'Calibri',sans-serif}
+.ftr{text-align:center;padding:1.5rem 1rem;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:2px;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-brand">IQ Barakah System</div>
+  <div class="hdr-title" id="hdr-title">Корабль Бараката — Бизнес-диагностика</div>
+  <div class="hdr-sub">Кликни на отсек · Оцени от 0 до 100 · Найди пробоины</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="tb-b" onclick="setTab('business')">⚓ Бизнес</button>
+  <button class="tab-btn" id="tb-p" onclick="setTab('personal')">🌙 Личная жизнь</button>
+</div>
+
+<div class="legend-bar">
+  <div class="leg-item"><div class="leg-box" style="background:rgba(197,162,74,0.8)"></div>70–100 · Норма</div>
+  <div class="leg-item"><div class="leg-box" style="background:rgba(232,160,64,0.8)"></div>40–69 · Внимание</div>
+  <div class="leg-item"><div class="leg-box" style="background:rgba(226,75,74,0.8)"></div>0–39 · Пробоина</div>
+  <div class="leg-item" style="border-left:1px solid var(--gold-dim);padding-left:1rem">Вода снизу = дефицит · Чем выше — тем хуже</div>
+</div>
+
+<div class="score-strip">
+  <div style="text-align:center"><div class="si-val" id="s-avg">70%</div><div class="si-lbl">Здоровье корабля</div></div>
+  <div style="text-align:center"><div class="si-val" id="s-crit" style="color:#F09595">0</div><div class="si-lbl">Критических пробоин</div></div>
+  <div style="text-align:center"><div class="si-val" id="s-warn" style="color:#FAC775">0</div><div class="si-lbl">Требуют внимания</div></div>
+</div>
+
+<div class="ship-wrap">
+<svg id="ship-svg" viewBox="0 0 1420 620" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#0D1A12" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#142A1C" stop-opacity="1"/>
+  </linearGradient>
+  <linearGradient id="seaGrad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#0A2318" stop-opacity="0.95"/>
+    <stop offset="60%" stop-color="#071510" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#040E0A" stop-opacity="1"/>
+  </linearGradient>
+  <linearGradient id="waterRed" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#E24B4A" stop-opacity="0.1"/>
+    <stop offset="100%" stop-color="#E24B4A" stop-opacity="0.45"/>
+  </linearGradient>
+  <linearGradient id="waterAmb" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#E8A040" stop-opacity="0.1"/>
+    <stop offset="100%" stop-color="#E8A040" stop-opacity="0.4"/>
+  </linearGradient>
+  <linearGradient id="waterGold" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#C5A24A" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#C5A24A" stop-opacity="0.3"/>
+  </linearGradient>
+</defs>
+<rect width="1420" height="620" fill="url(#skyGrad)"/>
+<rect x="0" y="202" width="1420" height="418" fill="url(#seaGrad)"/>
+<path d="M 0 210 Q 180 205 360 212 Q 540 219 720 210 Q 900 201 1080 210 Q 1260 219 1420 210" fill="none" stroke="rgba(197,162,74,0.12)" stroke-width="1"/>
+<path d="M 0 220 Q 200 215 400 222 Q 600 229 800 218 Q 1000 207 1200 218 Q 1350 225 1420 220" fill="none" stroke="rgba(197,162,74,0.08)" stroke-width="0.8"/>
+<rect x="0" y="199" width="1420" height="4" fill="rgba(197,162,74,0.15)"/>
+<line x1="0" y1="201" x2="1420" y2="201" stroke="rgba(197,162,74,0.6)" stroke-width="1" stroke-dasharray="8,5" filter="url(#glow)"/>
+<text x="12" y="196" font-family="Calibri,sans-serif" font-size="11" fill="rgba(197,162,74,0.6)" letter-spacing="2">ВАТЕРЛИНИЯ</text>
+<g id="g-compartments"></g>
+<path id="wave-path" fill="none" stroke="#C5A24A" stroke-width="1.5" filter="url(#glow)"/>
+<g id="g-dots"></g>
+<g id="g-labels" font-family="'Calibri','Arial',sans-serif" font-size="13"></g>
+<g id="g-ship"></g>
+</svg>
+</div>
+
+<div id="detail-panel" class="detail">
+  <div class="detail-num" id="d-num"></div>
+  <div class="detail-title" id="d-title"></div>
+  <div class="detail-desc" id="d-desc"></div>
+  <ul class="detail-qs" id="d-qs"></ul>
+  <div class="slider-row">
+    <label>Оценка</label>
+    <input type="range" id="d-slider" min="0" max="100" step="1" value="70" oninput="fromSlider(+this.value)">
+    <span class="sval" id="d-sval">70</span>
+  </div>
+</div>
+
+<div class="danger-wrap">
+  <div class="danger-lbl">Главные пробоины</div>
+  <div class="badges" id="g-badges"></div>
+</div>
+
+<div class="saved-banner" id="saved-banner">
+  ✓ Результаты сохранены · <span id="saved-date"></span>
+</div>
+
+<div class="finish-wrap">
+  <button class="btn-finish" onclick="openResults()">
+    🔍 Получить разбор Джарваса
+  </button>
+</div>
+
+<div class="ftr">IQ Barakah System · Всё создаётся ради довольства Аллаха</div>
+
+<!-- ══════════════ МОДАЛЬНОЕ ОКНО РЕЗУЛЬТАТОВ ══════════════ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-inner">
+    <div class="modal-brand">IQ Barakah · Джарвас</div>
+    <div class="modal-title" id="m-title">Разбор вашего корабля</div>
+    <div class="modal-sub" id="m-sub"></div>
+
+    <div class="health-ring">
+      <div class="health-num" id="m-health" style="color:#C5A24A">70%</div>
+      <div class="health-label">Здоровье корабля</div>
+    </div>
+
+    <div class="holes-title">⚠ Главные пробоины — разбор Джарваса</div>
+    <div id="m-holes"></div>
+
+    <div class="strong-wrap">
+      <div class="holes-title" style="color:rgba(197,162,74,0.8)">✦ Сильные стороны</div>
+      <div class="strong-list" id="m-strong"></div>
+    </div>
+
+    <div class="cta-wrap" id="m-cta"></div>
+
+    <button class="btn-close-modal" onclick="closeResults()">← Вернуться к кораблю</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  ДАННЫЕ
+// ══════════════════════════════════════════════════
+const BOT_USERNAME = 'iqbarakah_bot';
+
+const SEC={
+business:[
+  {name:'Энергия',full:'Энергия и состояние собственника',desc:'Ты — капитан корабля. От твоего физического, ментального и эмоционального состояния зависит скорость, направление и баракат всего бизнеса. Если капитан вымотан — весь экипаж страдает.',qs:['Насколько ты полон энергии для развития бизнеса?','Часто ли работаешь на пределе или выгораешь?','Можешь уехать на 2–4 недели — бизнес не развалится?'],
+  rec:'Энергия собственника — это первый ресурс бизнеса. Без неё стратегии не работают. Начни с восстановления: сон, намаз, движение. В программе IQ Barakah модуль ВАКТ поможет выстроить систему восстановления.'},
+  {name:'Ният',full:'Ният и мышление в бизнесе',desc:'Ради чего занимаешься этим делом? Твои глубинные намерения прямо влияют на баракат. Чистый ният притягивает баракат, загрязнённый — блокирует.',qs:['Делаешь бизнес ради Аллаха и пользы уммы?','Мышление притягивает баракат или создаёт блоки?','Есть ли в тебе страх потери или жадность?'],
+  rec:'Ният — фундамент всего. Когда намерение чистое, даже малые дела приносят баракат. Переосмысли, ради чего строишь бизнес. В ВАКТ есть отдельная практика по работе с ниятом каждого утра.'},
+  {name:'Самореализация',full:'Самореализация и предназначение',desc:'Насколько бизнес позволяет реализовывать потенциал, таланты и миссию, которую Аллах вложил в тебя.',qs:['Чувствуешь ли, что занимаешься своим делом?','Реализуешь ли сильные стороны через бизнес?','Приносит ли бизнес глубокое внутреннее удовлетворение?'],
+  rec:'Если бизнес не резонирует с твоим предназначением — энергия утекает. IQ Barakah помогает найти точку пересечения твоих талантов, ценностей и рынка.'},
+  {name:'Ценность',full:'Ценность для Уммы',desc:'Какую реальную пользу приносит твой бизнес людям. Это один из важнейших источников долгосрочного бараката.',qs:['Решает ли бизнес реальные проблемы людей?','Ощутима ли польза для уммы?','Можно ли сказать, что ты делаешь мир лучше?'],
+  rec:'Бизнес без реальной ценности — это только транзакции. Когда ты решаешь настоящую боль людей — приходит и клиент, и баракат. Сезон 1 IQ Barakah целиком про построение ценностного предложения.'},
+  {name:'Команда',full:'Команда — Экипаж',desc:'Люди, которые работают с тобой. Команда — это multipliers твоего успеха или главная причина стагнации.',qs:['Насколько команда надёжна и мотивирована?','Закрыты ли ключевые позиции сильными людьми?','Можешь делегировать, не боясь за результат?'],
+  rec:'Одному не взойти на вершину. Команда — это экипаж корабля. Один слабый матрос может потопить судно. В программе разбираем найм, ценности команды и систему accountability.'},
+  {name:'Сервис',full:'Сервис и продукт',desc:'Качество того, что продаёшь. Это «транспорт», на котором твоя ценность доходит до клиента.',qs:['Довольны ли клиенты продуктом/услугой?','Есть ли вау-эффект или просто «удовлетворены»?','Легко ли с тобой работать?'],
+  rec:'Продукт — это всё. Довольный клиент — лучший маркетинг. Работа над сервисом — это работа над ниятом в деталях. Каждое касание клиента должно нести баракат.'},
+  {name:'Маркетинг',full:'Маркетинг и привлечение',desc:'Как рассказываешь о себе и привлекаешь клиентов. Стратегия, воронка, предсказуемый поток.',qs:['Есть ли стабильный поток новых клиентов?','Насколько эффективна воронка продаж?','Тебя рекомендуют или постоянно ищешь клиентов?'],
+  rec:'Маркетинг без системы — это паника перед каждым месяцем. В IQ Barakah разбираем построение воронки, которая работает пока ты спишь. Начни с одного канала и доведи до системы.'},
+  {name:'Инновации',full:'Инновации и развитие',desc:'Способность бизнеса меняться, улучшаться и внедрять новое. Бизнес, который не растёт — тихо умирает.',qs:['Как часто улучшаешь продукт или процессы?','Внедряешь ли новые инструменты?','Растёт ли бизнес или стоит на месте?'],
+  rec:'Мир меняется быстро. Бизнес, который не обновляется — устаревает. Выдели хотя бы 1 час в неделю только на изучение нового в своей нише. Этот навык развивается в Сезоне 2.'},
+  {name:'Показатели',full:'Показатели и управление',desc:'Система контроля, цифры и чёткое понимание того, что происходит в бизнесе прямо сейчас.',qs:['Знаешь ключевые цифры: выручка, маржа, прибыль?','Ведётся ли регулярный учёт и анализ?','Понимает ли команда, за что отвечает каждый?'],
+  rec:'Управлять без цифр — как вести корабль без карты. 3 ключевых показателя на неделю — и ты уже управляешь, а не реагируешь. Это один из первых инструментов в программе Джамаат.'},
+  {name:'Клиенты',full:'Клиенты и отношения',desc:'Качество и количество клиентской базы. Деньги — кровь компании, а их приносят именно клиенты.',qs:['Достаточно ли клиентов?','Есть ли повторные покупки и высокая лояльность?','Клиенты возвращаются или уходят к конкурентам?'],
+  rec:'Клиент, который возвращается — дешевле нового в 5 раз. Инвестируй в отношения. Один довольный клиент приводит троих. В программе разбираем построение лояльности через ценность.'},
+  {name:'Контрагенты',full:'Контрагенты и партнёры',desc:'Надёжность поставщиков, подрядчиков и всех, от кого зависит твой бизнес.',qs:['Насколько надёжны ключевые контрагенты?','Часто ли проблемы с поставками?','Насколько ты зависим от других компаний?'],
+  rec:'Слабое звено в цепи останавливает весь корабль. Диверсифицируй зависимости, стройте договорённости на ценностях, не только на деньгах. Выбирай партнёров как экипаж.'},
+  {name:'Государство',full:'Отношения с государством',desc:'Юридическая чистота, налоги и compliance. Честность перед государством открывает баракат.',qs:['Всё оформлено правильно и честно?','Есть ли риски со стороны государства?','Платишь ли все налоги без нарушений?'],
+  rec:'Нечистота в отношениях с государством — это постоянный стресс и блок для роста. Наведи порядок раз — и забудь. Спокойная совесть — один из источников бараката в бизнесе.'},
+  {name:'Прибыль',full:'Прибыль компании',desc:'Чистая прибыль компании — кровь бизнеса. Отдельно от личного дохода.',qs:['Удовлетворяет ли уровень прибыли?','Растёт ли прибыль стабильно?','Достаточно ли прибыли для развития?'],
+  rec:'Выручка — тщеславие, прибыль — здравый смысл. Если растёшь, но не зарабатываешь — что-то не так в модели. В программе разбираем юнит-экономику и управление маржой.'},
+  {name:'Личный доход',full:'Личный доход',desc:'Сколько ты забираешь себе лично. Должен покрывать семейные нужды и обязательства.',qs:['Покрывает ли доход все личные и семейные нужды?','Большой ли разрыв между текущим и желаемым?'],
+  rec:'Владелец бизнеса должен быть первым, кто получает достойное вознаграждение. Если ты работаешь больше всех, а зарабатываешь меньше — ты не собственник, а самозанятый.'},
+  {name:'СТАБ фонд',full:'Стабфонд + Садака-джария',desc:'Финансовая подушка безопасности бизнеса и долгосрочное наследие через садака-джарию.',qs:['Есть ли у бизнеса «подушка» на 6–12 месяцев?','Выделяешь ли часть прибыли на садака?','Думаешь ли о финансовом наследии?'],
+  rec:'Стабфонд — это твоя точка спокойствия в шторм. Без него любой кризис превращается в катастрофу. Начни с 10% от прибыли — откладывай прежде чем тратить.'},
+],
+personal:[
+  {name:'Иман — Вера',full:'Духовный стержень (Иман, Ният, Ибадат)',desc:'Сердце и основа всего корабля. Насколько сильна твоя связь с Аллахом, чистота намерений и постоянство в поклонении. Без крепкого духовного фундамента всё остальное теряет баракат.',qs:['Как часто чувствуешь присутствие Аллаха в течение дня?','Держишь ли намаз вовремя и с хушу?','Есть ли регулярный зикр, дуа и ночные молитвы?'],
+  rec:'Иман — якорь корабля. Без него любой шторм сносит с курса. ВАКТ начинается именно с этого: выстраивание дня вокруг намаза, а не намаза вокруг дня.'},
+  {name:'Здоровье',full:'Физическое здоровье — аманат Аллаха',desc:'Твоё тело — аманат Аллаха. От его состояния зависит способность молиться, работать и заботиться о семье.',qs:['Как ты питаешься и заботишься о здоровье?','Есть ли хроническая усталость или болезни?','Чувствуешь ли себя сильным и здоровым?'],
+  rec:'Нет здоровья — нет ничего. Тело — аманат, который Аллах вернёт у тебя на счёт. Начни с одного: сон, движение или питание. Малое постоянное — лучше большого разового.'},
+  {name:'Энергия',full:'Энергия и ресурсное состояние',desc:'Уровень жизненной энергии, мотивации и эмоционального ресурса. Насколько ты полон сил для реализации потенциала.',qs:['Просыпаешься ли отдохнувшим и полным энергии?','Хватает ли сил на важные дела и близких?','Часто ли чувствуешь выгорание?'],
+  rec:'Без энергии даже правильные шаги даются с трудом. Энергия — это не только сон. Это ният, окружение, питание и наличие смысла. В ВАКТ разбираем энергетический баланс дня.'},
+  {name:'Время',full:'Время и дисциплина',desc:'Как ты распоряжаешься самым ценным — своим временем.',qs:['Планируешь ли день или живёшь хаотично?','В конце дня — чувствуешь ли, что время прошло зря?','Насколько дисциплинирован в ключевых привычках?'],
+  rec:'Время — единственный невозобновляемый ресурс. ВАКТ — это аббревиатура, где «В» означает Время. Вся программа строится вокруг системы управления временем мусульманина.'},
+  {name:'Эмоции',full:'Эмоциональное состояние',desc:'Твой внутренний мир — спокойствие, благодарность, устойчивость к стрессу.',qs:['Часто ли в тревоге, раздражении или апатии?','Есть ли в тебе глубокая шукур Аллаху?','Насколько ты эмоционально зрел и стабилен?'],
+  rec:'Нестабильные эмоции разрушают отношения, решения и здоровье. Вечерняя мухасаба — один из инструментов IQ Barakah для работы с эмоциональным состоянием каждый день.'},
+  {name:'Развитие',full:'Самореализация и знания',desc:'Личный рост, развитие и реализация потенциала.',qs:['Регулярно ли учишься и развиваешься?','Читаешь ли книги, слушаешь ли полезный контент?','Растёшь ли как личность за последний год?'],
+  rec:'Остановка в развитии — это начало деградации. Пророк ﷺ сказал: «Кто сегодня равен вчерашнему — в убытке». В программе выстраиваем систему ежедневного роста.'},
+  {name:'Страхи',full:'Страхи и внутренние ограничения',desc:'То, что тебя держит, тормозит и не даёт жить полной жизнью.',qs:['Какие страхи сильнее всего влияют на твои решения?','Что тебя останавливает от важных шагов?'],
+  rec:'Страхи — это иллюзии о будущем. Большинство из них никогда не сбываются, но живут в нас как реальность. В IQ Barakah работаем с убеждениями через призму таваккуля — упования на Аллаха.'},
+  {name:'Родители',full:'Отношения с родителями',desc:'Отношения с родителями — одно из самых важных прав в исламе. Довольство родителей — путь к бараке.',qs:['Довольны ли тобой твои родители?','Как часто общаешься и помогаешь им?'],
+  rec:'Довольство родителей — один из кратчайших путей к довольству Аллаха. Один звонок матери может стоить больше тысячи намазов нафиль. Позвони им сегодня.'},
+  {name:'Жена / Муж',full:'Отношения с супругой / супругом',desc:'Качество отношений с супругой — половина нашей религии.',qs:['Насколько гармоничны ваши отношения?','Сколько качественного времени вы вместе?'],
+  rec:'«Лучший из вас — лучший к своей семье». Гармония дома — это фундамент для роста везде. В программе есть практики по качественному присутствию в семье.'},
+  {name:'Дети',full:'Воспитание и присутствие с детьми',desc:'Твоё воспитание и присутствие в жизни детей — садака-джария.',qs:['Сколько качественного времени уделяешь детям?','Доволен ли тем, как воспитываешь?'],
+  rec:'Праведный ребёнок — садака-джария, которая работает после твоей смерти. Твоё присутствие важнее подарков. 15 минут полного внимания каждый день — уже огромный вклад.'},
+  {name:'Окружение',full:'Окружение и друзья',desc:'Люди, которые тебя окружают — один из главных факторов роста или деградации.',qs:['Поднимают ли тебя друзья в имане и развитии?','Есть ли в окружении праведные люди?'],
+  rec:'«Человек — на религии своего друга». Окружение формирует стандарты. Одна смена окружения может изменить траекторию всей жизни. IQ Barakah — это в том числе и новое сообщество.'},
+  {name:'Садака',full:'Садака и польза людям',desc:'Насколько ты приносишь пользу окружающим. Садака очищает и умножает ризк.',qs:['Регулярно ли помогаешь другим?','Есть ли привычка делать добро анонимно?'],
+  rec:'Садака — это не только деньги. Улыбка, совет, помощь — всё садака. Пророк ﷺ сказал: «Лучший из людей — тот, кто приносит больше пользы людям». Это практика раздела «Баракят» в ВАКТ.'},
+  {name:'Финансы',full:'Финансовая дисциплина',desc:'Твоё отношение к ризку и деньгам. Халяль источники, закят, контроль расходов.',qs:['Есть ли долги?','Платишь ли закят вовремя?','Контролируешь ли расходы?'],
+  rec:'Хаос в финансах — это хаос в мышлении. Закят очищает ризк. Бюджет — это уважение к дарованному. Начни с простого: знай, сколько приходит и уходит каждый месяц.'},
+  {name:'Наследие',full:'Наследие — что оставишь после себя',desc:'Что ты оставишь — садака-джария, знание, праведные дети.',qs:['Думаешь ли о своём наследии?','Какое влияние хочешь оставить в этом мире?'],
+  rec:'Жизнь — краткая, а след — вечный. Садака-джария работает после смерти. Каждое доброе дело сегодня — это инвестиция в завтра, которого ты можешь не увидеть.'},
+  {name:'Баракат',full:'Общий баракат в жизни',desc:'Общее ощущение бараката, покоя и довольства Аллаха твоей жизнью.',qs:['Чувствуешь ли баракат в своей жизни?','Доволен ли жизнью в целом?'],
+  rec:'Баракат — это не богатство и не успех. Это внутренний покой и довольство. Когда иман силён, тело здорово, семья в мире и дело несёт пользу — это и есть жизнь с баракатом.'},
+]};
+
+const N=15,W=1420,WL=202,MAX_D=330,ML=28,MR=28;
+const BW_TOTAL=(W-ML-MR)/N,GAP=4,BW=BW_TOTAL-GAP;
+const NS='http://www.w3.org/2000/svg';
+let tab='business',scores={business:new Array(N).fill(70),personal:new Array(N).fill(70)},sel=-1;
+
+// Telegram WebApp init
+const tg = window.Telegram?.WebApp;
+if(tg) tg.ready();
+
+function bx(i){return ML+i*BW_TOTAL+GAP/2}
+function cx(i){return bx(i)+BW/2}
+function waterH(s){return Math.round((1-s/100)*MAX_D)}
+function col(s){return s>=70?'#C5A24A':s>=40?'#E8A040':'#E24B4A'}
+function colRgb(s){return s>=70?'197,162,74':s>=40?'232,160,64':'226,75,74'}
+function gradId(s){return s>=70?'waterGold':s>=40?'waterAmb':'waterRed'}
+function mk(tag,attr,parent){const el=document.createElementNS(NS,tag);for(const[k,v]of Object.entries(attr))el.setAttribute(k,v);if(parent)parent.appendChild(el);return el}
+
+function setTab(t){
+  tab=t;sel=-1;
+  document.getElementById('tb-b').className='tab-btn'+(t==='business'?' active':'');
+  document.getElementById('tb-p').className='tab-btn'+(t==='personal'?' active':'');
+  document.getElementById('hdr-title').textContent=t==='business'?'Корабль Бараката — Бизнес-диагностика':'Корабль Бараката — Личная жизнь';
+  document.getElementById('detail-panel').classList.remove('open');
+  drawCompartments();updateSummary();loadSaved();
+}
+
+function drawShip(){
+  const g=document.getElementById('g-ship');g.innerHTML='';
+  const G='#C5A24A',GD='rgba(197,162,74,0.28)',GF='rgba(197,162,74,0.07)';
+  const hull=[[80,200],[160,178],[290,166],[470,158],[670,154],[840,153],[1000,156],[1160,163],[1295,172],[1365,184],[1375,200]];
+  mk('path',{d:'M '+hull.map(p=>p.join(' ')).join(' L ')+' L 1375 202 L 80 202 Z',fill:'rgba(20,50,32,0.7)',stroke:G,'stroke-width':'1.5'},g);
+  mk('path',{d:'M 120 190 L 1350 190',stroke:'rgba(197,162,74,0.5)','stroke-width':'1.2'},g);
+  mk('path',{d:'M 1365 184 L 1395 195 L 1375 202',fill:'rgba(20,50,32,0.5)',stroke:GD,'stroke-width':'1'},g);
+  const s1=[[330,158],[385,130],[510,114],[675,108],[825,110],[955,122],[1060,142],[1110,157]];
+  mk('path',{d:'M '+s1.map(p=>p.join(' ')).join(' L ')+' L 330 158 Z',fill:GF,stroke:G,'stroke-width':'1.2'},g);
+  const s2=[[420,130],[465,104],[558,86],[678,80],[782,84],[862,98],[925,118],[950,130]];
+  mk('path',{d:'M '+s2.map(p=>p.join(' ')).join(' L ')+' L 420 130 Z',fill:'rgba(197,162,74,0.09)',stroke:G,'stroke-width':'1.3'},g);
+  const br=[[488,104],[528,82],[610,68],[692,63],[762,67],[822,82],[855,98]];
+  mk('path',{d:'M '+br.map(p=>p.join(' ')).join(' L ')+' L 488 104 Z',fill:'rgba(197,162,74,0.13)',stroke:G,'stroke-width':'1.3'},g);
+  mk('line',{x1:370,y1:130,x2:1090,y2:130,stroke:GD,'stroke-width':'0.9'},g);
+  mk('line',{x1:410,y1:146,x2:1080,y2:146,stroke:GD,'stroke-width':'0.8'},g);
+  for(let x=420;x<=1060;x+=55)mk('line',{x1:x,y1:130,x2:x,y2:158,stroke:'rgba(197,162,74,0.18)','stroke-width':'0.6'},g);
+  mk('line',{x1:698,y1:63,x2:698,y2:5,stroke:G,'stroke-width':'2.2'},g);
+  mk('line',{x1:662,y1:24,x2:734,y2:24,stroke:GD,'stroke-width':'1.3'},g);
+  mk('line',{x1:676,y1:12,x2:720,y2:12,stroke:GD,'stroke-width':'1'},g);
+  mk('line',{x1:698,y1:5,x2:712,y2:0,stroke:G,'stroke-width':'1.5'},g);
+  mk('line',{x1:712,y1:0,x2:722,y2:8,stroke:GD,'stroke-width':'1'},g);
+  mk('line',{x1:698,y1:5,x2:684,y2:0,stroke:GD,'stroke-width':'1'},g);
+  mk('ellipse',{cx:590,cy:93,rx:16,ry:10,fill:'rgba(197,162,74,0.12)',stroke:GD,'stroke-width':'1'},g);
+  mk('line',{x1:590,y1:83,x2:590,y2:75,stroke:GD,'stroke-width':'1'},g);
+  [250,350,460,570,680,790,900,1010,1110,1210].forEach(px=>{
+    mk('circle',{cx:px,cy:172,r:'8',fill:'rgba(197,162,74,0.08)',stroke:GD,'stroke-width':'1'},g);
+    mk('circle',{cx:px,cy:172,r:'4',fill:'rgba(197,162,74,0.18)',stroke:'none'},g);
+  });
+  const ne=mk('text',{x:200,y:186,'font-family':'Georgia,serif','font-size':'13','font-style':'italic',fill:'rgba(197,162,74,0.55)','letter-spacing':'2'},g);
+  ne.textContent='IQ Barakah';
+  [[hull[0],s1[0]],[hull[2],s1[1]],[hull[4],s1[3]],[hull[6],s1[5]],[hull[8],s1[7]],[s1[0],s2[0]],[s1[2],s2[2]],[s1[4],s2[4]],[s1[6],s2[6]],[s2[0],br[0]],[s2[2],br[2]],[s2[4],br[4]],[s2[6],br[6]],[br[3],[698,63]],[[698,63],[698,24]]].forEach(([a,b])=>mk('line',{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:'rgba(197,162,74,0.18)','stroke-width':'0.7'},g));
+  [...hull,...s1,...s2,...br,[698,63],[698,24],[698,5],[712,0]].forEach(p=>mk('circle',{cx:p[0],cy:p[1],r:'2.8',fill:G,filter:'url(#glow)'},g));
+  [[1370,204],[1390,207],[1410,204]].forEach((p,i)=>mk('line',{x1:1375,y1:202+i*2.5,x2:1420,y2:202+i*2.5,stroke:`rgba(197,162,74,${0.35-i*0.08})`,'stroke-width':'1'},g));
+}
+
+function drawCompartments(){
+  const gc=document.getElementById('g-compartments');
+  const gD=document.getElementById('g-dots');
+  const gL=document.getElementById('g-labels');
+  gc.innerHTML='';gD.innerHTML='';gL.innerHTML='';
+  const secs=SEC[tab],sc=scores[tab],pts=[];
+  sc.forEach((s,i)=>{
+    const x=bx(i),c=cx(i),wh=waterH(s);
+    const cl=col(s),rgb=colRgb(s),isSel=i===sel,gid=gradId(s);
+    const comp=mk('rect',{x,y:WL,width:BW,height:MAX_D,fill:'rgba(0,0,0,0.25)',stroke:isSel?cl:'rgba(197,162,74,0.22)','stroke-width':isSel?'2':'0.8',rx:'2',style:'cursor:pointer'},gc);
+    comp.addEventListener('click',()=>pick(i));
+    if(wh>0){
+      mk('rect',{x:x+1,y:WL+MAX_D-wh,width:BW-2,height:wh,fill:`url(#${gid})`,rx:'1'},gc);
+      mk('line',{x1:x+2,y1:WL+MAX_D-wh,x2:x+BW-2,y2:WL+MAX_D-wh,stroke:cl,'stroke-width':'1.5',opacity:'0.9'},gc);
+      if(wh>10){const wy=WL+MAX_D-wh;mk('path',{d:`M ${x+4} ${wy+3} Q ${x+BW*0.25} ${wy} ${x+BW*0.5} ${wy+3} Q ${x+BW*0.75} ${wy+6} ${x+BW-4} ${wy+3}`,fill:'none',stroke:`rgba(${rgb},0.4)`,'stroke-width':'1'},gc);}
+    }
+    const sl=mk('text',{x:c,y:WL+18,'text-anchor':'middle',fill:cl,'font-size':'12','font-family':'Georgia,serif','font-weight':'bold',style:'pointer-events:none'},gc);
+    sl.textContent=s;
+    const dotY=WL-(s/100)*16+4;
+    pts.push([c,dotY]);
+    mk('circle',{cx:c,cy:dotY,r:isSel?5:3.5,fill:cl,filter:'url(#glow)',style:'cursor:pointer'},gD).addEventListener('click',()=>pick(i));
+    mk('line',{x1:c,y1:dotY,x2:c,y2:WL,stroke:cl,'stroke-width':'0.8',opacity:'0.5',style:'pointer-events:none'},gD);
+    const lg=mk('g',{transform:`translate(${c},${WL+MAX_D+18}) rotate(-42)`,style:'cursor:pointer'},gL);
+    lg.addEventListener('click',()=>pick(i));
+    const lt=mk('text',{x:0,y:0,'text-anchor':'start',fill:isSel?cl:'rgba(255,255,255,0.72)','font-size':13,'font-weight':isSel?'bold':'normal'},lg);
+    lt.textContent=secs[i].name;
+  });
+  if(pts.length>1){let d=`M ${pts[0][0]},${pts[0][1]}`;for(let i=1;i<pts.length;i++){const mx=(pts[i-1][0]+pts[i][0])/2;d+=` C ${mx},${pts[i-1][1]} ${mx},${pts[i][1]} ${pts[i][0]},${pts[i][1]}`;}document.getElementById('wave-path').setAttribute('d',d);}
+}
+
+function pick(i){sel=sel===i?-1:i;drawCompartments();showDetail();updateSummary()}
+
+function showDetail(){
+  const p=document.getElementById('detail-panel');
+  if(sel<0){p.classList.remove('open');return}
+  const s=SEC[tab][sel],v=scores[tab][sel];
+  p.classList.add('open');
+  document.getElementById('d-num').textContent=`Отсек ${sel+1} из ${N} · ${tab==='business'?'Бизнес':'Личная жизнь'}`;
+  document.getElementById('d-title').textContent=s.full;
+  document.getElementById('d-desc').textContent=s.desc;
+  document.getElementById('d-qs').innerHTML=s.qs.map(q=>`<li>${q}</li>`).join('');
+  document.getElementById('d-slider').value=v;
+  document.getElementById('d-sval').textContent=v;
+}
+
+function fromSlider(v){
+  if(sel<0)return;
+  scores[tab][sel]=v;
+  document.getElementById('d-sval').textContent=v;
+  drawCompartments();updateSummary();
+}
+
+function updateSummary(){
+  const sc=scores[tab];
+  const avg=Math.round(sc.reduce((a,b)=>a+b,0)/N);
+  const crit=sc.filter(s=>s<40).length;
+  const warn=sc.filter(s=>s>=40&&s<70).length;
+  document.getElementById('s-avg').textContent=avg+'%';
+  document.getElementById('s-crit').textContent=crit;
+  document.getElementById('s-warn').textContent=warn;
+  const sorted=[...sc].map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v).slice(0,5);
+  document.getElementById('g-badges').innerHTML=sorted.map(({v,i})=>`<span class="bdg ${v<40?'bdg-r':v<70?'bdg-w':'bdg-g'}">${SEC[tab][i].name}: ${v}</span>`).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  СОХРАНЕНИЕ В localStorage
+// ══════════════════════════════════════════════════
+function saveResults(){
+  const key=`ship_${tab}`;
+  const data={scores:scores[tab],date:new Date().toLocaleDateString('ru-RU'),ts:Date.now()};
+  localStorage.setItem(key,JSON.stringify(data));
+  // Также сохраняем в Telegram CloudStorage если доступно
+  if(tg?.CloudStorage){
+    tg.CloudStorage.setItem(key, JSON.stringify(data));
+  }
+}
+
+function loadSaved(){
+  const key=`ship_${tab}`;
+  const raw=localStorage.getItem(key);
+  if(!raw)return;
+  try{
+    const data=JSON.parse(raw);
+    if(data.scores && data.scores.length===N){
+      scores[tab]=[...data.scores];
+      drawCompartments();updateSummary();
+      document.getElementById('saved-banner').style.display='block';
+      document.getElementById('saved-date').textContent='Последнее сохранение: '+data.date;
+    }
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════
+//  РЕЗУЛЬТАТЫ И ДЖАРВАС-РАЗБОР
+// ══════════════════════════════════════════════════
+function healthLabel(avg){
+  if(avg>=80) return {text:'Корабль в отличном состоянии',color:'#C5A24A'};
+  if(avg>=65) return {text:'Корабль держится — есть над чем работать',color:'#E8C96A'};
+  if(avg>=45) return {text:'Несколько пробоин требуют внимания',color:'#FAC775'};
+  return {text:'Корабль в опасности — нужен срочный ремонт',color:'#F09595'};
+}
+
+function openResults(){
+  const sc=scores[tab];
+  const avg=Math.round(sc.reduce((a,b)=>a+b,0)/N);
+  const secs=SEC[tab];
+
+  // Сохраняем результаты
+  saveResults();
+
+  // Здоровье
+  const hl=healthLabel(avg);
+  const hEl=document.getElementById('m-health');
+  hEl.textContent=avg+'%';
+  hEl.style.color=hl.color;
+  document.getElementById('m-title').textContent=tab==='business'?'Разбор вашего бизнес-корабля':'Разбор вашего корабля жизни';
+  document.getElementById('m-sub').textContent=hl.text;
+
+  // Топ-3 пробоины
+  const sorted=[...sc].map((v,i)=>({v,i})).sort((a,b)=>a.v-b.v);
+  const holes=sorted.slice(0,3);
+  document.getElementById('m-holes').innerHTML=holes.map(({v,i})=>`
+    <div class="hole-card ${v<40?'critical':'warning'}">
+      <div class="hole-header">
+        <div class="hole-name">${secs[i].full}</div>
+        <div class="hole-score">${v}</div>
+      </div>
+      <div class="hole-rec">${secs[i].desc}</div>
+      <div class="hole-jarwas">💬 Джарвас: ${secs[i].rec}</div>
+    </div>
+  `).join('');
+
+  // Сильные стороны (топ-3 высоких)
+  const strong=sorted.slice(-3).reverse().filter(x=>x.v>=60);
+  document.getElementById('m-strong').innerHTML=strong.length
+    ? strong.map(({v,i})=>`<span class="strong-tag">${secs[i].name} · ${v}</span>`).join('')
+    : '<span style="color:var(--text-muted);font-size:13px;font-family:Calibri,sans-serif">Пока нет явных сильных сторон — это отправная точка для роста 🌿</span>';
+
+  // CTA
+  buildCTA(avg, holes);
+
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modal').scrollTop=0;
+}
+
+function buildCTA(avg, holes){
+  const isTg = !!tg;
+  const worstName = holes[0] ? SEC[tab][holes[0].i].name : '';
+  const scoresStr = scores[tab].join(',');
+  const botLink = `https://t.me/${BOT_USERNAME}?start=ship_${tab}_${scoresStr}`;
+
+  let html='';
+
+  if(avg < 60){
+    // Низкий результат — предлагаем начать с ВАКТ
+    html += `<button class="btn-primary" onclick="openBot('${botLink}')">
+      🌱 Начать путь с ВАКТ — исправить пробоины
+    </button>`;
+    html += `<button class="btn-secondary" onclick="openBot('https://t.me/${BOT_USERNAME}')">
+      💬 Узнать подробнее про программу
+    </button>`;
+  } else if(avg < 80){
+    // Средний — предлагаем полный разбор с Джарвасом в боте
+    html += `<button class="btn-primary" onclick="openBot('${botLink}')">
+      🤖 Получить полный разбор от Джарваса в боте
+    </button>`;
+    html += `<button class="btn-secondary" onclick="openBot('https://t.me/${BOT_USERNAME}?start=jarwas')">
+      📗 Узнать про IQ Barakah
+    </button>`;
+  } else {
+    // Высокий — предлагаем Джамаат
+    html += `<button class="btn-primary" onclick="openBot('https://t.me/${BOT_USERNAME}?start=jamaat')">
+      🏆 Ты готов к Джамаату — узнать подробности
+    </button>`;
+    html += `<button class="btn-secondary" onclick="openBot('${botLink}')">
+      🤖 Обсудить результаты с Джарвасом
+    </button>`;
+  }
+
+  // Кнопка сохранить / поделиться (только если не в Telegram)
+  if(!isTg){
+    html += `<button class="btn-secondary" onclick="shareResults(${avg})">
+      📊 Сохранить результат
+    </button>`;
+  }
+
+  document.getElementById('m-cta').innerHTML=html;
+}
+
+function openBot(url){
+  if(tg){
+    tg.openTelegramLink(url);
+  } else {
+    window.open(url,'_blank');
+  }
+}
+
+function shareResults(avg){
+  const text=`Прошёл диагностику «Корабль Бараката» IQ Barakah\n\nЗдоровье корабля: ${avg}%\n\nПройди сам: https://iq-barakah.ru/ship`;
+  if(navigator.share){
+    navigator.share({title:'Корабль Бараката',text,url:'https://iq-barakah.ru/ship'});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(text);
+    alert('Скопировано в буфер обмена!');
+  }
+}
+
+function closeResults(){
+  document.getElementById('modal').classList.remove('open');
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+drawShip();
+drawCompartments();
+updateSummary();
+loadSaved();
+
+// URL-параметр ?tab=personal
+(function(){
+  const urlTab = new URLSearchParams(window.location.search).get('tab');
+  if(urlTab === 'personal') setTab('personal');
+})();
+</script>
+</body>
+</html>
