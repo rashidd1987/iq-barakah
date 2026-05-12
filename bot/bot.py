@@ -2155,17 +2155,62 @@ async def muh_got_q3(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     logs = ctx.bot_data.setdefault("muhasaba_logs", {})
     user_logs = logs.setdefault(uid, [])
     user_logs.append(entry)
-    logs[uid] = user_logs[-30:]  # хранить последние 30 записей
+    logs[uid] = user_logs[-30:]
 
+    ctx.user_data.pop("muh_answers", None)
+
+    # Генерируем персональное завершение через Джарваса
+    if _jarwas_client:
+        await ctx.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        muh_system = (
+            "Ты — Джарвас, AI-ментор программы IQ Barakah.\n"
+            "Участник только что завершил вечернюю мухасабу — ответил на три вопроса честности перед собой.\n\n"
+            "Твоя задача: написать тёплое, личное, мотивирующее завершение на основе ИМЕННО его ответов.\n\n"
+            "СТРУКТУРА ЗАВЕРШЕНИЯ:\n"
+            "1. Отметь что-то конкретное из первого ответа (что получилось) — порадуйся вместе с ним\n"
+            "2. Переосмысли трудность из второго ответа — это не провал, это рост\n"
+            "3. Поддержи намерение из третьего ответа — одна фраза веры в него\n"
+            "4. Заверши коротким дуа или словом из исламской традиции — тепло, не формально\n\n"
+            "ПРАВИЛА:\n"
+            "— Обращайся напрямую к человеку, используй его слова\n"
+            "— Не повторяй вопросы обратно — переосмысли ответы\n"
+            "— Коротко: 4-6 предложений максимум\n"
+            "— Заканчивай на 🌿 или тёплом слове\n"
+            "— Язык живой, не канцелярский"
+        )
+        user_msg = (
+            f"Мои ответы на мухасабу сегодня:\n\n"
+            f"Что получилось: {entry['q1']}\n"
+            f"Что далось тяжело: {entry['q2']}\n"
+            f"Что сделаю иначе завтра: {entry['q3']}"
+        )
+        try:
+            response = _jarwas_client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=512,
+                system=muh_system,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            reflection = response.content[0].text
+            await update.message.reply_text(
+                f"✅ *Мухасаба записана*\n\n{reflection}\n\n"
+                "_/mymuhasaba — перечитать свои записи_",
+                parse_mode="Markdown",
+                reply_markup=MAIN_MENU,
+            )
+            return ConversationHandler.END
+        except Exception as e:
+            logger.warning(f"Джарвас мухасаба ошибка: {e}")
+
+    # Fallback если Джарвас недоступен
     await update.message.reply_text(
         "✅ *МашаАллах! Мухасаба записана.*\n\n"
-        "Каждый раз, когда ты останавливаешься и честно смотришь на себя — ты растёшь.\n\n"
+        "Каждый раз когда ты останавливаешься и честно смотришь на себя — ты растёшь.\n\n"
         "جَزَاكَ ٱللَّٰهُ خَيْرًا — Да вознаградит тебя Аллах благом 🌿\n\n"
-        "_Чтобы перечитать свои записи, напиши /mymuhasaba_",
+        "_/mymuhasaba — перечитать свои записи_",
         parse_mode="Markdown",
         reply_markup=MAIN_MENU,
     )
-    ctx.user_data.pop("muh_answers", None)
     return ConversationHandler.END
 
 
