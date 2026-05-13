@@ -31,6 +31,7 @@ CURATOR_IDS = [int(x.strip()) for x in _curator_env.split(",") if x.strip()]
 
 SITE        = "https://iq-barakah.ru"
 MINIAPP_URL = "https://rashidd1987.github.io/iq-barakah/miniapp.html"  # GitHub Pages
+SHIP_URL    = "https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html"  # Диагностика корабля
 
 # ── ЮКАССА ───────────────────────────────────────────────────────
 YOOKASSA_SHOP_ID     = os.environ.get("YOOKASSA_SHOP_ID", "")
@@ -2741,6 +2742,28 @@ async def _activate_after_payment(bot, user, tariff_id: str, tariff_name: str, a
         "tariff_id": tariff_id,
     }
 
+    # 🚢 Отправляем кнопку диагностики корабля с paid=1
+    try:
+        ship_paid_url = f"{SHIP_URL}?paid=1"
+        await bot.send_message(
+            chat_id=user.id,
+            parse_mode="Markdown",
+            text=(
+                "🚢 *Корабль Бараката — полная диагностика разблокирована!*\n\n"
+                "Теперь Джарвас даёт тебе *полный разбор* всех пробоин — "
+                "не 3, а все слабые отсеки с конкретными шагами.\n\n"
+                "👇 Открой диагностику прямо сейчас:"
+            ),
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(
+                    "🚢 Открыть полную диагностику",
+                    web_app=WebAppInfo(url=ship_paid_url)
+                )
+            ]])
+        )
+    except Exception as e:
+        logger.error(f"Ship diagnostic button error: {e}")
+
     # Онбординг
     try:
         await run_onboarding(bot, user.id, name, level, 1, ctx)
@@ -2846,6 +2869,43 @@ async def cb_check_payment(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_prices(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Цены — алиас на оплату."""
     await cmd_payment(update, ctx)
+
+
+async def cmd_ship(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """🚢 Диагностика Корабля Бараката — открывает HTML-диагностику."""
+    uid = str(update.effective_user.id)
+    active_users = get_active_users(ctx)
+    is_paid = uid in active_users  # оплатил → полный доступ
+
+    ship_url = f"{SHIP_URL}?paid=1" if is_paid else SHIP_URL
+
+    if is_paid:
+        text = (
+            "🚢 *Корабль Бараката — Полная диагностика*\n\n"
+            "Твой доступ: ✅ *Полный*\n\n"
+            "Джарвас разберёт *все* пробоины <70% с конкретными шагами.\n"
+            "15 отсеков бизнеса + 15 отсеков жизни — полная картина."
+        )
+    else:
+        text = (
+            "🚢 *Корабль Бараката — Диагностика*\n\n"
+            "Ответь на 4 вопроса по каждому отсеку — Джарвас найдёт пробоины.\n\n"
+            "🔓 Бесплатно: топ-3 пробоины с рекомендациями\n"
+            "🔑 После оплаты: все пробоины + конкретный план действий"
+        )
+
+    await update.message.reply_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton(
+                "🚢 Открыть диагностику",
+                web_app=WebAppInfo(url=ship_url)
+            )
+        ]] + ([] if is_paid else [[
+            InlineKeyboardButton("💳 Получить полный доступ", callback_data="pay_season1")
+        ]]))
+    )
 
 
 async def cmd_site(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -4768,11 +4828,13 @@ def main():
     app.add_handler(CommandHandler("site",    cmd_site))
     app.add_handler(CommandHandler("prices",  cmd_prices))
     app.add_handler(CommandHandler("payment", cmd_payment))
+    app.add_handler(CommandHandler("ship",    cmd_ship))
     app.add_handler(MessageHandler(filters.Regex("^📱 Личный кабинет$"),          cmd_miniapp))
     app.add_handler(MessageHandler(filters.Regex("^📚 Программа$"),               cmd_program))
     app.add_handler(MessageHandler(filters.Regex("^💳 Оплата$"),                  cmd_payment))
     app.add_handler(MessageHandler(filters.Regex("^💰 Цены$"),                    cmd_prices))
     app.add_handler(MessageHandler(filters.Regex("^🌐 Сайт$"),                    cmd_site))
+    app.add_handler(MessageHandler(filters.Regex("^🚢 Диагностика$"),             cmd_ship))
     app.add_handler(MessageHandler(filters.Regex("^💬 Связаться с куратором$"),   cmd_contact))
     app.add_handler(MessageHandler(filters.Regex("^🔔 Напоминания$"),             cmd_reminders))
 
