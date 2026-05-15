@@ -4729,9 +4729,13 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=markup)
     except Exception as e:
         logger.warning(f"Джарвас ошибка: {e}")
-        await update.message.reply_text(
-            "Прости, что-то пошло не так. Попробуй чуть позже 🤍"
-        )
+        uid_int = update.effective_user.id
+        if uid_int in CURATOR_IDS:
+            await update.message.reply_text(f"⚠️ [DEBUG куратор] Джарвас ошибка:\n`{e}`", parse_mode="Markdown")
+        else:
+            await update.message.reply_text(
+                "Прости, что-то пошло не так. Попробуй чуть позже 🤍"
+            )
 
 
 # ══════════════════════════════════════════════════════════════════
