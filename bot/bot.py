@@ -4710,7 +4710,7 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     try:
         response = _jarwas_client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-sonnet-4-6",
             max_tokens=1024,
             system=system,
             messages=history,
