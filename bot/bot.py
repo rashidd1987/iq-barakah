@@ -2435,13 +2435,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
     ctx.user_data["_diag_step"] = "name"
-    # DEBUG временно
-    uid_int = update.effective_user.id
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(cid, f"🔍 cmd_diag ran, user={uid_int}, _diag_step='name' set")
-        except Exception:
-            pass
+    logger.warning(f"[CMD_DIAG] user={update.effective_user.id} _diag_step='name' set")
     await update.message.reply_text(
         "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
         "8 вопросов — узнаешь:\n"
@@ -2978,16 +2972,7 @@ async def cmd_setemail(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Ловит email введённый пользователем перед оплатой."""
-    awaiting = ctx.user_data.get("awaiting_pay_email")
-    # DEBUG временно
-    uid_int = update.effective_user.id
-    for cid in CURATOR_IDS:
-        try:
-            txt = update.message.text[:20] if update.message else "?"
-            await ctx.bot.send_message(cid, f"🔍 pay_email_handler: user={uid_int}, awaiting={awaiting!r}, text={txt!r}")
-        except Exception:
-            pass
-    if not awaiting:
+    if not ctx.user_data.get("awaiting_pay_email"):
         return  # не ждём email — пропускаем
     import re
     email = update.message.text.strip()
@@ -3300,26 +3285,28 @@ async def _diag_occupation(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 async def _diag_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """Group=1 handler: обрабатывает текстовый ввод на шагах 'name' и 'age'."""
+    """Group=-2 handler (highest priority): текстовый ввод на шагах 'name' и 'age'.
+    Поднимает ApplicationHandlerStop когда обрабатывает шаг — блокирует все остальные группы."""
     if not update.message or not update.message.text:
         return
     step = ctx.user_data.get("_diag_step")
     text = update.message.text.strip()
-    # ── DEBUG (временно) ──
-    uid_int = update.effective_user.id
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(
-                cid,
-                f"🔍 _diag_text_input\nuser={uid_int}\nstep={step!r}\ntext={text[:30]!r}"
-            )
-        except Exception:
-            pass
-    # ── /DEBUG ──
+
+    logger.warning(f"[DIAG_TEXT] user={update.effective_user.id} step={step!r} text={text[:30]!r}")
+
+    # Игнорируем кнопки главного меню вручную
+    _MENU_RE = (
+        "🎯 Диагностика|📱 Личный кабинет|📚 Программа|💳 Оплата|💰 Цены"
+        "|🔔 Напоминания|🌐 Сайт|💬 Связаться с куратором|🌙 Мухасаба"
+    )
+    import re as _re
+    if _re.fullmatch(f"({_MENU_RE})", text):
+        return  # кнопка меню — не трогаем
+
     if step == "name":
         if len(text) < 2:
             await update.message.reply_text("Пожалуйста, введи своё имя 🌿")
-            return
+            raise ApplicationHandlerStop
         ctx.user_data["name"] = text
         ctx.user_data["_diag_step"] = "gender"
         ctx.bot_data.setdefault("user_names", {})[str(update.effective_user.id)] = text
@@ -3332,11 +3319,12 @@ async def _diag_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 InlineKeyboardButton("🧕 Я сестра", callback_data="gender_f"),
             ]])
         )
+        raise ApplicationHandlerStop
 
     elif step == "age":
         if not text.isdigit() or not (10 <= int(text) <= 99):
             await update.message.reply_text("Введи возраст цифрой, например: *28*", parse_mode="Markdown")
-            return
+            raise ApplicationHandlerStop
         ctx.user_data["age"] = text
         ctx.user_data["_diag_step"] = "source"
         await update.message.reply_text(
@@ -3347,6 +3335,7 @@ async def _diag_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 for label, key in SOURCES
             ])
         )
+        raise ApplicationHandlerStop
 
 
 async def _diag_source(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -5146,7 +5135,8 @@ def main():
     app.add_handler(CallbackQueryHandler(_diag_occupation, pattern="^occ_"),       group=1)
     app.add_handler(CallbackQueryHandler(_diag_source,     pattern="^src_"),       group=1)
     app.add_handler(CallbackQueryHandler(_diag_answer,     pattern="^ans_"),       group=1)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, _diag_text_input), group=1)
+    # _diag_text_input в group=-2 (перед всем) — raises ApplicationHandlerStop когда обрабатывает
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _diag_text_input), group=-2)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
