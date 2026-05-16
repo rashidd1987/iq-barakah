@@ -3078,14 +3078,25 @@ async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
     ctx.bot_data.setdefault("user_genders", {})[str(update.effective_user.id)] = ctx.user_data["is_female"]
-    await query.edit_message_text(
-        "Понял 🌿\n\n*Чем ты занимаешься?*",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(label, callback_data=f"occ_{key}")]
-            for label, key in OCCUPATIONS
-        ])
-    )
+    try:
+        await query.edit_message_text(
+            "Понял 🌿\n\n*Чем ты занимаешься?*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(label, callback_data=f"occ_{key}")]
+                for label, key in OCCUPATIONS
+            ])
+        )
+    except Exception as e:
+        logger.warning(f"got_gender edit error: {e}")
+        await query.message.reply_text(
+            "Понял 🌿\n\n*Чем ты занимаешься?*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(label, callback_data=f"occ_{key}")]
+                for label, key in OCCUPATIONS
+            ])
+        )
     return OCCUPATION
 
 
@@ -4789,6 +4800,7 @@ def main():
         ],
         allow_reentry=True,
         per_user=True, per_chat=True, per_message=False,
+        name="diag_conv", persistent=True,
     )
 
     app.add_handler(conv)
