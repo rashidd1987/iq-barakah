@@ -5115,16 +5115,16 @@ def main():
         pay_email_handler
     ), group=-1)
 
-    # DEBUG catch-all: видим ЛЮБОЙ callback ДО ConversationHandler
+    # DEBUG catch-all: видим ЛЮБОЙ callback — отправляем в чат самого пользователя
     async def _debug_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-        q = update.callback_query
-        for cid in CURATOR_IDS:
-            try:
-                await ctx.bot.send_message(cid,
-                    f"📡 callback: data={q.data!r} user={update.effective_user.id} "
-                    f"step={ctx.user_data.get('_diag_step')!r}")
-            except Exception:
-                pass
+        try:
+            q = update.callback_query
+            await ctx.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"📡 DEBUG: callback data={q.data!r}"
+            )
+        except Exception:
+            pass
     app.add_handler(CallbackQueryHandler(_debug_cb), group=-1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
