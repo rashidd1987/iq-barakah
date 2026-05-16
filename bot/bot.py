@@ -2259,51 +2259,39 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
     ctx.user_data["_last_start_ts"] = now_ts
 
-    # Сбрасываем незавершённые сессии диагностики/мухасабы — иначе Джарвас будет молчать
+    # Сбрасываем незавершённые сессии диагностики/мухасабы
     ctx.user_data.pop("_diag_active", None)
     ctx.user_data.pop("_diag_step", None)
     ctx.user_data.pop("_muh_active", None)
 
     ctx.bot_data.setdefault("user_usernames", {})[uid] = user.username
-    name = user.first_name or "друг"
 
-    # Если уже зарегистрирован — сразу меню
-    profiles = ctx.bot_data.setdefault("reg_profiles", {})
-    if uid in profiles:
+    # Если уже знаком — сразу меню
+    profiles   = ctx.bot_data.get("reg_profiles", {})
+    diag_lvls  = ctx.bot_data.get("user_diag_level", {})
+    if uid in profiles or uid in diag_lvls:
+        name = user.first_name or "друг"
         await update.message.reply_text(
-            f"*Ассаляму алейкум, {name}!*\n\n"
-            "Вы на пороге системы, которая изменит ваше отношение ко времени, делам и внутреннему состоянию. "
-            "Здесь начинается путь к жизни с баракатом и осознанной эффективностью.\n\n"
-            "Это не просто курс по тайм-менеджменту. Это 24-недельный путь, который соединяет ваши дела "
-            "(бизнес, работа) с вашим внутренним миром (намерение, вера, сердце).\n\n"
-            "Здесь вы можете:\n"
-            "✔️ узнать о системе подробнее\n"
-            "✔️ задать вопрос\n"
-            "✔️ сделать первый шаг к жизни, где успех в делах идёт вровень с духовным ростом.\n\n"
-            "За 24 недели вы получите: ясность в целях, дисциплину и настоящий баракат — "
-            "когда время и энергия работают на вас.",
+            f"*Ассаляму алейкум, {name}!* 🌙\n\nДобро пожаловать обратно.",
             parse_mode="Markdown",
             reply_markup=MAIN_MENU
         )
         return ConversationHandler.END
 
-    # Новый пользователь — запрашиваем согласие на обработку ПД (152-ФЗ)
+    # Новый пользователь — красивое приветствие + сбор данных
+    ctx.user_data.clear()
+    ctx.user_data["scores"] = []
+    ctx.user_data["_diag_active"] = True
     await update.message.reply_text(
-        f"*Ассаляму алейкум, {name}! 🌙*\n\n"
-        "Добро пожаловать в *IQ-Barakah* — платформу исламского личностного роста.\n\n"
-        "Прежде чем начать, нам нужно заполнить анкету (5 вопросов).\n\n"
-        "⚠️ *Важно:* Для использования платформы необходимо ваше согласие на обработку "
-        "персональных данных в соответствии с Федеральным законом №152-ФЗ «О персональных данных».\n\n"
-        "Мы собираем: ФИО, дату рождения, пол, вид деятельности, номер телефона.\n"
-        "Данные используются исключительно для работы платформы и не передаются третьим лицам.\n\n"
-        "Ознакомьтесь с [Политикой конфиденциальности](https://iq-barakah.ru/privacy-policy.html) и нажмите «Даю согласие» для продолжения.",
-        parse_mode="Markdown",
-        disable_web_page_preview=True,
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("✅ Даю согласие на обработку ПД", callback_data="reg_consent_yes"),
-        ]])
+        "🌿 *Ассаляму алейкум!*\n\n"
+        "Ты попал в *IQ Barakah* — место, где наводят порядок "
+        "в душе, в делах и в семье.\n\n"
+        "Без лишних слов. По шагам. С поддержкой единомышленников.\n\n"
+        "Давай познакомимся 🤝\n\n"
+        "Как тебя зовут? _(Имя и фамилия)_",
+        parse_mode="Markdown"
     )
-    return REG_CONSENT
+    return NAME
 
 
 async def reg_got_consent(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -3266,6 +3254,21 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     uid = str(update.effective_user.id)
     ctx.bot_data.setdefault("user_diag_level", {})[uid] = result["level_key"]
     ctx.user_data.pop("_diag_active", None)  # Джарвас снова может отвечать
+
+    # Сохранить минимальный профиль (для повторного /start → сразу меню)
+    ctx.bot_data.setdefault("reg_profiles", {}).setdefault(uid, {
+        "fio":      data.get("name", ""),
+        "gender":   "f" if data.get("is_female") else "m",
+        "activity": data.get("occupation", ""),
+        "source":   data.get("source", ""),
+        "age":      data.get("age", ""),
+    })
+
+    await ctx.bot.send_message(
+        chat_id=chat_id,
+        text="Используй меню ниже 👇",
+        reply_markup=MAIN_MENU
+    )
 
     await notify_curators(ctx, update.effective_user, data, result)
 
@@ -4955,7 +4958,9 @@ def main():
 
     conv = ConversationHandler(
         entry_points=[
-            CommandHandler("diag", cmd_diag),
+            CommandHandler("start", cmd_start),
+            CommandHandler("menu",  cmd_start),
+            CommandHandler("diag",  cmd_diag),
             MessageHandler(filters.Regex("^🎯 Диагностика$"), cmd_diag),
             CallbackQueryHandler(cb_start_diag, pattern="^start_diag$"),
         ],
@@ -4989,8 +4994,7 @@ def main():
     # Регистрация при первом /start
     reg_conv = ConversationHandler(
         entry_points=[
-            CommandHandler("start", cmd_start),
-            CommandHandler("menu",  cmd_start),
+            CommandHandler("reg", cmd_start),
         ],
         states={
             REG_CONSENT:   [CallbackQueryHandler(reg_got_consent,   pattern="^reg_consent_yes$")],
