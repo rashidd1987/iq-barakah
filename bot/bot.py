@@ -3089,6 +3089,7 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    logger.warning(f"[GOT_GENDER] ConvHandler fired! user={update.effective_user.id} data={update.callback_query.data!r}")
     query = update.callback_query
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
@@ -3251,7 +3252,9 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════════════════
 
 async def _diag_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if ctx.user_data.get("_diag_step") != "gender":
+    step = ctx.user_data.get("_diag_step")
+    logger.warning(f"[GENDER_CB] user={update.effective_user.id} step={step!r} data={update.callback_query.data!r}")
+    if step != "gender":
         return
     query = update.callback_query
     await query.answer()
