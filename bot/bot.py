@@ -2978,7 +2978,16 @@ async def cmd_setemail(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def pay_email_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Ловит email введённый пользователем перед оплатой."""
-    if not ctx.user_data.get("awaiting_pay_email"):
+    awaiting = ctx.user_data.get("awaiting_pay_email")
+    # DEBUG временно
+    uid_int = update.effective_user.id
+    for cid in CURATOR_IDS:
+        try:
+            txt = update.message.text[:20] if update.message else "?"
+            await ctx.bot.send_message(cid, f"🔍 pay_email_handler: user={uid_int}, awaiting={awaiting!r}, text={txt!r}")
+        except Exception:
+            pass
+    if not awaiting:
         return  # не ждём email — пропускаем
     import re
     email = update.message.text.strip()
