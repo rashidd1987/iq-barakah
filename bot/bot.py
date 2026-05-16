@@ -2433,8 +2433,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     """Старт диагностики — из кнопки или /diag"""
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
-    ctx.user_data["_diag_active"] = True
-    ctx.user_data["_diag_step"] = "name"
+    ctx.user_data["_diag_active"] = True  # Джарвас молчит пока идёт диагностика
     await update.message.reply_text(
         "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
         "8 вопросов — узнаешь:\n"
@@ -2444,7 +2443,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         "Для начала — как тебя зовут? _(Имя и фамилия)_",
         parse_mode="Markdown"
     )
-    return ConversationHandler.END  # ConvHandler выходит; все шаги — через group=1 standalone
+    return NAME  # ConversationHandler переходит в состояние NAME
 
 
 async def cmd_miniapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3089,11 +3088,6 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(cid, f"⚠️ got_gender (ConvHandler): user={update.effective_user.id} data={update.callback_query.data!r}")
-        except Exception:
-            pass
     query = update.callback_query
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
@@ -3256,30 +3250,8 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════════════════
 
 async def _diag_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    step = ctx.user_data.get("_diag_step")
-    uid = update.effective_user.id
-    # Отправляем debug прямо в Telegram куратору
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(cid, f"🔍 _diag_gender: user={uid} step={step!r} data={update.callback_query.data!r}")
-        except Exception:
-            pass
-    if step != "gender":
-        await update.callback_query.answer()
-        return
-    query = update.callback_query
-    await query.answer()
-    ctx.user_data["is_female"] = (query.data == "gender_f")
-    ctx.user_data["_diag_step"] = "occupation"
-    ctx.bot_data.setdefault("user_genders", {})[str(update.effective_user.id)] = ctx.user_data["is_female"]
-    await query.message.reply_text(
-        "Понял 🌿\n\n*Чем ты занимаешься?*",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(label, callback_data=f"occ_{key}")]
-            for label, key in OCCUPATIONS
-        ])
-    )
+    # Не используется — диагностика идёт через ConversationHandler
+    pass
 
 
 async def _diag_occupation(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -4982,7 +4954,6 @@ def main():
         ],
         allow_reentry=True,
         per_user=True, per_chat=True, per_message=False,
-        name="diag_conv", persistent=True,
     )
 
     app.add_handler(conv)
@@ -5136,14 +5107,6 @@ def main():
         filters.TEXT & ~filters.COMMAND,
         pay_email_handler
     ), group=-1)
-
-    # Диагностика — автономные обработчики (group=1, bypass ConversationHandler)
-    app.add_handler(CallbackQueryHandler(_diag_gender,     pattern="^gender_"),    group=1)
-    app.add_handler(CallbackQueryHandler(_diag_occupation, pattern="^occ_"),       group=1)
-    app.add_handler(CallbackQueryHandler(_diag_source,     pattern="^src_"),       group=1)
-    app.add_handler(CallbackQueryHandler(_diag_answer,     pattern="^ans_"),       group=1)
-    # _diag_text_input в group=-2 (перед всем) — raises ApplicationHandlerStop когда обрабатывает
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _diag_text_input), group=-2)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
