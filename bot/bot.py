@@ -2437,7 +2437,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["_diag_step"] = "name"
     logger.warning(f"[CMD_DIAG] user={update.effective_user.id} _diag_step='name' set")
     await update.message.reply_text(
-        "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
+        "🎯 *Бесплатная диагностика IQ Barakah* [v9]\n\n"
         "8 вопросов — узнаешь:\n"
         "• Где ты сейчас на пути\n"
         "• Что мешает двигаться дальше\n"
