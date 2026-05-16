@@ -2435,9 +2435,8 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
     ctx.user_data["_diag_step"] = "name"
-    logger.warning(f"[CMD_DIAG] user={update.effective_user.id} _diag_step='name' set")
     await update.message.reply_text(
-        "🎯 *Бесплатная диагностика IQ Barakah* [v9]\n\n"
+        "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
         "8 вопросов — узнаешь:\n"
         "• Где ты сейчас на пути\n"
         "• Что мешает двигаться дальше\n"
@@ -3291,8 +3290,6 @@ async def _diag_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     step = ctx.user_data.get("_diag_step")
     text = update.message.text.strip()
-
-    logger.warning(f"[DIAG_TEXT] user={update.effective_user.id} step={step!r} text={text[:30]!r}")
 
     # Игнорируем кнопки главного меню вручную
     _MENU_RE = (
@@ -4922,13 +4919,9 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(reply, parse_mode="Markdown", reply_markup=markup)
     except Exception as e:
         logger.warning(f"Джарвас ошибка: {e}")
-        uid_int = update.effective_user.id
-        if uid_int in CURATOR_IDS:
-            await update.message.reply_text(f"⚠️ [DEBUG куратор] Джарвас ошибка:\n`{e}`", parse_mode="Markdown")
-        else:
-            await update.message.reply_text(
-                "Прости, что-то пошло не так. Попробуй чуть позже 🤍"
-            )
+        await update.message.reply_text(
+            "Прости, что-то пошло не так. Попробуй чуть позже 🤍"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════
