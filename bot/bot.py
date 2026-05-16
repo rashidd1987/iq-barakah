@@ -4960,6 +4960,7 @@ def main():
         ],
         allow_reentry=True,
         per_user=True, per_chat=True, per_message=False,
+        name="diag_conv", persistent=True,
     )
 
     app.add_handler(conv)
@@ -5238,6 +5239,19 @@ def main():
         logger.error("Необработанная ошибка: %s", err, exc_info=err)
 
     app.add_error_handler(error_handler)
+
+    # Чистим зависшие состояния диагностики при старте (оставались от old persistent conv)
+    async def post_init(application):
+        try:
+            old_states = await application.persistence.get_conversations("diag_conv")
+            for key in list(old_states.keys()):
+                await application.persistence.update_conversation("diag_conv", key, None)
+            if old_states:
+                logger.info(f"Очищено зависших состояний диагностики: {len(old_states)}")
+        except Exception as e:
+            logger.warning(f"post_init очистка: {e}")
+
+    app.post_init = post_init
 
     print("🤖 IQ Barakah бот запущен. Ctrl+C для остановки.")
     app.run_polling(drop_pending_updates=True)
