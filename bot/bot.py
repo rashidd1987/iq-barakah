@@ -2995,13 +2995,14 @@ async def cmd_resetme(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Команда недоступна.")
         return
     # Чистим все данные пользователя
-    ctx.bot_data.get("reg_profiles", {}).pop(uid, None)
-    ctx.bot_data.get("pd_consents", {}).pop(uid, None)
-    ctx.bot_data.get("user_emails", {}).pop(uid, None)
-    ctx.bot_data.get("user_phones", {}).pop(uid, None)
+    ctx.bot_data.get("reg_profiles",    {}).pop(uid, None)
+    ctx.bot_data.get("pd_consents",     {}).pop(uid, None)
+    ctx.bot_data.get("user_emails",     {}).pop(uid, None)
+    ctx.bot_data.get("user_phones",     {}).pop(uid, None)
+    ctx.bot_data.get("user_diag_level", {}).pop(uid, None)
     ctx.user_data.clear()
     await update.message.reply_text(
-        "✅ Твои данные сброшены. Теперь напиши /start — откроется экран новго пользователя."
+        "✅ Готово — бот тебя забыл.\n\nНапиши /start — увидишь экран нового пользователя."
     )
 
 
