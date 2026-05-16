@@ -2259,6 +2259,11 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
     ctx.user_data["_last_start_ts"] = now_ts
 
+    # Сбрасываем незавершённые сессии диагностики/мухасабы — иначе Джарвас будет молчать
+    ctx.user_data.pop("_diag_active", None)
+    ctx.user_data.pop("_diag_step", None)
+    ctx.user_data.pop("_muh_active", None)
+
     ctx.bot_data.setdefault("user_usernames", {})[uid] = user.username
     name = user.first_name or "друг"
 
