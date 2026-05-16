@@ -3090,6 +3090,12 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
+    # DEBUG: подтверждаем что got_gender вызван
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(cid, f"✅ got_gender вызван! data={query.data!r} user={update.effective_user.id}")
+        except Exception:
+            pass
     ctx.user_data["is_female"] = (query.data == "gender_f")
     ctx.bot_data.setdefault("user_genders", {})[str(update.effective_user.id)] = ctx.user_data["is_female"]
     try:
@@ -5107,6 +5113,18 @@ def main():
         filters.TEXT & ~filters.COMMAND,
         pay_email_handler
     ), group=-1)
+
+    # DEBUG catch-all: видим ЛЮБОЙ callback ДО ConversationHandler
+    async def _debug_cb(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+        q = update.callback_query
+        for cid in CURATOR_IDS:
+            try:
+                await ctx.bot.send_message(cid,
+                    f"📡 callback: data={q.data!r} user={update.effective_user.id} "
+                    f"step={ctx.user_data.get('_diag_step')!r}")
+            except Exception:
+                pass
+    app.add_handler(CallbackQueryHandler(_debug_cb), group=-1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
