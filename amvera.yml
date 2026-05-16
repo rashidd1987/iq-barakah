@@ -6,6 +6,7 @@ meta:
 
 build:
   requirementsPath: bot/requirements.txt
+  useCache: true
 
 run:
   command: python bot/bot.py
