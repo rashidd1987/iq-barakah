@@ -2252,6 +2252,13 @@ async def cmd_mymuhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     uid = str(user.id)
+
+    # Дедупликация: игнорируем если /start пришёл повторно в течение 3 секунд
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if now_ts - ctx.user_data.get("_last_start_ts", 0) < 3:
+        return ConversationHandler.END
+    ctx.user_data["_last_start_ts"] = now_ts
+
     ctx.bot_data.setdefault("user_usernames", {})[uid] = user.username
     name = user.first_name or "друг"
 
