@@ -3089,6 +3089,15 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    # Debug куратору — временно
+    uid_int = update.effective_user.id
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(cid,
+                f"🔍 [DEBUG got_gender ConvHandler] user={uid_int}\n"
+                f"data={update.callback_query.data if update.callback_query else 'none'}")
+        except Exception:
+            pass
     query = update.callback_query
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
@@ -3251,7 +3260,19 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════════════════
 
 async def _diag_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if ctx.user_data.get("_diag_step") != "gender":
+    step = ctx.user_data.get("_diag_step", "ОТСУТСТВУЕТ")
+    diag = ctx.user_data.get("_diag_active", False)
+    uid_int = update.effective_user.id
+    # Debug куратору — временно
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(cid,
+                f"🔍 [DEBUG _diag_gender] user={uid_int}\n"
+                f"_diag_step={step!r}\n_diag_active={diag}\n"
+                f"data={update.callback_query.data if update.callback_query else 'none'}")
+        except Exception:
+            pass
+    if step != "gender":
         return
     query = update.callback_query
     await query.answer()
