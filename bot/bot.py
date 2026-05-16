@@ -2421,6 +2421,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     """Старт диагностики — из кнопки или /diag"""
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
+    ctx.user_data["_diag_active"] = True
     await update.message.reply_text(
         "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
         "8 вопросов — узнаешь:\n"
@@ -3036,6 +3037,7 @@ async def cb_start_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     await query.answer()
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
+    ctx.user_data["_diag_active"] = True
     await query.message.reply_text(
         "🎯 *Начинаем диагностику!*\n\nКак тебя зовут? _(Имя и фамилия)_",
         parse_mode="Markdown"
@@ -3212,6 +3214,7 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     # Сохранить результат диагностики для автоподстановки уровня ВАКТ
     uid = str(update.effective_user.id)
     ctx.bot_data.setdefault("user_diag_level", {})[uid] = result["level_key"]
+    ctx.user_data.pop("_diag_active", None)  # Джарвас снова может отвечать
 
     await notify_curators(ctx, update.effective_user, data, result)
 
@@ -4660,6 +4663,10 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Отвечает на свободные сообщения участников через AI Джарвас."""
     if not _jarwas_client:
         return  # API ключ не задан — молчим
+
+    # Не отвечать пока идёт диагностика или мухасаба
+    if ctx.user_data.get("_diag_active") or ctx.user_data.get("_muh_active"):
+        return
 
     user_text = update.message.text.strip()
     uid = str(update.effective_user.id)
