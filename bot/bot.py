@@ -1131,11 +1131,11 @@ MAIN_MENU = ReplyKeyboardMarkup(
 
 # ── СОСТОЯНИЯ ────────────────────────────────────────────────────
 (
-    NAME, GENDER, OCCUPATION, AGE, SOURCE,
+    NAME, GENDER, OCCUPATION, AGE, SOURCE, READY,
     Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
     REG_CONSENT, REG_FIO, REG_BIRTHDATE, REG_GENDER, REG_ACTIVITY, REG_PHONE, PAY_EMAIL,
     MUH_Q1, MUH_Q2, MUH_Q3
-) = range(23)
+) = range(24)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -2435,15 +2435,14 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True  # Джарвас молчит пока идёт диагностика
     await update.message.reply_text(
-        "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
-        "8 вопросов — узнаешь:\n"
-        "• Где ты сейчас на пути\n"
-        "• Что мешает двигаться дальше\n"
-        "• С чего начать именно тебе\n\n"
-        "Для начала — как тебя зовут? _(Имя и фамилия)_",
+        "🌿 *Добро пожаловать в IQ Barakah*\n\n"
+        "Это место, где наводят порядок — в душе, в делах, в семье.\n"
+        "Без лишних слов. По шагам. С поддержкой.\n\n"
+        "Сначала познакомимся 🤝\n\n"
+        "Как тебя зовут? _(Имя и фамилия)_",
         parse_mode="Markdown"
     )
-    return NAME  # ConversationHandler переходит в состояние NAME
+    return NAME
 
 
 async def cmd_miniapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3052,7 +3051,11 @@ async def cb_start_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["_diag_active"] = True
     ctx.user_data["_diag_step"] = "name"
     await query.message.reply_text(
-        "🎯 *Начинаем диагностику!*\n\nКак тебя зовут? _(Имя и фамилия)_",
+        "🌿 *Добро пожаловать в IQ Barakah*\n\n"
+        "Это место, где наводят порядок — в душе, в делах, в семье.\n"
+        "Без лишних слов. По шагам. С поддержкой.\n\n"
+        "Сначала познакомимся 🤝\n\n"
+        "Как тебя зовут? _(Имя и фамилия)_",
         parse_mode="Markdown"
     )
     return NAME
@@ -3152,12 +3155,35 @@ async def got_source(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["source"] = label
     name_first = ctx.user_data.get("name", "").split()[0]
     brat = "сестра" if ctx.user_data.get("is_female") else "брат"
+    occ  = ctx.user_data.get("occupation", "")
+    age  = ctx.user_data.get("age", "")
     await query.edit_message_text(
-        f"Отлично, {brat} *{name_first}*! 🌿\n\n"
-        "_Теперь честно посмотрим где ты сейчас._\n"
-        "8 вопросов — без стыда и без давления.",
+        f"✨ Отлично, {brat} *{name_first}*!\n\n"
+        f"Вот что мы знаем о тебе:\n"
+        f"• {occ}\n"
+        f"• 🎂 {age} лет\n"
+        f"• 📍 {label}\n\n"
+        "_Готов? Нажми кнопку — и честно посмотрим, где ты сейчас._",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("🎯 Начать диагностику", callback_data="begin_diag")
+        ]])
+    )
+    return READY
+
+
+async def cb_begin_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    name_first = ctx.user_data.get("name", "").split()[0]
+    brat = "сестра" if ctx.user_data.get("is_female") else "брат"
+    await query.edit_message_text(
+        f"Начинаем, {brat} *{name_first}*! 🌿\n\n"
+        "8 вопросов — без стыда и без давления.\n"
+        "Просто отвечай честно.",
         parse_mode="Markdown"
     )
+    ctx.user_data["_diag_step"] = "q0"
     await send_question(update, ctx, 0)
     return Q1
 
@@ -4939,6 +4965,7 @@ def main():
             OCCUPATION: [CallbackQueryHandler(got_occupation, pattern="^occ_")],
             AGE:        [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, got_age)],
             SOURCE:     [CallbackQueryHandler(got_source,     pattern="^src_")],
+            READY:      [CallbackQueryHandler(cb_begin_diag,  pattern="^begin_diag$")],
             Q1:  [CallbackQueryHandler(answer_handler, pattern="^ans_0_")],
             Q2:  [CallbackQueryHandler(answer_handler, pattern="^ans_1_")],
             Q3:  [CallbackQueryHandler(answer_handler, pattern="^ans_2_")],
