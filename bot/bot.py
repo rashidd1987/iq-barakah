@@ -2422,6 +2422,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
+    ctx.user_data["_diag_step"] = "name"
     await update.message.reply_text(
         "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
         "8 вопросов — узнаешь:\n"
@@ -3038,6 +3039,7 @@ async def cb_start_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
+    ctx.user_data["_diag_step"] = "name"
     await query.message.reply_text(
         "🎯 *Начинаем диагностику!*\n\nКак тебя зовут? _(Имя и фамилия)_",
         parse_mode="Markdown"
@@ -3060,6 +3062,7 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         await update.message.reply_text("Пожалуйста, введи своё имя 🌿")
         return NAME
     ctx.user_data["name"] = name
+    ctx.user_data["_diag_step"] = "gender"
     # сохранить имя глобально чтобы куратор видел его при /participants
     ctx.bot_data.setdefault("user_names", {})[str(update.effective_user.id)] = name
     await update.message.reply_text(
@@ -3228,6 +3231,132 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     ctx.user_data.pop("_diag_active", None)  # Джарвас снова может отвечать
 
     await notify_curators(ctx, update.effective_user, data, result)
+
+
+# ══════════════════════════════════════════════════════════════════
+#  ДИАГНОСТИКА — АВТОНОМНЫЕ ОБРАБОТЧИКИ (group=1, bypass ConvHandler)
+#  Срабатывают если ConversationHandler не обработал callback в group=0
+# ══════════════════════════════════════════════════════════════════
+
+async def _diag_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if ctx.user_data.get("_diag_step") != "gender":
+        return
+    query = update.callback_query
+    await query.answer()
+    ctx.user_data["is_female"] = (query.data == "gender_f")
+    ctx.user_data["_diag_step"] = "occupation"
+    ctx.bot_data.setdefault("user_genders", {})[str(update.effective_user.id)] = ctx.user_data["is_female"]
+    await query.message.reply_text(
+        "Понял 🌿\n\n*Чем ты занимаешься?*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(label, callback_data=f"occ_{key}")]
+            for label, key in OCCUPATIONS
+        ])
+    )
+
+
+async def _diag_occupation(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if ctx.user_data.get("_diag_step") != "occupation":
+        return
+    query = update.callback_query
+    await query.answer()
+    key = query.data.replace("occ_", "")
+    label = next((l for l, k in OCCUPATIONS if k == key), key)
+    ctx.user_data["occupation"] = label
+    ctx.user_data["_diag_step"] = "age"
+    await query.message.reply_text(
+        f"✅ {label}\n\n*Сколько тебе лет?* _(напиши цифру, например: 32)_",
+        parse_mode="Markdown"
+    )
+
+
+async def _diag_age_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+    if ctx.user_data.get("_diag_step") != "age":
+        return
+    text = update.message.text.strip()
+    if not text.isdigit() or not (10 <= int(text) <= 99):
+        await update.message.reply_text("Введи возраст цифрой, например: *28*", parse_mode="Markdown")
+        return
+    ctx.user_data["age"] = text
+    ctx.user_data["_diag_step"] = "source"
+    await update.message.reply_text(
+        "Хорошо! 🌿\n\n*Откуда ты узнал(а) о нас?*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(label, callback_data=f"src_{key}")]
+            for label, key in SOURCES
+        ])
+    )
+
+
+async def _diag_source(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if ctx.user_data.get("_diag_step") != "source":
+        return
+    query = update.callback_query
+    await query.answer()
+    key = query.data.replace("src_", "")
+    label = next((l for l, k in SOURCES if k == key), key)
+    ctx.user_data["source"] = label
+    ctx.user_data["_diag_step"] = "q0"
+    name_first = ctx.user_data.get("name", "").split()[0]
+    brat = "сестра" if ctx.user_data.get("is_female") else "брат"
+    await query.message.reply_text(
+        f"Отлично, {brat} *{name_first}*! 🌿\n\n"
+        "_Теперь честно посмотрим где ты сейчас._\n"
+        "8 вопросов — без стыда и без давления.",
+        parse_mode="Markdown"
+    )
+    q = QUESTIONS[0]
+    keyboard = [[InlineKeyboardButton(t, callback_data=f"ans_0_{s}")]
+                for t, s in q["options"]]
+    await ctx.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f"*{q['text']}*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def _diag_answer(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    step = ctx.user_data.get("_diag_step", "")
+    if not (step.startswith("q") and step[1:].isdigit()):
+        return
+    query = update.callback_query
+    parts = query.data.split("_")
+    if len(parts) < 3:
+        return
+    q_idx = int(parts[1])
+    if q_idx != int(step[1:]):
+        return  # старая кнопка — игнорируем
+    score = int(parts[2])
+    await query.answer()
+    scores = ctx.user_data.setdefault("scores", [])
+    scores.append(score)
+    chosen = QUESTIONS[q_idx]["options"][score][0]
+    try:
+        await query.edit_message_text(
+            f"{QUESTIONS[q_idx]['text']}\n\n✅ {chosen}", parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+    next_q = q_idx + 1
+    if next_q < len(QUESTIONS):
+        ctx.user_data["_diag_step"] = f"q{next_q}"
+        q = QUESTIONS[next_q]
+        keyboard = [[InlineKeyboardButton(t, callback_data=f"ans_{next_q}_{s}")]
+                    for t, s in q["options"]]
+        await ctx.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"*{q['text']}*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    else:
+        ctx.user_data["_diag_step"] = "done"
+        await show_result(update, ctx)
 
 
 async def restart_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -4954,6 +5083,13 @@ def main():
         filters.TEXT & ~filters.COMMAND,
         pay_email_handler
     ), group=-1)
+
+    # Диагностика — автономные обработчики (group=1, bypass ConversationHandler)
+    app.add_handler(CallbackQueryHandler(_diag_gender,     pattern="^gender_"),    group=1)
+    app.add_handler(CallbackQueryHandler(_diag_occupation, pattern="^occ_"),       group=1)
+    app.add_handler(CallbackQueryHandler(_diag_source,     pattern="^src_"),       group=1)
+    app.add_handler(CallbackQueryHandler(_diag_answer,     pattern="^ans_"),       group=1)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _diag_age_text), group=1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
