@@ -5240,8 +5240,19 @@ def main():
 
     app.add_error_handler(error_handler)
 
-    # Чистим зависшие состояния диагностики при старте (оставались от old persistent conv)
+    # post_init: удаляем вебхук + чистим зависшие состояния диагностики
     async def post_init(application):
+        # Удаляем вебхук (если был активен — он перехватывает callbacks вместо getUpdates)
+        try:
+            wh = await application.bot.get_webhook_info()
+            if wh.url:
+                logger.warning(f"Обнаружен активный вебхук: {wh.url} — удаляем!")
+                await application.bot.delete_webhook(drop_pending_updates=True)
+            else:
+                logger.info("Вебхук не активен — OK")
+        except Exception as e:
+            logger.warning(f"post_init webhook check: {e}")
+        # Чистим зависшие состояния диагностики
         try:
             old_states = await application.persistence.get_conversations("diag_conv")
             for key in list(old_states.keys()):
@@ -5249,12 +5260,15 @@ def main():
             if old_states:
                 logger.info(f"Очищено зависших состояний диагностики: {len(old_states)}")
         except Exception as e:
-            logger.warning(f"post_init очистка: {e}")
+            logger.warning(f"post_init conv cleanup: {e}")
 
     app.post_init = post_init
 
     print("🤖 IQ Barakah бот запущен. Ctrl+C для остановки.")
-    app.run_polling(drop_pending_updates=True)
+    app.run_polling(
+        drop_pending_updates=True,
+        allowed_updates=Update.ALL_TYPES,
+    )
 
 
 if __name__ == "__main__":
