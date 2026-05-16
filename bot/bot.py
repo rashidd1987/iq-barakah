@@ -2444,7 +2444,7 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         "Для начала — как тебя зовут? _(Имя и фамилия)_",
         parse_mode="Markdown"
     )
-    return NAME
+    return ConversationHandler.END  # ConvHandler выходит; все шаги — через group=1 standalone
 
 
 async def cmd_miniapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -3089,15 +3089,6 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    # Debug куратору — временно
-    uid_int = update.effective_user.id
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(cid,
-                f"🔍 [DEBUG got_gender ConvHandler] user={uid_int}\n"
-                f"data={update.callback_query.data if update.callback_query else 'none'}")
-        except Exception:
-            pass
     query = update.callback_query
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
@@ -3260,19 +3251,7 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════════════════
 
 async def _diag_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    step = ctx.user_data.get("_diag_step", "ОТСУТСТВУЕТ")
-    diag = ctx.user_data.get("_diag_active", False)
-    uid_int = update.effective_user.id
-    # Debug куратору — временно
-    for cid in CURATOR_IDS:
-        try:
-            await ctx.bot.send_message(cid,
-                f"🔍 [DEBUG _diag_gender] user={uid_int}\n"
-                f"_diag_step={step!r}\n_diag_active={diag}\n"
-                f"data={update.callback_query.data if update.callback_query else 'none'}")
-        except Exception:
-            pass
-    if step != "gender":
+    if ctx.user_data.get("_diag_step") != "gender":
         return
     query = update.callback_query
     await query.answer()
@@ -3304,25 +3283,44 @@ async def _diag_occupation(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def _diag_age_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+async def _diag_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Group=1 handler: обрабатывает текстовый ввод на шагах 'name' и 'age'."""
     if not update.message or not update.message.text:
         return
-    if ctx.user_data.get("_diag_step") != "age":
-        return
+    step = ctx.user_data.get("_diag_step")
     text = update.message.text.strip()
-    if not text.isdigit() or not (10 <= int(text) <= 99):
-        await update.message.reply_text("Введи возраст цифрой, например: *28*", parse_mode="Markdown")
-        return
-    ctx.user_data["age"] = text
-    ctx.user_data["_diag_step"] = "source"
-    await update.message.reply_text(
-        "Хорошо! 🌿\n\n*Откуда ты узнал(а) о нас?*",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(label, callback_data=f"src_{key}")]
-            for label, key in SOURCES
-        ])
-    )
+
+    if step == "name":
+        if len(text) < 2:
+            await update.message.reply_text("Пожалуйста, введи своё имя 🌿")
+            return
+        ctx.user_data["name"] = text
+        ctx.user_data["_diag_step"] = "gender"
+        ctx.bot_data.setdefault("user_names", {})[str(update.effective_user.id)] = text
+        name_first = text.split()[0]
+        await update.message.reply_text(
+            f"Отлично, *{name_first}*! 🌿\n\nКто ты?",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🧔 Я брат", callback_data="gender_m"),
+                InlineKeyboardButton("🧕 Я сестра", callback_data="gender_f"),
+            ]])
+        )
+
+    elif step == "age":
+        if not text.isdigit() or not (10 <= int(text) <= 99):
+            await update.message.reply_text("Введи возраст цифрой, например: *28*", parse_mode="Markdown")
+            return
+        ctx.user_data["age"] = text
+        ctx.user_data["_diag_step"] = "source"
+        await update.message.reply_text(
+            "Хорошо! 🌿\n\n*Откуда ты узнал(а) о нас?*",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(label, callback_data=f"src_{key}")]
+                for label, key in SOURCES
+            ])
+        )
 
 
 async def _diag_source(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -5122,7 +5120,7 @@ def main():
     app.add_handler(CallbackQueryHandler(_diag_occupation, pattern="^occ_"),       group=1)
     app.add_handler(CallbackQueryHandler(_diag_source,     pattern="^src_"),       group=1)
     app.add_handler(CallbackQueryHandler(_diag_answer,     pattern="^ans_"),       group=1)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _diag_age_text), group=1)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _diag_text_input), group=1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
