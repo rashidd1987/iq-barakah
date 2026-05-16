@@ -3089,7 +3089,11 @@ async def got_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def got_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
-    logger.warning(f"[GOT_GENDER] ConvHandler fired! user={update.effective_user.id} data={update.callback_query.data!r}")
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(cid, f"⚠️ got_gender (ConvHandler): user={update.effective_user.id} data={update.callback_query.data!r}")
+        except Exception:
+            pass
     query = update.callback_query
     await query.answer()
     ctx.user_data["is_female"] = (query.data == "gender_f")
@@ -3253,8 +3257,15 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def _diag_gender(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     step = ctx.user_data.get("_diag_step")
-    logger.warning(f"[GENDER_CB] user={update.effective_user.id} step={step!r} data={update.callback_query.data!r}")
+    uid = update.effective_user.id
+    # Отправляем debug прямо в Telegram куратору
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(cid, f"🔍 _diag_gender: user={uid} step={step!r} data={update.callback_query.data!r}")
+        except Exception:
+            pass
     if step != "gender":
+        await update.callback_query.answer()
         return
     query = update.callback_query
     await query.answer()
