@@ -5120,7 +5120,7 @@ def main():
     app.add_handler(CallbackQueryHandler(_diag_occupation, pattern="^occ_"),       group=1)
     app.add_handler(CallbackQueryHandler(_diag_source,     pattern="^src_"),       group=1)
     app.add_handler(CallbackQueryHandler(_diag_answer,     pattern="^ans_"),       group=1)
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _diag_text_input), group=1)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, _diag_text_input), group=1)
 
     # Обновление last_active + перехват письма (group=2, низкий приоритет)
     app.add_handler(MessageHandler(
