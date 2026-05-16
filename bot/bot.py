@@ -2435,6 +2435,13 @@ async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
     ctx.user_data["_diag_step"] = "name"
+    # DEBUG временно
+    uid_int = update.effective_user.id
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(cid, f"🔍 cmd_diag ran, user={uid_int}, _diag_step='name' set")
+        except Exception:
+            pass
     await update.message.reply_text(
         "🎯 *Бесплатная диагностика IQ Barakah*\n\n"
         "8 вопросов — узнаешь:\n"
@@ -3289,7 +3296,17 @@ async def _diag_text_input(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     step = ctx.user_data.get("_diag_step")
     text = update.message.text.strip()
-
+    # ── DEBUG (временно) ──
+    uid_int = update.effective_user.id
+    for cid in CURATOR_IDS:
+        try:
+            await ctx.bot.send_message(
+                cid,
+                f"🔍 _diag_text_input\nuser={uid_int}\nstep={step!r}\ntext={text[:30]!r}"
+            )
+        except Exception:
+            pass
+    # ── /DEBUG ──
     if step == "name":
         if len(text) < 2:
             await update.message.reply_text("Пожалуйста, введи своё имя 🌿")
