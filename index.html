@@ -2411,27 +2411,7 @@ document.addEventListener('DOMContentLoaded', quizInit);
 </footer>
 
 <style>
-/* ════════════════════════════════════════════
-   COOKIE BANNER STYLES
-════════════════════════════════════════════ */
-.cookie-banner {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(26, 61, 8, 0.98);
-  color: var(--white);
-  padding: 20px;
-  box-shadow: 0 -2px 20px rgba(0,0,0,0.3);
-  z-index: 9999;
-  animation: slideUp 0.5s ease-out;
-  backdrop-filter: blur(10px);
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
+/* old cookie banner removed */
 
 .cookie-content {
   max-width: 1080px;
@@ -2658,36 +2638,6 @@ document.addEventListener('DOMContentLoaded', quizInit);
 </style>
 
 <script>
-// ════════════════════════════════════════════
-// COOKIE BANNER LOGIC
-// ════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', function() {
-  const cookieConsent = localStorage.getItem('iqbarakah_cookie_consent');
-  
-  if (!cookieConsent) {
-    setTimeout(function() {
-      document.getElementById('cookie-banner').style.display = 'block';
-    }, 1500);
-  } else if (cookieConsent === 'accepted') {
-    loadAnalytics();
-  }
-});
-
-function acceptCookies() {
-  localStorage.setItem('iqbarakah_cookie_consent', 'accepted');
-  document.getElementById('cookie-banner').style.display = 'none';
-  loadAnalytics();
-}
-
-function rejectCookies() {
-  localStorage.setItem('iqbarakah_cookie_consent', 'rejected');
-  document.getElementById('cookie-banner').style.display = 'none';
-}
-
-function loadAnalytics() {
-  // Здесь подключается Яндекс.Метрика
-  console.log('Analytics loaded');
-}
 
 // Dropdown menu mobile support
 document.addEventListener('DOMContentLoaded', function() {
