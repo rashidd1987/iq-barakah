@@ -3265,10 +3265,16 @@ async def show_result(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 f"💳 Начать ВАКТ — {vakt['price']} ₽", callback_data="pay_vakt"
             )]]
 
+    # Для Джамаата — кнопка связи с менеджером, для остальных — ссылка на сайт
+    if result["level_key"] == "В+":
+        main_btn = [InlineKeyboardButton(result["btn"], callback_data="contact_jamaat")]
+    else:
+        main_btn = [InlineKeyboardButton(result["btn"], url=result["link"])]
+
     await ctx.bot.send_message(chat_id=chat_id, parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(
             pay_btn_row + [
-                [InlineKeyboardButton(result["btn"], url=result["link"])],
+                main_btn,
                 [InlineKeyboardButton("📱 Открыть личный кабинет", web_app=WebAppInfo(url=MINIAPP_URL))],
                 [InlineKeyboardButton("🔄 Пройти снова", callback_data="restart")],
             ]
@@ -3445,6 +3451,22 @@ async def _diag_answer(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     else:
         ctx.user_data["_diag_step"] = "done"
         await show_result(update, ctx)
+
+
+async def cb_contact_jamaat(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    await query.answer()
+    await query.message.reply_text(
+        "⭐️ *Джамаат IQ Barakah*\n\n"
+        "Для записи свяжитесь с нашим менеджером:\n\n"
+        "📞 *+7 989 470 80 66*\n\n"
+        "Напишите в WhatsApp — менеджер расскажет об условиях и ответит на вопросы.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("💬 Написать в WhatsApp", url="https://wa.me/79894708066?text=Хочу записаться в Джамаат IQ Barakah")
+        ]])
+    )
+    return ConversationHandler.END
 
 
 async def restart_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -5013,6 +5035,7 @@ def main():
         fallbacks=[
             CommandHandler("cancel", cancel),
             CallbackQueryHandler(restart_diag, pattern="^restart$"),
+            CallbackQueryHandler(cb_contact_jamaat, pattern="^contact_jamaat$"),
         ],
         allow_reentry=True,
         per_user=True, per_chat=True, per_message=False,
@@ -5083,7 +5106,8 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_check_payment,   pattern="^check_pay_"))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
-    app.add_handler(CallbackQueryHandler(restart_diag,    pattern="^restart$"))
+    app.add_handler(CallbackQueryHandler(restart_diag,       pattern="^restart$"))
+    app.add_handler(CallbackQueryHandler(cb_contact_jamaat,  pattern="^contact_jamaat$"))
     app.add_handler(CallbackQueryHandler(cb_week_ack,        pattern="^week_ack$"))
     app.add_handler(CallbackQueryHandler(cb_vakt_level, pattern="^vakt_level_"))
     app.add_handler(CallbackQueryHandler(cb_contact_curator, pattern="^contact_curator$"))
