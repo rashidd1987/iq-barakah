@@ -2420,9 +2420,32 @@ async def reg_got_phone(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
 
 async def cmd_diag(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     """Старт диагностики — из кнопки или /diag"""
+    uid = str(update.effective_user.id)
+
+    # Если пользователь уже зарегистрирован — не спрашиваем данные повторно
+    saved_name = ctx.bot_data.get("user_names", {}).get(uid)
+    if saved_name:
+        is_female = ctx.bot_data.get("user_genders", {}).get(uid, False)
+        ctx.user_data["name"] = saved_name
+        ctx.user_data["is_female"] = is_female
+        ctx.user_data["scores"] = []
+        ctx.user_data["_diag_active"] = True
+        name_first = saved_name.split()[0]
+        brat = "сестра" if is_female else "брат"
+        await update.message.reply_text(
+            f"🌿 {brat.capitalize()} *{name_first}*, снова на диагностику!\n\n"
+            "_8 вопросов — честно посмотрим, где ты сейчас._",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🎯 Начать диагностику", callback_data="begin_diag")
+            ]])
+        )
+        return READY
+
+    # Новый пользователь — собираем данные
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
-    ctx.user_data["_diag_active"] = True  # Джарвас молчит пока идёт диагностика
+    ctx.user_data["_diag_active"] = True
     await update.message.reply_text(
         "🌿 *Добро пожаловать в IQ Barakah*\n\n"
         "Это место, где наводят порядок — в душе, в делах, в семье.\n"
