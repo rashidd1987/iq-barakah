@@ -1367,7 +1367,7 @@ function renderTracker() {
 }
 
 // ── SHIP ──
-const SHIP_URL = 'https://iq-barakah.ru/ship';
+const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html';
 
 function renderShip() {
   ['business','personal'].forEach(type => {
@@ -1471,8 +1471,11 @@ function updSector(i,v) {
 
 function saveWheel() {
   haptic('success');
-  if (tg) { tg.showPopup({title:'Сохранено',message:'Колесо баланса обновлено.',buttons:[{type:'ok'}]}); }
-  else { showToast('Колесо сохранено ✓'); }
+  const scores = Object.fromEntries(SECTORS.map(s => [s.label, s.val]));
+  if (tg) {
+    tg.sendData(JSON.stringify({action: 'wheel', values: scores}));
+    tg.showPopup({title:'Сохранено',message:'Колесо баланса обновлено.',buttons:[{type:'ok'}]});
+  } else { showToast('Колесо сохранено ✓'); }
 }
 
 // ── LESSONS ──
@@ -1632,7 +1635,7 @@ function submitReview() {
     haptic('success');
     document.getElementById('rv-form').style.display='none';
     document.getElementById('rv-ok').classList.add('show');
-    if (tg) tg.sendData(JSON.stringify({type:'review',week:3,emoji:rEmoji,task:rTask,useful:rUseful,text}));
+    if (tg) tg.sendData(JSON.stringify({type:'review',week:U.currentWeek,emoji:rEmoji,task:rTask,useful:rUseful,text}));
   }, 1100);
 }
 

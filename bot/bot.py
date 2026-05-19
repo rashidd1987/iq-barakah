@@ -2748,6 +2748,7 @@ TARIFF_TO_LEVEL = {
     "s1_full": "Б",   # Сезон 1 — 8 недель
     "s3_full": "Б",   # Все 3 сезона — начинаем с Сезона 1
     "jamaat":  "Б",   # Джамаат — Сезон 1
+    "leader":  "Г",   # Лидер
 }
 
 
@@ -3997,7 +3998,7 @@ async def run_onboarding(bot, user_id: int, name: str, level: str, week: int,
                     f"БисмиЛлях! Вот твой первый урок 👇"
                 )
             )
-            await send_week_lesson(bot, user_id, entry)
+            await send_week_lesson(bot, user_id, entry, ctx=None)
         else:
             # Для ВАКТ — выбор уровня вручную
             await bot.send_message(
@@ -4030,7 +4031,7 @@ async def run_onboarding(bot, user_id: int, name: str, level: str, week: int,
             parse_mode="Markdown",
             text="📬 *А вот твой первый урок — прямо сейчас:*"
         )
-        await send_week_lesson(bot, user_id, entry)
+        await send_week_lesson(bot, user_id, entry, ctx=None)
 
     # ── Запланировать day-2 follow-up (через 24ч) ────────────────
     from datetime import timedelta
@@ -4297,7 +4298,7 @@ def _curator_summary(ctx: ContextTypes.DEFAULT_TYPE) -> str:
         "🎛 *Панель куратора IQ Barakah*\n",
         f"👥 Активных участников: *{len(active)}*",
     ]
-    for lvl in ["А", "Б", "В"]:
+    for lvl in ["А", "Б", "В", "Г"]:
         n = lvl_count.get(lvl, 0)
         if n:
             lines.append(f"  • {LEVEL_NAMES[lvl].split('·')[0].strip()}: *{n}*")
@@ -4826,7 +4827,7 @@ async def job_progress_mirror(ctx: ContextTypes.DEFAULT_TYPE):
 
         # Дней в программе
         days_str = ""
-        joined = entry.get("joined_at")
+        joined = entry.get("activated_at")
         if joined:
             try:
                 j = datetime.fromtimestamp(joined, tz=timezone.utc)
