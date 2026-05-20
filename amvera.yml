@@ -5,8 +5,8 @@ meta:
     version: "3.11"
 
 build:
-  requirementsPath: bot_v2/requirements.txt
+  requirementsPath: bot/requirements.txt
   useCache: true
 
 run:
-  command: python -m bot_v2.main
+  command: python bot/bot.py
