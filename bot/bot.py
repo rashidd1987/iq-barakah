@@ -1794,6 +1794,43 @@ async def cmd_analyze(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Ошибка AI-анализа. Попробуй позже.")
 
 
+async def cmd_registered(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Только для кураторов. /registered — все кто когда-либо регистрировался."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Команда только для кураторов.")
+        return
+
+    profiles  = ctx.bot_data.get("reg_profiles", {})
+    names     = ctx.bot_data.get("user_names", {})
+    active    = get_active_users(ctx)
+    diag_lvls = ctx.bot_data.get("user_diag_level", {})
+
+    if not profiles and not names:
+        await update.message.reply_text("Никто ещё не регистрировался.")
+        return
+
+    all_uids = set(profiles.keys()) | set(names.keys())
+    lines = [f"📋 *Все зарегистрированные ({len(all_uids)}):*\n"]
+
+    for uid in sorted(all_uids):
+        name       = names.get(uid, profiles.get(uid, {}).get("fio", "—"))
+        diag_level = diag_lvls.get(uid, "—")
+        is_active  = uid in active
+
+        if is_active:
+            entry = active[uid]
+            status = f"✅ активен · {entry.get('level','?')} нед {entry.get('week','?')}"
+        else:
+            status = f"⏳ не активирован · диагностика: {diag_level}"
+
+        lines.append(f"• `{uid}` — {name}\n  {status}")
+
+    # Telegram ограничивает сообщение ~4096 символов — режем на части
+    text = "\n".join(lines)
+    for i in range(0, len(text), 4000):
+        await update.message.reply_text(text[i:i+4000], parse_mode="Markdown")
+
+
 async def cmd_participants(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Только для кураторов. /participants — список всех активных."""
     if update.effective_user.id not in CURATOR_IDS:
@@ -5393,7 +5430,8 @@ def main():
     app.add_handler(CommandHandler("activate",     cmd_activate))
     app.add_handler(CommandHandler("deactivate",   cmd_deactivate))
     app.add_handler(CommandHandler("participants", cmd_participants))
-    app.add_handler(CommandHandler("analyze",      cmd_analyze))
+    app.add_handler(CommandHandler("analyze",     cmd_analyze))
+    app.add_handler(CommandHandler("registered",  cmd_registered))
     app.add_handler(CommandHandler("sendnow",      cmd_send_now))
     app.add_handler(CommandHandler("pair",         cmd_pair))
     app.add_handler(CommandHandler("unpair",       cmd_unpair))
