@@ -5048,7 +5048,10 @@ async def job_jarwas_friday(ctx: ContextTypes.DEFAULT_TYPE):
 async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Отвечает на свободные сообщения участников через AI Джарвас."""
     if not _jarwas_client:
-        return  # API ключ не задан — молчим
+        await update.message.reply_text(
+            "Джарвас временно недоступен. Напиши куратору — он поможет 🤍"
+        )
+        return
 
     # Не отвечать пока идёт диагностика или мухасаба
     if ctx.user_data.get("_diag_active") or ctx.user_data.get("_muh_active"):
