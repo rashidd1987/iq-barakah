@@ -131,10 +131,11 @@ for _i in range(len(QUESTIONS_LIST)):
     def _make_handler(idx: int):
         async def _handler(call: CallbackQuery, state: FSMContext, session: AsyncSession):
             _, q_str, score_str = call.data.split(":")
-            if int(q_str) == idx:
-                await _handle_answer(call, state, session, idx, int(score_str))
+            await _handle_answer(call, state, session, idx, int(score_str))
         return _handler
 
-    router.callback_query(
-        DIAG_STATES[_i], F.data.startswith(f"dq:{_i}:")
-    ).register(_make_handler(_i))
+    router.callback_query.register(
+        _make_handler(_i),
+        DIAG_STATES[_i],
+        F.data.startswith(f"dq:{_i}:"),
+    )
