@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot_v2.db.models import DiagResult
 from bot_v2.db.repositories import UserRepo
 from bot_v2.keyboards import kb_gender, kb_diag_answer
-from bot_v2.services.program import get_result, QUESTIONS
+from bot_v2.services.program import get_result
 
 router = Router(name="diagnostics")
 
