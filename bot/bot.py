@@ -1672,6 +1672,117 @@ async def cmd_deactivate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Пользователь `{target_id}` не найден в программе.", parse_mode="Markdown")
 
 
+async def cmd_analyze(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Только для кураторов. /analyze <user_id> — AI-анализ участника."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Команда только для кураторов.")
+        return
+    if not _jarwas_client:
+        await update.message.reply_text("❌ ANTHROPIC_API_KEY не задан.")
+        return
+
+    args = update.message.text.split()[1:]
+    if not args:
+        await update.message.reply_text(
+            "Использование: `/analyze <user_id>`\n\n"
+            "Например: `/analyze 123456789`",
+            parse_mode="Markdown"
+        )
+        return
+    try:
+        target_uid = str(int(args[0]))
+    except ValueError:
+        await update.message.reply_text("❌ Неверный user_id.")
+        return
+
+    active = get_active_users(ctx)
+    entry = active.get(target_uid)
+    if not entry:
+        await update.message.reply_text("❌ Участник не найден или не активен.")
+        return
+
+    # Собираем данные
+    profile   = ctx.bot_data.get("reg_profiles", {}).get(target_uid, {})
+    name      = ctx.bot_data.get("user_names", {}).get(target_uid, entry.get("name", "Участник"))
+    level     = entry.get("level", "?")
+    week      = entry.get("week", 1)
+    occupation = profile.get("activity", "не указана")
+    age       = profile.get("age", "не указан")
+
+    # Дни молчания
+    from datetime import date as _date
+    last_raw = entry.get("last_active", "")
+    try:
+        last_dt = datetime.fromisoformat(last_raw)
+        silence_days = (datetime.now(timezone.utc) - last_dt.replace(tzinfo=timezone.utc) if last_dt.tzinfo is None else datetime.now(timezone.utc) - last_dt).days
+    except Exception:
+        silence_days = 0
+
+    # Мухасаба — последние 3 записи
+    muh_logs = ctx.bot_data.get("muhasaba_logs", {}).get(target_uid, [])
+    muh_text = ""
+    for log in muh_logs[-3:]:
+        answers = log.get("answers", [])
+        row = " / ".join(str(a.get("a", ""))[:40] for a in answers if isinstance(a, dict))
+        if row:
+            muh_text += f"• {row}\n"
+    muh_text = muh_text.strip() or "нет записей"
+
+    await update.message.reply_text("🔍 Анализирую...")
+
+    prompt = (
+        f"Проанализируй участника программы IQ Barakah и дай куратору рекомендацию.\n\n"
+        f"ДАННЫЕ УЧАСТНИКА:\n"
+        f"Имя: {name}\n"
+        f"Уровень: {level}, Неделя: {week}\n"
+        f"Деятельность: {occupation}\n"
+        f"Возраст: {age}\n"
+        f"Молчание в боте: {silence_days} дней\n\n"
+        f"МУХАСАБА (последние записи):\n{muh_text}\n\n"
+        f"Верни ТОЛЬКО валидный JSON без лишнего текста:\n"
+        f'{{"risk": "low|medium|high", "summary": "...", "issue": "...", "action": "..."}}'
+    )
+
+    try:
+        import json as _json
+        response = _jarwas_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=512,
+            system=[{
+                "type": "text",
+                "text": (
+                    "Ты — аналитик программы IQ Barakah. "
+                    "Отвечаешь ТОЛЬКО валидным JSON без markdown-блоков и лишнего текста. "
+                    "risk: low — всё хорошо, medium — нужно внимание, high — срочно связаться."
+                ),
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = response.content[0].text.strip()
+        # Убираем возможные ```json ... ``` обёртки
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        data = _json.loads(raw.strip())
+
+        risk = data.get("risk", "medium")
+        RISK_EMOJI = {"low": "🟢", "medium": "🟡", "high": "🔴"}
+        await update.message.reply_text(
+            f"🤖 *AI-анализ участника*\n\n"
+            f"👤 {name} · уровень {level} · неделя {week}\n"
+            f"{RISK_EMOJI.get(risk, '⚪')} Риск: *{risk.upper()}*\n\n"
+            f"📊 {data.get('summary', '')}\n\n"
+            f"⚠️ *Проблема:* {data.get('issue', '')}\n\n"
+            f"✅ *Действие:* {data.get('action', '')}",
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        logger.warning(f"cmd_analyze error: {e}")
+        await update.message.reply_text("❌ Ошибка AI-анализа. Попробуй позже.")
+
+
 async def cmd_participants(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Только для кураторов. /participants — список всех активных."""
     if update.effective_user.id not in CURATOR_IDS:
@@ -5271,6 +5382,7 @@ def main():
     app.add_handler(CommandHandler("activate",     cmd_activate))
     app.add_handler(CommandHandler("deactivate",   cmd_deactivate))
     app.add_handler(CommandHandler("participants", cmd_participants))
+    app.add_handler(CommandHandler("analyze",      cmd_analyze))
     app.add_handler(CommandHandler("sendnow",      cmd_send_now))
     app.add_handler(CommandHandler("pair",         cmd_pair))
     app.add_handler(CommandHandler("unpair",       cmd_unpair))
