@@ -4874,7 +4874,7 @@ LEVEL_FULL_NAMES = {
     "Г": "Сезон 3 · Наследие",
 }
 
-def build_jarwas_system(level: str | None, week: int | None) -> str:
+def build_jarwas_system(level: str | None, week: int | None, user_profile: dict | None = None) -> str:
     """Формирует системный промпт Джарваса с учётом уровня участника."""
     if not level or level not in LEVEL_ORDER:
         # Гость или неизвестный — только о программе в целом, без деталей уроков
@@ -4907,7 +4907,142 @@ def build_jarwas_system(level: str | None, week: int | None) -> str:
             f"и не забегать вперёд."
         )
 
+    # Добавляем личный профиль участника если есть
+    if user_profile:
+        DIAG_LABELS = {"А": "Начинающий", "Б": "Развивающийся", "В": "Устойчивый", "В+": "Лидер (Джамаат)"}
+        profile_lines = []
+        fio = user_profile.get("fio", "")
+        first_name = fio.split()[0] if fio else ""
+        if first_name:
+            profile_lines.append(f"Имя: {first_name}")
+        activity = user_profile.get("activity", "")
+        if activity:
+            profile_lines.append(f"Деятельность: {activity}")
+        age = user_profile.get("age", "")
+        if age:
+            profile_lines.append(f"Возраст: {age}")
+        diag_lv = user_profile.get("diag_level", "")
+        if diag_lv:
+            label = DIAG_LABELS.get(diag_lv, diag_lv)
+            profile_lines.append(f"Результат диагностики: {label} ({diag_lv})")
+        if profile_lines:
+            context = (
+                "\n\nПРОФИЛЬ УЧАСТНИКА:\n"
+                + "\n".join(profile_lines)
+                + "\n"
+                + context
+            )
+
     return JARWAS_SYSTEM + context
+
+
+async def job_jarwas_fajr(ctx: ContextTypes.DEFAULT_TYPE):
+    """Джарвас — ежедневное Фаджр-напоминание (02:30 UTC = 05:30 МСК)."""
+    import random
+    active = get_active_users(ctx)
+    now = datetime.now(timezone.utc)
+
+    FAJR_MSGS = [
+        (
+            "🌅 *Ас-саляму алейкум!*\n\n"
+            "Фаджр — якорь дня. Тот, кто поднимается на рассвете — "
+            "контролирует своё утро, а утро задаёт весь день.\n\n"
+            "_Один намаз — и ты уже победил себя. БаракАллах фикум 🌿_"
+        ),
+        (
+            "🌙 *Ещё темно — но Аллах уже видит тебя.*\n\n"
+            "Эти минуты до рассвета — самые ценные в сутках. "
+            "Фаджр — это не просто намаз, это состояние.\n\n"
+            "_Вставай и начинай свой день с Аллаха. 🌿_"
+        ),
+        (
+            "⭐ *Рассвет близко...*\n\n"
+            "Помнишь? «Маленькое и постоянное — лучше большого и временного». "
+            "Один тихий намаз на рассвете — это и есть система.\n\n"
+            "_Да примет Аллах наш Фаджр. Ин ша Аллах 🌿_"
+        ),
+    ]
+
+    count = 0
+    for uid_str, entry in list(active.items()):
+        if not entry.get("level"):
+            continue
+        last_raw = entry.get("last_active")
+        if last_raw:
+            try:
+                last_dt = datetime.fromisoformat(last_raw)
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                if (now - last_dt).days > 14:
+                    continue
+            except Exception:
+                pass
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                parse_mode="Markdown",
+                text=random.choice(FAJR_MSGS),
+            )
+            count += 1
+        except Exception as e:
+            logger.warning(f"jarwas_fajr → {uid_str}: {e}")
+    if count:
+        logger.info(f"Джарвас Фаджр отправлен: {count} чел.")
+
+
+async def job_jarwas_friday(ctx: ContextTypes.DEFAULT_TYPE):
+    """Джарвас — пятничная рефлексия (17:00 UTC = 20:00 МСК)."""
+    import random
+    active = get_active_users(ctx)
+    now = datetime.now(timezone.utc)
+
+    FRIDAY_MSGS = [
+        (
+            "🕌 *Джума мубарак!*\n\n"
+            "Один вопрос от Джарваса на эту пятницу:\n\n"
+            "_Что на этой неделе ты сделал ради Аллаха — не ради результата, а ради Него?_\n\n"
+            "Запиши ответ — даже одно слово. Это и есть мухасаба. 🌿"
+        ),
+        (
+            "🌙 *Баракатной пятницы!*\n\n"
+            "Пятница — день рефлексии и благодарности. "
+            "Что из инструментов программы зацепило тебя на этой неделе?\n\n"
+            "_Даже маленькое и постоянное — уже победа. БаракАллах фикум 🌿_"
+        ),
+        (
+            "⭐ *Пятничное послание от Джарваса:*\n\n"
+            "Мы собираемся вместе в IQ Barakah каждую неделю — "
+            "как умма собирается на Джуму.\n\n"
+            "_Как ты? Что радовало тебя на этой неделе? "
+            "Напиши — я слушаю 🌿_"
+        ),
+    ]
+
+    count = 0
+    for uid_str, entry in list(active.items()):
+        if not entry.get("level"):
+            continue
+        last_raw = entry.get("last_active")
+        if last_raw:
+            try:
+                last_dt = datetime.fromisoformat(last_raw)
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                if (now - last_dt).days > 14:
+                    continue
+            except Exception:
+                pass
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                parse_mode="Markdown",
+                text=random.choice(FRIDAY_MSGS),
+            )
+            count += 1
+        except Exception as e:
+            logger.warning(f"jarwas_friday → {uid_str}: {e}")
+    if count:
+        logger.info(f"Джарвас пятница отправлено: {count} чел.")
 
 
 async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -4946,8 +5081,11 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     jarwas_usage["count"] += 1
 
-    # Строим персональный системный промпт
-    system = build_jarwas_system(level, week)
+    # Строим персональный системный промпт с профилем участника
+    profile = ctx.bot_data.get("reg_profiles", {}).get(uid, {})
+    diag_level_val = ctx.bot_data.get("user_diag_level", {}).get(uid)
+    user_profile = {**profile, "diag_level": diag_level_val} if (profile or diag_level_val) else None
+    system = build_jarwas_system(level, week, user_profile=user_profile)
 
     # Берём историю диалога (последние 6 сообщений = 3 обмена)
     history = ctx.user_data.setdefault("jarwas_history", [])
@@ -4970,7 +5108,7 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         response = _jarwas_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
-            system=system,
+            system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             messages=history,
         )
         reply = response.content[0].text
@@ -5272,6 +5410,21 @@ def main():
         time=time(16, 0, tzinfo=timezone.utc),
         days=(6,),
         name="progress_mirror",
+    )
+
+    # Джарвас — Фаджр-напоминание (02:30 UTC = 05:30 МСК), ежедневно
+    app.job_queue.run_daily(
+        job_jarwas_fajr,
+        time=time(2, 30, tzinfo=timezone.utc),
+        name="jarwas_fajr",
+    )
+
+    # Джарвас — пятничная рефлексия (17:00 UTC = 20:00 МСК)
+    app.job_queue.run_daily(
+        job_jarwas_friday,
+        time=time(17, 0, tzinfo=timezone.utc),
+        days=(4,),
+        name="jarwas_friday",
     )
 
     # Ежедневный бэкап pickle (03:30 UTC = 06:30 МСК)
