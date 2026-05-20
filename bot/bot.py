@@ -1695,26 +1695,34 @@ async def cmd_analyze(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Неверный user_id.")
         return
 
-    active = get_active_users(ctx)
-    entry = active.get(target_uid)
-    if not entry:
-        await update.message.reply_text("❌ Участник не найден или не активен.")
+    active  = get_active_users(ctx)
+    entry   = active.get(target_uid)
+    profile = ctx.bot_data.get("reg_profiles", {}).get(target_uid, {})
+
+    # Принимаем и активных участников, и тех кто только прошёл диагностику
+    if not entry and not profile:
+        await update.message.reply_text(
+            "❌ Пользователь не найден.\n\n"
+            "Убедись что он писал боту — его ID должен быть в системе."
+        )
         return
 
-    # Собираем данные
-    profile   = ctx.bot_data.get("reg_profiles", {}).get(target_uid, {})
-    name      = ctx.bot_data.get("user_names", {}).get(target_uid, entry.get("name", "Участник"))
-    level     = entry.get("level", "?")
-    week      = entry.get("week", 1)
+    # Собираем данные (active_users имеет приоритет, profile — fallback)
+    name       = ctx.bot_data.get("user_names", {}).get(target_uid,
+                    entry.get("name", profile.get("fio", "Участник")) if entry else profile.get("fio", "Участник"))
+    level      = entry.get("level") if entry else ctx.bot_data.get("user_diag_level", {}).get(target_uid)
+    week       = entry.get("week", 1) if entry else None
     occupation = profile.get("activity", "не указана")
-    age       = profile.get("age", "не указан")
+    age        = profile.get("age", "не указан")
+    status     = "активный участник" if entry else "прошёл диагностику, не активирован"
 
     # Дни молчания
-    from datetime import date as _date
-    last_raw = entry.get("last_active", "")
+    last_raw = (entry or {}).get("last_active", "")
     try:
         last_dt = datetime.fromisoformat(last_raw)
-        silence_days = (datetime.now(timezone.utc) - last_dt.replace(tzinfo=timezone.utc) if last_dt.tzinfo is None else datetime.now(timezone.utc) - last_dt).days
+        if last_dt.tzinfo is None:
+            last_dt = last_dt.replace(tzinfo=timezone.utc)
+        silence_days = (datetime.now(timezone.utc) - last_dt).days
     except Exception:
         silence_days = 0
 
@@ -1730,11 +1738,13 @@ async def cmd_analyze(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("🔍 Анализирую...")
 
+    level_str = f"{level}, Неделя: {week}" if week else f"{level} (не активирован)"
     prompt = (
         f"Проанализируй участника программы IQ Barakah и дай куратору рекомендацию.\n\n"
         f"ДАННЫЕ УЧАСТНИКА:\n"
         f"Имя: {name}\n"
-        f"Уровень: {level}, Неделя: {week}\n"
+        f"Статус: {status}\n"
+        f"Уровень диагностики: {level_str}\n"
         f"Деятельность: {occupation}\n"
         f"Возраст: {age}\n"
         f"Молчание в боте: {silence_days} дней\n\n"
@@ -1769,9 +1779,10 @@ async def cmd_analyze(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
         risk = data.get("risk", "medium")
         RISK_EMOJI = {"low": "🟢", "medium": "🟡", "high": "🔴"}
+        status_line = f"уровень {level} · неделя {week}" if week else f"диагностика: {level} · не активирован"
         await update.message.reply_text(
             f"🤖 *AI-анализ участника*\n\n"
-            f"👤 {name} · уровень {level} · неделя {week}\n"
+            f"👤 {name} · {status_line}\n"
             f"{RISK_EMOJI.get(risk, '⚪')} Риск: *{risk.upper()}*\n\n"
             f"📊 {data.get('summary', '')}\n\n"
             f"⚠️ *Проблема:* {data.get('issue', '')}\n\n"
