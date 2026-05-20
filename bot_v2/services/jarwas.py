@@ -26,7 +26,7 @@ async def ask_jarwas(history: list[dict], user_message: str) -> str:
     response = await _client.messages.create(
         model="claude-opus-4-7",
         max_tokens=512,
-        system=JARWAS_SYSTEM,
+        system=[{"type": "text", "text": JARWAS_SYSTEM, "cache_control": {"type": "ephemeral"}}],
         messages=messages,
     )
     return response.content[0].text
