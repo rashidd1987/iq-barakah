@@ -13,6 +13,7 @@ from bot_v2.db import setup_db, create_tables
 from bot_v2.handlers import setup_routers
 from bot_v2.middlewares import DbSessionMiddleware
 from bot_v2.services.jarwas import setup_jarwas
+from bot_v2.services.insights import setup_insights
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -26,8 +27,9 @@ async def main():
     await create_tables()
     logger.info("Database ready")
 
-    # Jarwas AI
+    # AI services
     setup_jarwas(config.anthropic_api_key)
+    setup_insights(config.anthropic_api_key)
 
     # Bot & Dispatcher
     bot = Bot(

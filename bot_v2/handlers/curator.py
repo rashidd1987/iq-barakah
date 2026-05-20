@@ -11,6 +11,7 @@ from bot_v2.config import Config
 from bot_v2.db.models import BotSetting
 from bot_v2.db.repositories import ParticipantRepo, UserRepo, SettingsRepo, PairRepo
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
+from bot_v2.services.insights import analyze_participant
 
 logger = logging.getLogger(__name__)
 router = Router(name="curator")
@@ -144,6 +145,72 @@ async def cmd_pair(message: Message, session: AsyncSession, config: Config):
     repo = PairRepo(session)
     await repo.create_pair(uid1, uid2)
     await message.answer(f"✅ Пара создана: `{uid1}` ↔ `{uid2}`", parse_mode="Markdown")
+
+
+@router.message(Command("analyze"))
+async def cmd_analyze(message: Message, session: AsyncSession, config: Config):
+    """Анализ участника через AI: /analyze <user_id>"""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer("Использование: `/analyze <user_id>`", parse_mode="Markdown")
+        return
+    try:
+        target_id = int(args[0])
+    except ValueError:
+        await message.answer("❌ Неверный user_id.")
+        return
+
+    user_repo = UserRepo(session)
+    user = await user_repo.get(target_id)
+    if not user:
+        await message.answer("❌ Пользователь не найден.")
+        return
+
+    p_repo = ParticipantRepo(session)
+    participant = await p_repo.get_by_user(target_id)
+    if not participant:
+        await message.answer("❌ Пользователь не является активным участником.")
+        return
+
+    # Считаем дни молчания
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    last_active = getattr(user, "updated_at", None)
+    silence_days = (now - last_active).days if last_active else 0
+
+    # Берём последние мухасаба и трекер
+    muhasaba = [log.answers for log in user.muhasaba_logs[-5:]] if user.muhasaba_logs else []
+    tracker = [r.habits for r in user.tracker_records[-7:]] if user.tracker_records else []
+
+    await message.answer("🔍 Анализирую...")
+
+    insight = await analyze_participant(
+        name=user.name,
+        level=participant.level,
+        week=participant.week,
+        occupation=user.occupation,
+        age=user.age,
+        silence_days=silence_days,
+        muhasaba_answers=muhasaba,
+        tracker_habits=tracker,
+    )
+
+    if not insight:
+        await message.answer("❌ AI-анализ недоступен. Проверь ANTHROPIC_API_KEY.")
+        return
+
+    RISK_EMOJI = {"low": "🟢", "medium": "🟡", "high": "🔴"}
+    await message.answer(
+        f"🤖 *AI-анализ участника*\n\n"
+        f"👤 {user.name} · {participant.level} нед {participant.week}\n"
+        f"{RISK_EMOJI.get(insight.risk, '⚪')} Риск: *{insight.risk.upper()}*\n\n"
+        f"📊 {insight.summary}\n\n"
+        f"⚠️ *Проблема:* {insight.issue}\n\n"
+        f"✅ *Действие:* {insight.action}",
+        parse_mode="Markdown",
+    )
 
 
 @router.callback_query(F.data.startswith("curator_activate:"))
