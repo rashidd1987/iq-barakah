@@ -800,7 +800,7 @@ textarea:focus { border-color: var(--g2); }
       </div>
       <div class="act-item" onclick="openReviewSheet()">
         <div class="act-ic bl">✍️</div>
-        <div class="act-tx"><div class="t">Мухасаба вечера</div><div class="s">Три вопроса — займёт 2 минуты</div></div>
+        <div class="act-tx"><div class="t">Мухасаба — отчёт перед собой</div><div class="s">Три вопроса честности — займёт 2 минуты</div></div>
         <span style="color:var(--muted)">›</span>
       </div>
       <div class="act-item" onclick="openDiag()">
@@ -1045,13 +1045,13 @@ textarea:focus { border-color: var(--g2); }
 <div class="sheet" id="sh-review">
   <div class="sh"></div>
   <div class="s-icon">🌙</div>
-  <div class="s-title">Мухасаба недели</div>
+  <div class="s-title">Мухасаба — отчёт перед собой</div>
   <div class="s-sub" id="rv-week-lbl">Честный взгляд на себя — куратор прочитает и откроет следующую неделю</div>
 
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
     <div class="ok-t">БаракАллах фикум!</div>
-    <div class="ok-s">Мухасаба принята. Куратор прочитает и откроет следующую неделю.</div>
+    <div class="ok-s">Мухасаба принята — отчёт перед собой сдан. Куратор прочитает и откроет следующую неделю.</div>
     <button class="btn btn-p" style="margin-top:8px;" onclick="closeSheet('review'); switchScreen('lessons')">К карте пути</button>
   </div>
 
@@ -1085,7 +1085,7 @@ textarea:focus { border-color: var(--g2); }
       </div>
       <div class="fl" style="margin-top:10px;">
         <label>Главный инсайт недели</label>
-        <textarea id="rv-insight" rows="2" placeholder="Что Аллах открыл тебе на этой неделе..."></textarea>
+        <textarea id="rv-insight" rows="2" placeholder="Что открылось для тебя..."></textarea>
       </div>
     </div></div>
     <button class="btn btn-p" id="rv-btn" onclick="submitReview()">Отправить куратору 🌿</button>
@@ -1563,7 +1563,7 @@ function openLessonSheet(w, done, isCur, locked) {
   const c=WC[w.phase]||WC.s1;
   const rows=document.getElementById('sl-rows');
   rows.innerHTML = locked
-    ? `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">Как открыть</div><div class="v">Сдайте мухасабу за текущую неделю — куратор откроет следующую</div></div></div>`
+    ? `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">Как открыть</div><div class="v">Сдай мухасабу (отчёт перед собой) — куратор откроет следующую неделю</div></div></div>`
     : `<div class="s-row"><div class="s-ri">📿</div><div class="s-rt"><div class="l">Азкар недели</div><div class="v">${c.az}</div></div></div>
        <div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">Коран</div><div class="v">${c.qu}</div></div></div>
        <div class="s-row"><div class="s-ri">🤲</div><div class="s-rt"><div class="l">Доброе дело</div><div class="v">${c.deed}</div></div></div>`;
