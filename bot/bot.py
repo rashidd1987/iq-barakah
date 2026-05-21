@@ -5145,6 +5145,91 @@ def build_jarwas_system(level: str | None, week: int | None, user_profile: dict 
     return JARWAS_SYSTEM + context
 
 
+async def miniapp_data_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает данные от миниаппа (tg.sendData)."""
+    import json as _json
+    raw = update.message.web_app_data.data
+    try:
+        data = _json.loads(raw)
+    except Exception:
+        return
+
+    uid  = str(update.effective_user.id)
+    dtype = data.get("type")
+
+    # ── Мухасаба недели ──────────────────────────────────────────
+    if dtype == "review":
+        week = data.get("week", 0)
+
+        # Автоматически открываем следующую неделю
+        if data.get("auto_advance"):
+            active = get_active_users(ctx)
+            if uid in active:
+                entry = active[uid]
+                level = entry.get("level", "А")
+                max_w = LEVEL_WEEKS.get(level, 8)
+                cur_w = entry.get("week", 1)
+                if cur_w < max_w:
+                    entry["week"] = cur_w + 1
+                    logger.info(f"Авто-открытие недели: {uid} {level} {cur_w}→{cur_w+1}")
+
+        # Уведомляем куратора
+        name = ctx.bot_data.get("user_names", {}).get(uid,
+               update.effective_user.full_name or "Участник")
+        active = get_active_users(ctx)
+        entry  = active.get(uid, {})
+        level  = entry.get("level", "?")
+
+        RISK_EMOJIS = {"😔":"🔴","😐":"🟡","🙂":"🟢","😊":"🟢","🤩":"⭐"}
+        mood_risk = RISK_EMOJIS.get(data.get("emoji",""), "⚪")
+
+        for cid in CURATOR_IDS:
+            try:
+                await ctx.bot.send_message(
+                    chat_id=cid, parse_mode="Markdown",
+                    text=(
+                        f"📝 *Мухасаба недели — {name}*\n\n"
+                        f"📍 Уровень {level} · Неделя {week}\n"
+                        f"{mood_risk} Настроение: {data.get('emoji','—')}\n"
+                        f"📋 Задание: {data.get('task','—')}/5 · "
+                        f"Изменения: {data.get('useful','—')}/5\n\n"
+                        f"💬 {data.get('text','')}\n\n"
+                        + (f"💡 _{data.get('insight','')}_" if data.get('insight') else "")
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"miniapp_data curator notify: {e}")
+
+        await update.message.reply_text(
+            "🌿 Мухасаба принята! Следующая неделя открыта. Продолжай путь!"
+        )
+
+    # ── Отзыв о программе ────────────────────────────────────────
+    elif dtype == "feedback":
+        name = ctx.bot_data.get("user_names", {}).get(uid,
+               update.effective_user.full_name or "Участник")
+        stars = "⭐" * int(data.get("rating", 0))
+
+        for cid in CURATOR_IDS:
+            try:
+                await ctx.bot.send_message(
+                    chat_id=cid, parse_mode="Markdown",
+                    text=(
+                        f"⭐ *Отзыв о программе — {name}*\n\n"
+                        f"Оценка: {stars}\n\n"
+                        f"👍 *Понравилось:*\n{data.get('liked','—')}\n\n"
+                        f"🔧 *Улучшить:*\n{data.get('improve','—') or '—'}\n\n"
+                        f"💡 *Добавить:*\n{data.get('add','—') or '—'}"
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"miniapp_data feedback curator: {e}")
+
+        await update.message.reply_text(
+            "🤍 Джазакаллаху хайран! Твой отзыв получен — мы читаем каждое слово."
+        )
+
+
 async def job_jarwas_fajr(ctx: ContextTypes.DEFAULT_TYPE):
     """Джарвас — ежедневное Фаджр-напоминание (02:30 UTC = 05:30 МСК)."""
     import random
@@ -5457,6 +5542,7 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_check_payment,   pattern="^check_pay_"))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, miniapp_data_handler))
     app.add_handler(CallbackQueryHandler(restart_diag,       pattern="^restart$"))
     app.add_handler(CallbackQueryHandler(cb_contact_jamaat,  pattern="^contact_jamaat$"))
     app.add_handler(CallbackQueryHandler(cb_week_ack,        pattern="^week_ack$"))

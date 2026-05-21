@@ -808,6 +808,11 @@ textarea:focus { border-color: var(--g2); }
         <div class="act-tx"><div class="t">Диагностика уровня</div><div class="s">Пройти заново или сменить уровень</div></div>
         <span style="color:var(--muted)">›</span>
       </div>
+      <div class="act-item" onclick="openFeedbackSheet()">
+        <div class="act-ic" style="background:#fff3cd;">⭐</div>
+        <div class="act-tx"><div class="t">Оставить отзыв</div><div class="s">Нам важно твоё мнение о программе</div></div>
+        <span style="color:var(--muted)">›</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1051,8 +1056,8 @@ textarea:focus { border-color: var(--g2); }
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
     <div class="ok-t">БаракАллах фикум!</div>
-    <div class="ok-s">Мухасаба принята — отчёт перед собой сдан. Куратор прочитает и откроет следующую неделю.</div>
-    <button class="btn btn-p" style="margin-top:8px;" onclick="closeSheet('review'); switchScreen('lessons')">К карте пути</button>
+    <div class="ok-s">Мухасаба принята. Следующая неделя открыта — продолжай путь!</div>
+    <button class="btn btn-p" style="margin-top:8px;" onclick="advanceAndGo()">К следующей неделе →</button>
   </div>
 
   <div id="rv-form" class="rv-form">
@@ -1089,6 +1094,49 @@ textarea:focus { border-color: var(--g2); }
       </div>
     </div></div>
     <button class="btn btn-p" id="rv-btn" onclick="submitReview()">Отправить куратору 🌿</button>
+  </div>
+</div>
+
+<!-- ── ОТЗЫВ О ПРОГРАММЕ ── -->
+<div class="sheet" id="sh-feedback">
+  <div class="sh"></div>
+  <div class="s-icon">⭐</div>
+  <div class="s-title">Твой отзыв важен</div>
+  <div class="s-sub">Помоги нам сделать программу лучше — займёт 2 минуты</div>
+
+  <div class="ok-state" id="fb-ok">
+    <div class="ok-icon">🤍</div>
+    <div class="ok-t">Джазакаллаху хайран!</div>
+    <div class="ok-s">Твой отзыв получен. Мы читаем каждое слово и делаем программу лучше.</div>
+    <button class="btn btn-s" style="margin-top:8px;" onclick="closeSheet('feedback')">Закрыть</button>
+  </div>
+
+  <div id="fb-form">
+    <div class="card"><div class="cb">
+      <div class="ct">Общая оценка программы</div>
+      <div class="emoji-row" id="fb-stars" style="justify-content:center;gap:12px;font-size:28px;margin:8px 0;">
+        <span onclick="selStar(1)" id="fbs-1" style="cursor:pointer;opacity:.35;">⭐</span>
+        <span onclick="selStar(2)" id="fbs-2" style="cursor:pointer;opacity:.35;">⭐</span>
+        <span onclick="selStar(3)" id="fbs-3" style="cursor:pointer;opacity:.35;">⭐</span>
+        <span onclick="selStar(4)" id="fbs-4" style="cursor:pointer;opacity:.35;">⭐</span>
+        <span onclick="selStar(5)" id="fbs-5" style="cursor:pointer;opacity:.35;">⭐</span>
+      </div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="fl">
+        <label>Что понравилось больше всего?</label>
+        <textarea id="fb-liked" rows="3" placeholder="Что зацепило, что помогло..."></textarea>
+      </div>
+      <div class="fl" style="margin-top:12px;">
+        <label>Что можно улучшить?</label>
+        <textarea id="fb-improve" rows="3" placeholder="Что мешало, что было неудобно..."></textarea>
+      </div>
+      <div class="fl" style="margin-top:12px;">
+        <label>Чего не хватает? Что добавить?</label>
+        <textarea id="fb-add" rows="2" placeholder="Твои идеи для программы..."></textarea>
+      </div>
+    </div></div>
+    <button class="btn btn-p" id="fb-btn" onclick="submitFeedback()">Отправить отзыв ⭐</button>
   </div>
 </div>
 
@@ -1631,12 +1679,74 @@ function submitReview() {
   const btn=document.getElementById('rv-btn');
   btn.innerHTML='<div class="spin"></div> Отправляем...';
   btn.disabled=true;
+  // Сохраняем данные для отправки при переходе к урокам
+  window._reviewData = {
+    type:'review', week:U.currentWeek,
+    emoji:rEmoji, task:rTask, useful:rUseful,
+    text, insight: document.getElementById('rv-insight')?.value?.trim()||'',
+    auto_advance: true
+  };
   setTimeout(()=>{
     haptic('success');
     document.getElementById('rv-form').style.display='none';
     document.getElementById('rv-ok').classList.add('show');
-    if (tg) tg.sendData(JSON.stringify({type:'review',week:U.currentWeek,emoji:rEmoji,task:rTask,useful:rUseful,text}));
   }, 1100);
+}
+
+function advanceAndGo() {
+  // Автоматически открываем следующую неделю
+  if (U.currentWeek > 0 && U.currentWeek < 30) {
+    U.currentWeek += 1;
+    renderLessons();
+    renderHome();
+  }
+  closeSheet('review');
+  switchScreen('lessons');
+  // Отправляем данные в бот (закрывает миниапп)
+  if (tg && window._reviewData) {
+    tg.sendData(JSON.stringify(window._reviewData));
+  }
+}
+
+// ── ОТЗЫВ О ПРОГРАММЕ ──
+let fbStars = 0;
+
+function openFeedbackSheet() {
+  haptic();
+  fbStars = 0;
+  document.getElementById('fb-form').style.display='';
+  document.getElementById('fb-ok').classList.remove('show');
+  document.getElementById('fb-btn').disabled=false;
+  document.getElementById('fb-btn').textContent='Отправить отзыв ⭐';
+  document.getElementById('fb-liked').value='';
+  document.getElementById('fb-improve').value='';
+  document.getElementById('fb-add').value='';
+  for(let i=1;i<=5;i++) document.getElementById('fbs-'+i).style.opacity='.35';
+  document.getElementById('sh-feedback').classList.add('open');
+}
+
+function selStar(n) {
+  fbStars=n;
+  haptic('light');
+  for(let i=1;i<=5;i++)
+    document.getElementById('fbs-'+i).style.opacity = i<=n ? '1' : '.25';
+}
+
+function submitFeedback() {
+  const liked   = document.getElementById('fb-liked').value.trim();
+  const improve = document.getElementById('fb-improve').value.trim();
+  const add     = document.getElementById('fb-add').value.trim();
+  if (!fbStars) { haptic('error'); showToast('Поставь оценку программе'); return; }
+  if (!liked)   { haptic('error'); showToast('Напиши что понравилось'); return; }
+  const btn = document.getElementById('fb-btn');
+  btn.innerHTML='<div class="spin"></div> Отправляем...';
+  btn.disabled=true;
+  setTimeout(()=>{
+    haptic('success');
+    document.getElementById('fb-form').style.display='none';
+    document.getElementById('fb-ok').classList.add('show');
+    if (tg) tg.sendData(JSON.stringify({type:'feedback', rating:fbStars, liked, improve, add}));
+  }, 1000);
 }
 
 // ── TOAST ──
