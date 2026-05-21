@@ -1044,20 +1044,20 @@ textarea:focus { border-color: var(--g2); }
 <div class="overlay" id="ov-review" onclick="closeSheet('review')"></div>
 <div class="sheet" id="sh-review">
   <div class="sh"></div>
-  <div class="s-icon">✍️</div>
-  <div class="s-title">Мухасаба вечера</div>
-  <div class="s-sub" id="rv-week-lbl">Три вопроса честности перед собой</div>
+  <div class="s-icon">🌙</div>
+  <div class="s-title">Мухасаба недели</div>
+  <div class="s-sub" id="rv-week-lbl">Честный взгляд на себя — куратор прочитает и откроет следующую неделю</div>
 
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
-    <div class="ok-t">БаракаЛлаху фик!</div>
-    <div class="ok-s">Отзыв принят. Куратор откроет следующую неделю.</div>
+    <div class="ok-t">БаракАллах фикум!</div>
+    <div class="ok-s">Мухасаба принята. Куратор прочитает и откроет следующую неделю.</div>
     <button class="btn btn-p" style="margin-top:8px;" onclick="closeSheet('review'); switchScreen('lessons')">К карте пути</button>
   </div>
 
   <div id="rv-form" class="rv-form">
     <div class="card"><div class="cb">
-      <div class="ct">Как прошла неделя?</div>
+      <div class="ct">Как прошла эта неделя?</div>
       <div class="emoji-row" id="emoji-row">
         <button class="em-btn" onclick="selEmoji(this,'😔')">😔</button>
         <button class="em-btn" onclick="selEmoji(this,'😐')">😐</button>
@@ -1069,11 +1069,11 @@ textarea:focus { border-color: var(--g2); }
     <div class="card"><div class="cb">
       <div class="ct">Оцените</div>
       <div class="fl">
-        <label>Насколько выполнили задание?</label>
+        <label>Практиковал задание недели?</label>
         <div class="rating-row" id="rt-task"></div>
       </div>
       <div class="fl" style="margin-top:12px;">
-        <label>Насколько было полезно?</label>
+        <label>Что-то изменилось внутри?</label>
         <div class="rating-row" id="rt-useful"></div>
       </div>
     </div></div>
@@ -1081,14 +1081,14 @@ textarea:focus { border-color: var(--g2); }
       <div class="ct">Напишите</div>
       <div class="fl">
         <label>Что получилось? Что было сложно?</label>
-        <textarea id="rv-text" rows="3" placeholder="Куратор обязательно ответит..."></textarea>
+        <textarea id="rv-text" rows="3" placeholder="Куратор прочитает и ответит..."></textarea>
       </div>
       <div class="fl" style="margin-top:10px;">
         <label>Главный инсайт недели</label>
-        <textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea>
+        <textarea id="rv-insight" rows="2" placeholder="Что Аллах открыл тебе на этой неделе..."></textarea>
       </div>
     </div></div>
-    <button class="btn btn-p" id="rv-btn" onclick="submitReview()">Отправить отзыв</button>
+    <button class="btn btn-p" id="rv-btn" onclick="submitReview()">Отправить куратору 🌿</button>
   </div>
 </div>
 
