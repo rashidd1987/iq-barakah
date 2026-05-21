@@ -1851,6 +1851,52 @@ async def cmd_participants(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+async def cb_curator_quick_activate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор нажал 'Активировать' в уведомлении о диагностике."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.from_user.id not in CURATOR_IDS:
+        await query.answer("⛔️ Только для кураторов.", show_alert=True)
+        return
+
+    _, uid_str, level = query.data.split(":")
+    uid = str(uid_str)
+
+    # Активируем
+    active = get_active_users(ctx)
+    name = ctx.bot_data.get("user_names", {}).get(uid, "Участник")
+    active[uid] = {
+        "level":       level,
+        "week":        1,
+        "name":        name,
+        "activated_at": datetime.now(timezone.utc).isoformat(),
+        "last_active": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Уведомляем участника
+    try:
+        brat_word = "сестра" if ctx.bot_data.get("user_genders", {}).get(uid, False) else "брат"
+        first_name = name.split()[0]
+        await ctx.bot.send_message(
+            chat_id=int(uid),
+            parse_mode="Markdown",
+            text=(
+                f"🌿 *{brat_word.capitalize()} {first_name}, тебя активировали!*\n\n"
+                f"Ты на уровне *{level}* — программа началась.\n\n"
+                f"В понедельник придёт первый урок. А пока — можешь задать любой вопрос Джарвасу 🤍"
+            )
+        )
+    except Exception as e:
+        logger.warning(f"cb_curator_quick_activate notify user {uid}: {e}")
+
+    # Обновляем кнопки в сообщении куратора
+    await query.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([[
+        InlineKeyboardButton(f"✅ Активирован на {level}", callback_data="noop"),
+        InlineKeyboardButton("💬 Написать", url=f"tg://user?id={uid}"),
+    ]]))
+
+
 async def cmd_send_now(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Только для кураторов. /sendnow — отправить урок прямо сейчас (тест)."""
     if update.effective_user.id not in CURATOR_IDS:
@@ -2228,8 +2274,10 @@ async def _job_reminder(ctx: ContextTypes.DEFAULT_TYPE, reminder_key: str):
 
 # ── УВЕДОМЛЕНИЕ КУРАТОРА ─────────────────────────────────────────
 async def notify_curators(ctx, user, data: dict, result: dict):
-    occ_map = {k: l for l, k in OCCUPATIONS}
-    src_map  = {k: l for l, k in SOURCES}
+    # Определяем рекомендуемый уровень программы по результату диагностики
+    DIAG_TO_PROG = {"А": "А", "Б": "Б", "В": "Б"}  # В+ → тоже начинают с Б
+    rec_level = DIAG_TO_PROG.get(result.get("level_key", "А"), "А")
+
     brat = "Сестра" if data.get("is_female") else "Брат"
     username = f"@{user.username}" if user.username else f"ID: {user.id}"
     text = (
@@ -2242,9 +2290,22 @@ async def notify_curators(ctx, user, data: dict, result: dict):
         f"📣 Источник: {data.get('source','—')}\n\n"
         f"📍 Рекомендован путь: *{result['path']}*"
     )
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton(
+            f"✅ Активировать на {rec_level}",
+            callback_data=f"cur_act:{user.id}:{rec_level}"
+        ),
+        InlineKeyboardButton(
+            "💬 Написать",
+            url=f"tg://user?id={user.id}"
+        ),
+    ]])
     for cid in CURATOR_IDS:
         try:
-            await ctx.bot.send_message(chat_id=cid, text=text, parse_mode="Markdown")
+            await ctx.bot.send_message(
+                chat_id=cid, text=text,
+                parse_mode="Markdown", reply_markup=keyboard
+            )
         except Exception as e:
             logger.warning(f"Куратор {cid}: {e}")
 
@@ -5467,6 +5528,7 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_cur_sendnow,      pattern="^cur_sendnow$"))
     app.add_handler(CallbackQueryHandler(cb_cur_msg_start,    pattern="^cur_msg_start$"))
     app.add_handler(CallbackQueryHandler(cb_cur_write,        pattern=r"^cur_write_"))
+    app.add_handler(CallbackQueryHandler(cb_curator_quick_activate, pattern=r"^cur_act:"))
 
     # Перехват сообщения куратора в режиме написания (должен быть ПОСЛЕ conv)
     app.add_handler(MessageHandler(
