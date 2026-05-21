@@ -2274,10 +2274,6 @@ async def _job_reminder(ctx: ContextTypes.DEFAULT_TYPE, reminder_key: str):
 
 # ── УВЕДОМЛЕНИЕ КУРАТОРА ─────────────────────────────────────────
 async def notify_curators(ctx, user, data: dict, result: dict):
-    # Определяем рекомендуемый уровень программы по результату диагностики
-    DIAG_TO_PROG = {"А": "А", "Б": "Б", "В": "Б"}  # В+ → тоже начинают с Б
-    rec_level = DIAG_TO_PROG.get(result.get("level_key", "А"), "А")
-
     brat = "Сестра" if data.get("is_female") else "Брат"
     username = f"@{user.username}" if user.username else f"ID: {user.id}"
     text = (
@@ -2291,14 +2287,7 @@ async def notify_curators(ctx, user, data: dict, result: dict):
         f"📍 Рекомендован путь: *{result['path']}*"
     )
     keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton(
-            f"✅ Активировать на {rec_level}",
-            callback_data=f"cur_act:{user.id}:{rec_level}"
-        ),
-        InlineKeyboardButton(
-            "💬 Написать",
-            url=f"tg://user?id={user.id}"
-        ),
+        InlineKeyboardButton("💬 Написать", url=f"tg://user?id={user.id}"),
     ]])
     for cid in CURATOR_IDS:
         try:
