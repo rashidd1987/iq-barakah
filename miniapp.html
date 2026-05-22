@@ -1703,9 +1703,11 @@ function advanceAndGo() {
   }
   closeSheet('review');
   switchScreen('lessons');
-  // Отправляем данные в бот (закрывает миниапп)
+  // Даём пользователю 2 сек увидеть следующую неделю, затем отправляем данные в бот
   if (tg && window._reviewData) {
-    tg.sendData(JSON.stringify(window._reviewData));
+    setTimeout(() => {
+      tg.sendData(JSON.stringify(window._reviewData));
+    }, 2000);
   }
 }
 
@@ -1728,7 +1730,7 @@ function openFeedbackSheet() {
 
 function selStar(n) {
   fbStars=n;
-  haptic('light');
+  haptic();
   for(let i=1;i<=5;i++)
     document.getElementById('fbs-'+i).style.opacity = i<=n ? '1' : '.25';
 }
