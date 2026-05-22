@@ -1098,8 +1098,10 @@ textarea:focus { border-color: var(--g2); }
 </div>
 
 <!-- ── ОТЗЫВ О ПРОГРАММЕ ── -->
+<div class="overlay" id="ov-feedback" onclick="closeSheet('feedback')"></div>
 <div class="sheet" id="sh-feedback">
   <div class="sh"></div>
+  <button onclick="closeSheet('feedback')" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#666;padding:4px;">✕</button>
   <div class="s-icon">⭐</div>
   <div class="s-title">Твой отзыв важен</div>
   <div class="s-sub">Помоги нам сделать программу лучше — займёт 2 минуты</div>
@@ -1697,8 +1699,7 @@ function advanceAndGo() {
   // Автоматически открываем следующую неделю
   if (U.currentWeek > 0 && U.currentWeek < 30) {
     U.currentWeek += 1;
-    renderLessons();
-    renderHome();
+    renderLessons('all');
   }
   closeSheet('review');
   switchScreen('lessons');
@@ -1722,7 +1723,7 @@ function openFeedbackSheet() {
   document.getElementById('fb-improve').value='';
   document.getElementById('fb-add').value='';
   for(let i=1;i<=5;i++) document.getElementById('fbs-'+i).style.opacity='.35';
-  document.getElementById('sh-feedback').classList.add('open');
+  openSheet('feedback');
 }
 
 function selStar(n) {
