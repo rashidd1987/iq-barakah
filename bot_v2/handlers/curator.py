@@ -5,9 +5,11 @@ from datetime import timezone, datetime
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot_v2.config import Config
+from bot_v2.db.models import DiagResult, Participant, Payment, TrackerRecord, User, WeekAck, WheelRecord
 from bot_v2.db.repositories import ParticipantRepo, UserRepo, SettingsRepo, PairRepo
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 from bot_v2.services.insights import analyze_participant
@@ -18,6 +20,94 @@ router = Router(name="curator")
 
 def is_curator(user_id: int, config: Config) -> bool:
     return user_id in config.curator_ids
+
+
+@router.message(Command("health"))
+async def cmd_health(message: Message, session: AsyncSession, config: Config):
+    if not is_curator(message.from_user.id, config):
+        return
+
+    try:
+        users_count = await _scalar_count(session, User.id)
+        active_count = await _scalar_count(session, Participant.id, Participant.is_active == True)
+        diag_count = await _scalar_count(session, DiagResult.id)
+        payment_count = await _scalar_count(session, Payment.id)
+        tracker_count = await _scalar_count(session, TrackerRecord.id)
+
+        checks = [
+            "✅ База данных: подключена",
+            f"✅ Пользователи: {users_count}",
+            f"✅ Активные участники: {active_count}",
+            f"✅ Диагностики: {diag_count}",
+            f"✅ Платежи: {payment_count}",
+            f"✅ Записи трекера: {tracker_count}",
+            f"{'✅' if config.anthropic_api_key else '⚠️'} ANTHROPIC_API_KEY: {'задан' if config.anthropic_api_key else 'не задан'}",
+            f"{'✅' if config.payments_provider_token else '⚠️'} PAYMENTS_TOKEN: {'задан' if config.payments_provider_token else 'не задан'}",
+            f"{'✅' if config.yookassa_shop_id and config.yookassa_secret_key else '⚠️'} YooKassa: {'задана' if config.yookassa_shop_id and config.yookassa_secret_key else 'не задана'}",
+        ]
+        await message.answer("🩺 *Health check bot_v2*\n\n" + "\n".join(checks), parse_mode="Markdown")
+    except Exception as exc:
+        logger.exception("Health check failed")
+        await message.answer(f"❌ Health check упал:\n`{type(exc).__name__}: {exc}`", parse_mode="Markdown")
+
+
+@router.message(Command("analytics"))
+async def cmd_analytics(message: Message, session: AsyncSession, config: Config):
+    if not is_curator(message.from_user.id, config):
+        return
+
+    total_users = await _scalar_count(session, User.id)
+    active_count = await _scalar_count(session, Participant.id, Participant.is_active == True)
+    inactive_count = await _scalar_count(session, Participant.id, Participant.is_active == False)
+    diag_count = await _scalar_count(session, DiagResult.id)
+    week_ack_count = await _scalar_count(session, WeekAck.id)
+    wheel_count = await _scalar_count(session, WheelRecord.id)
+
+    level_rows = await session.execute(
+        select(Participant.level, func.count(Participant.id))
+        .where(Participant.is_active == True)
+        .group_by(Participant.level)
+        .order_by(Participant.level)
+    )
+    levels = {level: count for level, count in level_rows.all()}
+    level_lines = [
+        f"• {level} — {levels.get(level, 0)}"
+        for level in LEVEL_WEEKS
+    ]
+
+    recent_rows = await session.execute(
+        select(User)
+        .order_by(User.created_at.desc())
+        .limit(5)
+    )
+    recent_users = list(recent_rows.scalars())
+    recent_lines = [
+        f"• `{user.id}` — {user.name}" + (f" (@{user.username})" if user.username else "")
+        for user in recent_users
+    ] or ["• пока нет пользователей"]
+
+    text = (
+        "📊 *Аналитика IQ Barakah*\n\n"
+        f"👥 Всего пользователей: *{total_users}*\n"
+        f"🌿 Активные участники: *{active_count}*\n"
+        f"⏸ Неактивные/завершившие: *{inactive_count}*\n"
+        f"🎯 Диагностики: *{diag_count}*\n"
+        f"✅ Подтверждения недель: *{week_ack_count}*\n"
+        f"🧭 Колёса баланса: *{wheel_count}*\n\n"
+        "*По уровням:*\n"
+        + "\n".join(level_lines)
+        + "\n\n*Последние пользователи:*\n"
+        + "\n".join(recent_lines)
+    )
+    await message.answer(text, parse_mode="Markdown")
+
+
+async def _scalar_count(session: AsyncSession, column, *filters) -> int:
+    stmt = select(func.count(column))
+    if filters:
+        stmt = stmt.where(*filters)
+    result = await session.execute(stmt)
+    return int(result.scalar_one() or 0)
 
 
 @router.message(Command("activate"))

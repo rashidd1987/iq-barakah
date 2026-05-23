@@ -17,6 +17,9 @@ class ParticipantRepo:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_user(self, user_id: int) -> Participant | None:
+        return await self.get(user_id)
+
     async def activate(self, user_id: int, level: str, week: int = 1, vakt_level: str | None = None) -> Participant:
         existing = await self.get(user_id)
         if existing:
