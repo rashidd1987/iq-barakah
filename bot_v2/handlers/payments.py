@@ -65,7 +65,6 @@ async def cb_pay(call: CallbackQuery, state: FSMContext, session: AsyncSession, 
         return
 
     await call.answer()
-    uid = str(call.from_user.id)
     repo = UserRepo(session)
     user = await repo.get(call.from_user.id)
     email = user.email if user else None

@@ -1,4 +1,8 @@
 # Не публикуем в GitHub
+.env
+.venv*/
+__pycache__/
+*.py[cod]
 *.pdf
 *.docx
 *.pptx

@@ -8,7 +8,6 @@ from aiogram.types import CallbackQuery, Message
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot_v2.config import Config
-from bot_v2.db.models import BotSetting
 from bot_v2.db.repositories import ParticipantRepo, UserRepo, SettingsRepo, PairRepo
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 from bot_v2.services.insights import analyze_participant
@@ -45,7 +44,7 @@ async def cmd_activate(message: Message, session: AsyncSession, config: Config):
     week = max(1, min(week, LEVEL_WEEKS[level]))
 
     user_repo = UserRepo(session)
-    db_user, _ = await user_repo.get_or_create(target_id, f"Участник {target_id}")
+    await user_repo.get_or_create(target_id, f"Участник {target_id}")
 
     p_repo = ParticipantRepo(session)
     await p_repo.activate(target_id, level, week)

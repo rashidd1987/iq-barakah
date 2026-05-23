@@ -18,7 +18,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # telegram_id
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     username: Mapped[str | None] = mapped_column(String(128))
-    is_female: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_female: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     email: Mapped[str | None] = mapped_column(String(256))
     phone: Mapped[str | None] = mapped_column(String(32))
     occupation: Mapped[str | None] = mapped_column(String(64))  # entrepreneur / employee / student / freelance

@@ -17,7 +17,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     await state.clear()
     user = message.from_user
     repo = UserRepo(session)
-    db_user, created = await repo.get_or_create(
+    db_user, _ = await repo.get_or_create(
         user_id=user.id,
         name=user.full_name or user.first_name or "Участник",
         username=user.username,
