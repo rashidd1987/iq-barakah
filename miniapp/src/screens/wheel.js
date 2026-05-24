@@ -7,7 +7,7 @@ const SECTORS = [
   { name: 'Намаз',       color: '#3d7a3e', val: 6 },
   { name: 'Семья',       color: '#c9a84c', val: 8 },
   { name: 'Здоровье',    color: '#5b8fa8', val: 5 },
-  { name: 'Ризк',        color: '#7b5ea7', val: 6 },
+  { name: 'Финансы',     color: '#7b5ea7', val: 6 },
   { name: 'Знание',      color: '#e07b39', val: 7 },
   { name: 'Ахляк (нрав)', color: '#d4547a', val: 8 },
   { name: 'Умма',         color: '#4a9e8c', val: 5 },
