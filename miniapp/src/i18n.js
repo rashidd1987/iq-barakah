@@ -1,5 +1,5 @@
-const SUPPORTED = ['ru', 'en', 'ar', 'de', 'tr', 'id', 'ur', 'bn', 'fr', 'ms']
-const RTL = new Set(['ar', 'ur'])
+const SUPPORTED = ['ru', 'en', 'ar', 'tr']
+const RTL = new Set(['ar'])
 
 const TEXT = {
   ru: {
