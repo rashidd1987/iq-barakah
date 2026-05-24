@@ -40,6 +40,7 @@ TEXTS = {
         "menu.tariffs": "🎓 Тарифы",
         "menu.jarwas": "🤖 Джарвас — AI-ментор",
         "menu.language": "🌍 Язык",
+        "menu.updated": "Меню обновлено · {version}",
         "bottom.diag": "🎯 Диагностика",
         "bottom.miniapp": "📱 Личный кабинет",
         "bottom.program": "📚 Программа",
@@ -97,6 +98,41 @@ TEXTS = {
         "muhasaba.locked": "🌙 Мухасаба будет доступна в личном кабинете после старта программы.",
         "curator.contact": "💬 Напиши куратору: {url}",
         "site.open": "🌐 Сайт IQ Barakah:\n{url}",
+        "onboarding.welcome": (
+            "🌿 *Ассаляму алейкум! Добро пожаловать в IQ Barakah.*\n\n"
+            "Ты попал в программу, где мы соединяем исламскую практику, дисциплину, "
+            "время, семью, работу и баракат в одну понятную систему.\n\n"
+            "Сначала я задам несколько коротких вопросов, чтобы куратор понимал, "
+            "кто ты и какой путь тебе лучше предложить.\n\n"
+            "1/5. Напиши, пожалуйста, своё *ФИО*:"
+        ),
+        "onboarding.fio_invalid": "Напиши, пожалуйста, имя и фамилию. Например: `Рашид Мамедов`",
+        "onboarding.gender": "2/5. Укажи пол:",
+        "onboarding.gender_invalid": "Выбери один вариант кнопкой ниже:",
+        "onboarding.age": "3/5. Сколько тебе лет? Напиши числом, например: `29`",
+        "onboarding.age_invalid": "Напиши возраст числом от 8 до 100. Например: `29`",
+        "onboarding.occupation": "4/5. Чем ты сейчас занимаешься?",
+        "onboarding.occupation_invalid": "Выбери вариант кнопкой ниже:",
+        "onboarding.source": "5/5. Откуда ты узнал об IQ Barakah?",
+        "onboarding.source_invalid": "Выбери вариант кнопкой ниже:",
+        "onboarding.saved": (
+            "✅ Анкета сохранена.\n\n"
+            "Теперь лучше пройти короткую диагностику: она определит твой уровень "
+            "и покажет, с какого маршрута начать — ВАКТ, Сезон 1 или более глубокая программа."
+        ),
+        "onboarding.gender_male": "👨 Мужской",
+        "onboarding.gender_female": "👩 Женский",
+        "onboarding.occ_entrepreneur": "💼 Предприниматель",
+        "onboarding.occ_employee": "👔 Наёмный сотрудник",
+        "onboarding.occ_student": "🎓 Студент",
+        "onboarding.occ_freelance": "🧑‍💻 Самозанятый",
+        "onboarding.occ_other": "🏠 Другое",
+        "onboarding.src_social": "📱 Соцсети",
+        "onboarding.src_internet": "🔍 Интернет",
+        "onboarding.src_telegram": "💬 Telegram",
+        "onboarding.src_word": "👥 От знакомых",
+        "onboarding.src_video": "📺 YouTube/Reels",
+        "onboarding.src_other": "📍 Другое",
     },
     "en": {
         "start.greeting": (
@@ -110,6 +146,7 @@ TEXTS = {
         "menu.tariffs": "🎓 Plans",
         "menu.jarwas": "🤖 Jarwas — AI mentor",
         "menu.language": "🌍 Language",
+        "menu.updated": "Menu updated · {version}",
         "bottom.diag": "🎯 Diagnostic",
         "bottom.miniapp": "📱 Personal cabinet",
         "bottom.program": "📚 Program",
@@ -167,6 +204,41 @@ TEXTS = {
         "muhasaba.locked": "🌙 Muhasabah will be available in the personal cabinet after the program starts.",
         "curator.contact": "💬 Contact the curator: {url}",
         "site.open": "🌐 IQ Barakah website:\n{url}",
+        "onboarding.welcome": (
+            "🌿 *As-salamu alaykum! Welcome to IQ Barakah.*\n\n"
+            "You are in a program that connects Islamic practice, discipline, time, "
+            "family, work and barakah into one clear system.\n\n"
+            "First I will ask a few short questions so the curator understands "
+            "who you are and which path fits you best.\n\n"
+            "1/5. Please write your *full name*:"
+        ),
+        "onboarding.fio_invalid": "Please write your first and last name. Example: `Rashid Mamedov`",
+        "onboarding.gender": "2/5. Choose your gender:",
+        "onboarding.gender_invalid": "Choose one option using the buttons below:",
+        "onboarding.age": "3/5. How old are you? Write a number, for example: `29`",
+        "onboarding.age_invalid": "Write your age as a number from 8 to 100. Example: `29`",
+        "onboarding.occupation": "4/5. What are you currently doing?",
+        "onboarding.occupation_invalid": "Choose an option using the buttons below:",
+        "onboarding.source": "5/5. How did you hear about IQ Barakah?",
+        "onboarding.source_invalid": "Choose an option using the buttons below:",
+        "onboarding.saved": (
+            "✅ Profile saved.\n\n"
+            "Now take a short diagnostic: it will define your level and show where to begin — "
+            "VAKT, Season 1, or a deeper program."
+        ),
+        "onboarding.gender_male": "👨 Male",
+        "onboarding.gender_female": "👩 Female",
+        "onboarding.occ_entrepreneur": "💼 Entrepreneur",
+        "onboarding.occ_employee": "👔 Employee",
+        "onboarding.occ_student": "🎓 Student",
+        "onboarding.occ_freelance": "🧑‍💻 Self-employed",
+        "onboarding.occ_other": "🏠 Other",
+        "onboarding.src_social": "📱 Social media",
+        "onboarding.src_internet": "🔍 Internet search",
+        "onboarding.src_telegram": "💬 Telegram",
+        "onboarding.src_word": "👥 From friends",
+        "onboarding.src_video": "📺 YouTube/Reels",
+        "onboarding.src_other": "📍 Other",
     },
     "ar": {
         "start.greeting": (
@@ -180,6 +252,7 @@ TEXTS = {
         "menu.tariffs": "🎓 الباقات",
         "menu.jarwas": "🤖 جروَاس — مرشد AI",
         "menu.language": "🌍 اللغة",
+        "menu.updated": "تم تحديث القائمة · {version}",
         "bottom.diag": "🎯 التشخيص",
         "bottom.miniapp": "📱 الحساب الشخصي",
         "bottom.program": "📚 البرنامج",
@@ -237,6 +310,39 @@ TEXTS = {
         "muhasaba.locked": "🌙 ستتوفر المحاسبة في الحساب الشخصي بعد بدء البرنامج.",
         "curator.contact": "💬 تواصل مع المشرف: {url}",
         "site.open": "🌐 موقع IQ Barakah:\n{url}",
+        "onboarding.welcome": (
+            "🌿 *السلام عليكم! مرحباً بك في IQ Barakah.*\n\n"
+            "أنت في برنامج يربط العبادة والانضباط والوقت والأسرة والعمل والبركة في نظام واضح.\n\n"
+            "سأسألك أولاً بعض الأسئلة القصيرة حتى يفهم المشرف من أنت وما المسار الأنسب لك.\n\n"
+            "1/5. اكتب *اسمك الكامل*:"
+        ),
+        "onboarding.fio_invalid": "اكتب الاسم واللقب من فضلك. مثال: `Rashid Mamedov`",
+        "onboarding.gender": "2/5. اختر الجنس:",
+        "onboarding.gender_invalid": "اختر خياراً واحداً من الأزرار أدناه:",
+        "onboarding.age": "3/5. كم عمرك؟ اكتب رقماً، مثال: `29`",
+        "onboarding.age_invalid": "اكتب العمر رقماً من 8 إلى 100. مثال: `29`",
+        "onboarding.occupation": "4/5. ماذا تعمل حالياً؟",
+        "onboarding.occupation_invalid": "اختر خياراً من الأزرار أدناه:",
+        "onboarding.source": "5/5. كيف عرفت عن IQ Barakah؟",
+        "onboarding.source_invalid": "اختر خياراً من الأزرار أدناه:",
+        "onboarding.saved": (
+            "✅ تم حفظ الاستبيان.\n\n"
+            "الآن الأفضل أن تبدأ تشخيصاً قصيراً: سيحدد مستواك ويبين من أين تبدأ — "
+            "VAKT أو الموسم 1 أو برنامج أعمق."
+        ),
+        "onboarding.gender_male": "👨 رجل",
+        "onboarding.gender_female": "👩 امرأة",
+        "onboarding.occ_entrepreneur": "💼 رائد أعمال",
+        "onboarding.occ_employee": "👔 موظف",
+        "onboarding.occ_student": "🎓 طالب",
+        "onboarding.occ_freelance": "🧑‍💻 عمل حر",
+        "onboarding.occ_other": "🏠 أخرى",
+        "onboarding.src_social": "📱 شبكات التواصل",
+        "onboarding.src_internet": "🔍 الإنترنت",
+        "onboarding.src_telegram": "💬 Telegram",
+        "onboarding.src_word": "👥 من المعارف",
+        "onboarding.src_video": "📺 YouTube/Reels",
+        "onboarding.src_other": "📍 أخرى",
     },
     "de": {
         "start.greeting": (
@@ -301,6 +407,7 @@ EXTRA_LANGUAGE_TEXTS = {
         "menu.tariffs": "🎓 Tarifeler",
         "menu.jarwas": "🤖 Jarwas — AI mentor",
         "menu.language": "🌍 Dil",
+        "menu.updated": "Menü güncellendi · {version}",
         "bottom.diag": "🎯 Teşhis",
         "bottom.miniapp": "📱 Kişisel kabinet",
         "bottom.program": "📚 Program",
@@ -330,6 +437,39 @@ EXTRA_LANGUAGE_TEXTS = {
         "muhasaba.locked": "🌙 Muhasebe program başladıktan sonra kişisel kabinette açılacak.",
         "curator.contact": "💬 Küratörle iletişim: {url}",
         "site.open": "🌐 IQ Barakah sitesi:\n{url}",
+        "onboarding.welcome": (
+            "🌿 *Esselamu aleykum! IQ Barakah'a hoş geldin.*\n\n"
+            "Burada İslami pratik, disiplin, zaman, aile, iş ve bereketi tek anlaşılır sistemde birleştiriyoruz.\n\n"
+            "Önce birkaç kısa soru soracağım; böylece küratör kim olduğunu ve hangi yolun sana uygun olduğunu anlar.\n\n"
+            "1/5. Lütfen *adını ve soyadını* yaz:"
+        ),
+        "onboarding.fio_invalid": "Lütfen adını ve soyadını yaz. Örnek: `Rashid Mamedov`",
+        "onboarding.gender": "2/5. Cinsiyetini seç:",
+        "onboarding.gender_invalid": "Aşağıdaki düğmelerden bir seçenek seç:",
+        "onboarding.age": "3/5. Kaç yaşındasın? Sayı olarak yaz, örnek: `29`",
+        "onboarding.age_invalid": "Yaşını 8 ile 100 arasında sayı olarak yaz. Örnek: `29`",
+        "onboarding.occupation": "4/5. Şu anda ne yapıyorsun?",
+        "onboarding.occupation_invalid": "Aşağıdaki düğmelerden bir seçenek seç:",
+        "onboarding.source": "5/5. IQ Barakah'ı nereden duydun?",
+        "onboarding.source_invalid": "Aşağıdaki düğmelerden bir seçenek seç:",
+        "onboarding.saved": (
+            "✅ Anket kaydedildi.\n\n"
+            "Şimdi kısa teşhisten geçmek daha iyi: seviyeni belirler ve nereden başlayacağını gösterir — "
+            "VAKT, Sezon 1 veya daha derin program."
+        ),
+        "onboarding.gender_male": "👨 Erkek",
+        "onboarding.gender_female": "👩 Kadın",
+        "onboarding.occ_entrepreneur": "💼 Girişimci",
+        "onboarding.occ_employee": "👔 Çalışan",
+        "onboarding.occ_student": "🎓 Öğrenci",
+        "onboarding.occ_freelance": "🧑‍💻 Serbest çalışan",
+        "onboarding.occ_other": "🏠 Diğer",
+        "onboarding.src_social": "📱 Sosyal medya",
+        "onboarding.src_internet": "🔍 İnternet",
+        "onboarding.src_telegram": "💬 Telegram",
+        "onboarding.src_word": "👥 Tanıdıklardan",
+        "onboarding.src_video": "📺 YouTube/Reels",
+        "onboarding.src_other": "📍 Diğer",
     },
     "id": {
         "start.greeting": "Assalamu'alaikum, *{name}*! 🌿\n\nSelamat datang di IQ Barakah — program untuk Muslim yang ingin membangun hidup dengan Allah sebagai pusat.\n\nPilih mulai dari mana 👇",

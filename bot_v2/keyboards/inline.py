@@ -59,32 +59,55 @@ def _url_with_lang(url: str, lang: str) -> str:
     return f"{url}{sep}lang={normalize_lang(lang)}"
 
 
-def kb_onboarding_gender() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="👨 Мужской"), KeyboardButton(text="👩 Женский")]],
-        resize_keyboard=True,
-        one_time_keyboard=True,
-    )
-
-
-def kb_onboarding_occupation() -> ReplyKeyboardMarkup:
+def kb_onboarding_gender(lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="💼 Предприниматель"), KeyboardButton(text="👔 Наёмный сотрудник")],
-            [KeyboardButton(text="🎓 Студент"), KeyboardButton(text="🧑‍💻 Самозанятый")],
-            [KeyboardButton(text="🏠 Другое")],
+            [
+                KeyboardButton(text=t(lang, "onboarding.gender_male")),
+                KeyboardButton(text=t(lang, "onboarding.gender_female")),
+            ]
         ],
         resize_keyboard=True,
         one_time_keyboard=True,
     )
 
 
-def kb_onboarding_source() -> ReplyKeyboardMarkup:
+def kb_onboarding_occupation(lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📱 Соцсети"), KeyboardButton(text="🔍 Интернет")],
-            [KeyboardButton(text="💬 Telegram"), KeyboardButton(text="👥 От знакомых")],
-            [KeyboardButton(text="📺 YouTube/Reels"), KeyboardButton(text="📍 Другое")],
+            [
+                KeyboardButton(text=t(lang, "onboarding.occ_entrepreneur")),
+                KeyboardButton(text=t(lang, "onboarding.occ_employee")),
+            ],
+            [
+                KeyboardButton(text=t(lang, "onboarding.occ_student")),
+                KeyboardButton(text=t(lang, "onboarding.occ_freelance")),
+            ],
+            [KeyboardButton(text=t(lang, "onboarding.occ_other"))],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def kb_onboarding_source(lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=t(lang, "onboarding.src_social")),
+                KeyboardButton(text=t(lang, "onboarding.src_internet")),
+            ],
+            [
+                KeyboardButton(text=t(lang, "onboarding.src_telegram")),
+                KeyboardButton(text=t(lang, "onboarding.src_word")),
+            ],
+            [
+                KeyboardButton(text=t(lang, "onboarding.src_video")),
+                KeyboardButton(text=t(lang, "onboarding.src_other")),
+            ],
         ],
         resize_keyboard=True,
         one_time_keyboard=True,

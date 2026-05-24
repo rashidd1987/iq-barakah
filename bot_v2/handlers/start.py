@@ -70,7 +70,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     lang = db_user.language_code or normalize_lang(user.language_code)
 
     await message.answer(
-        f"Меню обновлено · {config.version}",
+        t(lang, "menu.updated", version=config.version),
         reply_markup=kb_bottom_menu(config.miniapp_url, lang),
         parse_mode=None,
     )
@@ -78,12 +78,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     if not _profile_complete(db_user):
         await state.set_state(OnboardingStates.fio)
         await message.answer(
-            "🌿 *Ассаляму алейкум! Добро пожаловать в IQ Barakah.*\n\n"
-            "Ты попал в программу, где мы соединяем исламскую практику, "
-            "дисциплину, время, семью, работу и баракат в одну понятную систему.\n\n"
-            "Сначала я задам несколько коротких вопросов, чтобы куратор понимал, "
-            "кто ты и какой путь тебе лучше предложить.\n\n"
-            "1/5. Напиши, пожалуйста, своё *ФИО*:",
+            t(lang, "onboarding.welcome"),
             parse_mode="Markdown",
             reply_markup=kb_bottom_menu(config.miniapp_url, lang),
         )
@@ -116,67 +111,70 @@ async def cb_back_main(call: CallbackQuery, session: AsyncSession, config: Confi
 
 @router.message(OnboardingStates.fio)
 async def onboarding_fio(message: Message, state: FSMContext, session: AsyncSession):
+    lang = await _message_lang(session, message)
     fio = (message.text or "").strip()
     if len(fio.split()) < 2:
-        await message.answer("Напиши, пожалуйста, имя и фамилию. Например: `Рашид Мамедов`", parse_mode="Markdown")
+        await message.answer(t(lang, "onboarding.fio_invalid"), parse_mode="Markdown")
         return
     await UserRepo(session).update(message.from_user.id, name=fio)
     await state.set_state(OnboardingStates.gender)
-    await message.answer("2/5. Укажи пол:", reply_markup=kb_onboarding_gender())
+    await message.answer(t(lang, "onboarding.gender"), reply_markup=kb_onboarding_gender(lang))
 
 
 @router.message(OnboardingStates.gender)
 async def onboarding_gender(message: Message, state: FSMContext, session: AsyncSession):
+    lang = await _message_lang(session, message)
     text = message.text or ""
-    if "муж" in text.lower() or "👨" in text:
+    if "👨" in text:
         is_female = False
-    elif "жен" in text.lower() or "👩" in text:
+    elif "👩" in text:
         is_female = True
     else:
-        await message.answer("Выбери один вариант кнопкой ниже:", reply_markup=kb_onboarding_gender())
+        await message.answer(t(lang, "onboarding.gender_invalid"), reply_markup=kb_onboarding_gender(lang))
         return
     await UserRepo(session).update(message.from_user.id, is_female=is_female)
     await state.set_state(OnboardingStates.age)
-    await message.answer("3/5. Сколько тебе лет? Напиши числом, например: `29`", parse_mode="Markdown")
+    await message.answer(t(lang, "onboarding.age"), parse_mode="Markdown")
 
 
 @router.message(OnboardingStates.age)
 async def onboarding_age(message: Message, state: FSMContext, session: AsyncSession):
+    lang = await _message_lang(session, message)
     age = (message.text or "").strip()
     if not age.isdigit() or not 8 <= int(age) <= 100:
-        await message.answer("Напиши возраст числом от 8 до 100. Например: `29`", parse_mode="Markdown")
+        await message.answer(t(lang, "onboarding.age_invalid"), parse_mode="Markdown")
         return
     await UserRepo(session).update(message.from_user.id, age=age)
     await state.set_state(OnboardingStates.occupation)
-    await message.answer("4/5. Чем ты сейчас занимаешься?", reply_markup=kb_onboarding_occupation())
+    await message.answer(t(lang, "onboarding.occupation"), reply_markup=kb_onboarding_occupation(lang))
 
 
 @router.message(OnboardingStates.occupation)
 async def onboarding_occupation(message: Message, state: FSMContext, session: AsyncSession):
+    lang = await _message_lang(session, message)
     value = _occupation_key(message.text or "")
     if not value:
-        await message.answer("Выбери вариант кнопкой ниже:", reply_markup=kb_onboarding_occupation())
+        await message.answer(t(lang, "onboarding.occupation_invalid"), reply_markup=kb_onboarding_occupation(lang))
         return
     await UserRepo(session).update(message.from_user.id, occupation=value)
     await state.set_state(OnboardingStates.source)
-    await message.answer("5/5. Откуда ты узнал об IQ Barakah?", reply_markup=kb_onboarding_source())
+    await message.answer(t(lang, "onboarding.source"), reply_markup=kb_onboarding_source(lang))
 
 
 @router.message(OnboardingStates.source)
 async def onboarding_source(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    lang = await _message_lang(session, message)
     source = _source_key(message.text or "")
     if not source:
-        await message.answer("Выбери вариант кнопкой ниже:", reply_markup=kb_onboarding_source())
+        await message.answer(t(lang, "onboarding.source_invalid"), reply_markup=kb_onboarding_source(lang))
         return
     await UserRepo(session).update(message.from_user.id, source=source)
     await state.clear()
     await message.answer(
-        "✅ Анкета сохранена.\n\n"
-        "Теперь лучше пройти короткую диагностику: она определит твой уровень "
-        "и покажет, с какого маршрута начать — ВАКТ, Сезон 1 или более глубокая программа.",
-        reply_markup=kb_bottom_menu(config.miniapp_url),
+        t(lang, "onboarding.saved"),
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
     )
-    await _send_diag_prompt(message, config, "ru")
+    await _send_diag_prompt(message, config, lang)
 
 
 @router.message(Command("language"))
@@ -633,31 +631,31 @@ def _md_escape(value: str) -> str:
 
 def _occupation_key(text: str) -> str | None:
     text = text.lower()
-    if "предприним" in text:
+    if "💼" in text or "предприним" in text or "entrepreneur" in text or "girişim" in text or "رائد" in text:
         return "entrepreneur"
-    if "сотруд" in text or "наём" in text or "наем" in text:
+    if "👔" in text or "сотруд" in text or "наём" in text or "наем" in text or "employee" in text or "çalışan" in text or "موظف" in text:
         return "employee"
-    if "студ" in text:
+    if "🎓" in text or "студ" in text or "student" in text or "öğrenci" in text or "طالب" in text:
         return "student"
-    if "самозан" in text or "фриланс" in text:
+    if "🧑‍💻" in text or "самозан" in text or "фриланс" in text or "self-employed" in text or "serbest" in text or "عمل حر" in text:
         return "freelance"
-    if "другое" in text:
+    if "🏠" in text or "другое" in text or "other" in text or "diğer" in text or "أخرى" in text:
         return "other"
     return None
 
 
 def _source_key(text: str) -> str | None:
     text = text.lower()
-    if "соц" in text:
+    if "📱" in text or "соц" in text or "social" in text or "sosyal" in text or "التواصل" in text:
         return "social"
-    if "интернет" in text:
+    if "🔍" in text or "интернет" in text or "internet" in text or "الإنترنت" in text:
         return "internet"
     if "telegram" in text or "телеграм" in text:
         return "telegram"
-    if "знаком" in text:
+    if "👥" in text or "знаком" in text or "friends" in text or "tanıdık" in text or "المعارف" in text:
         return "word_of_mouth"
     if "youtube" in text or "reels" in text:
         return "video"
-    if "другое" in text:
+    if "📍" in text or "другое" in text or "other" in text or "diğer" in text or "أخرى" in text:
         return "other"
     return None
