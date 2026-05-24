@@ -37,20 +37,26 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKey
 
 
 def kb_bottom_menu(miniapp_url: str, lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
     return ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text=BTN_DIAG),
-                KeyboardButton(text=BTN_MINIAPP, web_app=WebAppInfo(url=miniapp_url)),
+                KeyboardButton(text=t(lang, "bottom.diag")),
+                KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_url_with_lang(miniapp_url, lang))),
             ],
-            [KeyboardButton(text=BTN_PROGRAM), KeyboardButton(text=BTN_PAYMENT)],
-            [KeyboardButton(text=BTN_REMINDERS), KeyboardButton(text=BTN_CURATOR)],
-            [KeyboardButton(text=BTN_MUHASABA), KeyboardButton(text=BTN_SITE)],
-            [KeyboardButton(text=BTN_LANGUAGE)],
+            [KeyboardButton(text=t(lang, "bottom.program")), KeyboardButton(text=t(lang, "bottom.payment"))],
+            [KeyboardButton(text=t(lang, "bottom.reminders")), KeyboardButton(text=t(lang, "bottom.curator"))],
+            [KeyboardButton(text=t(lang, "bottom.muhasaba")), KeyboardButton(text=t(lang, "bottom.site"))],
+            [KeyboardButton(text=t(lang, "bottom.language"))],
         ],
         resize_keyboard=True,
-        input_field_placeholder="Выбери действие",
+        input_field_placeholder=t(lang, "bottom.placeholder"),
     )
+
+
+def _url_with_lang(url: str, lang: str) -> str:
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}lang={normalize_lang(lang)}"
 
 
 def kb_onboarding_gender() -> ReplyKeyboardMarkup:
@@ -93,9 +99,9 @@ def kb_language() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-def kb_start_diag() -> InlineKeyboardMarkup:
+def kb_start_diag(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+    b.button(text=t(lang, "diag.button"), callback_data="start_diag")
     b.adjust(1)
     return b.as_markup()
 

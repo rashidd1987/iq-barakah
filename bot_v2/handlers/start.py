@@ -30,9 +30,21 @@ from bot_v2.keyboards import (
 )
 from bot_v2.config import Config
 from bot_v2.services.i18n import language_name, normalize_lang, t
+from bot_v2.services.i18n import SUPPORTED_LANGS
 from bot_v2.services.program import TARIFFS
 
 router = Router(name="start")
+
+BOTTOM_TEXTS = {
+    "diag": {BTN_DIAG, *(t(lang, "bottom.diag") for lang in SUPPORTED_LANGS)},
+    "program": {BTN_PROGRAM, *(t(lang, "bottom.program") for lang in SUPPORTED_LANGS)},
+    "payment": {BTN_PAYMENT, *(t(lang, "bottom.payment") for lang in SUPPORTED_LANGS)},
+    "reminders": {BTN_REMINDERS, *(t(lang, "bottom.reminders") for lang in SUPPORTED_LANGS)},
+    "curator": {BTN_CURATOR, *(t(lang, "bottom.curator") for lang in SUPPORTED_LANGS)},
+    "muhasaba": {BTN_MUHASABA, *(t(lang, "bottom.muhasaba") for lang in SUPPORTED_LANGS)},
+    "site": {BTN_SITE, *(t(lang, "bottom.site") for lang in SUPPORTED_LANGS)},
+    "language": {BTN_LANGUAGE, *(t(lang, "bottom.language") for lang in SUPPORTED_LANGS)},
+}
 
 
 class OnboardingStates(StatesGroup):
@@ -179,24 +191,25 @@ async def cmd_language(message: Message, session: AsyncSession):
     await message.answer(t(user.language_code, "language.choose"), reply_markup=kb_language())
 
 
-@router.message(F.text == BTN_LANGUAGE)
+@router.message(F.text.in_(BOTTOM_TEXTS["language"]))
 async def msg_language(message: Message, session: AsyncSession):
     await cmd_language(message, session)
 
 
-@router.message(F.text == BTN_PAYMENT)
+@router.message(F.text.in_(BOTTOM_TEXTS["payment"]))
 async def msg_payment(message: Message, session: AsyncSession):
     user = await UserRepo(session).get(message.from_user.id)
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
     await message.answer(t(lang, "tariffs.title"), parse_mode="Markdown", reply_markup=kb_tariffs(lang))
 
 
-@router.message(F.text == BTN_DIAG)
-async def msg_diag_button(message: Message):
-    await message.answer("🎯 Нажми кнопку ниже, чтобы пройти диагностику:", reply_markup=kb_start_diag())
+@router.message(F.text.in_(BOTTOM_TEXTS["diag"]))
+async def msg_diag_button(message: Message, session: AsyncSession):
+    lang = await _message_lang(session, message)
+    await message.answer(t(lang, "diag.prompt"), reply_markup=kb_start_diag(lang))
 
 
-@router.message(F.text == BTN_PROGRAM)
+@router.message(F.text.in_(BOTTOM_TEXTS["program"]))
 async def msg_program(message: Message, session: AsyncSession, config: Config):
     user = await UserRepo(session).get(message.from_user.id)
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
@@ -207,24 +220,28 @@ async def msg_program(message: Message, session: AsyncSession, config: Config):
     await _send_program_after_diag(message, lang, latest_diag)
 
 
-@router.message(F.text == BTN_REMINDERS)
-async def msg_reminders(message: Message):
-    await message.answer("🔔 Напоминания скоро будут здесь. Сейчас главный шаг — пройти диагностику и выбрать маршрут.")
+@router.message(F.text.in_(BOTTOM_TEXTS["reminders"]))
+async def msg_reminders(message: Message, session: AsyncSession):
+    lang = await _message_lang(session, message)
+    await message.answer(t(lang, "reminders.soon"))
 
 
-@router.message(F.text == BTN_CURATOR)
-async def msg_curator(message: Message):
-    await message.answer("💬 Напиши куратору: https://t.me/iqbarakah")
+@router.message(F.text.in_(BOTTOM_TEXTS["curator"]))
+async def msg_curator(message: Message, session: AsyncSession):
+    lang = await _message_lang(session, message)
+    await message.answer(t(lang, "curator.contact", url="https://t.me/iqbarakah"))
 
 
-@router.message(F.text == BTN_MUHASABA)
-async def msg_muhasaba(message: Message):
-    await message.answer("🌙 Мухасаба будет доступна в личном кабинете после старта программы.")
+@router.message(F.text.in_(BOTTOM_TEXTS["muhasaba"]))
+async def msg_muhasaba(message: Message, session: AsyncSession):
+    lang = await _message_lang(session, message)
+    await message.answer(t(lang, "muhasaba.locked"))
 
 
-@router.message(F.text == BTN_SITE)
-async def msg_site(message: Message, config: Config):
-    await message.answer(f"🌐 Сайт IQ Barakah:\n{config.site}")
+@router.message(F.text.in_(BOTTOM_TEXTS["site"]))
+async def msg_site(message: Message, session: AsyncSession, config: Config):
+    lang = await _message_lang(session, message)
+    await message.answer(t(lang, "site.open", url=config.site))
 
 
 @router.callback_query(F.data == "language")
@@ -269,12 +286,17 @@ async def _latest_diag(session: AsyncSession, user_id: int) -> DiagResult | None
     return result.scalar_one_or_none()
 
 
+async def _message_lang(session: AsyncSession, message: Message) -> str:
+    user = await UserRepo(session).get(message.from_user.id)
+    return user.language_code if user else normalize_lang(message.from_user.language_code)
+
+
 async def _send_diag_prompt(message: Message, config: Config, lang: str):
     await message.answer(
-        "🎯 Чтобы подобрать правильный маршрут, пройди короткую диагностику.",
+        t(lang, "diag.route_prompt"),
         reply_markup=kb_bottom_menu(config.miniapp_url, lang),
     )
-    await message.answer("Нажми кнопку ниже:", reply_markup=kb_start_diag())
+    await message.answer(t(lang, "diag.prompt"), reply_markup=kb_start_diag(lang))
 
 
 async def _send_program_after_diag(message: Message, lang: str, diag: DiagResult):
