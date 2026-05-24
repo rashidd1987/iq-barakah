@@ -116,6 +116,23 @@ nav {
   border: 1px solid rgba(255,255,255,.25);
   font-size: 12px; font-weight: 600; color: white;
 }
+.lang-select {
+  height: 32px;
+  min-width: 48px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 16px;
+  background: rgba(255,255,255,.18);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  cursor: pointer;
+}
+.lang-select option {
+  color: #111827;
+  background: #fff;
+}
 
 /* ── CONTENT ── */
 .c { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
@@ -716,6 +733,12 @@ textarea:focus { border-color: var(--g2); }
     <div class="hdr-top">
       <div class="logo">IQ <em>Barakah</em></div>
       <div style="display:flex;align-items:center;gap:8px;">
+        <select class="lang-select" id="lang-select" aria-label="Language">
+          <option value="ru">RU</option>
+          <option value="en">EN</option>
+          <option value="ar">AR</option>
+          <option value="de">DE</option>
+        </select>
         <div class="pill" id="lvl-pill">🌱 IQ Barakah</div>
         <div class="avatar-btn" id="ava">👤</div>
       </div>
@@ -1432,10 +1455,21 @@ function initI18n() {
   document.documentElement.lang = currentLang
   document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
   applyI18n()
+  initLangSelect()
 }
 
 function lang() {
   return currentLang
+}
+
+function setLang(value) {
+  currentLang = normalizeLang(value)
+  localStorage.setItem('iq_lang', currentLang)
+  document.documentElement.lang = currentLang
+  document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
+  applyI18n()
+  syncLangSelect()
+  window.dispatchEvent(new CustomEvent('iq:langchange', { detail: { lang: currentLang } }))
 }
 
 function t(key) {
@@ -1454,6 +1488,18 @@ function tf(key, values = {}) {
 function normalizeLang(value) {
   const code = String(value || 'ru').toLowerCase().split('-')[0]
   return SUPPORTED.includes(code) ? code : 'ru'
+}
+
+function initLangSelect() {
+  const select = document.getElementById('lang-select')
+  if (!select) return
+  syncLangSelect()
+  select.addEventListener('change', () => setLang(select.value))
+}
+
+function syncLangSelect() {
+  const select = document.getElementById('lang-select')
+  if (select) select.value = currentLang
 }
 
 function applyI18n() {
@@ -2196,6 +2242,13 @@ function switchScreen(id) {
   if (id === 'ship')    renderShip()
 }
 
+function rerenderCurrentScreen() {
+  if (current === 'wheel')   renderWheel()
+  if (current === 'lessons') renderLessons('all')
+  if (current === 'tracker') renderTracker()
+  if (current === 'ship')    renderShip()
+}
+
 function initNav() {
   // Nav buttons
   document.querySelectorAll('.nb[data-screen]').forEach(btn => {
@@ -2258,6 +2311,12 @@ initReviewSheet(() => U.currentWeek, WEEKS)
 document.getElementById('btn-muhasaba')?.addEventListener('click', () =>
   openReviewSheet(U.currentWeek, WEEKS)
 )
+
+window.addEventListener('iq:langchange', () => {
+  initHome()
+  renderTracker()
+  rerenderCurrentScreen()
+})
 
 </script>
 </body>
