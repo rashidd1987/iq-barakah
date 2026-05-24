@@ -100,13 +100,55 @@ def kb_start_diag() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-def kb_program_overview(has_diag: bool = False, recommended_tariff_id: str = "vakt") -> InlineKeyboardMarkup:
+def kb_program_overview(
+    has_diag: bool = False,
+    recommended_tariff_id: str = "vakt",
+    lang: str = "ru",
+) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     recommended = next((tariff for tariff in TARIFFS if tariff["id"] == recommended_tariff_id), TARIFFS[0])
-    b.button(text=f"🌿 Рекомендовано: {recommended['name']}", callback_data=f"tariff:{recommended['id']}")
-    b.button(text="🎓 Все тарифы", callback_data="show_tariffs")
+    lang = normalize_lang(lang)
+    labels = {
+        "ru": ("🌿 Рекомендовано", "🎓 Все тарифы", "🎯 Пройти диагностику"),
+        "en": ("🌿 Recommended", "🎓 All plans", "🎯 Take diagnostic"),
+        "de": ("🌿 Empfohlen", "🎓 Alle Tarife", "🎯 Diagnose starten"),
+        "ar": ("🌿 موصى به", "🎓 كل الباقات", "🎯 ابدأ التشخيص"),
+    }.get(lang, ("🌿 Recommended", "🎓 All plans", "🎯 Take diagnostic"))
+    names = {
+        "ru": {
+            "vakt": "🌱 ВАКТ",
+            "s1_full": "📗 IQ Barakah · Сезон 1",
+            "s3_full": "🏆 IQ Barakah · 3 сезона",
+            "jamaat": "👥 Джамаат",
+            "leader": "👑 Лидер Уммы",
+        },
+        "en": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · Season 1",
+            "s3_full": "🏆 IQ Barakah · 3 seasons",
+            "jamaat": "👥 Jamaat",
+            "leader": "👑 Ummah Leader",
+        },
+        "de": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · Saison 1",
+            "s3_full": "🏆 IQ Barakah · 3 Saisons",
+            "jamaat": "👥 Jamaat",
+            "leader": "👑 Ummah-Leiter",
+        },
+        "ar": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · الموسم 1",
+            "s3_full": "🏆 IQ Barakah · 3 مواسم",
+            "jamaat": "👥 الجماعة",
+            "leader": "👑 قائد الأمة",
+        },
+    }.get(lang, {})
+    name = names.get(recommended["id"], recommended["name"])
+    b.button(text=f"{labels[0]}: {name}", callback_data=f"tariff:{recommended['id']}")
+    b.button(text=labels[1], callback_data="show_tariffs")
     if not has_diag:
-        b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+        b.button(text=labels[2], callback_data="start_diag")
     b.adjust(1)
     return b.as_markup()
 

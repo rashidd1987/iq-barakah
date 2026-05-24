@@ -202,7 +202,7 @@ async def msg_program(message: Message, session: AsyncSession, config: Config):
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
     latest_diag = await _latest_diag(session, message.from_user.id)
     if not latest_diag:
-        await _send_program_overview(message)
+        await _send_program_overview(message, lang)
         return
     await _send_program_after_diag(message, lang, latest_diag)
 
@@ -279,88 +279,321 @@ async def _send_diag_prompt(message: Message, config: Config, lang: str):
 
 async def _send_program_after_diag(message: Message, lang: str, diag: DiagResult):
     await message.answer(
-        _program_overview_text(diag),
+        _program_overview_text(lang, diag),
         parse_mode="Markdown",
         reply_markup=kb_program_overview(
             has_diag=True,
             recommended_tariff_id=_recommended_tariff(diag.level_key)["id"],
+            lang=lang,
         ),
     )
 
 
-async def _send_program_overview(message: Message):
+async def _send_program_overview(message: Message, lang: str):
     await message.answer(
-        _program_overview_text(),
+        _program_overview_text(lang),
         parse_mode="Markdown",
-        reply_markup=kb_program_overview(has_diag=False),
+        reply_markup=kb_program_overview(has_diag=False, lang=lang),
     )
 
 
-def _program_overview_text(diag: DiagResult | None = None) -> str:
+def _program_overview_text(lang: str, diag: DiagResult | None = None) -> str:
+    lang = normalize_lang(lang)
+    texts = _program_texts()
+    data = texts.get(lang, texts["en"])
     diag_block = ""
     if diag:
-        recommended = _recommended_tariff(diag.level_key)
-        diag_block = (
-            f"🎯 *Твой результат:* уровень {diag.level_key} · {diag.pct}%\n"
-            f"🌿 *Рекомендуемый старт:* {recommended['name']}\n\n"
-            "━━━━━━━━━━━━━━━━\n"
-        )
+        recommended = _program_tariff_name(lang, _recommended_tariff(diag.level_key)["id"])
+        diag_block = data["diag"].format(level=diag.level_key, pct=diag.pct, recommended=recommended)
+    return data["body"].format(diag_block=diag_block)
 
-    return (
-        "📚 *Программа IQ Barakah*\n\n"
-        f"{diag_block}"
-        "Курс для тех, кто устал бегать по кругу.\n\n"
-        "Планируете, но всё равно нет результата и смысла?\n"
-        "IQ Barakah помогает соединить:\n"
-        "✅ Ваше сердце (покой, намерение)\n"
-        "✅ Разум (фокус, ясность)\n"
-        "✅ Поведение (привычки и дела)\n\n"
-        "Курс поможет сделать так, чтобы работа, семья и духовная жизнь не мешали, а поддерживали друг друга.\n\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "🌱 *ВАКТ · Тайм-менеджмент мусульманина* · 6 недель · 1 500 ₽\n\n"
-        "B1 🌿 Ният (намерение) — тайный разговор\n"
-        "B2 🏁 Фаджр — якорь дня\n"
-        "B3 🕊 Тауба (покаяние) — чистый лист\n"
-        "B4 💪 Сабр (терпение) — держи курс\n"
-        "B5 📿 Зикр — Аллах в каждом деле\n"
-        "B6 🏆 Итог — твоя система\n\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "📗 *Сезон 1 · Основание · Кто ты есть* — 8 недель\n\n"
-        "C1.1 🌿 Тайный разговор\n"
-        "C1.2 🏠 Возвращение домой\n"
-        "C1.3 ✨ Священное пространство\n"
-        "C1.4 ⏱ Время как свидетель\n"
-        "C1.5 📱 Кто твой Господь?\n"
-        "C1.6 🖊 Нулевой километр\n"
-        "C1.7 💪 Ты — не мозг в банке\n"
-        "C1.8 🌿 Генеральная уборка души\n\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "📘 *Сезон 2 · Строительство · Как ты живёшь* — 8 недель\n\n"
-        "C2.1 🧠 Как шайтан взламывает мозг\n"
-        "C2.2 🏛 Строительство крепости\n"
-        "C2.3 🔥 Сжигание кораблей\n"
-        "C2.4 ⚖️ Что тяжелее всего на весах?\n"
-        "C2.5 🧳 Дай плату пока не высох пот\n"
-        "C2.6 📖 Самый длинный аят\n"
-        "C2.7 🤝 Партнёрство с Аллахом\n"
-        "C2.8 🌍 Синдром Атланта\n\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "📙 *Сезон 3 · Наследие · Зачем ты живёшь* — 8 недель\n\n"
-        "C3.1 👣 У подножия их ног\n"
-        "C3.2 🏠 Оставь войну за порогом\n"
-        "C3.3 🧡 Зеркальные нейроны\n"
-        "C3.4 🌹 Кузнец и парфюмер\n"
-        "C3.5 👑 Король без короны\n"
-        "C3.6 🏞 Река и болото\n"
-        "C3.7 📊 Открытый счёт\n"
-        "C3.8 🏛 Точка невозврата\n\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "Курс рассчитан на 30 недель. Каждый блок даёт конкретный результат и плавно ведёт на следующий уровень.\n\n"
-        "🗓 *Понедельник 9:00* — урок недели в боте\n"
-        "📞 *Пятница 14:00* — живой созвон с основателем IQ Barakah\n"
-        "🌙 *Ежедневно* — азкар + мухасаба\n\n"
-        "🌿 _20% с каждой оплаты → благотворительность_"
-    )
+
+def _program_tariff_name(lang: str, tariff_id: str) -> str:
+    lang = normalize_lang(lang)
+    names = {
+        "ru": {
+            "vakt": "🌱 ВАКТ",
+            "s1_full": "📗 IQ Barakah · Сезон 1",
+            "s3_full": "🏆 IQ Barakah · 3 сезона",
+            "jamaat": "👥 Джамаат",
+            "leader": "👑 Лидер Уммы",
+        },
+        "en": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · Season 1",
+            "s3_full": "🏆 IQ Barakah · 3 seasons",
+            "jamaat": "👥 Jamaat",
+            "leader": "👑 Ummah Leader",
+        },
+        "de": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · Saison 1",
+            "s3_full": "🏆 IQ Barakah · 3 Saisons",
+            "jamaat": "👥 Jamaat",
+            "leader": "👑 Ummah-Leiter",
+        },
+        "ar": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · الموسم 1",
+            "s3_full": "🏆 IQ Barakah · 3 مواسم",
+            "jamaat": "👥 الجماعة",
+            "leader": "👑 قائد الأمة",
+        },
+    }
+    return names.get(lang, names["en"]).get(tariff_id, TARIFFS[0]["name"])
+
+
+def _program_texts() -> dict[str, dict[str, str]]:
+    return {
+        "ru": {
+            "diag": (
+                "🎯 *Твой результат:* уровень {level} · {pct}%\n"
+                "🌿 *Рекомендуемый старт:* {recommended}\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+            ),
+            "body": (
+                "📚 *Программа IQ Barakah*\n\n"
+                "{diag_block}"
+                "Курс для тех, кто устал бегать по кругу.\n\n"
+                "Планируете, но всё равно нет результата и смысла?\n"
+                "IQ Barakah помогает соединить:\n"
+                "✅ Ваше сердце (покой, намерение)\n"
+                "✅ Разум (фокус, ясность)\n"
+                "✅ Поведение (привычки и дела)\n\n"
+                "Курс поможет сделать так, чтобы работа, семья и духовная жизнь не мешали, а поддерживали друг друга.\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "🌱 *ВАКТ · Тайм-менеджмент мусульманина* · 6 недель · 1 500 ₽\n\n"
+                "B1 🌿 Ният (намерение) — тайный разговор\n"
+                "B2 🏁 Фаджр — якорь дня\n"
+                "B3 🕊 Тауба (покаяние) — чистый лист\n"
+                "B4 💪 Сабр (терпение) — держи курс\n"
+                "B5 📿 Зикр — Аллах в каждом деле\n"
+                "B6 🏆 Итог — твоя система\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📗 *Сезон 1 · Основание · Кто ты есть* — 8 недель\n\n"
+                "C1.1 🌿 Тайный разговор\n"
+                "C1.2 🏠 Возвращение домой\n"
+                "C1.3 ✨ Священное пространство\n"
+                "C1.4 ⏱ Время как свидетель\n"
+                "C1.5 📱 Кто твой Господь?\n"
+                "C1.6 🖊 Нулевой километр\n"
+                "C1.7 💪 Ты — не мозг в банке\n"
+                "C1.8 🌿 Генеральная уборка души\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📘 *Сезон 2 · Строительство · Как ты живёшь* — 8 недель\n\n"
+                "C2.1 🧠 Как шайтан взламывает мозг\n"
+                "C2.2 🏛 Строительство крепости\n"
+                "C2.3 🔥 Сжигание кораблей\n"
+                "C2.4 ⚖️ Что тяжелее всего на весах?\n"
+                "C2.5 🧳 Дай плату пока не высох пот\n"
+                "C2.6 📖 Самый длинный аят\n"
+                "C2.7 🤝 Партнёрство с Аллахом\n"
+                "C2.8 🌍 Синдром Атланта\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📙 *Сезон 3 · Наследие · Зачем ты живёшь* — 8 недель\n\n"
+                "C3.1 👣 У подножия их ног\n"
+                "C3.2 🏠 Оставь войну за порогом\n"
+                "C3.3 🧡 Зеркальные нейроны\n"
+                "C3.4 🌹 Кузнец и парфюмер\n"
+                "C3.5 👑 Король без короны\n"
+                "C3.6 🏞 Река и болото\n"
+                "C3.7 📊 Открытый счёт\n"
+                "C3.8 🏛 Точка невозврата\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "Курс рассчитан на 30 недель. Каждый блок даёт конкретный результат и плавно ведёт на следующий уровень.\n\n"
+                "🗓 *Понедельник 9:00* — урок недели в боте\n"
+                "📞 *Пятница 14:00* — живой созвон с основателем IQ Barakah\n"
+                "🌙 *Ежедневно* — азкар + мухасаба\n\n"
+                "🌿 _20% с каждой оплаты → благотворительность_"
+            ),
+        },
+        "en": {
+            "diag": (
+                "🎯 *Your result:* level {level} · {pct}%\n"
+                "🌿 *Recommended start:* {recommended}\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+            ),
+            "body": (
+                "📚 *IQ Barakah Program*\n\n"
+                "{diag_block}"
+                "A program for Muslims who are tired of running in circles.\n\n"
+                "You plan, but still feel there is no result or meaning?\n"
+                "IQ Barakah helps connect:\n"
+                "✅ Heart: calm, intention, sincerity\n"
+                "✅ Mind: focus and clarity\n"
+                "✅ Behavior: habits and actions\n\n"
+                "The goal is to make work, family and worship support each other instead of competing.\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "🌱 *VAKT · Muslim Time Management* · 6 weeks\n\n"
+                "B1 🌿 Niyyah — the hidden conversation\n"
+                "B2 🏁 Fajr — the anchor of the day\n"
+                "B3 🕊 Tawbah — a clean page\n"
+                "B4 💪 Sabr — stay the course\n"
+                "B5 📿 Dhikr — Allah in every matter\n"
+                "B6 🏆 Result — your system\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📗 *Season 1 · Foundation · Who you are* — 8 weeks\n\n"
+                "C1.1 🌿 The hidden conversation\n"
+                "C1.2 🏠 Coming home\n"
+                "C1.3 ✨ Sacred space\n"
+                "C1.4 ⏱ Time as witness\n"
+                "C1.5 📱 Who is your Lord?\n"
+                "C1.6 🖊 Kilometer zero\n"
+                "C1.7 💪 You are not a brain in a jar\n"
+                "C1.8 🌿 Deep cleaning of the soul\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📘 *Season 2 · Building · How you live* — 8 weeks\n\n"
+                "C2.1 🧠 How shaytan hacks the brain\n"
+                "C2.2 🏛 Building the fortress\n"
+                "C2.3 🔥 Burning the ships\n"
+                "C2.4 ⚖️ What is heaviest on the scales?\n"
+                "C2.5 🧳 Pay before the sweat dries\n"
+                "C2.6 📖 The longest ayah\n"
+                "C2.7 🤝 Partnership with Allah\n"
+                "C2.8 🌍 Atlas syndrome\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📙 *Season 3 · Legacy · Why you live* — 8 weeks\n\n"
+                "C3.1 👣 Beneath their feet\n"
+                "C3.2 🏠 Leave the war outside\n"
+                "C3.3 🧡 Mirror neurons\n"
+                "C3.4 🌹 The blacksmith and the perfumer\n"
+                "C3.5 👑 King without a crown\n"
+                "C3.6 🏞 River and swamp\n"
+                "C3.7 📊 Open account\n"
+                "C3.8 🏛 Point of no return\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "The full path is 30 weeks. Each block gives a concrete result and leads into the next level.\n\n"
+                "🗓 *Monday 9:00* — weekly lesson in the bot\n"
+                "📞 *Friday 14:00* — live call with the founder of IQ Barakah\n"
+                "🌙 *Daily* — adhkar and muhasabah\n\n"
+                "🌿 _20% from each payment goes to charity_"
+            ),
+        },
+        "de": {
+            "diag": (
+                "🎯 *Dein Ergebnis:* Level {level} · {pct}%\n"
+                "🌿 *Empfohlener Start:* {recommended}\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+            ),
+            "body": (
+                "📚 *IQ Barakah Programm*\n\n"
+                "{diag_block}"
+                "Ein Programm für Muslime, die nicht mehr im Kreis laufen wollen.\n\n"
+                "Du planst, aber Ergebnis und Sinn fehlen trotzdem?\n"
+                "IQ Barakah verbindet:\n"
+                "✅ Herz: Ruhe, Absicht, Aufrichtigkeit\n"
+                "✅ Verstand: Fokus und Klarheit\n"
+                "✅ Verhalten: Gewohnheiten und Taten\n\n"
+                "Arbeit, Familie und Gottesdienst sollen sich gegenseitig stärken.\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "🌱 *VAKT · Zeitmanagement für Muslime* · 6 Wochen\n\n"
+                "B1 🌿 Niyyah — das verborgene Gespräch\n"
+                "B2 🏁 Fajr — Anker des Tages\n"
+                "B3 🕊 Tawbah — eine reine Seite\n"
+                "B4 💪 Sabr — Kurs halten\n"
+                "B5 📿 Dhikr — Allah in jeder Sache\n"
+                "B6 🏆 Ergebnis — dein System\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📗 *Saison 1 · Fundament · Wer du bist* — 8 Wochen\n\n"
+                "C1.1 🌿 Das verborgene Gespräch\n"
+                "C1.2 🏠 Nach Hause kommen\n"
+                "C1.3 ✨ Heiliger Raum\n"
+                "C1.4 ⏱ Zeit als Zeuge\n"
+                "C1.5 📱 Wer ist dein Herr?\n"
+                "C1.6 🖊 Kilometer null\n"
+                "C1.7 💪 Du bist kein Gehirn im Glas\n"
+                "C1.8 🌿 Grundreinigung der Seele\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📘 *Saison 2 · Aufbau · Wie du lebst* — 8 Wochen\n\n"
+                "C2.1 🧠 Wie Shaytan das Gehirn hackt\n"
+                "C2.2 🏛 Die Festung bauen\n"
+                "C2.3 🔥 Die Schiffe verbrennen\n"
+                "C2.4 ⚖️ Was wiegt am schwersten?\n"
+                "C2.5 🧳 Zahle, bevor der Schweiß trocknet\n"
+                "C2.6 📖 Der längste Vers\n"
+                "C2.7 🤝 Partnerschaft mit Allah\n"
+                "C2.8 🌍 Atlas-Syndrom\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📙 *Saison 3 · Vermächtnis · Warum du lebst* — 8 Wochen\n\n"
+                "C3.1 👣 Unter ihren Füßen\n"
+                "C3.2 🏠 Lass den Krieg vor der Tür\n"
+                "C3.3 🧡 Spiegelneuronen\n"
+                "C3.4 🌹 Der Schmied und der Parfümeur\n"
+                "C3.5 👑 König ohne Krone\n"
+                "C3.6 🏞 Fluss und Sumpf\n"
+                "C3.7 📊 Offenes Konto\n"
+                "C3.8 🏛 Punkt ohne Rückkehr\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "Der ganze Weg dauert 30 Wochen. Jeder Block gibt ein konkretes Ergebnis und führt zum nächsten Level.\n\n"
+                "🗓 *Montag 9:00* — Wochenlektion im Bot\n"
+                "📞 *Freitag 14:00* — Live-Call mit dem Gründer von IQ Barakah\n"
+                "🌙 *Täglich* — Adhkar und Muhasabah\n\n"
+                "🌿 _20% jeder Zahlung gehen an Wohltätigkeit_"
+            ),
+        },
+        "ar": {
+            "diag": (
+                "🎯 *نتيجتك:* المستوى {level} · {pct}%\n"
+                "🌿 *البداية المقترحة:* {recommended}\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+            ),
+            "body": (
+                "📚 *برنامج IQ Barakah*\n\n"
+                "{diag_block}"
+                "برنامج للمسلم الذي يريد الخروج من الدوران في نفس الدائرة.\n\n"
+                "تخطط، لكن لا ترى نتيجة واضحة أو معنى عميقاً؟\n"
+                "IQ Barakah يساعدك على ربط:\n"
+                "✅ القلب: السكينة والنية\n"
+                "✅ العقل: التركيز والوضوح\n"
+                "✅ السلوك: العادات والأعمال\n\n"
+                "الهدف أن تصبح العبادة والأسرة والعمل عناصر تدعم بعضها.\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "🌱 *VAKT · إدارة وقت المسلم* · 6 أسابيع\n\n"
+                "B1 🌿 النية — الحديث الخفي\n"
+                "B2 🏁 الفجر — مرساة اليوم\n"
+                "B3 🕊 التوبة — صفحة جديدة\n"
+                "B4 💪 الصبر — الثبات على الطريق\n"
+                "B5 📿 الذكر — الله في كل أمر\n"
+                "B6 🏆 النتيجة — نظامك\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📗 *الموسم 1 · الأساس · من أنت* — 8 أسابيع\n\n"
+                "C1.1 🌿 الحديث الخفي\n"
+                "C1.2 🏠 الرجوع إلى البيت\n"
+                "C1.3 ✨ المساحة المقدسة\n"
+                "C1.4 ⏱ الوقت كشاهد\n"
+                "C1.5 📱 من ربك؟\n"
+                "C1.6 🖊 الكيلومتر صفر\n"
+                "C1.7 💪 أنت لست عقلاً في زجاجة\n"
+                "C1.8 🌿 تنظيف عميق للروح\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📘 *الموسم 2 · البناء · كيف تعيش* — 8 أسابيع\n\n"
+                "C2.1 🧠 كيف يخترق الشيطان الدماغ\n"
+                "C2.2 🏛 بناء الحصن\n"
+                "C2.3 🔥 إحراق السفن\n"
+                "C2.4 ⚖️ ما أثقل شيء في الميزان؟\n"
+                "C2.5 🧳 أعط الأجير أجره قبل أن يجف عرقه\n"
+                "C2.6 📖 أطول آية\n"
+                "C2.7 🤝 شراكة مع الله\n"
+                "C2.8 🌍 متلازمة أطلس\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "📙 *الموسم 3 · الأثر · لماذا تعيش* — 8 أسابيع\n\n"
+                "C3.1 👣 تحت أقدامهن\n"
+                "C3.2 🏠 اترك الحرب خارج الباب\n"
+                "C3.3 🧡 الخلايا المرآتية\n"
+                "C3.4 🌹 الحداد وبائع الطيب\n"
+                "C3.5 👑 ملك بلا تاج\n"
+                "C3.6 🏞 النهر والمستنقع\n"
+                "C3.7 📊 الحساب المفتوح\n"
+                "C3.8 🏛 نقطة اللاعودة\n\n"
+                "━━━━━━━━━━━━━━━━\n"
+                "المسار الكامل 30 أسبوعاً. كل مرحلة تعطي نتيجة عملية وتنقلك إلى المستوى التالي.\n\n"
+                "🗓 *الاثنين 9:00* — درس الأسبوع في البوت\n"
+                "📞 *الجمعة 14:00* — لقاء مباشر مع مؤسس IQ Barakah\n"
+                "🌙 *يومياً* — الأذكار والمحاسبة\n\n"
+                "🌿 _20% من كل دفعة تذهب إلى الصدقة_"
+            ),
+        },
+    }
 
 
 def _recommended_tariff(level_key: str) -> dict:
