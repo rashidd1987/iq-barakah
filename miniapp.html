@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>IQ Barakah</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IQ Barakah</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
@@ -31,6 +31,9 @@
 }
 
 html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+[dir="rtl"] body { direction: rtl; }
+[dir="rtl"] .cw-arr,
+[dir="rtl"] .sheet-close { transform: scaleX(-1); }
 
 /* ── APP SHELL ── */
 #app { height: 100%; display: flex; flex-direction: column; }
@@ -625,26 +628,26 @@ textarea:focus { border-color: var(--g2); }
 .ship-steps { display: flex; flex-direction: column; gap: 8px; }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-</style>
+
+  </style>
 </head>
 <body>
+
 <!-- ══════════════ DIAGNOSTIC OVERLAY ══════════════ -->
 <div id="diag-overlay" class="hidden">
   <div class="diag-logo">IQ <em>Barakah</em></div>
   <div class="diag-panel">
-
-    <!-- Step 0: выбор варианта -->
     <div class="diag-step active" id="ds-choice">
       <div class="diag-headline">Определим твой<br>уровень 🌱</div>
       <div class="diag-sub">Прежде чем начать — выбери как удобнее</div>
-      <div class="choice-card" onclick="diagChoose('quick')">
+      <div class="choice-card" id="btn-quick">
         <div class="choice-icon">⚡</div>
         <div class="choice-text">
           <div class="t">Я знаю свой уровень</div>
           <div class="s">Выбрать А, Б или В вручную — займёт 10 секунд</div>
         </div>
       </div>
-      <div class="choice-card" onclick="diagChoose('quiz')">
+      <div class="choice-card" id="btn-quiz">
         <div class="choice-icon">🎯</div>
         <div class="choice-text">
           <div class="t">Пройти диагностику</div>
@@ -652,390 +655,250 @@ textarea:focus { border-color: var(--g2); }
         </div>
       </div>
     </div>
-
-    <!-- Step 1a: быстрый выбор уровня -->
     <div class="diag-step" id="ds-quick">
       <div class="diag-headline">Выбери свой уровень</div>
       <div class="diag-sub">Честно — можно сменить позже</div>
       <div class="level-cards">
-        <div class="lcard" id="lcard-a" onclick="selectLevel('a',this)">
-          <div class="lcard-head">
-            <div class="lcard-letter">А</div>
-            <div class="lcard-name">Начинаю с нуля</div>
-          </div>
-          <div class="lcard-who">Намаз бывает, азкары нет. Хочу выстроить основы. День управляется обстоятельствами.</div>
+        <div class="lcard" id="lcard-a" data-key="a">
+          <div class="lcard-head"><div class="lcard-letter">А</div><div class="lcard-name">Начинаю с нуля</div></div>
+          <div class="lcard-who">Намаз бывает, азкары нет. Хочу выстроить основы.</div>
         </div>
-        <div class="lcard" id="lcard-b" onclick="selectLevel('b',this)">
-          <div class="lcard-head">
-            <div class="lcard-letter" style="background:var(--gold);">Б</div>
-            <div class="lcard-name">Иногда практикую</div>
-          </div>
-          <div class="lcard-who">Намаз есть, Коран иногда. Система не держится. Хочу стабильности.</div>
+        <div class="lcard" id="lcard-b" data-key="b">
+          <div class="lcard-head"><div class="lcard-letter" style="background:var(--gold);">Б</div><div class="lcard-name">Иногда практикую</div></div>
+          <div class="lcard-who">Намаз есть, Коран иногда. Система не держится.</div>
         </div>
-        <div class="lcard" id="lcard-c" onclick="selectLevel('c',this)">
-          <div class="lcard-head">
-            <div class="lcard-letter" style="background:#1E4D0A;">В</div>
-            <div class="lcard-name">Практикую регулярно</div>
-          </div>
-          <div class="lcard-who">МашаАллах! Намаз, азкары, Коран — есть. Хочу глубины и осознанности.</div>
+        <div class="lcard" id="lcard-c" data-key="c">
+          <div class="lcard-head"><div class="lcard-letter" style="background:#1E4D0A;">В</div><div class="lcard-name">Практикую регулярно</div></div>
+          <div class="lcard-who">МашаАллах! Намаз, азкары, Коран — есть.</div>
         </div>
       </div>
-      <button class="btn btn-p" id="quick-confirm" onclick="confirmQuick()" disabled style="opacity:.5;margin-top:4px;">Начать программу →</button>
-      <button class="btn btn-o" onclick="diagChoose('choice')" style="margin-top:-4px;">← Назад</button>
+      <button class="btn btn-p" id="quick-confirm" disabled>Начать программу →</button>
+      <button class="btn btn-o" id="btn-back-choice">← Назад</button>
     </div>
-
-    <!-- Step 1b: квиз -->
     <div class="diag-step" id="ds-quiz">
       <div class="quiz-prog" id="qprog"></div>
       <div class="q-num" id="qnum">ВОПРОС 1 ИЗ 8</div>
       <div class="q-text" id="qtext"></div>
       <div class="q-opts" id="qopts"></div>
       <div class="quiz-nav">
-        <button class="qbk" id="qback" onclick="qNav(-1)">← Назад</button>
-        <button class="btn btn-p" id="qnext" onclick="qNav(1)" style="flex:1;opacity:.5;" disabled>Далее →</button>
+        <button class="qbk" id="qback">← Назад</button>
+        <button class="btn btn-p" id="qnext" disabled style="flex:1;opacity:.5;">Далее →</button>
       </div>
     </div>
-
-    <!-- Step 2: результат -->
     <div class="diag-step" id="ds-result">
       <div class="diag-headline">Твой результат 🎯</div>
       <div class="res-header">
         <div class="res-pct-badge" id="res-badge">72%</div>
-        <div class="res-level" id="res-level">Уровень Б</div>
+        <div class="res-level" id="res-level"></div>
         <div class="res-intro" id="res-intro"></div>
       </div>
       <div class="wheel-block">
-        <div class="wheel-block-title" id="wt-label">ТВОЁ КОЛЕСО БАЛАНСА СЕЙЧАС</div>
+        <div class="wheel-block-title">ТВОЁ КОЛЕСО БАЛАНСА СЕЙЧАС</div>
         <svg id="res-wheel" width="200" height="200" viewBox="0 0 156 156"></svg>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;justify-content:center;" id="wheel-legend"></div>
+        <div id="wheel-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;justify-content:center;"></div>
       </div>
       <div class="card"><div class="cb">
         <div class="ct">Узнаю себя</div>
         <div class="pains-list" id="res-pains"></div>
       </div></div>
       <div class="res-path" id="res-path"></div>
-      <button class="btn btn-p" onclick="finishDiag()">Начать программу →</button>
+      <button class="btn btn-p" id="btn-finish-diag">Начать программу →</button>
     </div>
-
   </div>
 </div>
 
 <div id="app">
 <div class="screens">
 
-<!-- ══════════════ HOME ══════════════ -->
+<!-- HOME -->
 <div class="screen active" id="sc-home">
   <div class="hdr">
     <div class="hdr-top">
       <div class="logo">IQ <em>Barakah</em></div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <div class="pill" id="lvl-pill">🌱 Уровень А</div>
+        <div class="pill" id="lvl-pill">🌱 IQ Barakah</div>
         <div class="avatar-btn" id="ava">👤</div>
       </div>
     </div>
     <div class="hdr-title" id="greet">Ас-саляму алейкум 👋</div>
     <div class="hdr-sub" id="uname-sub">Загружаем данные...</div>
   </div>
-
   <div class="c">
-    <!-- Week banner -->
-    <div class="current-week" onclick="switchScreen('lessons')">
+    <div class="current-week" id="cw-banner">
       <div class="cw-icon" id="cw-icon">📖</div>
       <div class="cw-info">
-        <div class="t" id="cw-title">Загрузка...</div>
-        <div class="s" id="cw-sub">Открыть карту пути →</div>
+        <div class="t" id="cw-title" data-i18n="loading">Загрузка...</div>
+        <div class="s" id="cw-sub" data-i18n="openPath">Открыть карту пути →</div>
       </div>
       <div class="cw-arr">›</div>
     </div>
-
-    <!-- Ring + stats -->
-    <div class="card">
-      <div class="cb">
-        <div class="ct">Общий прогресс</div>
-        <div class="ring-wrap">
-          <svg width="148" height="148" viewBox="0 0 148 148">
-            <circle cx="74" cy="74" r="62" fill="none" stroke="#e5e7eb" stroke-width="11"/>
-            <circle id="ring" cx="74" cy="74" r="62" fill="none"
-              stroke="url(#rg)" stroke-width="11" stroke-linecap="round"
-              stroke-dasharray="389.6" stroke-dashoffset="311.7"
-              transform="rotate(-90 74 74)" style="transition:stroke-dashoffset 1s ease;"/>
-            <defs>
-              <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#2c5f2d"/>
-                <stop offset="100%" stop-color="#3d7a3e"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <div class="ring-label">
-            <span class="pct" id="rpct">20%</span>
-            <span class="rs">пройдено</span>
-          </div>
-        </div>
-        <div class="stats-grid">
-          <div class="stat"><div class="stat-e">🔥</div><div class="stat-v" id="sv-streak">7</div><div class="stat-l">дней подряд</div></div>
-          <div class="stat"><div class="stat-e">✅</div><div class="stat-v" id="sv-weeks">3</div><div class="stat-l">недель сдано</div></div>
-          <div class="stat"><div class="stat-e">🙏</div><div class="stat-v" id="sv-deeds">18</div><div class="stat-l">добрых дел</div></div>
-          <div class="stat"><div class="stat-e">⭐</div><div class="stat-v" id="sv-xp">360</div><div class="stat-l">баракат-баллов</div></div>
+    <div class="card"><div class="cb">
+      <div class="ct" data-i18n="totalProgress">Общий прогресс</div>
+      <div class="ring-wrap">
+        <svg width="148" height="148" viewBox="0 0 148 148">
+          <circle cx="74" cy="74" r="62" fill="none" stroke="#e5e7eb" stroke-width="11"/>
+          <circle id="ring" cx="74" cy="74" r="62" fill="none" stroke="url(#rg)" stroke-width="11"
+            stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="311.7"
+            transform="rotate(-90 74 74)" style="transition:stroke-dashoffset 1s ease;"/>
+          <defs>
+            <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#2c5f2d"/><stop offset="100%" stop-color="#3d7a3e"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="ring-label">
+          <span class="pct" id="rpct">0%</span>
+          <span class="rs" data-i18n="completed">пройдено</span>
         </div>
       </div>
-    </div>
-
-    <!-- Actions -->
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:0 2px;">Перейти</div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-e">🔥</div><div class="stat-v" id="sv-streak">0</div><div class="stat-l" data-i18n="streakDays">дней подряд</div></div>
+        <div class="stat"><div class="stat-e">✅</div><div class="stat-v" id="sv-weeks">0</div><div class="stat-l" data-i18n="weeksDone">недель сдано</div></div>
+        <div class="stat"><div class="stat-e">🙏</div><div class="stat-v" id="sv-deeds">0</div><div class="stat-l" data-i18n="goodDeeds">добрых дел</div></div>
+        <div class="stat"><div class="stat-e">⭐</div><div class="stat-v" id="sv-xp">0</div><div class="stat-l" data-i18n="barakahPoints">баракат-баллов</div></div>
+      </div>
+    </div></div>
+    <div data-i18n="goTo" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:0 2px;">Перейти</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <div class="act-item" onclick="switchScreen('tracker')">
-        <div class="act-ic gr">📋</div>
-        <div class="act-tx"><div class="t">Трекер дня</div><div class="s">Намаз, азкар, мухасаба</div></div>
-        <span style="color:var(--muted)">›</span>
-      </div>
-      <div class="act-item" onclick="switchScreen('lessons')">
-        <div class="act-ic gr">📚</div>
-        <div class="act-tx"><div class="t">Текущий урок</div><div class="s" id="act-cur-week">Открыть карту уроков</div></div>
-        <span style="color:var(--muted)">›</span>
-      </div>
-      <div class="act-item" onclick="switchScreen('wheel')">
-        <div class="act-ic gd">🎯</div>
-        <div class="act-tx"><div class="t">Колесо баланса</div><div class="s">8 сфер жизни</div></div>
-        <span style="color:var(--muted)">›</span>
-      </div>
-      <div class="act-item" onclick="openReviewSheet()">
-        <div class="act-ic bl">✍️</div>
-        <div class="act-tx"><div class="t">Мухасаба — отчёт перед собой</div><div class="s">Три вопроса честности — займёт 2 минуты</div></div>
-        <span style="color:var(--muted)">›</span>
-      </div>
-      <div class="act-item" onclick="openDiag()">
-        <div class="act-ic pu">🎯</div>
-        <div class="act-tx"><div class="t">Диагностика уровня</div><div class="s">Пройти заново или сменить уровень</div></div>
-        <span style="color:var(--muted)">›</span>
-      </div>
-      <div class="act-item" onclick="openFeedbackSheet()">
-        <div class="act-ic" style="background:#fff3cd;">⭐</div>
-        <div class="act-tx"><div class="t">Оставить отзыв</div><div class="s">Нам важно твоё мнение о программе</div></div>
-        <span style="color:var(--muted)">›</span>
-      </div>
+      <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, азкар, мухасаба</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" data-screen="lessons"><div class="act-ic gr">📚</div><div class="act-tx"><div class="t" data-i18n="currentLesson">Текущий урок</div><div class="s" id="act-cur-week" data-i18n="openLessonsMap">Открыть карту уроков</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" data-screen="wheel"><div class="act-ic gd">🎯</div><div class="act-tx"><div class="t" data-i18n="lifeWheel">Колесо баланса</div><div class="s" data-i18n="lifeWheelSub">8 сфер жизни</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t" data-i18n="eveningMuhasaba">Мухасаба вечера</div><div class="s" data-i18n="eveningMuhasabaSub">Три вопроса — займёт 2 минуты</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-open-diag"><div class="act-ic pu">🎯</div><div class="act-tx"><div class="t" data-i18n="levelDiagnostic">Диагностика уровня</div><div class="s" data-i18n="levelDiagnosticSub">Пройти заново или сменить уровень</div></div><span style="color:var(--muted)">›</span></div>
     </div>
   </div>
 </div>
 
-<!-- ══════════════ TRACKER ══════════════ -->
+<!-- TRACKER -->
 <div class="screen" id="sc-tracker">
   <div class="hdr">
-    <div class="hdr-top">
-      <div class="logo">IQ <em>Barakah</em></div>
-      <div class="badge ba">Трекер</div>
-    </div>
-    <div class="hdr-title" id="tracker-date">Сегодня</div>
-    <div class="hdr-sub">Отмечайте выполненное</div>
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge ba" data-i18n="tracker">Трекер</div></div>
+    <div class="hdr-title" id="tracker-date" data-i18n="today">Сегодня</div>
+    <div class="hdr-sub" data-i18n="markDone">Отмечайте выполненное</div>
   </div>
-
   <div class="c">
-    <!-- Week strip -->
     <div class="card"><div class="cb" style="padding-bottom:12px;">
-      <div class="ct">Эта неделя</div>
+      <div class="ct" data-i18n="thisWeek">Эта неделя</div>
       <div class="date-strip" id="week-strip"></div>
     </div></div>
-
-    <!-- Daily progress -->
     <div class="card"><div class="cb">
       <div class="tracker-progress">
-        <div class="tp-text">
-          <div class="t">Прогресс дня</div>
-          <div class="s" id="tp-sub">0 из 10 выполнено</div>
-        </div>
+        <div class="tp-text"><div class="t" data-i18n="dayProgress">Прогресс дня</div><div class="s" id="tp-sub">0 из 10 выполнено</div></div>
         <div class="tp-count" id="tp-count">0/10</div>
       </div>
       <div class="prog-bar"><div class="prog-fill" id="tp-bar" style="width:0%"></div></div>
     </div></div>
-
-    <!-- Намаз -->
-    <div class="habit-section-label">🕌 Намаз (5 раз в день)</div>
-    <div class="card"><div class="cb" style="padding:14px;">
-      <div class="namaz-grid" id="namaz-grid"></div>
-    </div></div>
-
-    <!-- Daily habits -->
-    <div class="habit-section-label">☀️ Ежедневные практики</div>
+    <div class="habit-section-label" data-i18n="namazTitle">🕌 Намаз (5 раз в день)</div>
+    <div class="card"><div class="cb" style="padding:14px;"><div class="namaz-grid" id="namaz-grid"></div></div></div>
+    <div class="habit-section-label" data-i18n="dailyPractices">☀️ Ежедневные практики</div>
     <div style="display:flex;flex-direction:column;gap:8px;" id="daily-habits"></div>
-
-    <!-- Weekly -->
-    <div class="habit-section-label">📅 На этой неделе</div>
+    <div class="habit-section-label" data-i18n="weeklyPractices">📅 На этой неделе</div>
     <div class="weekly-card" id="weekly-habits"></div>
-
-    <!-- One-time -->
-    <div class="habit-section-label">🌱 Один раз</div>
+    <div class="habit-section-label" data-i18n="oneTime">🌱 Один раз</div>
     <div class="weekly-card" id="onetime-habits"></div>
-
   </div>
 </div>
 
-<!-- ══════════════ LESSONS ══════════════ -->
+<!-- LESSONS -->
 <div class="screen" id="sc-lessons">
   <div class="hdr">
-    <div class="hdr-top">
-      <div class="logo">IQ <em>Barakah</em></div>
-      <div class="badge bg">Программа</div>
-    </div>
-    <div class="hdr-title">Карта пути</div>
-    <div class="hdr-sub">ВАКТ 6 нед + IQ Barakah 24 нед · 3 сезона</div>
-    <div class="pbar" style="margin-top:12px;"><div class="pfill" style="width:20%"></div></div>
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge bg" data-i18n="program">Программа</div></div>
+    <div class="hdr-title" data-i18n="pathMap">Карта пути</div>
+    <div class="hdr-sub" data-i18n="pathMapSub">ВАКТ 6 нед + IQ Barakah 24 нед · 3 сезона</div>
+    <div class="pbar" style="margin-top:12px;"><div class="pfill" id="lessons-pbar" style="width:0%"></div></div>
   </div>
   <div class="c">
     <div class="chips">
-      <button class="chip on" onclick="filterPhase('all',this)">Все</button>
-      <button class="chip off" onclick="filterPhase('vakt',this)">ВАКТ</button>
-      <button class="chip off" onclick="filterPhase('s1',this)">Сезон 1</button>
-      <button class="chip off" onclick="filterPhase('s2',this)">Сезон 2</button>
-      <button class="chip off" onclick="filterPhase('s3',this)">Сезон 3</button>
+      <button class="chip on" data-phase="all" data-i18n="all">Все</button>
+      <button class="chip off" data-phase="vakt">ВАКТ</button>
+      <button class="chip off" data-phase="s1" data-i18n="season1">Сезон 1</button>
+      <button class="chip off" data-phase="s2" data-i18n="season2">Сезон 2</button>
+      <button class="chip off" data-phase="s3" data-i18n="season3">Сезон 3</button>
     </div>
     <div id="week-list" style="display:flex;flex-direction:column;gap:8px;"></div>
   </div>
 </div>
 
-<!-- ══════════════ WHEEL ══════════════ -->
+<!-- WHEEL -->
 <div class="screen" id="sc-wheel">
   <div class="hdr">
-    <div class="hdr-top">
-      <div class="logo">IQ <em>Barakah</em></div>
-      <div class="badge ba">Баланс</div>
-    </div>
-    <div class="hdr-title">Колесо жизни</div>
-    <div class="hdr-sub">Оцените каждую сферу от 1 до 10</div>
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge ba" data-i18n="wheel">Баланс</div></div>
+    <div class="hdr-title" data-i18n="wheelTitle">Колесо жизни</div>
+    <div class="hdr-sub" data-i18n="wheelSub">Оцените каждую сферу от 1 до 10</div>
   </div>
   <div class="c">
     <div class="card"><div class="cb" style="padding:10px 6px;">
-      <div class="wheel-wrap">
-        <canvas id="wcanvas" width="290" height="290"></canvas>
-      </div>
+      <div class="wheel-wrap"><canvas id="wcanvas" width="290" height="290"></canvas></div>
     </div></div>
     <div class="card"><div class="cb">
-      <div class="ct">Настройте значения</div>
+      <div class="ct" data-i18n="configureValues">Настройте значения</div>
       <div id="sliders" style="display:flex;flex-direction:column;gap:14px;"></div>
     </div></div>
-    <button class="btn btn-p" onclick="saveWheel()">💾 Сохранить оценку</button>
+    <button class="btn btn-p" id="btn-save-wheel" data-i18n="saveScore">💾 Сохранить оценку</button>
   </div>
 </div>
 
-<!-- ══════════════ SHIP ══════════════ -->
+<!-- SHIP -->
 <div class="screen" id="sc-ship">
   <div class="hdr">
-    <div class="hdr-top">
-      <div class="logo">IQ <em>Barakah</em></div>
-      <div class="badge ba">Диагностика</div>
-    </div>
-    <div class="hdr-title">Корабль Бараката</div>
-    <div class="hdr-sub">15 отсеков · Найди пробоины · Получи разбор</div>
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge ba" data-i18n="diagnostic">Диагностика</div></div>
+    <div class="hdr-title" data-i18n="shipTitle">Корабль Бараката</div>
+    <div class="hdr-sub" data-i18n="shipSub">15 отсеков · Найди пробоины · Получи разбор</div>
   </div>
   <div class="c">
     <div class="ship-launcher">
-
-      <!-- Бизнес-корабль -->
       <div class="ship-card ship-biz">
-        <div class="ship-card-head">
-          <div class="ship-card-icon biz">⚓</div>
-          <div>
-            <div class="ship-card-title">Бизнес-диагностика</div>
-            <div class="ship-card-sub">Стратегия · Финансы · Команда · Продажи и ещё 11</div>
-          </div>
-        </div>
-        <div class="ship-card-result" id="ship-result-business">
-          <div>
-            <div class="ship-result-score" id="ship-score-business">—</div>
-            <div class="ship-result-label">Здоровье корабля</div>
-          </div>
-          <div class="ship-result-date" id="ship-date-business"></div>
-        </div>
-        <button class="ship-card-btn biz" id="ship-btn-business" onclick="openShip('business')">
-          ⚓ Пройти диагностику
-        </button>
+        <div class="ship-card-head"><div class="ship-card-icon biz">⚓</div><div><div class="ship-card-title" data-i18n="businessDiagnostic">Бизнес-диагностика</div><div class="ship-card-sub" data-i18n="businessDiagnosticSub">Стратегия · Финансы · Команда · Продажи и ещё 11</div></div></div>
+        <div class="ship-card-result" id="ship-result-business"><div><div class="ship-result-score" id="ship-score-business">—</div><div class="ship-result-label" data-i18n="shipHealth">Здоровье корабля</div></div><div class="ship-result-date" id="ship-date-business"></div></div>
+        <button class="ship-card-btn biz" id="ship-btn-business">⚓ <span data-i18n="takeDiagnostic">Пройти диагностику</span></button>
       </div>
-
-      <!-- Личная жизнь -->
       <div class="ship-card ship-per">
-        <div class="ship-card-head">
-          <div class="ship-card-icon per">🌙</div>
-          <div>
-            <div class="ship-card-title">Личная жизнь</div>
-            <div class="ship-card-sub">Иман · Здоровье · Семья · Время и ещё 11</div>
-          </div>
-        </div>
-        <div class="ship-card-result" id="ship-result-personal">
-          <div>
-            <div class="ship-result-score" id="ship-score-personal">—</div>
-            <div class="ship-result-label">Здоровье корабля</div>
-          </div>
-          <div class="ship-result-date" id="ship-date-personal"></div>
-        </div>
-        <button class="ship-card-btn per" id="ship-btn-personal" onclick="openShip('personal')">
-          🌙 Пройти диагностику
-        </button>
-      </div>
-
-    </div><!-- /ship-launcher -->
-
-    <!-- Как это работает -->
-    <div class="ship-how">
-      <div class="ship-how-t">Как это работает</div>
-      <div class="ship-steps">
-        <div class="ship-step"><div class="ship-step-n">1</div>Оцени каждый из 15 отсеков от 0 до 100</div>
-        <div class="ship-step"><div class="ship-step-n">2</div>Увидишь где пробоины — критические и требующие внимания</div>
-        <div class="ship-step"><div class="ship-step-n">3</div>Джарвас даст рекомендации по каждой слабой зоне</div>
-        <div class="ship-step"><div class="ship-step-n">4</div>Результаты сохранятся — можно отслеживать прогресс раз в месяц</div>
+        <div class="ship-card-head"><div class="ship-card-icon per">🌙</div><div><div class="ship-card-title" data-i18n="personalLife">Личная жизнь</div><div class="ship-card-sub" data-i18n="personalLifeSub">Иман · Здоровье · Семья · Время и ещё 11</div></div></div>
+        <div class="ship-card-result" id="ship-result-personal"><div><div class="ship-result-score" id="ship-score-personal">—</div><div class="ship-result-label" data-i18n="shipHealth">Здоровье корабля</div></div><div class="ship-result-date" id="ship-date-personal"></div></div>
+        <button class="ship-card-btn per" id="ship-btn-personal">🌙 <span data-i18n="takeDiagnostic">Пройти диагностику</span></button>
       </div>
     </div>
-
+    <div class="ship-how">
+      <div class="ship-how-t" data-i18n="howItWorks">Как это работает</div>
+      <div class="ship-steps">
+        <div class="ship-step"><div class="ship-step-n">1</div><span data-i18n="shipStep1">Оцени каждый из 15 отсеков от 0 до 100</span></div>
+        <div class="ship-step"><div class="ship-step-n">2</div><span data-i18n="shipStep2">Увидишь где пробоины — критические и требующие внимания</span></div>
+        <div class="ship-step"><div class="ship-step-n">3</div><span data-i18n="shipStep3">Джарвас даст рекомендации по каждой слабой зоне</span></div>
+        <div class="ship-step"><div class="ship-step-n">4</div><span data-i18n="shipStep4">Результаты сохранятся — можно отслеживать прогресс раз в месяц</span></div>
+      </div>
+    </div>
   </div>
 </div>
 
 </div><!-- /screens -->
 
-<!-- ── NAV ── -->
 <nav>
-  <button class="nb active" onclick="switchScreen('home')" id="nb-home">
-    <div class="ni">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/>
-      </svg>
-    </div>
-    Главная
+  <button class="nb active" id="nb-home" data-screen="home">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></div>
+    <span data-i18n="home">Главная</span>
   </button>
-  <button class="nb" onclick="switchScreen('tracker')" id="nb-tracker">
-    <div class="ni">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
-      </svg>
-    </div>
-    Трекер
+  <button class="nb" id="nb-tracker" data-screen="tracker">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></div>
+    <span data-i18n="tracker">Трекер</span>
     <div class="badge-dot show" id="tracker-dot"></div>
   </button>
-  <button class="nb" onclick="switchScreen('lessons')" id="nb-lessons">
-    <div class="ni">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-        <path d="M4 6h16M4 10h16M4 14h10M4 18h7"/>
-      </svg>
-    </div>
-    Уроки
+  <button class="nb" id="nb-lessons" data-screen="lessons">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg></div>
+    <span data-i18n="lessons">Уроки</span>
   </button>
-  <button class="nb" onclick="switchScreen('wheel')" id="nb-wheel">
-    <div class="ni">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-        <circle cx="12" cy="12" r="9"/><path d="M12 3v9l5 3"/>
-      </svg>
-    </div>
-    Баланс
+  <button class="nb" id="nb-wheel" data-screen="wheel">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l5 3"/></svg></div>
+    <span data-i18n="wheel">Баланс</span>
   </button>
-  <button class="nb" onclick="switchScreen('ship')" id="nb-ship">
-    <div class="ni">
-      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-        <path d="M3 17l3-10h12l3 10H3z"/><path d="M9 7V4m6 3V4M3 17c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4"/><path d="M12 4v3"/>
-      </svg>
-    </div>
-    Корабль
+  <button class="nb" id="nb-ship" data-screen="ship">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M3 17l3-10h12l3 10H3z"/><path d="M9 7V4m6 3V4M3 17c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4"/><path d="M12 4v3"/></svg></div>
+    <span data-i18n="ship">Корабль</span>
   </button>
 </nav>
 </div><!-- /app -->
 
-<!-- ── LESSON SHEET ── -->
-<div class="overlay" id="ov-lesson" onclick="closeSheet('lesson')"></div>
+<!-- LESSON SHEET -->
+<div class="overlay" id="ov-lesson"></div>
 <div class="sheet" id="sh-lesson">
   <div class="sh"></div>
   <div class="s-icon" id="sl-icon"></div>
@@ -1045,893 +908,662 @@ textarea:focus { border-color: var(--g2); }
   <div class="s-btns" id="sl-btns"></div>
 </div>
 
-<!-- ── REVIEW SHEET ── -->
-<div class="overlay" id="ov-review" onclick="closeSheet('review')"></div>
+<!-- REVIEW SHEET -->
+<div class="overlay" id="ov-review"></div>
 <div class="sheet" id="sh-review">
   <div class="sh"></div>
-  <div class="s-icon">🌙</div>
-  <div class="s-title">Мухасаба — отчёт перед собой</div>
-  <div class="s-sub" id="rv-week-lbl">Честный взгляд на себя — куратор прочитает и откроет следующую неделю</div>
-
+  <div class="s-icon">✍️</div>
+  <div class="s-title">Мухасаба вечера</div>
+  <div class="s-sub" id="rv-week-lbl">Три вопроса честности перед собой</div>
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
-    <div class="ok-t">БаракАллах фикум!</div>
-    <div class="ok-s">Мухасаба принята. Следующая неделя открыта — продолжай путь!</div>
-    <button class="btn btn-p" style="margin-top:8px;" onclick="advanceAndGo()">К следующей неделе →</button>
+    <div class="ok-t">БаракаЛлаху фик!</div>
+    <div class="ok-s">Отзыв принят. Куратор откроет следующую неделю.</div>
+    <button class="btn btn-p" id="rv-ok-btn" style="margin-top:8px;">К карте пути</button>
   </div>
-
   <div id="rv-form" class="rv-form">
     <div class="card"><div class="cb">
-      <div class="ct">Как прошла эта неделя?</div>
+      <div class="ct">Как прошла неделя?</div>
       <div class="emoji-row" id="emoji-row">
-        <button class="em-btn" onclick="selEmoji(this,'😔')">😔</button>
-        <button class="em-btn" onclick="selEmoji(this,'😐')">😐</button>
-        <button class="em-btn" onclick="selEmoji(this,'🙂')">🙂</button>
-        <button class="em-btn" onclick="selEmoji(this,'😊')">😊</button>
-        <button class="em-btn" onclick="selEmoji(this,'🤩')">🤩</button>
+        <button class="em-btn" data-emoji="😔">😔</button>
+        <button class="em-btn" data-emoji="😐">😐</button>
+        <button class="em-btn" data-emoji="🙂">🙂</button>
+        <button class="em-btn" data-emoji="😊">😊</button>
+        <button class="em-btn" data-emoji="🤩">🤩</button>
       </div>
     </div></div>
     <div class="card"><div class="cb">
       <div class="ct">Оцените</div>
-      <div class="fl">
-        <label>Практиковал задание недели?</label>
-        <div class="rating-row" id="rt-task"></div>
-      </div>
-      <div class="fl" style="margin-top:12px;">
-        <label>Что-то изменилось внутри?</label>
-        <div class="rating-row" id="rt-useful"></div>
-      </div>
+      <div class="fl"><label>Насколько выполнили задание?</label><div class="rating-row" id="rt-task"></div></div>
+      <div class="fl" style="margin-top:12px;"><label>Насколько было полезно?</label><div class="rating-row" id="rt-useful"></div></div>
     </div></div>
     <div class="card"><div class="cb">
       <div class="ct">Напишите</div>
-      <div class="fl">
-        <label>Что получилось? Что было сложно?</label>
-        <textarea id="rv-text" rows="3" placeholder="Куратор прочитает и ответит..."></textarea>
-      </div>
-      <div class="fl" style="margin-top:10px;">
-        <label>Главный инсайт недели</label>
-        <textarea id="rv-insight" rows="2" placeholder="Что открылось для тебя..."></textarea>
-      </div>
+      <div class="fl"><label>Что получилось? Что было сложно?</label><textarea id="rv-text" rows="3" placeholder="Куратор обязательно ответит..."></textarea></div>
+      <div class="fl" style="margin-top:10px;"><label>Главный инсайт недели</label><textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea></div>
     </div></div>
-    <button class="btn btn-p" id="rv-btn" onclick="submitReview()">Отправить куратору 🌿</button>
+    <button class="btn btn-p" id="rv-btn">Отправить отзыв</button>
   </div>
 </div>
-
-<!-- ── ОТЗЫВ О ПРОГРАММЕ ── -->
-<div class="overlay" id="ov-feedback" onclick="closeSheet('feedback')"></div>
-<div class="sheet" id="sh-feedback">
-  <div class="sh"></div>
-  <button onclick="closeSheet('feedback')" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#666;padding:4px;">✕</button>
-  <div class="s-icon">⭐</div>
-  <div class="s-title">Твой отзыв важен</div>
-  <div class="s-sub">Помоги нам сделать программу лучше — займёт 2 минуты</div>
-
-  <div class="ok-state" id="fb-ok">
-    <div class="ok-icon">🤍</div>
-    <div class="ok-t">Джазакаллаху хайран!</div>
-    <div class="ok-s">Твой отзыв получен. Мы читаем каждое слово и делаем программу лучше.</div>
-    <button class="btn btn-s" style="margin-top:8px;" onclick="closeSheet('feedback')">Закрыть</button>
-  </div>
-
-  <div id="fb-form">
-    <div class="card"><div class="cb">
-      <div class="ct">Общая оценка программы</div>
-      <div class="emoji-row" id="fb-stars" style="justify-content:center;gap:12px;font-size:28px;margin:8px 0;">
-        <span onclick="selStar(1)" id="fbs-1" style="cursor:pointer;opacity:.35;">⭐</span>
-        <span onclick="selStar(2)" id="fbs-2" style="cursor:pointer;opacity:.35;">⭐</span>
-        <span onclick="selStar(3)" id="fbs-3" style="cursor:pointer;opacity:.35;">⭐</span>
-        <span onclick="selStar(4)" id="fbs-4" style="cursor:pointer;opacity:.35;">⭐</span>
-        <span onclick="selStar(5)" id="fbs-5" style="cursor:pointer;opacity:.35;">⭐</span>
-      </div>
-    </div></div>
-    <div class="card"><div class="cb">
-      <div class="fl">
-        <label>Что понравилось больше всего?</label>
-        <textarea id="fb-liked" rows="3" placeholder="Что зацепило, что помогло..."></textarea>
-      </div>
-      <div class="fl" style="margin-top:12px;">
-        <label>Что можно улучшить?</label>
-        <textarea id="fb-improve" rows="3" placeholder="Что мешало, что было неудобно..."></textarea>
-      </div>
-      <div class="fl" style="margin-top:12px;">
-        <label>Чего не хватает? Что добавить?</label>
-        <textarea id="fb-add" rows="2" placeholder="Твои идеи для программы..."></textarea>
-      </div>
-    </div></div>
-    <button class="btn btn-p" id="fb-btn" onclick="submitFeedback()">Отправить отзыв ⭐</button>
-  </div>
-</div>
-
 <script>
-// ── TELEGRAM ──
-const tg = window.Telegram?.WebApp;
-if (tg) { tg.ready(); tg.expand(); tg.enableClosingConfirmation(); }
-function haptic(t='impact') {
-  if (!tg?.HapticFeedback) return;
-  t === 'impact' ? tg.HapticFeedback.impactOccurred('light') : tg.HapticFeedback.notificationOccurred(t);
+
+// --- utils/tg.js ---
+const tg = window.Telegram?.WebApp ?? null
+
+function initTg() {
+  if (!tg) return
+  tg.ready()
+  tg.expand()
+  tg.enableClosingConfirmation()
 }
 
-// ── USER DATA ──
-const U = { name:'Участник', gender:'M', level:'', currentWeek:0, streak:7, deeds:18, xp:360 };
-
-// Смещения уровней в глобальном массиве WEEKS (30 недель)
-const LEVEL_OFFSET = { 'А':0, 'Б':6, 'В':14, 'Г':22 };
-const LEVEL_ICONS  = { 'А':'🌱', 'Б':'📗', 'В':'📘', 'Г':'📙' };
-const LEVEL_LABELS = { 'А':'ВАКТ','Б':'Сезон 1','В':'Сезон 2','Г':'Сезон 3' };
-
-function readUrlParams() {
-  const p = new URLSearchParams(window.location.search);
-  const lvl = p.get('lvl') || '';
-  const wk  = parseInt(p.get('wk') || '0', 10);
-  if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
-    U.level       = lvl;
-    U.currentWeek = LEVEL_OFFSET[lvl] + wk; // глобальный номер (1-30)
-  }
+function haptic(type = 'impact') {
+  if (!tg?.HapticFeedback) return
+  type === 'impact'
+    ? tg.HapticFeedback.impactOccurred('light')
+    : tg.HapticFeedback.notificationOccurred(type)
 }
 
-function initUser() {
-  readUrlParams();
-  if (tg?.initDataUnsafe?.user) {
-    const u = tg.initDataUnsafe.user;
-    U.name = u.first_name || 'Участник';
-    document.getElementById('ava').textContent = (u.first_name||'У')[0].toUpperCase();
-  }
-  const h = new Date().getHours();
-  const gs = ['Ас-саляму алейкум','Доброе утро','Добрый день','Добрый вечер','Доброй ночи'];
-  const gi = h<5?4:h<12?1:h<17?2:h<22?3:4;
-  document.getElementById('greet').textContent = gs[gi] + ' 👋';
-  document.getElementById('uname-sub').textContent = U.name + (U.level ? ' · ' + (LEVEL_LABELS[U.level]||U.level) : '');
-  document.getElementById('lvl-pill').textContent = U.level
-    ? (LEVEL_ICONS[U.level]||'🌱') + ' ' + (LEVEL_LABELS[U.level]||U.level)
-    : '🌱 IQ Barakah';
-
-  document.getElementById('sv-streak').textContent = U.streak;
-  document.getElementById('sv-weeks').textContent = U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0;
-  document.getElementById('sv-deeds').textContent = U.deeds;
-  document.getElementById('sv-xp').textContent = U.xp;
-
-  const pct = U.currentWeek > 0 ? Math.round(Math.max(0, U.currentWeek - 1) / 30 * 100) : 0;
-  document.getElementById('rpct').textContent = pct + '%';
-  const circ = 2 * Math.PI * 62;
-  document.getElementById('ring').setAttribute('stroke-dashoffset', (circ * (1 - pct/100)).toFixed(1));
-
-  // Заполнить карточку текущей недели
-  if (U.currentWeek > 0 && U.currentWeek <= WEEKS.length) {
-    const cw = WEEKS[U.currentWeek - 1];
-    const cwIcon = document.getElementById('cw-icon');
-    const cwTitle = document.getElementById('cw-title');
-    const cwSub   = document.getElementById('cw-sub');
-    const actCur  = document.getElementById('act-cur-week');
-    if (cw) {
-      if (cwIcon)  cwIcon.textContent  = cw.icon;
-      if (cwTitle) cwTitle.textContent = cw.num + ' · ' + cw.title;
-      if (cwSub)   cwSub.textContent   = cw.sub + ' · Активна';
-      if (actCur)  actCur.textContent  = cw.num + ' · ' + cw.title;
-    }
-  } else {
-    const cwTitle = document.getElementById('cw-title');
-    const cwSub   = document.getElementById('cw-sub');
-    if (cwTitle) cwTitle.textContent = 'Программа не начата';
-    if (cwSub)   cwSub.textContent   = 'Открой в боте /start';
-  }
-
+function sendData(payload) {
+  if (tg) tg.sendData(JSON.stringify(payload))
 }
 
-// ── NAV ──
-let cur = 'home';
-const SC = { home:'sc-home', tracker:'sc-tracker', lessons:'sc-lessons', wheel:'sc-wheel', ship:'sc-ship' };
-const NB = { home:'nb-home', tracker:'nb-tracker', lessons:'nb-lessons', wheel:'nb-wheel', ship:'nb-ship' };
-
-function switchScreen(id) {
-  haptic();
-  document.getElementById(SC[cur])?.classList.remove('active');
-  document.getElementById(NB[cur])?.classList.remove('active');
-  document.getElementById(SC[id])?.classList.add('active');
-  document.getElementById(NB[id])?.classList.add('active');
-  cur = id;
-  if (id==='wheel') renderWheel();
-  if (id==='lessons') renderLessons('all');
-  if (id==='tracker') renderTracker();
-  if (id==='ship') renderShip();
+function openLink(url) {
+  if (tg) tg.openLink(url)
+  else window.open(url, '_blank')
 }
 
-// ── TRACKER ──
-const NAMAZ = [
-  {id:'fajr', label:'Фаджр', icon:'🌅'},
-  {id:'zuhr', label:'Зухр', icon:'☀️'},
-  {id:'asr', label:'Аср', icon:'🌤'},
-  {id:'maghrib', label:'Магриб', icon:'🌇'},
-  {id:'isha', label:'Иша', icon:'🌙'},
-];
-const DAILY = [
-  {id:'azkar_m', icon:'📿', label:'Утренний азкар', sub:'06:00 · Азкары + Фаджр', streak:12},
-  {id:'dhuhr',   icon:'🕛', label:'Обеденный намаз', sub:'13:30 · Зухр + азкары после', streak:8},
-  {id:'azkar_e', icon:'🌇', label:'Вечерний азкар', sub:'20:00 · Азкары + Магриб/Иша', streak:9},
-  {id:'muhasaba',icon:'🌙', label:'Мухасаба', sub:'22:00 · 3 вопроса перед сном', streak:7},
-  {id:'quran',   icon:'📖', label:'Коран', sub:'1 страница в день', streak:5},
-  {id:'deed',    icon:'🤲', label:'Доброе дело', sub:'Любое благо — запишите', streak:7},
-];
-const WEEKLY = [
-  {id:'lesson',   icon:'📚', label:'Урок недели', sub:'Пн · 9:00 — бот пришлёт урок и задания'},
-  {id:'call',     icon:'🎙', label:'Живой созвон', sub:'Пт · 14:00 — с основателем IQ Barakah'},
-  {id:'guest',    icon:'🎤', label:'Пятничный гость', sub:'Пт — шейх, врач или предприниматель'},
-  {id:'mirror',   icon:'📊', label:'Зеркало прогресса', sub:'Каждые 2 нед — авто-отчёт бота'},
-];
-const ONETIME = [
-  {id:'letter',  icon:'✉️', label:'Письмо себе', sub:'День нулевой — прочтёшь в конце'},
-  {id:'anchor',  icon:'👥', label:'Якорный брат', sub:'При входе — брат с похожим уровнем'},
-];
-
-let checked = JSON.parse(localStorage.getItem('iq_checked') || '{}');
-function saveChecked() { localStorage.setItem('iq_checked', JSON.stringify(checked)); }
-
-const todayKey = () => new Date().toISOString().split('T')[0];
-
-function isChecked(id) { return !!(checked[todayKey()]?.[id]); }
-function toggleHabit(id, el) {
-  haptic();
-  const k = todayKey();
-  if (!checked[k]) checked[k] = {};
-  if (checked[k][id]) { delete checked[k][id]; } else { checked[k][id] = true; }
-  saveChecked();
-  updateHabitEl(id, el);
-  updateProgress();
-  if (checked[k][id]) el.classList.add('pop');
-  setTimeout(() => el.classList.remove('pop'), 350);
-}
-function toggleWeekly(id, el) {
-  haptic();
-  if (checked['weekly']?.[id]) { delete checked['weekly'][id]; }
-  else { if (!checked['weekly']) checked['weekly'] = {}; checked['weekly'][id] = true; }
-  saveChecked();
-  el.classList.toggle('done-w', !!(checked['weekly']?.[id]));
-  const wc = el.querySelector('.wi-check');
-  if (wc) wc.innerHTML = checked['weekly']?.[id] ? '<span style="font-size:13px;color:white;">✓</span>' : '';
-}
-function toggleOnetime(id, el) {
-  haptic();
-  if (checked['onetime']?.[id]) { delete checked['onetime'][id]; }
-  else { if (!checked['onetime']) checked['onetime'] = {}; checked['onetime'][id] = true; }
-  saveChecked();
-  el.classList.toggle('done-w', !!(checked['onetime']?.[id]));
-  const wc = el.querySelector('.wi-check');
-  if (wc) wc.innerHTML = checked['onetime']?.[id] ? '<span style="font-size:13px;color:white;">✓</span>' : '';
+function getTgUser() {
+  return tg?.initDataUnsafe?.user ?? null
 }
 
-function updateHabitEl(id, el) {
-  const done = isChecked(id);
-  el.classList.toggle('checked', done);
-  const hc = el.querySelector('.hcheck');
-  if (hc) hc.innerHTML = done ? '<span style="color:white;font-size:14px;">✓</span>' : '';
-}
-function updateNamazEl(id, btn) {
-  const done = isChecked(id);
-  btn.classList.toggle('done', done);
-}
-function updateProgress() {
-  const all = [...NAMAZ.map(n=>n.id), ...DAILY.map(d=>d.id)];
-  const total = all.length;
-  const done = all.filter(id => isChecked(id)).length;
-  document.getElementById('tp-sub').textContent = done + ' из ' + total + ' выполнено';
-  document.getElementById('tp-count').textContent = done + '/' + total;
-  document.getElementById('tp-bar').style.width = Math.round((done/total)*100) + '%';
-  if (done === total) document.getElementById('tracker-dot').classList.remove('show');
+function cloudGet(key, cb) {
+  tg?.CloudStorage?.getItem(key, cb)
 }
 
-function renderWeekStrip() {
-  const strip = document.getElementById('week-strip');
-  strip.innerHTML = '';
-  const days = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-  const today = new Date();
-  const dow = today.getDay();
-  const monday = new Date(today); monday.setDate(today.getDate() - ((dow+6)%7));
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday); d.setDate(monday.getDate() + i);
-    const isToday = d.toDateString() === today.toDateString();
-    const dk = d.toISOString().split('T')[0];
-    const hasDone = checked[dk] && Object.keys(checked[dk]).length > 0;
-    const chip = document.createElement('div');
-    chip.className = 'day-chip' + (isToday?' today':hasDone?' done-day':'');
-    chip.innerHTML = `<span class="dn">${days[d.getDay()]}</span><span class="dd">${d.getDate()}</span><span class="dc"></span>`;
-    strip.appendChild(chip);
-    if (isToday) setTimeout(() => chip.scrollIntoView({inline:'center',block:'nearest'}), 100);
-  }
+function cloudSet(key, value) {
+  tg?.CloudStorage?.setItem(key, value)
 }
 
-function renderTracker() {
-  // date header
-  const d = new Date();
-  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-  const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
-  document.getElementById('tracker-date').textContent = d.getDate() + ' ' + months[d.getMonth()] + ', ' + days[d.getDay()];
 
-  renderWeekStrip();
+// --- utils/storage.js ---
+const PREFIX = 'iq_'
 
-  // Намаз grid
-  const ng = document.getElementById('namaz-grid');
-  ng.innerHTML = '';
-  NAMAZ.forEach(n => {
-    const btn = document.createElement('button');
-    btn.className = 'namaz-btn' + (isChecked(n.id) ? ' done' : '');
-    btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${isChecked(n.id)?'✅':n.icon}</span>`;
-    btn.onclick = () => {
-      haptic();
-      toggleHabit(n.id, btn);
-      const done = isChecked(n.id);
-      btn.className = 'namaz-btn' + (done?' done':'');
-      btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${done?'✅':n.icon}</span>`;
-      updateProgress();
-    };
-    ng.appendChild(btn);
-  });
-
-  // Daily habits
-  const dh = document.getElementById('daily-habits');
-  dh.innerHTML = '';
-  DAILY.forEach(h => {
-    const el = document.createElement('div');
-    el.className = 'habit-item' + (isChecked(h.id) ? ' checked' : '');
-    el.innerHTML = `
-      <div class="hcheck">${isChecked(h.id)?'<span style="color:white;font-size:14px;">✓</span>':''}</div>
-      <div class="act-ic gr" style="width:38px;height:38px;border-radius:10px;font-size:18px;">${h.icon}</div>
-      <div class="habit-info">
-        <div class="t">${h.label}</div>
-        <div class="s">${h.sub}</div>
-      </div>
-      <div class="habit-streak">🔥${h.streak}</div>`;
-    el.onclick = () => toggleHabit(h.id, el);
-    dh.appendChild(el);
-  });
-
-  // Weekly
-  const wh = document.getElementById('weekly-habits');
-  wh.innerHTML = '';
-  WEEKLY.forEach(w => {
-    const done = !!(checked['weekly']?.[w.id]);
-    const el = document.createElement('div');
-    el.className = 'weekly-item' + (done ? ' done-w' : '');
-    el.innerHTML = `
-      <div class="wi-icon">${w.icon}</div>
-      <div class="wi-info"><div class="t">${w.label}</div><div class="s">${w.sub}</div></div>
-      <div class="wi-check">${done?'<span style="font-size:13px;color:white;">✓</span>':''}</div>`;
-    el.onclick = () => toggleWeekly(w.id, el);
-    wh.appendChild(el);
-  });
-
-  // One-time
-  const oh = document.getElementById('onetime-habits');
-  oh.innerHTML = '';
-  ONETIME.forEach(w => {
-    const done = !!(checked['onetime']?.[w.id]);
-    const el = document.createElement('div');
-    el.className = 'weekly-item' + (done ? ' done-w' : '');
-    el.innerHTML = `
-      <div class="wi-icon">${w.icon}</div>
-      <div class="wi-info"><div class="t">${w.label}</div><div class="s">${w.sub}</div></div>
-      <div class="wi-check">${done?'<span style="font-size:13px;color:white;">✓</span>':''}</div>`;
-    el.onclick = () => toggleOnetime(w.id, el);
-    oh.appendChild(el);
-  });
-
-  updateProgress();
+function lsGet(key, fallback = null) {
+  try {
+    const v = localStorage.getItem(PREFIX + key)
+    return v !== null ? JSON.parse(v) : fallback
+  } catch { return fallback }
 }
 
-// ── SHIP ──
-const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html';
-
-function renderShip() {
-  ['business','personal'].forEach(type => {
-    const raw = localStorage.getItem('ship_' + type);
-    const resultEl = document.getElementById('ship-result-' + type);
-    const scoreEl  = document.getElementById('ship-score-' + type);
-    const dateEl   = document.getElementById('ship-date-' + type);
-    const btnEl    = document.getElementById('ship-btn-' + type);
-    if (!raw || !resultEl) return;
-    try {
-      const d = JSON.parse(raw);
-      if (!d.scores) return;
-      const avg = Math.round(d.scores.reduce((s,v)=>s+v,0)/d.scores.length);
-      scoreEl.textContent = avg + '%';
-      scoreEl.className = 'ship-result-score ' + (avg>=70?'hi':avg>=45?'mid':'lo');
-      const dt = new Date(d.ts || d.date);
-      dateEl.textContent = dt.toLocaleDateString('ru',{day:'numeric',month:'short'});
-      resultEl.style.display = 'flex';
-      btnEl.textContent = (type==='business'?'⚓':'🌙') + ' Пройти снова';
-    } catch(e) {}
-  });
-  // Try CloudStorage as fallback
-  if (window.Telegram?.WebApp?.CloudStorage) {
-    ['business','personal'].forEach(type => {
-      if (localStorage.getItem('ship_' + type)) return; // already loaded
-      tg.CloudStorage.getItem('ship_' + type, (err, val) => {
-        if (!err && val) {
-          localStorage.setItem('ship_' + type, val);
-          renderShip();
-        }
-      });
-    });
-  }
+function lsSet(key, value) {
+  localStorage.setItem(PREFIX + key, JSON.stringify(value))
 }
 
-function openShip(type) {
-  haptic();
-  const url = SHIP_URL + '?tab=' + type;
-  if (tg) tg.openLink(url);
-  else window.open(url, '_blank');
+function todayKey() {
+  return new Date().toISOString().split('T')[0]
 }
 
-// ── WHEEL ──
-const SECTORS = [
-  {name:'Вера (Иман)', color:'#2c5f2d', val:7},
-  {name:'Намаз',       color:'#3d7a3e', val:6},
-  {name:'Семья',       color:'#c9a84c', val:8},
-  {name:'Здоровье',    color:'#5b8fa8', val:5},
-  {name:'Ризк',        color:'#7b5ea7', val:6},
-  {name:'Знание',      color:'#e07b39', val:7},
-  {name:'Ахляк',       color:'#d4547a', val:8},
-  {name:'Уммет',       color:'#4a9e8c', val:5},
-];
 
-function renderWheel() { drawWheel(); buildSliders(); }
-
-function drawWheel() {
-  const cv = document.getElementById('wcanvas'); if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const cx=145, cy=145, r=122, n=SECTORS.length, step=(2*Math.PI)/n;
-  ctx.clearRect(0,0,290,290);
-  for (let i=1;i<=10;i++) {
-    ctx.beginPath(); ctx.arc(cx,cy,(r/10)*i,0,2*Math.PI);
-    ctx.strokeStyle = i===10?'#ccc':'#eee'; ctx.lineWidth = i===10?1.5:1; ctx.stroke();
-  }
-  SECTORS.forEach((s,i) => {
-    const a=-Math.PI/2+i*step, ea=a+step, sr=(r/10)*s.val;
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,sr,a,ea); ctx.closePath();
-    ctx.fillStyle=s.color+'4a'; ctx.fill();
-    ctx.strokeStyle=s.color; ctx.lineWidth=2; ctx.stroke();
-  });
-  SECTORS.forEach((_,i) => {
-    const a=-Math.PI/2+i*step;
-    ctx.beginPath(); ctx.moveTo(cx,cy);
-    ctx.lineTo(cx+r*Math.cos(a), cy+r*Math.sin(a));
-    ctx.strokeStyle='#ddd'; ctx.lineWidth=1; ctx.stroke();
-  });
-  ctx.font='bold 11px -apple-system,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  SECTORS.forEach((s,i) => {
-    const a=-Math.PI/2+(i+.5)*step, lr=r+16;
-    ctx.fillStyle=s.color; ctx.fillText(s.val, cx+lr*Math.cos(a), cy+lr*Math.sin(a));
-  });
-  ctx.beginPath(); ctx.arc(cx,cy,5,0,2*Math.PI); ctx.fillStyle='#2c5f2d'; ctx.fill();
-}
-
-function buildSliders() {
-  const w = document.getElementById('sliders'); if (!w) return;
-  w.innerHTML = '';
-  SECTORS.forEach((s,i) => {
-    const d = document.createElement('div'); d.className='sl-row';
-    d.innerHTML=`<div class="sl-label"><span class="sn" style="color:${s.color};">● ${s.name}</span><span class="sv" id="sv${i}">${s.val}</span></div><input type="range" min="1" max="10" value="${s.val}" style="accent-color:${s.color};" oninput="updSector(${i},this.value)">`;
-    w.appendChild(d);
-  });
-}
-
-function updSector(i,v) {
-  SECTORS[i].val=parseInt(v);
-  document.getElementById('sv'+i).textContent=v;
-  drawWheel();
-}
-
-function saveWheel() {
-  haptic('success');
-  const scores = Object.fromEntries(SECTORS.map(s => [s.label, s.val]));
-  if (tg) {
-    tg.sendData(JSON.stringify({action: 'wheel', values: scores}));
-    tg.showPopup({title:'Сохранено',message:'Колесо баланса обновлено.',buttons:[{type:'ok'}]});
-  } else { showToast('Колесо сохранено ✓'); }
-}
-
-// ── LESSONS ──
+// --- data/weeks.js ---
 const WEEKS = [
-  {id:'v1',phase:'vakt',num:'В1',title:'Ният — тайный разговор',sub:'ВАКТ · Неделя 1',icon:'🌿'},
-  {id:'v2',phase:'vakt',num:'В2',title:'Фаджр — якорь дня',sub:'ВАКТ · Неделя 2',icon:'🕌'},
-  {id:'v3',phase:'vakt',num:'В3',title:'Тауба — чистый лист',sub:'ВАКТ · Неделя 3',icon:'🍃'},
-  {id:'v4',phase:'vakt',num:'В4',title:'Сабр — держи курс',sub:'ВАКТ · Неделя 4',icon:'💪'},
-  {id:'v5',phase:'vakt',num:'В5',title:'Зикр — Аллах в каждом деле',sub:'ВАКТ · Неделя 5',icon:'🌙'},
-  {id:'v6',phase:'vakt',num:'В6',title:'Итог — твоя система',sub:'ВАКТ · Неделя 6',icon:'🏆'},
-  {id:'s1_1',phase:'s1',num:'С1.1',title:'Тайный разговор',sub:'Сезон 1 · Неделя 1',icon:'🌱'},
-  {id:'s1_2',phase:'s1',num:'С1.2',title:'Возвращение домой',sub:'Сезон 1 · Неделя 2',icon:'🏠'},
-  {id:'s1_3',phase:'s1',num:'С1.3',title:'Священное пространство',sub:'Сезон 1 · Неделя 3',icon:'✨'},
-  {id:'s1_4',phase:'s1',num:'С1.4',title:'Время как свидетель',sub:'Сезон 1 · Неделя 4',icon:'⏱'},
-  {id:'s1_5',phase:'s1',num:'С1.5',title:'Кто твой Господь?',sub:'Сезон 1 · Неделя 5',icon:'📱'},
-  {id:'s1_6',phase:'s1',num:'С1.6',title:'Нулевой километр',sub:'Сезон 1 · Неделя 6',icon:'🧹'},
-  {id:'s1_7',phase:'s1',num:'С1.7',title:'Ты — не мозг в банке',sub:'Сезон 1 · Неделя 7',icon:'💪'},
-  {id:'s1_8',phase:'s1',num:'С1.8',title:'Генеральная уборка души',sub:'Сезон 1 · Неделя 8',icon:'🌿'},
-  {id:'s2_1',phase:'s2',num:'С2.1',title:'Как шайтан взламывает мозг',sub:'Сезон 2 · Неделя 1',icon:'🧠'},
-  {id:'s2_2',phase:'s2',num:'С2.2',title:'Строительство крепости',sub:'Сезон 2 · Неделя 2',icon:'🏗'},
-  {id:'s2_3',phase:'s2',num:'С2.3',title:'Сжигание кораблей',sub:'Сезон 2 · Неделя 3',icon:'🔥'},
-  {id:'s2_4',phase:'s2',num:'С2.4',title:'Что тяжелее всего на весах?',sub:'Сезон 2 · Неделя 4',icon:'⚖️'},
-  {id:'s2_5',phase:'s2',num:'С2.5',title:'Дай плату, пока не высох пот',sub:'Сезон 2 · Неделя 5',icon:'💼'},
-  {id:'s2_6',phase:'s2',num:'С2.6',title:'Самый длинный аят',sub:'Сезон 2 · Неделя 6',icon:'📜'},
-  {id:'s2_7',phase:'s2',num:'С2.7',title:'Партнёрство с Аллахом',sub:'Сезон 2 · Неделя 7',icon:'🤝'},
-  {id:'s2_8',phase:'s2',num:'С2.8',title:'Синдром Атланта',sub:'Сезон 2 · Неделя 8',icon:'🌍'},
-  {id:'s3_1',phase:'s3',num:'С3.1',title:'У подножия их ног',sub:'Сезон 3 · Неделя 1',icon:'👣'},
-  {id:'s3_2',phase:'s3',num:'С3.2',title:'Оставь войну за порогом',sub:'Сезон 3 · Неделя 2',icon:'🏠'},
-  {id:'s3_3',phase:'s3',num:'С3.3',title:'Зеркальные нейроны',sub:'Сезон 3 · Неделя 3',icon:'👶'},
-  {id:'s3_4',phase:'s3',num:'С3.4',title:'Кузнец и парфюмер',sub:'Сезон 3 · Неделя 4',icon:'🌹'},
-  {id:'s3_5',phase:'s3',num:'С3.5',title:'Король без короны',sub:'Сезон 3 · Неделя 5',icon:'👑'},
-  {id:'s3_6',phase:'s3',num:'С3.6',title:'Река и болото',sub:'Сезон 3 · Неделя 6',icon:'🌊'},
-  {id:'s3_7',phase:'s3',num:'С3.7',title:'Открытый счёт',sub:'Сезон 3 · Неделя 7',icon:'📊'},
-  {id:'s3_8',phase:'s3',num:'С3.8',title:'Точка невозврата',sub:'Сезон 3 · Неделя 8',icon:'🏛️'},
-];
-const PH = {vakt:'🌱 ВАКТ · Тайм-менеджмент мусульманина (6 недель)',s1:'📗 Сезон 1 · Основание · КТО ты есть (8 недель)',s2:'📘 Сезон 2 · Строительство · КАК ты живёшь (8 недель)',s3:'📙 Сезон 3 · Наследие · ЗАЧЕМ ты живёшь (8 недель)'};
-const WC = {
-  vakt:{az:'«Бисмиллях» перед каждым делом + азкар утром и вечером',qu:'Аль-Фатиха — вдумчиво каждый день',deed:'Один щелчок нията перед любым действием'},
-  s1:  {az:'Истигфар 100 раз в день',qu:'Сура Аль-Бакара — 1 стр. в день',deed:'Накормить нуждающегося или сделать садака'},
-  s2:  {az:'Салавату на Пророка ﷺ — 100 раз',qu:'Сура Аль-Имран — 1 стр. в день',deed:'Навестить родителей или позвонить'},
-  s3:  {az:'ЛяИляха ИллаЛлах — 100 раз',qu:'Сура Аль-Кахф — в пятницу полностью',deed:'Обучить кого-то одному исламскому знанию'},
-};
+  {id:'v1', phase:'vakt', num:'В1', title:'Ният — топливо жизни',              sub:'ВАКТ · Неделя 1', icon:'🌱'},
+  {id:'v2', phase:'vakt', num:'В2', title:'Фаджр — якорь дня',                 sub:'ВАКТ · Неделя 2', icon:'🌅'},
+  {id:'v3', phase:'vakt', num:'В3', title:'Священное пространство',             sub:'ВАКТ · Неделя 3', icon:'🏠'},
+  {id:'v4', phase:'vakt', num:'В4', title:'Время как свидетель',                sub:'ВАКТ · Неделя 4', icon:'⏱'},
+  {id:'v5', phase:'vakt', num:'В5', title:'Мухасаба — вечерний отчёт',          sub:'ВАКТ · Неделя 5', icon:'🌙'},
+  {id:'v6', phase:'vakt', num:'В6', title:'Истикама — договор с собой',         sub:'ВАКТ · Неделя 6', icon:'🏆'},
+  {id:'s1_1',phase:'s1', num:'С1.1',title:'Тайный разговор',                   sub:'Сезон 1 · Неделя 1',icon:'🌱'},
+  {id:'s1_2',phase:'s1', num:'С1.2',title:'Возвращение домой',                 sub:'Сезон 1 · Неделя 2',icon:'🏠'},
+  {id:'s1_3',phase:'s1', num:'С1.3',title:'Священное пространство',            sub:'Сезон 1 · Неделя 3',icon:'✨'},
+  {id:'s1_4',phase:'s1', num:'С1.4',title:'Время как свидетель',               sub:'Сезон 1 · Неделя 4',icon:'⏱'},
+  {id:'s1_5',phase:'s1', num:'С1.5',title:'Кто твой Господь?',                 sub:'Сезон 1 · Неделя 5',icon:'📱'},
+  {id:'s1_6',phase:'s1', num:'С1.6',title:'Нулевой километр',                  sub:'Сезон 1 · Неделя 6',icon:'🧹'},
+  {id:'s1_7',phase:'s1', num:'С1.7',title:'Ты — не мозг в банке',              sub:'Сезон 1 · Неделя 7',icon:'💪'},
+  {id:'s1_8',phase:'s1', num:'С1.8',title:'Генеральная уборка души',           sub:'Сезон 1 · Неделя 8',icon:'🌿'},
+  {id:'s2_1',phase:'s2', num:'С2.1',title:'Как шайтан взламывает мозг',        sub:'Сезон 2 · Неделя 1',icon:'🧠'},
+  {id:'s2_2',phase:'s2', num:'С2.2',title:'Строительство крепости',            sub:'Сезон 2 · Неделя 2',icon:'🏗'},
+  {id:'s2_3',phase:'s2', num:'С2.3',title:'Сжигание кораблей',                 sub:'Сезон 2 · Неделя 3',icon:'🔥'},
+  {id:'s2_4',phase:'s2', num:'С2.4',title:'Что тяжелее всего на весах?',       sub:'Сезон 2 · Неделя 4',icon:'⚖️'},
+  {id:'s2_5',phase:'s2', num:'С2.5',title:'Дай плату, пока не высох пот',      sub:'Сезон 2 · Неделя 5',icon:'💼'},
+  {id:'s2_6',phase:'s2', num:'С2.6',title:'Самый длинный аят',                 sub:'Сезон 2 · Неделя 6',icon:'📜'},
+  {id:'s2_7',phase:'s2', num:'С2.7',title:'Партнёрство с Аллахом',             sub:'Сезон 2 · Неделя 7',icon:'🤝'},
+  {id:'s2_8',phase:'s2', num:'С2.8',title:'Синдром Атланта',                   sub:'Сезон 2 · Неделя 8',icon:'🌍'},
+  {id:'s3_1',phase:'s3', num:'С3.1',title:'У подножия их ног',                 sub:'Сезон 3 · Неделя 1',icon:'👣'},
+  {id:'s3_2',phase:'s3', num:'С3.2',title:'Оставь войну за порогом',           sub:'Сезон 3 · Неделя 2',icon:'🏠'},
+  {id:'s3_3',phase:'s3', num:'С3.3',title:'Зеркальные нейроны',                sub:'Сезон 3 · Неделя 3',icon:'👶'},
+  {id:'s3_4',phase:'s3', num:'С3.4',title:'Кузнец и парфюмер',                 sub:'Сезон 3 · Неделя 4',icon:'🌹'},
+  {id:'s3_5',phase:'s3', num:'С3.5',title:'Король без короны',                 sub:'Сезон 3 · Неделя 5',icon:'👑'},
+  {id:'s3_6',phase:'s3', num:'С3.6',title:'Река и болото',                     sub:'Сезон 3 · Неделя 6',icon:'🌊'},
+  {id:'s3_7',phase:'s3', num:'С3.7',title:'Открытый счёт',                     sub:'Сезон 3 · Неделя 7',icon:'📊'},
+  {id:'s3_8',phase:'s3', num:'С3.8',title:'Точка невозврата',                  sub:'Сезон 3 · Неделя 8',icon:'🏛️'},
+]
 
-function filterPhase(ph, btn) {
-  haptic();
-  document.querySelectorAll('.chip').forEach(c=>{c.classList.remove('on');c.classList.add('off');});
-  btn.classList.add('on'); btn.classList.remove('off');
-  renderLessons(ph);
+const PHASE_LABELS = {
+  vakt: '🌱 ВАКТ · Тайм-менеджмент мусульманина (6 недель)',
+  s1:   '📗 Сезон 1 · Основание · КТО ты есть (8 недель)',
+  s2:   '📘 Сезон 2 · Строительство · КАК ты живёшь (8 недель)',
+  s3:   '📙 Сезон 3 · Наследие · ЗАЧЕМ ты живёшь (8 недель)',
 }
 
-function renderLessons(ph) {
-  const list = document.getElementById('week-list'); list.innerHTML='';
-  const filtered = ph==='all' ? WEEKS : WEEKS.filter(w=>w.phase===ph);
-  let lastPh = null;
-  let curEl   = null;
-  filtered.forEach(w => {
-    if (w.phase !== lastPh) {
-      const l=document.createElement('div'); l.className='phase-lbl'; l.textContent=PH[w.phase];
-      list.appendChild(l); lastPh=w.phase;
-    }
-    const wi     = WEEKS.indexOf(w) + 1;          // глобальный номер 1-30
-    const hasCur = U.currentWeek > 0;
-    const done   = hasCur ? wi < U.currentWeek : false;
-    const isCur  = hasCur ? wi === U.currentWeek : false;
-    const locked = hasCur ? wi > U.currentWeek  : (wi > 1);
-    const el = document.createElement('div');
-    el.className = 'week-item' + (isCur ? ' week-item-current' : '');
-    el.innerHTML=`
-      <div class="wnum ${locked?'lock':done?'done':'cur'}">${w.num}</div>
-      <div class="winfo"><div class="t">${w.icon} ${w.title}</div><div class="s">${w.sub}</div></div>
-      <div class="wstat">${locked?'🔒':done?'✅':'📖'}</div>`;
-    el.onclick=()=>openLessonSheet(w,done,isCur,locked);
-    list.appendChild(el);
-    if (isCur) curEl = el;
-  });
-  // Прокрутить к текущей неделе
-  if (curEl) setTimeout(()=>curEl.scrollIntoView({behavior:'smooth',block:'center'}), 120);
+const WEEK_CONTENT = {
+  vakt: { az: '«Бисмиллях» перед каждым делом + азкар утром и вечером', qu: 'Аль-Фатиха — вдумчиво каждый день',    deed: 'Один щелчок нията перед любым действием' },
+  s1:   { az: 'Истигфар 100 раз в день',                                  qu: 'Сура Аль-Бакара — 1 стр. в день',      deed: 'Накормить нуждающегося или сделать садака' },
+  s2:   { az: 'Салавату на Пророка ﷺ — 100 раз',                         qu: 'Сура Аль-Имран — 1 стр. в день',       deed: 'Навестить родителей или позвонить' },
+  s3:   { az: 'ЛяИляха ИллаЛлах — 100 раз',                              qu: 'Сура Аль-Кахф — в пятницу полностью', deed: 'Обучить кого-то одному исламскому знанию' },
 }
 
-const VAKT_LESSONS = {
-  v1: {
-    hadith: `«Поистине, дела оцениваются только по намерениям, и каждому человеку — лишь то, что он намеревался обрести» — Сахих аль-Бухари №1, Сахих Муслим №1907`,
-    A: { text: `Ты устал. Бежишь с утра до ночи, тушишь пожары, решаешь проблемы одну за другой. К вечеру падаешь на диван — и чувствуешь странную пустоту. День прошёл, ты выжат как лимон, но какое-то внутреннее чувство говорит: «Всё это было впустую». Знакомо?
+const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
+const LEVEL_ICONS  = { А: '🌱', Б: '📗', В: '📘', Г: '📙' }
+const LEVEL_LABELS = { А: 'ВАКТ', Б: 'Сезон 1', В: 'Сезон 2', Г: 'Сезон 3' }
 
-Я хочу показать тебе один приём. Он простой. Занимает 3 секунды. Перед каждым переключением дел останови себя и задай один вопрос: «Ради чего я это делаю?»
 
-Ты не обязан знать идеальный ответ. Ты просто начинаешь замечать — что движет тобой. Страх? Привычка? Или что-то важное? Замечать — это уже большой шаг.`, tasks: ["📿 «Бисмиллях» перед едой — осознанно, с паузой, вспомни что эта еда — дар от Аллаха", "📖 Прослушай Суру Аль-Фатиха (1:1–7) хотя бы один раз — вдумчиво", "🕐 Один раз за день сделай паузу перед любым делом и скажи: «Я делаю это ради Аллаха»", "🌙 Перед сном задай себе вопрос: «Что хорошего я сделал сегодня?»"] },
-    B: { text: `Представь двух мусульман. Оба работают по 10 часов. Внешне их дни одинаковы. Но в Судный День их весы будут принципиально разными.
+// --- data/habits.js ---
+const NAMAZ = [
+  { id: 'fajr',    label: 'Фаджр', icon: '🌅' },
+  { id: 'zuhr',    label: 'Зухр',  icon: '☀️' },
+  { id: 'asr',     label: 'Аср',   icon: '🌤' },
+  { id: 'maghrib', label: 'Магриб',icon: '🌇' },
+  { id: 'isha',    label: 'Иша',   icon: '🌙' },
+]
 
-Разница — в одном щелчке внутри. В одной настройке перед выходом из дома.
+const DAILY = [
+  { id: 'azkar_m', icon: '📿', label: 'Утренний азкар',  sub: '06:00 · Азкары + Фаджр',          streak: 0 },
+  { id: 'dhuhr',   icon: '🕛', label: 'Обеденный намаз', sub: '13:30 · Зухр + азкары после',      streak: 0 },
+  { id: 'azkar_e', icon: '🌇', label: 'Вечерний азкар',  sub: '20:00 · Азкары + Магриб/Иша',     streak: 0 },
+  { id: 'muhasaba',icon: '🌙', label: 'Мухасаба',        sub: '22:00 · 3 вопроса перед сном',     streak: 0 },
+  { id: 'quran',   icon: '📖', label: 'Коран',           sub: '1 страница в день',                streak: 0 },
+  { id: 'deed',    icon: '🤲', label: 'Доброе дело',     sub: 'Любое благо — запишите',           streak: 0 },
+]
 
-Ният (намерение) — это настройка компаса сердца. Ты идёшь на работу — обычный ният: «надо зарабатывать». Обновлённый: «О Аллах, обеспечиваю семью ради Твоего довольства». Теперь каждый час работы — ибадат (поклонение).
+const WEEKLY = [
+  { id: 'lesson', icon: '📚', label: 'Урок недели',        sub: 'Пн · 9:00 — бот пришлёт урок и задания' },
+  { id: 'call',   icon: '🎙', label: 'Живой созвон',       sub: 'Пт · 14:00 — с основателем IQ Barakah'  },
+  { id: 'guest',  icon: '🎤', label: 'Пятничный гость',    sub: 'Пт — шейх, врач или предприниматель'     },
+  { id: 'mirror', icon: '📊', label: 'Зеркало прогресса',  sub: 'Каждые 2 нед — авто-отчёт бота'         },
+]
 
-Инструмент — «3 секунды»: перед каждым переключением дел замри и скажи: «О Аллах, я делаю это ради Твоего довольства».`, tasks: ["📿 «Бисмиллях» перед каждым делом — 7 дней, веди счёт (цель: минимум 20 раз в день)", "🌅 Утром до телефона: выдели минуту и скажи вслух ният на день", "📖 Аль-Фатиха + Аятуль-Курси каждое утро", "📝 Запиши в блокнот 3 дела дня с ниятом: ради чего делаешь"] },
-    C: { text: `Имам Ибн Раджаб аль-Ханбали написал об этом хадисе целый трактат. Имам аш-Шафи'и сказал: «Этот хадис составляет треть всего знания Ислама».
+const ONETIME = [
+  { id: 'letter', icon: '✉️', label: 'Письмо себе',    sub: 'День нулевой — прочтёшь в конце'        },
+  { id: 'anchor', icon: '👥', label: 'Якорный брат',   sub: 'При входе — брат с похожим уровнем'      },
+]
 
-Ихляс (искренность) — одна из самых тяжёлых вещей для нафса. Легко делать намаз — трудно делать его только ради Аллаха.
 
-Рия (показуха) — малый ширк. Пророк ﷺ боялся его для уммы больше явного ширка. Он невидимо проникает в самые праведные дела.
+// --- i18n.js ---
+const SUPPORTED = ['ru', 'en', 'ar', 'de', 'tr', 'id', 'ur', 'bn', 'fr', 'ms']
+const RTL = new Set(['ar', 'ur'])
 
-Инструмент — «Тайное дело»: сделай одно значимое доброе дело так, чтобы абсолютно никто не узнал. Это твой личный тест на ихляс.`, tasks: ["📖 Найди тафсир хадиса «Иннамаль-а'малю бин-ниййат» в книге Ибн Раджаба «Джами' аль-'улюм»", "✨ Весь день — ният аль-ихляс: перед каждым значимым действием обновляй намерение", "🤝 Объясни смысл нията одному близкому человеку — простыми словами", "📓 Вечером запиши: где сегодня был ихляс, а где — сомнение в искренности"] },
+const TEXT = {
+  ru: {
+    home: 'Главная',
+    tracker: 'Трекер',
+    lessons: 'Уроки',
+    wheel: 'Баланс',
+    ship: 'Корабль',
+    loading: 'Загрузка...',
+    openPath: 'Открыть карту пути →',
+    totalProgress: 'Общий прогресс',
+    completed: 'пройдено',
+    streakDays: 'дней подряд',
+    weeksDone: 'недель сдано',
+    goodDeeds: 'добрых дел',
+    barakahPoints: 'баракат-баллов',
+    goTo: 'Перейти',
+    dayTracker: 'Трекер дня',
+    dayTrackerSub: 'Намаз, азкар, мухасаба',
+    currentLesson: 'Текущий урок',
+    openLessonsMap: 'Открыть карту уроков',
+    lifeWheel: 'Колесо баланса',
+    lifeWheelSub: '8 сфер жизни',
+    eveningMuhasaba: 'Мухасаба вечера',
+    eveningMuhasabaSub: 'Три вопроса — займёт 2 минуты',
+    levelDiagnostic: 'Диагностика уровня',
+    levelDiagnosticSub: 'Пройти заново или сменить уровень',
+    today: 'Сегодня',
+    markDone: 'Отмечайте выполненное',
+    thisWeek: 'Эта неделя',
+    dayProgress: 'Прогресс дня',
+    doneOf: '{done} из {total} выполнено',
+    namazTitle: '🕌 Намаз (5 раз в день)',
+    dailyPractices: '☀️ Ежедневные практики',
+    weeklyPractices: '📅 На этой неделе',
+    oneTime: '🌱 Один раз',
+    program: 'Программа',
+    pathMap: 'Карта пути',
+    pathMapSub: 'ВАКТ 6 нед + IQ Barakah 24 нед · 3 сезона',
+    all: 'Все',
+    season1: 'Сезон 1',
+    season2: 'Сезон 2',
+    season3: 'Сезон 3',
+    wheelTitle: 'Колесо жизни',
+    wheelSub: 'Оцените каждую сферу от 1 до 10',
+    configureValues: 'Настройте значения',
+    saveScore: '💾 Сохранить оценку',
+    diagnostic: 'Диагностика',
+    shipTitle: 'Корабль Бараката',
+    shipSub: '15 отсеков · Найди пробоины · Получи разбор',
+    businessDiagnostic: 'Бизнес-диагностика',
+    businessDiagnosticSub: 'Стратегия · Финансы · Команда · Продажи и ещё 11',
+    personalLife: 'Личная жизнь',
+    personalLifeSub: 'Иман · Здоровье · Семья · Время и ещё 11',
+    shipHealth: 'Здоровье корабля',
+    takeDiagnostic: 'Пройти диагностику',
+    retake: 'Пройти снова',
+    howItWorks: 'Как это работает',
+    shipStep1: 'Оцени каждый из 15 отсеков от 0 до 100',
+    shipStep2: 'Увидишь где пробоины — критические и требующие внимания',
+    shipStep3: 'Джарвас даст рекомендации по каждой слабой зоне',
+    shipStep4: 'Результаты сохранятся — можно отслеживать прогресс раз в месяц',
+    programNotStarted: 'Программа не начата',
+    openBotStart: 'Открой в боте /start',
+    active: 'Активна',
+    locked: '🔒 Заблокировано',
+    completedLesson: '✅ Завершена',
+    current: '📖 Текущая',
+    howToOpen: 'Как открыть',
+    unlockHint: 'Сдайте мухасабу за текущую неделю — куратор откроет следующую',
+    weeklyAzkar: 'Азкар недели',
+    quran: 'Коран',
+    goodDeed: 'Доброе дело',
+    close: 'Закрыть',
+    submitMuhasaba: '✍️ Сдать мухасабу',
+    wheelSaved: 'Колесо баланса сохранено ✓',
+    dateLocale: 'ru-RU',
+    weekdaysShort: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
+    goodMorning: 'Доброе утро',
+    goodDay: 'Добрый день',
+    goodEvening: 'Добрый вечер',
+    goodNight: 'Доброй ночи',
   },
-  v2: {
-    hadith: `«Кто совершит утренний намаз (Фаджр), тот находится под защитой Аллаха» — Сахих Муслим №657`,
-    A: { text: `Что первым делом делаешь когда просыпаешься? Берёшь телефон? Уже через 5 минут в голову хлынули чужие новости и чужие проблемы. День не начался — а ты уже устал.
-
-А теперь представь другое утро. Тишина. Никаких уведомлений. Просто ты и утро. Стакан воды, прохладное умывание. Одна мысль: «Альхамдулиллях, что я проснулся. Я жив».
-
-Я прошу об одном: завтра утром, до телефона, просто посиди в тишине 5 минут. Произнеси хотя бы раз «Альхамдулиллях» (Хвала Аллаху). Просто попробуй один раз.`, tasks: ["⏰ Встань на 10 минут раньше — посиди в тишине без телефона", "🤲 Найди дуа пробуждения и произнеси его хотя бы раз", "📖 Прочитай Суру Аль-Фатиха сразу после пробуждения", "🌤 Пусть первым словом после пробуждения будет «Альхамдулиллях» — 7 дней"] },
-    B: { text: `Пророк ﷺ сказал: «Кто совершит Фаджр — тот под защитой Аллаха» (Муслим №657). На весь день.
-
-Тот кто встаёт с Фаджром контролирует утро. Тот кто контролирует утро — контролирует день.
-
-Большинство начинают день в режиме реакции — чужие уведомления, чужие повестки. Мусульманин, совершивший Фаджр, начинает в режиме намерения — сам задал тон, сам настроил компас.
-
-Инструмент — «Утренний якорь»: одно действие до телефона каждый день: дуа пробуждения, азкары, или страница Корана. Семь дней подряд — и это уже привычка.`, tasks: ["📵 Первые 20 минут после пробуждения — без телефона, 7 дней", "📿 Выучи азкары пробуждения из «Хисн аль-Муслим» и читай каждое утро", "🌅 Составь утренний блок: Фаджр → азкары → одна страница Корана", "📖 Читай Суру Аль-Исра, аят 78 — осмысли значение Фаджра для дня"] },
-    C: { text: `Пророк ﷺ просил для уммы баракат в утреннем времени (Абу Дауд №2606). Имам Абу Ханифа не пропустил первый такбир Фаджра в мечети на протяжении сорока лет.
-
-Тахаджуд — ночная молитва в последнюю треть ночи. Аллах говорит: «Они мало спали ночью, и на рассвете молили о прощении» (Аз-Зарийят 17–18).
-
-В это время Аллах спускается на ближайшее небо: «Кто взывает ко Мне, чтобы Я ответил ему?» (Бухари №1145). Большинство людей спят.
-
-Задача: сделай Тахаджуд хотя бы один раз. Встань за час до Фаджра. Два ракаата. Посмотри как изменится день.`, tasks: ["🌙 Тахаджуд хотя бы один раз — встань за час до Фаджра, два ракаата", "📖 Изучи тафсир Суры Аль-Исра, аят 78 — о значении рассветного чтения", "🤝 Расскажи одному человеку почему утро меняет весь день", "📓 Веди дневник Фаджра 7 дней: совершил ли, как изменилось настроение"] },
+  en: {
+    home: 'Home',
+    tracker: 'Tracker',
+    lessons: 'Lessons',
+    wheel: 'Balance',
+    ship: 'Ship',
+    loading: 'Loading...',
+    openPath: 'Open path map →',
+    totalProgress: 'Total progress',
+    completed: 'complete',
+    streakDays: 'day streak',
+    weeksDone: 'weeks done',
+    goodDeeds: 'good deeds',
+    barakahPoints: 'barakah points',
+    goTo: 'Go to',
+    dayTracker: 'Day tracker',
+    dayTrackerSub: 'Prayer, adhkar, muhasabah',
+    currentLesson: 'Current lesson',
+    openLessonsMap: 'Open lesson map',
+    lifeWheel: 'Balance wheel',
+    lifeWheelSub: '8 life areas',
+    eveningMuhasaba: 'Evening muhasabah',
+    eveningMuhasabaSub: 'Three questions — 2 minutes',
+    levelDiagnostic: 'Level diagnostic',
+    levelDiagnosticSub: 'Retake or change your level',
+    today: 'Today',
+    markDone: 'Mark what you completed',
+    thisWeek: 'This week',
+    dayProgress: 'Day progress',
+    doneOf: '{done} of {total} done',
+    namazTitle: '🕌 Salah (5 times a day)',
+    dailyPractices: '☀️ Daily practices',
+    weeklyPractices: '📅 This week',
+    oneTime: '🌱 One time',
+    program: 'Program',
+    pathMap: 'Path map',
+    pathMapSub: 'VAKT 6 weeks + IQ Barakah 24 weeks · 3 seasons',
+    all: 'All',
+    season1: 'Season 1',
+    season2: 'Season 2',
+    season3: 'Season 3',
+    wheelTitle: 'Life wheel',
+    wheelSub: 'Rate every area from 1 to 10',
+    configureValues: 'Adjust values',
+    saveScore: '💾 Save score',
+    diagnostic: 'Diagnostic',
+    shipTitle: 'Barakah Ship',
+    shipSub: '15 compartments · Find leaks · Get insight',
+    businessDiagnostic: 'Business diagnostic',
+    businessDiagnosticSub: 'Strategy · Finance · Team · Sales and 11 more',
+    personalLife: 'Personal life',
+    personalLifeSub: 'Iman · Health · Family · Time and 11 more',
+    shipHealth: 'Ship health',
+    takeDiagnostic: 'Take diagnostic',
+    retake: 'Retake',
+    howItWorks: 'How it works',
+    shipStep1: 'Rate each of 15 compartments from 0 to 100',
+    shipStep2: 'See the leaks — critical areas that need attention',
+    shipStep3: 'Jarwas gives recommendations for every weak area',
+    shipStep4: 'Results are saved so you can track progress monthly',
+    programNotStarted: 'Program not started',
+    openBotStart: 'Open /start in the bot',
+    active: 'Active',
+    locked: '🔒 Locked',
+    completedLesson: '✅ Completed',
+    current: '📖 Current',
+    howToOpen: 'How to unlock',
+    unlockHint: 'Submit muhasabah for the current week — the curator will unlock the next one',
+    weeklyAzkar: 'Weekly adhkar',
+    quran: 'Qur’an',
+    goodDeed: 'Good deed',
+    close: 'Close',
+    submitMuhasaba: '✍️ Submit muhasabah',
+    wheelSaved: 'Balance wheel saved ✓',
+    dateLocale: 'en-US',
+    weekdaysShort: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    goodMorning: 'Good morning',
+    goodDay: 'Good afternoon',
+    goodEvening: 'Good evening',
+    goodNight: 'Good night',
   },
-  v3: {
-    hadith: `«О рабы Мои, которые преступили против самих себя, не отчаивайтесь в милости Аллаха. Поистине, Аллах прощает грехи полностью» — Сура 39 «Аз-Зумар», аят 53`,
-    A: { text: `Было у тебя такое — сделал что-то не то, и потом это крутится в голове неделями? Или внутри голос: «Я уже слишком много натворил, у меня не получится»?
-
-Этот груз — он реальный. Тяжелее любого физического веса. Тормозит сильнее чем усталость.
-
-Тауба — это просто «вернуться». Вернуться к Аллаху. «О Аллах, я ошибся. Прости. Попробую иначе». И всё.
-
-Аллах говорит: «Не отчаивайтесь в милости Аллаха — Аллах прощает грехи полностью» (39:53). Не частично. Полностью. Дверь всегда открыта.`, tasks: ["📿 «АстагфируЛлах» 10 раз перед сном — каждый вечер этой недели, медленно", "📖 Прочитай перевод Суры Аз-Зумар, аят 53 — несколько раз, пусть дойдёт до сердца", "✍️ Напиши одну вещь которую хочешь отпустить — и порви эту бумагу"] },
-    B: { text: `Пророк ﷺ делал истигфар более 70 раз в день (Бухари №6307). Человек которому гарантирован Рай — и он 70 раз просит прощения.
-
-Почему? Потому что тауба — это не только про грех. Это про связь с Аллахом. Каждое «АстагфируЛлах» — это обращение к Нему.
-
-Аллах обещал: «Просите прощения — Он пошлёт обильный дождь, поддержит богатством и детьми» (Нух 10–12). Истигфар открывает двери ризка.
-
-Инструмент — утренний истигфар (3 минуты): «О Аллах, вот что было вчера. Прости. Сегодня попробую иначе». Минимум 33 раза.`, tasks: ["📿 Истигфар каждое утро 7 дней — минимум 33 раза, как разговор с Аллахом", "📝 Напиши письмо себе прошлому: что бы сказал тому себе?", "📖 Прочитай Суру Нух, аяты 10–12 — связь истигфара и барака", "✅ Сделай одно дело которое давно откладывал из-за чувства вины"] },
-    C: { text: `Учёные выделяют три условия принятой таубы: оставить грех немедленно, искренне сожалеть, твёрдо решить не возвращаться. Если грех связан с правами людей — добавляется четвёртое: вернуть право или попросить прощения.
-
-Имам Малик: «Тауба — это возвращение от того, что порицает Аллах, к тому, что Он любит».
-
-Тауба аль-хасса (покаяние избранных) — каяться не только в явных грехах, но в гафле (небрежности к Аллаху). О каждой минуте без полного присутствия перед Ним.
-
-Практика — ежедневная мухасаба (10 мин вечером): где было присутствие, где гафля, что сожалею.`, tasks: ["📚 Изучи три условия принятой таубы в классических источниках", "📖 Изучи тафсир Суры Ат-Тахрим, аят 8 — об искреннем покаянии", "🗺 Составь план исправления одной конкретной привычки — пошагово", "🤝 Помоги кому-то понять: Аллах прощает. Передай аят 39:53"] },
+  ar: {
+    home: 'الرئيسية',
+    tracker: 'المتابعة',
+    lessons: 'الدروس',
+    wheel: 'التوازن',
+    ship: 'السفينة',
+    loading: 'جار التحميل...',
+    openPath: 'افتح خريطة المسار →',
+    totalProgress: 'التقدم العام',
+    completed: 'مكتمل',
+    streakDays: 'أيام متتالية',
+    weeksDone: 'أسابيع مكتملة',
+    goodDeeds: 'أعمال صالحة',
+    barakahPoints: 'نقاط البركة',
+    goTo: 'انتقل إلى',
+    dayTracker: 'متابعة اليوم',
+    dayTrackerSub: 'الصلاة، الأذكار، المحاسبة',
+    currentLesson: 'الدرس الحالي',
+    openLessonsMap: 'افتح خريطة الدروس',
+    lifeWheel: 'عجلة التوازن',
+    lifeWheelSub: '8 مجالات في الحياة',
+    eveningMuhasaba: 'محاسبة المساء',
+    eveningMuhasabaSub: 'ثلاثة أسئلة — دقيقتان',
+    levelDiagnostic: 'تشخيص المستوى',
+    levelDiagnosticSub: 'أعد التشخيص أو غيّر المستوى',
+    today: 'اليوم',
+    markDone: 'علّم ما أنجزته',
+    thisWeek: 'هذا الأسبوع',
+    dayProgress: 'تقدم اليوم',
+    doneOf: 'تم {done} من {total}',
+    namazTitle: '🕌 الصلاة (5 مرات يومياً)',
+    dailyPractices: '☀️ ممارسات يومية',
+    weeklyPractices: '📅 هذا الأسبوع',
+    oneTime: '🌱 مرة واحدة',
+    program: 'البرنامج',
+    pathMap: 'خريطة المسار',
+    pathMapSub: 'VAKT 6 أسابيع + IQ Barakah 24 أسبوعاً · 3 مواسم',
+    all: 'الكل',
+    season1: 'الموسم 1',
+    season2: 'الموسم 2',
+    season3: 'الموسم 3',
+    wheelTitle: 'عجلة الحياة',
+    wheelSub: 'قيّم كل مجال من 1 إلى 10',
+    configureValues: 'اضبط القيم',
+    saveScore: '💾 حفظ التقييم',
+    diagnostic: 'التشخيص',
+    shipTitle: 'سفينة البركة',
+    shipSub: '15 قسماً · ابحث عن الثقوب · احصل على تحليل',
+    businessDiagnostic: 'تشخيص الأعمال',
+    businessDiagnosticSub: 'استراتيجية · مال · فريق · مبيعات و11 أكثر',
+    personalLife: 'الحياة الشخصية',
+    personalLifeSub: 'إيمان · صحة · أسرة · وقت و11 أكثر',
+    shipHealth: 'صحة السفينة',
+    takeDiagnostic: 'ابدأ التشخيص',
+    retake: 'أعد التشخيص',
+    howItWorks: 'كيف يعمل',
+    shipStep1: 'قيّم كل قسم من 15 قسماً من 0 إلى 100',
+    shipStep2: 'سترى أين الثقوب — المناطق الحرجة التي تحتاج انتباهاً',
+    shipStep3: 'سيعطي جروَاس توصيات لكل منطقة ضعيفة',
+    shipStep4: 'تُحفظ النتائج لتتبع التقدم شهرياً',
+    programNotStarted: 'لم يبدأ البرنامج',
+    openBotStart: 'افتح /start في البوت',
+    active: 'نشط',
+    locked: '🔒 مقفل',
+    completedLesson: '✅ مكتمل',
+    current: '📖 الحالي',
+    howToOpen: 'كيف تفتح',
+    unlockHint: 'سلّم محاسبة الأسبوع الحالي — المشرف يفتح التالي',
+    weeklyAzkar: 'أذكار الأسبوع',
+    quran: 'القرآن',
+    goodDeed: 'عمل صالح',
+    close: 'إغلاق',
+    submitMuhasaba: '✍️ إرسال المحاسبة',
+    wheelSaved: 'تم حفظ عجلة التوازن ✓',
+    dateLocale: 'ar',
+    weekdaysShort: ['أحد','اثن','ثلا','أرب','خمي','جمع','سبت'],
+    goodMorning: 'صباح الخير',
+    goodDay: 'نهارك مبارك',
+    goodEvening: 'مساء الخير',
+    goodNight: 'ليلة مباركة',
   },
-  v4: {
-    hadith: `«Поистине, Аллах с терпеливыми» — Сура 2 «Аль-Бакара», аят 153`,
-    A: { text: `Ты начинал что-то хорошее — и бросал. Потом думал: «Я просто слабый. Нет силы воли».
-
-Стоп. Это неправда. Проблема не в силе воли. Никто не объяснил простую вещь: падать — это нормально. Ненормально — не вставать.
-
-Сабр — это устойчивость. Упал — встал. Сорвался — продолжил. Без драмы, без самобичевания.
-
-Пророк ﷺ сказал: «Если совершил дурное — соверши сразу хорошее, оно сотрёт его» (Ахмад №21354). Не жди понедельника. Следующий шаг — прямо сейчас.`, tasks: ["🛑 При раздражении: «АстагфируЛлах» 3 раза + глубокий вдох, только потом отвечай", "📖 Прочитай перевод Суры Аль-Инширах (94) — она про облегчение после трудности", "💬 Запомни фразу: «Это тоже пройдёт. Следующий шаг»"] },
-    B: { text: `Аллах говорит: «Поистине, Аллах с терпеливыми» (2:153). Не «поможет» — а «с». Рядом. Прямо сейчас, когда тебе тяжело.
-
-Все начинают с огня. Потом жизнь вмешивается. И человек либо тонет в самобичевании — либо тихо встаёт и продолжает.
-
-Имам Ахмад: «Не бывает рассуждений без терпения, так же как не бывает действия без искренности».
-
-Сабр — навык который тренируется. Инструмент — «Правило следующего шага»: когда сорвался, задай один вопрос: «Какой ОДИН шаг могу сделать прямо сейчас?»`, tasks: ["📓 Дневник сабра: где держался, где нет — без осуждения, просто наблюдение", "⏱ Выбери трудную задачу и делай её по 15 минут каждый день — 7 дней", "📖 Сура Аль-Бакара 153 и Аз-Зумар 10 — осмысли", "🤲 Выучи «Инна лилляхи ва инна иляйхи раджи'ун» — произноси когда трудно"] },
-    C: { text: `Ибн аль-Каййим разделил сабр на три вида: в поклонении (делать несмотря на тяжесть), при испытаниях (не впадать в отчаяние), от грехов (держаться от соблазна). Третий — самый тяжёлый, потому что постоянный.
-
-Высший уровень — Сабр аль-мухтасиб: терпение с осознанием что Аллах видит и вознаградит. Не стиснув зубы — а с внутренним миром.
-
-Пророк Айюб в самой глубине испытания обратился к Аллаху: «Вред коснулся меня, а Ты — Милосерднейший» (21:83). Он признал боль, но не отчаялся.
-
-Задача: найди одну ситуацию где «терпишь» через силу — и переосмысли через сабр аль-мухтасиб.`, tasks: ["📚 Изучи три вида сабра по Ибн аль-Каййиму в «'Удда ас-сабирин»", "📖 История Пророка Айюба: Сура 21:83–84 и 38:41–44", "✍️ Напиши свой «Манифест устойчивости» — что скажешь себе когда трудно", "🤝 Найди человека которому сейчас тяжело — просто будь рядом"] },
+  de: {
+    home: 'Start',
+    tracker: 'Tracker',
+    lessons: 'Lektionen',
+    wheel: 'Balance',
+    ship: 'Schiff',
+    loading: 'Lädt...',
+    openPath: 'Pfadkarte öffnen →',
+    totalProgress: 'Gesamtfortschritt',
+    completed: 'abgeschlossen',
+    streakDays: 'Tage in Folge',
+    weeksDone: 'Wochen erledigt',
+    goodDeeds: 'gute Taten',
+    barakahPoints: 'Barakah-Punkte',
+    goTo: 'Gehe zu',
+    dayTracker: 'Tages-Tracker',
+    dayTrackerSub: 'Gebet, Adhkar, Muhasabah',
+    currentLesson: 'Aktuelle Lektion',
+    openLessonsMap: 'Lektionskarte öffnen',
+    lifeWheel: 'Balance-Rad',
+    lifeWheelSub: '8 Lebensbereiche',
+    eveningMuhasaba: 'Abend-Muhasabah',
+    eveningMuhasabaSub: 'Drei Fragen — 2 Minuten',
+    levelDiagnostic: 'Level-Diagnose',
+    levelDiagnosticSub: 'Neu machen oder Level ändern',
+    today: 'Heute',
+    markDone: 'Markiere, was erledigt ist',
+    thisWeek: 'Diese Woche',
+    dayProgress: 'Tagesfortschritt',
+    doneOf: '{done} von {total} erledigt',
+    namazTitle: '🕌 Salah (5-mal täglich)',
+    dailyPractices: '☀️ Tägliche Praxis',
+    weeklyPractices: '📅 Diese Woche',
+    oneTime: '🌱 Einmalig',
+    program: 'Programm',
+    pathMap: 'Pfadkarte',
+    pathMapSub: 'VAKT 6 Wochen + IQ Barakah 24 Wochen · 3 Saisons',
+    all: 'Alle',
+    season1: 'Saison 1',
+    season2: 'Saison 2',
+    season3: 'Saison 3',
+    wheelTitle: 'Lebensrad',
+    wheelSub: 'Bewerte jeden Bereich von 1 bis 10',
+    configureValues: 'Werte einstellen',
+    saveScore: '💾 Bewertung speichern',
+    diagnostic: 'Diagnose',
+    shipTitle: 'Barakah-Schiff',
+    shipSub: '15 Abteile · Lecks finden · Analyse erhalten',
+    businessDiagnostic: 'Business-Diagnose',
+    businessDiagnosticSub: 'Strategie · Finanzen · Team · Vertrieb und 11 mehr',
+    personalLife: 'Privatleben',
+    personalLifeSub: 'Iman · Gesundheit · Familie · Zeit und 11 mehr',
+    shipHealth: 'Schiffsgesundheit',
+    takeDiagnostic: 'Diagnose starten',
+    retake: 'Erneut starten',
+    howItWorks: 'So funktioniert es',
+    shipStep1: 'Bewerte jedes der 15 Abteile von 0 bis 100',
+    shipStep2: 'Du siehst die Lecks — kritische Bereiche mit Aufmerksamkeit',
+    shipStep3: 'Jarwas gibt Empfehlungen für jede schwache Zone',
+    shipStep4: 'Ergebnisse werden gespeichert, Fortschritt monatlich sichtbar',
+    programNotStarted: 'Programm nicht gestartet',
+    openBotStart: 'Öffne /start im Bot',
+    active: 'Aktiv',
+    locked: '🔒 Gesperrt',
+    completedLesson: '✅ Abgeschlossen',
+    current: '📖 Aktuell',
+    howToOpen: 'So öffnest du es',
+    unlockHint: 'Gib Muhasabah für die aktuelle Woche ab — der Kurator öffnet die nächste',
+    weeklyAzkar: 'Adhkar der Woche',
+    quran: 'Qur’an',
+    goodDeed: 'Gute Tat',
+    close: 'Schließen',
+    submitMuhasaba: '✍️ Muhasabah abgeben',
+    wheelSaved: 'Balance-Rad gespeichert ✓',
+    dateLocale: 'de-DE',
+    weekdaysShort: ['So','Mo','Di','Mi','Do','Fr','Sa'],
+    goodMorning: 'Guten Morgen',
+    goodDay: 'Guten Tag',
+    goodEvening: 'Guten Abend',
+    goodNight: 'Gute Nacht',
   },
-  v5: {
-    hadith: `«Поистине, в поминании Аллаха (зикр) успокаиваются сердца» — Сура 13 «Ар-Ра'д», аят 28`,
-    A: { text: `Ты замечал — иногда день идёт легко, а иногда всё раздражает. Дни внешне одинаковые. В чём разница?
-
-В том, помнил ли ты об Аллахе.
-
-«Поистине, в поминании Аллаха успокаиваются сердца» (13:28).
-
-Зикр — это не только мечеть. Видишь закат — «СубханАллах». Съел вкусную еду — «АльхамдулиЛлях». Что-то получилось — «МашаАллах».
-
-Выбери один зикр-якорь: например, каждый раз когда пьёшь воду — «АльхамдулиЛлях». Одно слово. Семь дней. Ты удивишься как изменится состояние.`, tasks: ["📿 Зикр-якорь: «АльхамдулиЛлях» каждый раз когда пьёшь воду — 7 дней", "📖 Прочитай Суру Ар-Ра'д, аят 28 медленно — пусть дойдёт до сердца", "📱 Поставь напоминание 3 раза в день: слово «Аллах» — произнеси любой зикр", "🎧 Послушай азкары утра или вечера из «Хисн аль-Муслим»"] },
-    B: { text: `Пророк ﷺ: «Поминайте Аллаха так много, что люди скажут: "Они сумасшедшие"» (Ахмад №17301).
-
-Зикр — не дополнительная практика. Это воздух. Фон жизни.
-
-Аллах говорит: «Мы ближе к нему, чем его яремная вена» (50:16). Он Аль-Кариб (Ближний). Зикр — это напоминание себе, что Он здесь, сейчас, с тобой.
-
-Инструмент — «Зикр-якоря»: привяжи конкретный азкар к действию. Выход из дома — «Бисмиллях, таваккальту 'аля-Ллах». Садишься за руль — «СубханАллах» 3 раза. Перед сном — «АльхамдулиЛлях». Три якоря — и зикр встроен в жизнь.`, tasks: ["📿 Полные утренние и вечерние азкары каждый день — 7 дней", "🔢 «АстагфируЛлах» 100 раз в день — разбей на части", "📖 Сура Каф 16 и Аль-Ахзаб 41–42 — осмысли связь зикра и близости Аллаха", "📚 Выучи азкары для 3 ситуаций: еда, выход из дома, сон"] },
-    C: { text: `Имам Малик: «Нет ничего лучше для сердца, чем зикр — он лечит болезни сердца».
-
-Муракаба — это осознание что Аллах видит тебя в каждый момент. Не боишься — осознаёшь. Это высший уровень ихсана: «Поклоняйся Аллаху как будто ты видишь Его» (хадис Джибриля, Бухари №50).
-
-Достичь муракаба нельзя без регулярного вирда. Учёные сравнивают его со столбом шатра — убери столб, шатёр рухнет.
-
-Задача: составь свой личный вирд. Утро: конкретные азкары + количество. День: зикр-якорь. Вечер: вечерние азкары + мухасаба. Запиши и следуй 7 дней не пропуская.`, tasks: ["📖 Изучи «Хисн аль-Муслим» — пойми смысл каждого азкара через тафсир", "📖 Хадис Джибриля (Бухари №50) — сосредоточься на определении ихсана", "🗓 Составь личный вирд: утро, день, вечер — запиши и следуй 7 дней", "🤝 Передай один азкар близкому — объясни смысл и награду"] },
-  },
-  v6: {
-    hadith: `«Самое любимое дело перед Аллахом — постоянное, даже если оно малое» — Сахих аль-Бухари №6464, Сахих Муслим №782`,
-    A: { text: `Шесть недель. Ты задавал вопрос «Ради чего?». Побыл в утренней тишине. Отпустил что-то из прошлого. Не сломался когда было трудно. Произнёс слова которые давно знал.
-
-Это больше чем кажется. Ты начал.
-
-Теперь не нужно всё и сразу. Выбери одно — что зацепило. Утренняя пауза, истигфар перед сном, «Бисмиллях», «следующий шаг» — одно, и делай каждый день.
-
-«Поистине, вместе с трудностью облегчение. Вместе с трудностью облегчение» (94:5–6). Повторено дважды. Это обещание Аллаха. Просто следующий шаг.`, tasks: ["📝 Запиши 3 изменения которые заметил в себе за 6 недель — даже маленькие", "🎯 Выбери одну из пяти практик (Ният/Фаджр/Тауба/Сабр/Зикр) и продолжай каждый день", "📖 Прочитай Суру Аль-Инширах (94) — как благодарность Аллаху за этот путь", "✍️ Напиши одно намерение (ният) на следующий месяц — одна фраза"] },
-    B: { text: `Пророк ﷺ: «Самое любимое дело перед Аллахом — постоянное, даже если малое» (Бухари №6464).
-
-Шесть недель — не финиш. Это проверка. Что стало системой?
-
-Система — это не когда легко. Это твоё поведение в самый трудный день. Когда устал, не хочется, всё валится. Если в этот день сделал хотя бы минимум — у тебя есть система.
-
-«Не изменит Аллах положение людей, пока они сами не изменят то, что в их душах» (13:11). Ты изменил что-то внутри? Тогда внешнее тоже начнёт меняться.`, tasks: ["🕌 Составь расписание дня на основе 5 намазов — блоки между ними", "📋 Выбери 3 привычки из курса и запиши как будешь их поддерживать", "📬 Напиши письмо себе будущему — каким хочешь быть через 6 месяцев", "📖 Прочитай Суру Ар-Ра'д, аят 11 — размышляй что изменилось в тебе"] },
-    C: { text: `Истикама (постоянство) — Пророк ﷺ: «Скажи: "Я уверовал" — и будь стоек» (Муслим №38). Не стань идеальным. Просто продолжай движение.
-
-Шесть недель — аудит фундамента: Ният, Фаджр, Тауба, Сабр, Зикр. Ты знаешь где слабые места. Ты знаешь что работает.
-
-Имам аш-Шафи'и: «Желай для людей того же что желаешь для себя — и ты будешь справедливым».
-
-«К тем кто сказал "Наш Господь — Аллах" и были стойкими — нисходят ангелы: не бойтесь, радуйтесь Раю» (41:30). Стойкость — это ключ.`, tasks: ["📖 Изучи Суру Фуссилат, аят 30 — тафсир, что значит «были стойкими»", "📖 Хадис Суфьяна ас-Сакафи (Муслим №38) — что значит «будь стоек» сегодня", "📊 Напиши мини-отчёт: что изменилось за 6 недель — где сила, где слабость", "🤝 Поделись одним инсайтом с близким — передай пользу"] },
-  },
-};
-
-function openLessonSheet(w, done, isCur, locked) {
-  haptic();
-  document.getElementById('sl-icon').textContent=w.icon;
-  document.getElementById('sl-title').textContent=w.title;
-  document.getElementById('sl-sub').textContent=w.sub+' · '+(locked?'🔒 Заблокировано':done?'✅ Завершена':'📖 Текущая');
-  const rows=document.getElementById('sl-rows');
-
-  if (locked) {
-    rows.innerHTML = `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">Как открыть</div><div class="v">Сдай мухасабу (отчёт перед собой) — куратор откроет следующую неделю</div></div></div>`;
-  } else if (w.phase === 'vakt' && VAKT_LESSONS[w.id]) {
-    const vl = VAKT_LESSONS[w.id];
-    // Determine user level: А→A, Б→B, В→C, default A
-    const lvlMap = {'А':'A','Б':'B','В':'C'};
-    const lk = lvlMap[U.level] || 'A';
-    const lesson = vl[lk] || vl['A'];
-    const tasksHtml = (lesson.tasks||[]).map(t=>`<li>${t}</li>`).join('');
-    rows.innerHTML =
-      `<div class="s-row"><div class="s-ri">📌</div><div class="s-rt"><div class="l">Хадис недели</div><div class="v">${vl.hadith}</div></div></div>` +
-      `<div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">Урок (уровень ${U.level||'А'})</div><div class="v" style="white-space:pre-wrap">${lesson.text}</div></div></div>` +
-      `<div class="s-row"><div class="s-ri">✅</div><div class="s-rt"><div class="l">Задания на неделю</div><div class="v"><ul style="padding-left:1.2em;margin:4px 0">${tasksHtml}</ul></div></div></div>`;
-  } else {
-    const c=WC[w.phase]||WC.s1;
-    rows.innerHTML =
-      `<div class="s-row"><div class="s-ri">📿</div><div class="s-rt"><div class="l">Азкар недели</div><div class="v">${c.az}</div></div></div>` +
-      `<div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">Коран</div><div class="v">${c.qu}</div></div></div>` +
-      `<div class="s-row"><div class="s-ri">🤲</div><div class="s-rt"><div class="l">Доброе дело</div><div class="v">${c.deed}</div></div></div>`;
-  }
-
-  const btns=document.getElementById('sl-btns');
-  btns.innerHTML = (locked||done)
-    ? `<button class="btn btn-o" onclick="closeSheet('lesson')">Закрыть</button>`
-    : `<button class="btn btn-p" onclick="closeSheet('lesson');openReviewSheet()">✍️ Сдать мухасабу</button>
-       <button class="btn btn-o" onclick="closeSheet('lesson')">Закрыть</button>`;
-  openSheet('lesson');
 }
 
-// ── SHEETS ──
+let currentLang = 'ru'
+
+function initI18n() {
+  const params = new URLSearchParams(window.location.search)
+  const fromUrl = params.get('lang')
+  const saved = localStorage.getItem('iq_lang')
+  currentLang = normalizeLang(fromUrl || saved || window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code)
+  localStorage.setItem('iq_lang', currentLang)
+
+  document.documentElement.lang = currentLang
+  document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
+  applyI18n()
+}
+
+function lang() {
+  return currentLang
+}
+
+function t(key) {
+  return TEXT[currentLang]?.[key] || TEXT.ru[key] || key
+}
+
+function tf(key, values = {}) {
+  const base = t(key)
+  if (typeof base !== 'string') return base
+  return Object.entries(values).reduce(
+    (text, [name, value]) => text.replaceAll(`{${name}}`, value),
+    base
+  )
+}
+
+function normalizeLang(value) {
+  const code = String(value || 'ru').toLowerCase().split('-')[0]
+  return SUPPORTED.includes(code) ? code : 'ru'
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n)
+  })
+}
+
+
+// --- components/sheets.js ---
+
 function openSheet(id) {
-  document.getElementById('ov-'+id).classList.add('open');
-  document.getElementById('sh-'+id).classList.add('open');
+  document.getElementById(`ov-${id}`)?.classList.add('open')
+  document.getElementById(`sh-${id}`)?.classList.add('open')
 }
+
 function closeSheet(id) {
-  document.getElementById('ov-'+id).classList.remove('open');
-  document.getElementById('sh-'+id).classList.remove('open');
-}
-function openReviewSheet() {
-  haptic();
-  // Подставить текущую неделю в заголовок
-  const lbl = document.getElementById('rv-week-lbl');
-  if (lbl && U.currentWeek > 0 && U.currentWeek <= WEEKS.length) {
-    const cw = WEEKS[U.currentWeek - 1];
-    if (cw) lbl.textContent = cw.num + ' · ' + cw.title + ' · Три вопроса';
-  }
-  openSheet('review');
+  document.getElementById(`ov-${id}`)?.classList.remove('open')
+  document.getElementById(`sh-${id}`)?.classList.remove('open')
 }
 
-// ── REVIEW ──
-let rEmoji=null, rTask=null, rUseful=null;
-
-function buildReview() {
-  ['rt-task','rt-useful'].forEach(id=>{
-    const w=document.getElementById(id); if(!w) return;
-    w.innerHTML='';
-    [1,2,3,4,5].forEach(n=>{
-      const b=document.createElement('button'); b.className='rb'; b.textContent=n;
-      b.onclick=()=>{
-        haptic();
-        w.querySelectorAll('.rb').forEach(x=>x.classList.remove('sel'));
-        b.classList.add('sel');
-        if(id==='rt-task') rTask=n; else rUseful=n;
-      };
-      w.appendChild(b);
-    });
-  });
-}
-
-function selEmoji(btn, e) {
-  haptic();
-  document.querySelectorAll('.em-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel'); rEmoji=e;
-}
-
-function submitReview() {
-  const text=document.getElementById('rv-text')?.value?.trim();
-  if (!rEmoji||!rTask||!text) {
-    haptic('error');
-    showToast('Выберите настроение, оценку и напишите отзыв');
-    return;
-  }
-  const btn=document.getElementById('rv-btn');
-  btn.innerHTML='<div class="spin"></div> Отправляем...';
-  btn.disabled=true;
-  // Сохраняем данные для отправки при переходе к урокам
-  window._reviewData = {
-    type:'review', week:U.currentWeek,
-    emoji:rEmoji, task:rTask, useful:rUseful,
-    text, insight: document.getElementById('rv-insight')?.value?.trim()||'',
-    auto_advance: true
-  };
-  setTimeout(()=>{
-    haptic('success');
-    document.getElementById('rv-form').style.display='none';
-    document.getElementById('rv-ok').classList.add('show');
-  }, 1100);
-}
-
-function advanceAndGo() {
-  // Автоматически открываем следующую неделю
-  if (U.currentWeek > 0 && U.currentWeek < 30) {
-    U.currentWeek += 1;
-    renderLessons('all');
-  }
-  closeSheet('review');
-  switchScreen('lessons');
-  // Даём пользователю 2 сек увидеть следующую неделю, затем отправляем данные в бот
-  if (tg && window._reviewData) {
-    setTimeout(() => {
-      tg.sendData(JSON.stringify(window._reviewData));
-    }, 2000);
-  }
-}
-
-// ── ОТЗЫВ О ПРОГРАММЕ ──
-let fbStars = 0;
-
-function openFeedbackSheet() {
-  haptic();
-  fbStars = 0;
-  document.getElementById('fb-form').style.display='';
-  document.getElementById('fb-ok').classList.remove('show');
-  document.getElementById('fb-btn').disabled=false;
-  document.getElementById('fb-btn').textContent='Отправить отзыв ⭐';
-  document.getElementById('fb-liked').value='';
-  document.getElementById('fb-improve').value='';
-  document.getElementById('fb-add').value='';
-  for(let i=1;i<=5;i++) document.getElementById('fbs-'+i).style.opacity='.35';
-  openSheet('feedback');
-}
-
-function selStar(n) {
-  fbStars=n;
-  haptic();
-  for(let i=1;i<=5;i++)
-    document.getElementById('fbs-'+i).style.opacity = i<=n ? '1' : '.25';
-}
-
-function submitFeedback() {
-  const liked   = document.getElementById('fb-liked').value.trim();
-  const improve = document.getElementById('fb-improve').value.trim();
-  const add     = document.getElementById('fb-add').value.trim();
-  if (!fbStars) { haptic('error'); showToast('Поставь оценку программе'); return; }
-  if (!liked)   { haptic('error'); showToast('Напиши что понравилось'); return; }
-  const btn = document.getElementById('fb-btn');
-  btn.innerHTML='<div class="spin"></div> Отправляем...';
-  btn.disabled=true;
-  setTimeout(()=>{
-    haptic('success');
-    document.getElementById('fb-form').style.display='none';
-    document.getElementById('fb-ok').classList.add('show');
-    if (tg) tg.sendData(JSON.stringify({type:'feedback', rating:fbStars, liked, improve, add}));
-  }, 1000);
-}
-
-// ── TOAST ──
 function showToast(msg) {
-  let t=document.getElementById('toast');
+  let t = document.getElementById('toast')
   if (!t) {
-    t=document.createElement('div');
-    t.id='toast';
-    t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a3d1b;color:white;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:200;opacity:0;transition:all .25s ease;white-space:nowrap;max-width:90vw;text-align:center;';
-    document.body.appendChild(t);
+    t = document.createElement('div')
+    t.id = 'toast'
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a3d1b;color:white;padding:10px 20px;border-radius:20px;font-size:14px;font-weight:600;z-index:200;opacity:0;transition:all .25s ease;white-space:nowrap;max-width:90vw;text-align:center;'
+    document.body.appendChild(t)
   }
-  t.textContent=msg;
-  requestAnimationFrame(()=>{
-    t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)';
-    setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(20px)'; }, 2200);
-  });
+  t.textContent = msg
+  requestAnimationFrame(() => {
+    t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'
+    setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)' }, 2200)
+  })
 }
 
-// ══════════════════════════════════════════════
-//  DIAGNOSTIC / ONBOARDING
-// ══════════════════════════════════════════════
+// ── Review sheet state ──
+let rEmoji = null, rTask = null, rUseful = null
+
+function initReviewSheet(getCurrentWeek, weeksData) {
+  // Emoji buttons
+  document.querySelectorAll('.em-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      haptic()
+      document.querySelectorAll('.em-btn').forEach(b => b.classList.remove('sel'))
+      btn.classList.add('sel')
+      rEmoji = btn.dataset.emoji
+    })
+  })
+
+  // Rating rows
+  ;['rt-task', 'rt-useful'].forEach(id => {
+    const row = document.getElementById(id)
+    if (!row) return
+    ;[1, 2, 3, 4, 5].forEach(n => {
+      const b = document.createElement('button')
+      b.className = 'rb'; b.textContent = n
+      b.addEventListener('click', () => {
+        haptic()
+        row.querySelectorAll('.rb').forEach(x => x.classList.remove('sel'))
+        b.classList.add('sel')
+        if (id === 'rt-task') rTask = n; else rUseful = n
+      })
+      row.appendChild(b)
+    })
+  })
+
+  // Submit
+  document.getElementById('rv-btn')?.addEventListener('click', () => {
+    const text = document.getElementById('rv-text')?.value?.trim()
+    if (!rEmoji || !rTask || !text) {
+      haptic('error')
+      showToast('Выберите настроение, оценку и напишите отзыв')
+      return
+    }
+    const btn = document.getElementById('rv-btn')
+    btn.innerHTML = '<div class="spin"></div> Отправляем...'
+    btn.disabled = true
+    setTimeout(() => {
+      haptic('success')
+      document.getElementById('rv-form').style.display = 'none'
+      document.getElementById('rv-ok').classList.add('show')
+      sendData({ type: 'review', week: getCurrentWeek(), emoji: rEmoji, task: rTask, useful: rUseful, text })
+    }, 1100)
+  })
+
+  // OK button
+  document.getElementById('rv-ok-btn')?.addEventListener('click', () => {
+    closeSheet('review')
+    switchScreen('lessons')
+  })
+
+  // Overlay click to close
+  document.getElementById('ov-lesson')?.addEventListener('click', () => closeSheet('lesson'))
+  document.getElementById('ov-review')?.addEventListener('click', () => closeSheet('review'))
+}
+
+function openReviewSheet(currentWeek, weeksData) {
+  haptic()
+  const lbl = document.getElementById('rv-week-lbl')
+  if (lbl && currentWeek > 0 && currentWeek <= weeksData.length) {
+    const cw = weeksData[currentWeek - 1]
+    if (cw) lbl.textContent = `${cw.num} · ${cw.title} · Три вопроса`
+  }
+  openSheet('review')
+}
+
+
+// --- components/diagnostic.js ---
+
 const QDATA = [
   {q:'Встаёшь на Фаджр?',opts:[['😔','Никогда',0],['🔄','Иногда',1],['✅','Регулярно',2],['⭐','Всегда + тахаджуд',3]]},
   {q:'Читаешь утренние азкары?',opts:[['❌','Не читаю',0],['🔄','Иногда',1],['📖','Не каждый день',2],['✅','Каждый день',3]]},
@@ -1941,185 +1573,692 @@ const QDATA = [
   {q:'Читаешь Коран?',opts:[['❌','Не читаю',0],['🌙','По праздникам',1],['📖','Иногда в неделю',2],['✅','Каждый день',3]]},
   {q:'Как твой бизнес или работа?',opts:[['🌀','Полный хаос',0],['⚙️','Без системы',1],['📊','Система есть — нет баракта',2],['✨','Ищу смысл',3]]},
   {q:'Как дела в твоей семье?',opts:[['🏃','Почти не бываю дома',0],['📱','Бываю — но в телефоне',1],['❤️','Уделяю — хочу больше',2],['🏠','Семья — моя крепость',3]]},
-];
-const WHEEL_LABELS = ['Иман','Время','Привычки','Тело','Бизнес','Характер','Семья','Миссия'];
-const WHEEL_COLORS = ['#2c5f2d','#c9a84c','#5b8fa8','#e07b39','#7b5ea7','#d4547a','#4a9e8c','#3d7a3e'];
-const QRESULTS = {
-  a:{color:'#C0420A',level:'Уровень А — Начинаю с нуля',levelKey:'А',
-     wheel:[1,1,1,2,2,2,2,1],
-     intro:'Это честный результат. Точка силы, не слабости. Ты узнал(а) где находишься — большинство людей никогда не задают себе этот вопрос.',
-     pains:['😔 День управляется обстоятельствами — не твоими целями','📱 Телефон — первое что видишь утром. Задаёт тон всему дню.','🌙 Фаджр уходит мимо. Самое баракатное время потеряно.','🔄 Начинаешь с понедельника — срыв через 3-7 дней.'],
-     path:'➤ Твой старт: ВАКТ — 1 500 ₽ · Уровень А · Без давления и стыда'},
-  b:{color:'#0C3D7A',level:'Уровень Б — Иногда практикую',levelKey:'Б',
-     wheel:[3,4,3,3,4,3,3,2],
-     intro:'Ты уже на пути. Есть база — намаз бывает, Коран иногда. Но система не держится. И ты это знаешь.',
-     pains:['📉 Знаешь как надо — но не делаешь стабильно.','🔁 Привычки: неделя хорошо — срыв — стыд — снова старт.','⏰ Утро без системы. Нет якоря который держит день.','🎯 Нет ясности зачем всё это.'],
-     path:'➤ Твой старт: ВАКТ → IQ Barakah Сезон 1 · Уровень Б · Постоянство'},
-  c:{color:'#1E4D0A',level:'Уровень В — Практикую регулярно',levelKey:'В',
-     wheel:[6,6,6,6,6,6,5,4],
-     intro:'МашаАллах! Намаз, азкары, Коран — это есть. Но ты здесь потому что чувствуешь: чего-то не хватает.',
-     pains:['🔍 Намаз без присутствия. Азкары без осознанности.','🏔️ Плато. Вырос(ла) — и застрял(а). Непонятно куда дальше.','💰 Бизнес есть — но нет ощущения баракта.','🕊️ Хочешь передать знание — но нет инструмента.'],
-     path:'➤ Твой старт: IQ Barakah Сезон 1 → Сезон 2 · Уровень В · Глубина'},
-  d:{color:'#1A3D08',level:'Уровень В+ — Готов к наследию',levelKey:'В',
-     wheel:[8,8,8,8,8,8,8,6],
-     intro:'МашаАллах! Практика есть, система есть. Но ты чувствуешь что готов(а) к чему-то большему.',
-     pains:['🌍 Хочешь влиять на Умму — но нет структуры.','🔗 Достижения заканчиваются на тебе. Садака джария не запущена.','👑 Ты лидер — но без сообщества с миссией.','🏛️ Хочешь оставить наследие — не знаешь как начать.'],
+]
+
+const WHEEL_LABELS = ['Иман','Время','Привычки','Тело','Бизнес','Характер','Семья','Миссия']
+const WHEEL_COLORS = ['#2c5f2d','#c9a84c','#5b8fa8','#e07b39','#7b5ea7','#d4547a','#4a9e8c','#3d7a3e']
+
+const RESULTS = {
+  a:{color:'#C0420A',level:'Уровень А — Начинаю с нуля',levelKey:'А',wheel:[1,1,1,2,2,2,2,1],
+     intro:'Это честный результат. Точка силы, не слабости.',
+     pains:['😔 День управляется обстоятельствами','📱 Телефон — первое что видишь утром','🌙 Фаджр уходит мимо','🔄 Начинаешь с понедельника — срыв через 3-7 дней'],
+     path:'➤ Твой старт: ВАКТ — Тайм-менеджмент мусульманина'},
+  b:{color:'#0C3D7A',level:'Уровень Б — Иногда практикую',levelKey:'Б',wheel:[3,4,3,3,4,3,3,2],
+     intro:'Ты уже на пути. Есть база — намаз бывает, Коран иногда. Но система не держится.',
+     pains:['📉 Знаешь как надо — но не делаешь стабильно','🔁 Привычки: неделя хорошо — срыв — стыд','⏰ Утро без системы','🎯 Нет ясности зачем всё это'],
+     path:'➤ Твой старт: ВАКТ → IQ Barakah Сезон 1'},
+  c:{color:'#1E4D0A',level:'Уровень В — Практикую регулярно',levelKey:'В',wheel:[6,6,6,6,6,6,5,4],
+     intro:'МашаАллах! Намаз, азкары, Коран — есть. Но чего-то не хватает.',
+     pains:['🔍 Намаз без присутствия','🏔️ Плато — застрял(а)','💰 Бизнес есть — нет баракта','🕊️ Хочешь передать знание — нет инструмента'],
+     path:'➤ Твой старт: IQ Barakah Сезон 1 → Сезон 2'},
+  d:{color:'#1A3D08',level:'Уровень В+ — Готов к наследию',levelKey:'В',wheel:[8,8,8,8,8,8,8,6],
+     intro:'МашаАллах! Практика есть, система есть. Готов(а) к большему.',
+     pains:['🌍 Хочешь влиять на Умму — нет структуры','🔗 Достижения заканчиваются на тебе','👑 Ты лидер — без сообщества','🏛️ Хочешь оставить наследие — не знаешь как'],
      path:'➤ Твой старт: Джамаат или Лидер Уммы'},
-};
+}
 
-let qCur = 0, qAnsList = new Array(8).fill(null), selectedQuickLevel = null;
+let qCur = 0, qAnsList = new Array(8).fill(null), selectedQuickLevel = null
 
-function diagChoose(mode) {
-  haptic();
-  if (mode === 'choice') { showDiagStep('choice'); return; }
-  if (mode === 'quick')  { showDiagStep('quick'); return; }
-  if (mode === 'quiz')   { qCur=0; qAnsList=new Array(8).fill(null); renderQuiz(); showDiagStep('quiz'); }
+function openDiag() {
+  qCur = 0; qAnsList = new Array(8).fill(null); selectedQuickLevel = null
+  document.getElementById('diag-overlay').classList.remove('hidden')
+  showDiagStep('choice')
+}
+
+function closeDiag() {
+  document.getElementById('diag-overlay').classList.add('hidden')
 }
 
 function showDiagStep(id) {
-  document.querySelectorAll('.diag-step').forEach(s=>s.classList.remove('active'));
-  document.getElementById('ds-'+id).classList.add('active');
+  document.querySelectorAll('.diag-step').forEach(s => s.classList.remove('active'))
+  document.getElementById('ds-' + id).classList.add('active')
 }
 
-function selectLevel(k, el) {
-  haptic();
-  document.querySelectorAll('.lcard').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedQuickLevel = k;
-  const btn = document.getElementById('quick-confirm');
-  btn.disabled = false; btn.style.opacity = '1';
-}
-
-function confirmQuick() {
-  if (!selectedQuickLevel) return;
-  haptic('success');
-  const r = QRESULTS[selectedQuickLevel];
-  showResult(r, null);
+function initDiagnostic(onFinish) {
+  document.getElementById('btn-quick')?.addEventListener('click', () => { haptic(); showDiagStep('quick') })
+  document.getElementById('btn-quiz')?.addEventListener('click', () => {
+    haptic(); qCur = 0; qAnsList = new Array(8).fill(null); renderQuiz(); showDiagStep('quiz')
+  })
+  document.getElementById('btn-back-choice')?.addEventListener('click', () => { haptic(); showDiagStep('choice') })
+  document.getElementById('quick-confirm')?.addEventListener('click', () => {
+    if (!selectedQuickLevel) return
+    haptic('success')
+    showResult(RESULTS[selectedQuickLevel], null, onFinish)
+  })
+  document.querySelectorAll('.lcard').forEach(card => {
+    card.addEventListener('click', () => {
+      haptic()
+      document.querySelectorAll('.lcard').forEach(c => c.classList.remove('selected'))
+      card.classList.add('selected')
+      selectedQuickLevel = card.dataset.key
+      const btn = document.getElementById('quick-confirm')
+      btn.disabled = false; btn.style.opacity = '1'
+    })
+  })
+  document.getElementById('qback')?.addEventListener('click', () => {
+    haptic()
+    if (qCur === 0) { showDiagStep('choice'); return }
+    qCur--; renderQuiz()
+  })
+  document.getElementById('qnext')?.addEventListener('click', () => {
+    haptic()
+    if (qAnsList[qCur] === null) return
+    if (qCur === QDATA.length - 1) { calcResult(onFinish); return }
+    qCur++; renderQuiz()
+  })
+  document.getElementById('btn-finish-diag')?.addEventListener('click', () => {
+    haptic('success'); closeDiag()
+    if (onFinish) onFinish()
+  })
 }
 
 function renderQuiz() {
-  const q = QDATA[qCur];
-  // progress dots
-  document.getElementById('qprog').innerHTML = QDATA.map((_,i)=>
-    `<div class="qpd ${i<qCur?'done':i===qCur?'cur':''}"></div>`).join('');
-  document.getElementById('qnum').textContent = 'ВОПРОС '+(qCur+1)+' ИЗ '+QDATA.length;
-  document.getElementById('qtext').textContent = q.q;
-  document.getElementById('qopts').innerHTML = q.opts.map((o,i)=>
-    `<button class="q-opt${qAnsList[qCur]===o[2]?' sel':''}" onclick="qSelect(${o[2]},this)">
-      <span class="oi">${o[0]}</span><span class="ol">${o[1]}</span></button>`).join('');
-  const nx = document.getElementById('qnext');
-  nx.textContent = qCur===QDATA.length-1 ? 'Узнать результат →' : 'Далее →';
-  nx.disabled = qAnsList[qCur]===null; nx.style.opacity = qAnsList[qCur]===null?'.5':'1';
-  document.getElementById('qback').style.opacity = qCur===0?'.4':'1';
+  const q = QDATA[qCur]
+  document.getElementById('qprog').innerHTML = QDATA.map((_, i) =>
+    `<div class="qpd ${i < qCur ? 'done' : i === qCur ? 'cur' : ''}"></div>`).join('')
+  document.getElementById('qnum').textContent = `ВОПРОС ${qCur + 1} ИЗ ${QDATA.length}`
+  document.getElementById('qtext').textContent = q.q
+  document.getElementById('qopts').innerHTML = q.opts.map(o =>
+    `<button class="q-opt${qAnsList[qCur] === o[2] ? ' sel' : ''}" data-score="${o[2]}">
+      <span class="oi">${o[0]}</span><span class="ol">${o[1]}</span></button>`).join('')
+  document.querySelectorAll('.q-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      haptic()
+      qAnsList[qCur] = parseInt(btn.dataset.score)
+      document.querySelectorAll('.q-opt').forEach(b => b.classList.remove('sel'))
+      btn.classList.add('sel')
+      const nx = document.getElementById('qnext')
+      nx.disabled = false; nx.style.opacity = '1'
+    })
+  })
+  const nx = document.getElementById('qnext')
+  nx.textContent = qCur === QDATA.length - 1 ? 'Узнать результат →' : 'Далее →'
+  nx.disabled = qAnsList[qCur] === null; nx.style.opacity = qAnsList[qCur] === null ? '.5' : '1'
+  document.getElementById('qback').style.opacity = qCur === 0 ? '.4' : '1'
 }
 
-function qSelect(score, el) {
-  haptic();
-  qAnsList[qCur] = score;
-  document.querySelectorAll('.q-opt').forEach(b=>b.classList.remove('sel'));
-  el.classList.add('sel');
-  const nx = document.getElementById('qnext');
-  nx.disabled = false; nx.style.opacity = '1';
+function calcResult(onFinish) {
+  const total = qAnsList.reduce((s, a) => s + (a || 0), 0)
+  const pct = Math.round(total / (QDATA.length * 3) * 100)
+  const key = pct > 75 ? 'd' : pct > 50 ? 'c' : pct > 25 ? 'b' : 'a'
+  showResult(RESULTS[key], pct, onFinish)
 }
 
-function qNav(dir) {
-  haptic();
-  if (dir===-1 && qCur===0) { diagChoose('choice'); return; }
-  if (dir===1 && qAnsList[qCur]===null) return;
-  if (dir===1 && qCur===QDATA.length-1) { calcResult(); return; }
-  qCur += dir;
-  renderQuiz();
-}
-
-function calcResult() {
-  const total = qAnsList.reduce((s,a)=>s+(a||0),0);
-  const pct = Math.round(total/(QDATA.length*3)*100);
-  const key = pct>75?'d':pct>50?'c':pct>25?'b':'a';
-  showResult(QRESULTS[key], pct);
-}
-
-function showResult(R, pct) {
-  // badge
-  const badge = document.getElementById('res-badge');
-  badge.style.background = R.color;
-  badge.textContent = pct!==null ? pct+'%' : R.levelKey;
-  // level + intro
-  document.getElementById('res-level').textContent = R.level;
-  document.getElementById('res-level').style.color = R.color;
-  document.getElementById('res-intro').textContent = R.intro;
-  // wheel
-  drawDiagWheel(R.wheel, R.color);
-  // legend
-  const leg = document.getElementById('wheel-legend');
-  leg.innerHTML = WHEEL_LABELS.map((l,i)=>
-    `<span style="font-size:11px;font-weight:600;color:${WHEEL_COLORS[i]};background:${WHEEL_COLORS[i]}18;padding:2px 8px;border-radius:10px;">${l}</span>`).join('');
-  // pains
-  document.getElementById('res-pains').innerHTML = R.pains.map(p=>
-    `<div class="pain-item">${p}</div>`).join('');
-  // path
-  document.getElementById('res-path').textContent = R.path;
-  // save
-  localStorage.setItem('iq_level', R.levelKey);
-  localStorage.setItem('iq_diag_done', '1');
-  showDiagStep('result');
+function showResult(R, pct, onFinish) {
+  const badge = document.getElementById('res-badge')
+  badge.style.background = R.color
+  badge.textContent = pct !== null ? pct + '%' : R.levelKey
+  document.getElementById('res-level').textContent = R.level
+  document.getElementById('res-level').style.color = R.color
+  document.getElementById('res-intro').textContent = R.intro
+  drawDiagWheel(R.wheel, R.color)
+  document.getElementById('wheel-legend').innerHTML = WHEEL_LABELS.map((l, i) =>
+    `<span style="font-size:11px;font-weight:600;color:${WHEEL_COLORS[i]};background:${WHEEL_COLORS[i]}18;padding:2px 8px;border-radius:10px;">${l}</span>`).join('')
+  document.getElementById('res-pains').innerHTML = R.pains.map(p => `<div class="pain-item">${p}</div>`).join('')
+  document.getElementById('res-path').textContent = R.path
+  lsSet('level', R.levelKey)
+  lsSet('diag_done', '1')
+  showDiagStep('result')
 }
 
 function drawDiagWheel(vals, color) {
-  const N=8, R=68, cx=78, cy=78;
-  let html='';
-  function pt(i,v){ const a=(i/N)*Math.PI*2-Math.PI/2, r=(v/10)*R; return [cx+r*Math.cos(a),cy+r*Math.sin(a)]; }
-  function pf(i){ const a=(i/N)*Math.PI*2-Math.PI/2; return [cx+R*Math.cos(a),cy+R*Math.sin(a)]; }
-  for(let g=2;g<=10;g+=2){
-    const gp=Array.from({length:N},(_,i)=>pt(i,g));
-    html+=`<polygon points="${gp.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(0,0,0,.07)" stroke-width="0.7"/>`;
+  const N = 8, R = 68, cx = 78, cy = 78
+  function pt(i, v) { const a = (i / N) * Math.PI * 2 - Math.PI / 2, r = (v / 10) * R; return [cx + r * Math.cos(a), cy + r * Math.sin(a)] }
+  function pf(i)    { const a = (i / N) * Math.PI * 2 - Math.PI / 2; return [cx + R * Math.cos(a), cy + R * Math.sin(a)] }
+  let html = ''
+  for (let g = 2; g <= 10; g += 2) {
+    const gp = Array.from({ length: N }, (_, i) => pt(i, g))
+    html += `<polygon points="${gp.map(p => p.join(',')).join(' ')}" fill="none" stroke="#eee" stroke-width="1"/>`
   }
-  for(let i=0;i<N;i++){ const fp=pf(i); html+=`<line x1="${cx}" y1="${cy}" x2="${fp[0]}" y2="${fp[1]}" stroke="rgba(0,0,0,.07)" stroke-width="0.7"/>`; }
-  // colored sectors
-  for(let i=0;i<N;i++){
-    const a=-Math.PI/2+(i/N)*Math.PI*2, ea=-Math.PI/2+((i+1)/N)*Math.PI*2;
-    const r=(vals[i]/10)*R;
-    const x1=cx+r*Math.cos(a), y1=cy+r*Math.sin(a), x2=cx+r*Math.cos(ea), y2=cy+r*Math.sin(ea);
-    html+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r},0,0,1,${x2},${y2} Z" fill="${WHEEL_COLORS[i]}55" stroke="${WHEEL_COLORS[i]}" stroke-width="1.5"/>`;
+  for (let i = 0; i < N; i++) {
+    const [fx, fy] = pf(i)
+    html += `<line x1="${cx}" y1="${cy}" x2="${fx}" y2="${fy}" stroke="#ddd" stroke-width="1"/>`
   }
-  const cp=Array.from({length:N},(_,i)=>pt(i,vals[i]));
-  cp.forEach(p=>{ html+=`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${color}"/>`; });
-  const avg=(vals.reduce((a,b)=>a+b,0)/N).toFixed(1);
-  html+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="16" fill="${color}" font-weight="800">${avg}</text>`;
-  html+=`<text x="${cx}" y="${cy+11}" text-anchor="middle" font-size="9" fill="#9ca3af">из 10</text>`;
-  document.getElementById('res-wheel').innerHTML = html;
+  const poly = vals.map((v, i) => pt(i, v).join(',')).join(' ')
+  html += `<polygon points="${poly}" fill="${color}30" stroke="${color}" stroke-width="2"/>`
+  document.getElementById('res-wheel').innerHTML = html
 }
 
-function finishDiag() {
-  haptic('success');
-  document.getElementById('diag-overlay').classList.add('hidden');
-  // apply level to home
-  const lvl = localStorage.getItem('iq_level') || 'А';
-  U.level = lvl;
-  document.getElementById('lvl-pill').textContent = '🌱 Уровень ' + lvl;
+
+// --- screens/home.js ---
+
+const U = {
+  name: 'Участник',
+  level: '',
+  currentWeek: 0,
+  streak: 0,
+  deeds: 0,
+  xp: 0,
 }
 
-function openDiag() {
-  selectedQuickLevel = null;
-  qCur=0; qAnsList=new Array(8).fill(null);
-  showDiagStep('choice');
-  document.getElementById('diag-overlay').classList.remove('hidden');
-}
+function initHome() {
+  readUrlParams()
 
-// ── INIT ──
-document.addEventListener('DOMContentLoaded', ()=>{
-  initUser();
-  renderTracker();
-  renderLessons('all');
-  buildReview();
-  // show diagnostic on first launch
-  if (!localStorage.getItem('iq_diag_done')) {
-    document.getElementById('diag-overlay').classList.remove('hidden');
+  const tgUser = getTgUser()
+  if (tgUser) {
+    U.name = tgUser.first_name || 'Участник'
+    const ava = document.getElementById('ava')
+    if (ava) ava.textContent = (tgUser.first_name || 'У')[0].toUpperCase()
+  }
+
+  // Greeting
+  const h = new Date().getHours()
+  const greets = ['Ас-саляму алейкум', t('goodMorning'), t('goodDay'), t('goodEvening'), t('goodNight')]
+  const gi = h < 5 ? 4 : h < 12 ? 1 : h < 17 ? 2 : h < 22 ? 3 : 4
+  const greetEl = document.getElementById('greet')
+  if (greetEl) greetEl.textContent = greets[gi] + ' 👋'
+
+  const subEl = document.getElementById('uname-sub')
+  if (subEl) subEl.textContent = U.name + (U.level ? ' · ' + (LEVEL_LABELS[U.level] || U.level) : '')
+
+  const pillEl = document.getElementById('lvl-pill')
+  if (pillEl) pillEl.textContent = U.level
+    ? (LEVEL_ICONS[U.level] || '🌱') + ' ' + (LEVEL_LABELS[U.level] || U.level)
+    : '🌱 IQ Barakah'
+
+  // Stats
+  document.getElementById('sv-streak').textContent = U.streak
+  document.getElementById('sv-weeks').textContent = U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0
+  document.getElementById('sv-deeds').textContent = U.deeds
+  document.getElementById('sv-xp').textContent = U.xp
+
+  // Ring progress
+  const pct = U.currentWeek > 0 ? Math.round(Math.max(0, U.currentWeek - 1) / 30 * 100) : 0
+  document.getElementById('rpct').textContent = pct + '%'
+  const circ = 2 * Math.PI * 62
+  document.getElementById('ring')?.setAttribute('stroke-dashoffset', (circ * (1 - pct / 100)).toFixed(1))
+
+  // Current week banner
+  if (U.currentWeek > 0 && U.currentWeek <= WEEKS.length) {
+    const cw = WEEKS[U.currentWeek - 1]
+    if (cw) {
+      document.getElementById('cw-icon').textContent  = cw.icon
+      document.getElementById('cw-title').textContent = cw.num + ' · ' + cw.title
+      document.getElementById('cw-sub').textContent   = cw.sub + ' · ' + t('active')
+      document.getElementById('act-cur-week').textContent = cw.num + ' · ' + cw.title
+    }
   } else {
-    const lvl = localStorage.getItem('iq_level') || 'А';
-    U.level = lvl;
-    document.getElementById('lvl-pill').textContent = '🌱 Уровень ' + lvl;
+    document.getElementById('cw-title').textContent = t('programNotStarted')
+    document.getElementById('cw-sub').textContent   = t('openBotStart')
   }
-});
+}
+
+function readUrlParams() {
+  const p = new URLSearchParams(window.location.search)
+  const lvl = p.get('lvl') || ''
+  const wk  = parseInt(p.get('wk') || '0', 10)
+  if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
+    U.level = lvl
+    U.currentWeek = LEVEL_OFFSET[lvl] + wk
+  }
+  // Fallback to localStorage
+  if (!U.level) U.level = lsGet('level', '')
+}
+
+
+// --- screens/tracker.js ---
+
+let checked = lsGet('checked', {})
+
+function save() { lsSet('checked', checked) }
+
+function isChecked(id) { return !!(checked[todayKey()]?.[id]) }
+
+function toggle(id) {
+  const k = todayKey()
+  if (!checked[k]) checked[k] = {}
+  if (checked[k][id]) delete checked[k][id]
+  else checked[k][id] = true
+  save()
+}
+
+function toggleWeekly(id, bucket) {
+  if (!checked[bucket]) checked[bucket] = {}
+  if (checked[bucket][id]) delete checked[bucket][id]
+  else checked[bucket][id] = true
+  save()
+}
+
+function updateProgress() {
+  const all = [...NAMAZ.map(n => n.id), ...DAILY.map(d => d.id)]
+  const total = all.length
+  const done = all.filter(id => isChecked(id)).length
+  document.getElementById('tp-sub').textContent = tf('doneOf', { done, total })
+  document.getElementById('tp-count').textContent = `${done}/${total}`
+  document.getElementById('tp-bar').style.width = `${Math.round(done / total * 100)}%`
+  document.getElementById('tracker-dot')?.classList.toggle('show', done < total)
+}
+
+function renderTracker() {
+  checked = lsGet('checked', {})
+
+  const d = new Date()
+  document.getElementById('tracker-date').textContent = d.toLocaleDateString(t('dateLocale'), {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'long',
+  })
+
+  renderWeekStrip()
+  renderNamaz()
+  renderDaily()
+  renderWeeklyList()
+  renderOnetimeList()
+  updateProgress()
+}
+
+function renderWeekStrip() {
+  const strip = document.getElementById('week-strip')
+  strip.innerHTML = ''
+  const DAYS = t('weekdaysShort')
+  const today = new Date()
+  const dow = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((dow + 6) % 7))
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    const isToday = d.toDateString() === today.toDateString()
+    const dk = d.toISOString().split('T')[0]
+    const hasDone = checked[dk] && Object.keys(checked[dk]).length > 0
+    const chip = document.createElement('div')
+    chip.className = `day-chip${isToday ? ' today' : hasDone ? ' done-day' : ''}`
+    chip.innerHTML = `<span class="dn">${DAYS[d.getDay()]}</span><span class="dd">${d.getDate()}</span><span class="dc"></span>`
+    strip.appendChild(chip)
+    if (isToday) setTimeout(() => chip.scrollIntoView({ inline: 'center', block: 'nearest' }), 100)
+  }
+}
+
+function renderNamaz() {
+  const ng = document.getElementById('namaz-grid')
+  ng.innerHTML = ''
+  NAMAZ.forEach(n => {
+    const done = isChecked(n.id)
+    const btn = document.createElement('button')
+    btn.className = `namaz-btn${done ? ' done' : ''}`
+    btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${done ? '✅' : n.icon}</span>`
+    btn.onclick = () => {
+      haptic()
+      toggle(n.id)
+      const d = isChecked(n.id)
+      btn.className = `namaz-btn${d ? ' done' : ''}`
+      btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${d ? '✅' : n.icon}</span>`
+      updateProgress()
+    }
+    ng.appendChild(btn)
+  })
+}
+
+function renderDaily() {
+  const dh = document.getElementById('daily-habits')
+  dh.innerHTML = ''
+  DAILY.forEach(h => {
+    const el = document.createElement('div')
+    const done = isChecked(h.id)
+    el.className = `habit-item${done ? ' checked' : ''}`
+    el.innerHTML = `
+      <div class="hcheck">${done ? '<span style="color:white;font-size:14px;">✓</span>' : ''}</div>
+      <div class="act-ic gr" style="width:38px;height:38px;border-radius:10px;font-size:18px;">${h.icon}</div>
+      <div class="habit-info"><div class="t">${h.label}</div><div class="s">${h.sub}</div></div>
+      <div class="habit-streak">🔥${h.streak}</div>`
+    el.onclick = () => {
+      haptic()
+      toggle(h.id)
+      const d = isChecked(h.id)
+      el.classList.toggle('checked', d)
+      el.querySelector('.hcheck').innerHTML = d ? '<span style="color:white;font-size:14px;">✓</span>' : ''
+      el.classList.add('pop')
+      setTimeout(() => el.classList.remove('pop'), 350)
+      updateProgress()
+    }
+    dh.appendChild(el)
+  })
+}
+
+function makeWeeklyItem(w, bucket) {
+  const done = !!(checked[bucket]?.[w.id])
+  const el = document.createElement('div')
+  el.className = `weekly-item${done ? ' done-w' : ''}`
+  el.innerHTML = `
+    <div class="wi-icon">${w.icon}</div>
+    <div class="wi-info"><div class="t">${w.label}</div><div class="s">${w.sub}</div></div>
+    <div class="wi-check">${done ? '<span style="font-size:13px;color:white;">✓</span>' : ''}</div>`
+  el.onclick = () => {
+    haptic()
+    toggleWeekly(w.id, bucket)
+    const d = !!(checked[bucket]?.[w.id])
+    el.classList.toggle('done-w', d)
+    el.querySelector('.wi-check').innerHTML = d ? '<span style="font-size:13px;color:white;">✓</span>' : ''
+  }
+  return el
+}
+
+function renderWeeklyList() {
+  const wh = document.getElementById('weekly-habits')
+  wh.innerHTML = ''
+  WEEKLY.forEach(w => wh.appendChild(makeWeeklyItem(w, 'weekly')))
+}
+
+function renderOnetimeList() {
+  const oh = document.getElementById('onetime-habits')
+  oh.innerHTML = ''
+  ONETIME.forEach(w => oh.appendChild(makeWeeklyItem(w, 'onetime')))
+}
+
+function getTrackerPayload() {
+  return { action: 'save_tracker', habits: checked }
+}
+
+
+// --- screens/lessons.js ---
+
+let currentWeek = 0
+
+function setCurrentWeek(w) { currentWeek = w }
+
+function renderLessons(phase = 'all') {
+  const list = document.getElementById('week-list')
+  list.innerHTML = ''
+
+  const filtered = phase === 'all' ? WEEKS : WEEKS.filter(w => w.phase === phase)
+  let lastPhase = null
+  let curEl = null
+
+  filtered.forEach(w => {
+    const wi = WEEKS.indexOf(w) + 1
+
+    if (w.phase !== lastPhase) {
+      const l = document.createElement('div')
+      l.className = 'phase-lbl'
+      l.textContent = PHASE_LABELS[w.phase]
+      list.appendChild(l)
+      lastPhase = w.phase
+    }
+
+    const hasCur = currentWeek > 0
+    const done   = hasCur ? wi < currentWeek : false
+    const isCur  = hasCur ? wi === currentWeek : false
+    const locked = hasCur ? wi > currentWeek : (wi > 1)
+
+    const el = document.createElement('div')
+    el.className = `week-item${isCur ? ' week-item-current' : ''}`
+    el.innerHTML = `
+      <div class="wnum ${locked ? 'lock' : done ? 'done' : 'cur'}">${w.num}</div>
+      <div class="winfo"><div class="t">${w.icon} ${w.title}</div><div class="s">${w.sub}</div></div>
+      <div class="wstat">${locked ? '🔒' : done ? '✅' : '📖'}</div>`
+    el.onclick = () => openLessonSheet(w, done, isCur, locked)
+    list.appendChild(el)
+    if (isCur) curEl = el
+  })
+
+  if (curEl) setTimeout(() => curEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120)
+
+  // Sync progress bar
+  const pct = currentWeek > 0 ? Math.round(Math.max(0, currentWeek - 1) / 30 * 100) : 0
+  const bar = document.getElementById('lessons-pbar')
+  if (bar) bar.style.width = pct + '%'
+}
+
+function openLessonSheet(w, done, isCur, locked) {
+  haptic()
+  document.getElementById('sl-icon').textContent = w.icon
+  document.getElementById('sl-title').textContent = w.title
+  document.getElementById('sl-sub').textContent = `${w.sub} · ${locked ? t('locked') : done ? t('completedLesson') : t('current')}`
+
+  const c = WEEK_CONTENT[w.phase] || WEEK_CONTENT.s1
+  const rows = document.getElementById('sl-rows')
+  rows.innerHTML = locked
+    ? `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">${t('howToOpen')}</div><div class="v">${t('unlockHint')}</div></div></div>`
+    : `<div class="s-row"><div class="s-ri">📿</div><div class="s-rt"><div class="l">${t('weeklyAzkar')}</div><div class="v">${c.az}</div></div></div>
+       <div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">${t('quran')}</div><div class="v">${c.qu}</div></div></div>
+       <div class="s-row"><div class="s-ri">🤲</div><div class="s-rt"><div class="l">${t('goodDeed')}</div><div class="v">${c.deed}</div></div></div>`
+
+  const btns = document.getElementById('sl-btns')
+  if (locked || done) {
+    btns.innerHTML = `<button class="btn btn-o" id="sl-close">${t('close')}</button>`
+    document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
+  } else {
+    btns.innerHTML = `
+      <button class="btn btn-p" id="sl-review">${t('submitMuhasaba')}</button>
+      <button class="btn btn-o" id="sl-close">${t('close')}</button>`
+    document.getElementById('sl-review').onclick = () => {
+      closeSheetById('lesson')
+      openSheet('review')
+    }
+    document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
+  }
+
+  openSheet('lesson')
+}
+
+function closeSheetById(id) {
+  document.getElementById(`ov-${id}`)?.classList.remove('open')
+  document.getElementById(`sh-${id}`)?.classList.remove('open')
+}
+
+
+// --- screens/wheel.js ---
+
+const SECTORS = [
+  { name: 'Вера (Иман)', color: '#2c5f2d', val: 7 },
+  { name: 'Намаз',       color: '#3d7a3e', val: 6 },
+  { name: 'Семья',       color: '#c9a84c', val: 8 },
+  { name: 'Здоровье',    color: '#5b8fa8', val: 5 },
+  { name: 'Ризк',        color: '#7b5ea7', val: 6 },
+  { name: 'Знание',      color: '#e07b39', val: 7 },
+  { name: 'Ахляк',       color: '#d4547a', val: 8 },
+  { name: 'Уммет',       color: '#4a9e8c', val: 5 },
+]
+
+function renderWheel() {
+  drawWheel()
+  buildSliders()
+}
+
+function drawWheel() {
+  const cv = document.getElementById('wcanvas')
+  if (!cv) return
+  const ctx = cv.getContext('2d')
+  const cx = 145, cy = 145, r = 122, n = SECTORS.length
+  const step = (2 * Math.PI) / n
+  ctx.clearRect(0, 0, 290, 290)
+
+  for (let i = 1; i <= 10; i++) {
+    ctx.beginPath()
+    ctx.arc(cx, cy, (r / 10) * i, 0, 2 * Math.PI)
+    ctx.strokeStyle = i === 10 ? '#ccc' : '#eee'
+    ctx.lineWidth = i === 10 ? 1.5 : 1
+    ctx.stroke()
+  }
+
+  SECTORS.forEach((s, i) => {
+    const a = -Math.PI / 2 + i * step, ea = a + step, sr = (r / 10) * s.val
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, sr, a, ea); ctx.closePath()
+    ctx.fillStyle = s.color + '4a'; ctx.fill()
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.stroke()
+  })
+
+  SECTORS.forEach((_, i) => {
+    const a = -Math.PI / 2 + i * step
+    ctx.beginPath(); ctx.moveTo(cx, cy)
+    ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a))
+    ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.stroke()
+  })
+
+  ctx.font = 'bold 11px -apple-system,sans-serif'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  SECTORS.forEach((s, i) => {
+    const a = -Math.PI / 2 + (i + 0.5) * step, lr = r + 16
+    ctx.fillStyle = s.color
+    ctx.fillText(s.val, cx + lr * Math.cos(a), cy + lr * Math.sin(a))
+  })
+
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 2 * Math.PI)
+  ctx.fillStyle = '#2c5f2d'; ctx.fill()
+}
+
+function buildSliders() {
+  const w = document.getElementById('sliders')
+  if (!w) return
+  w.innerHTML = ''
+  SECTORS.forEach((s, i) => {
+    const d = document.createElement('div')
+    d.className = 'sl-row'
+    d.innerHTML = `
+      <div class="sl-label">
+        <span class="sn" style="color:${s.color};">● ${s.name}</span>
+        <span class="sv" id="sv${i}">${s.val}</span>
+      </div>
+      <input type="range" min="1" max="10" value="${s.val}" style="accent-color:${s.color};" data-idx="${i}">`
+    d.querySelector('input').oninput = e => {
+      SECTORS[i].val = parseInt(e.target.value)
+      document.getElementById('sv' + i).textContent = e.target.value
+      drawWheel()
+    }
+    w.appendChild(d)
+  })
+}
+
+function saveWheel() {
+  haptic('success')
+  const scores = Object.fromEntries(SECTORS.map(s => [s.name, s.val]))
+  sendData({ action: 'save_wheel', scores })
+  showToast(t('wheelSaved'))
+}
+
+
+// --- screens/ship.js ---
+
+const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html'
+
+function renderShip() {
+  ;['business', 'personal'].forEach(type => {
+    const raw = localStorage.getItem('ship_' + type)
+    const resultEl = document.getElementById('ship-result-' + type)
+    const scoreEl  = document.getElementById('ship-score-' + type)
+    const dateEl   = document.getElementById('ship-date-' + type)
+    const btnEl    = document.getElementById('ship-btn-' + type)
+    if (!raw || !resultEl) return
+    try {
+      const d = JSON.parse(raw)
+      if (!d.scores) return
+      const avg = Math.round(d.scores.reduce((s, v) => s + v, 0) / d.scores.length)
+      scoreEl.textContent = avg + '%'
+      scoreEl.className = 'ship-result-score ' + (avg >= 70 ? 'hi' : avg >= 45 ? 'mid' : 'lo')
+      const dt = new Date(d.ts || d.date)
+      dateEl.textContent = dt.toLocaleDateString(t('dateLocale'), { day: 'numeric', month: 'short' })
+      resultEl.style.display = 'flex'
+      btnEl.textContent = (type === 'business' ? '⚓' : '🌙') + ' ' + t('retake')
+    } catch (e) {}
+  })
+
+  // CloudStorage fallback
+  ;['business', 'personal'].forEach(type => {
+    if (localStorage.getItem('ship_' + type)) return
+    cloudGet('ship_' + type, (err, val) => {
+      if (!err && val) {
+        localStorage.setItem('ship_' + type, val)
+        renderShip()
+      }
+    })
+  })
+}
+
+function openShip(type) {
+  haptic()
+  openLink(SHIP_URL + '?tab=' + type + '&lang=' + lang())
+}
+
+function initShipButtons() {
+  document.getElementById('ship-btn-business')?.addEventListener('click', () => openShip('business'))
+  document.getElementById('ship-btn-personal')?.addEventListener('click', () => openShip('personal'))
+}
+
+
+// --- app.js ---
+
+const SCREENS = ['home', 'tracker', 'lessons', 'wheel', 'ship']
+let current = 'home'
+
+function switchScreen(id) {
+  if (!SCREENS.includes(id)) return
+  haptic()
+  document.getElementById(`sc-${current}`)?.classList.remove('active')
+  document.getElementById(`nb-${current}`)?.classList.remove('active')
+  document.getElementById(`sc-${id}`)?.classList.add('active')
+  document.getElementById(`nb-${id}`)?.classList.add('active')
+  current = id
+
+  if (id === 'wheel')   renderWheel()
+  if (id === 'lessons') renderLessons('all')
+  if (id === 'tracker') renderTracker()
+  if (id === 'ship')    renderShip()
+}
+
+function initNav() {
+  // Nav buttons
+  document.querySelectorAll('.nb[data-screen]').forEach(btn => {
+    btn.addEventListener('click', () => switchScreen(btn.dataset.screen))
+  })
+
+  // Act items on home
+  document.querySelectorAll('.act-item[data-screen]').forEach(el => {
+    el.addEventListener('click', () => switchScreen(el.dataset.screen))
+  })
+
+  // Week banner → lessons
+  document.getElementById('cw-banner')?.addEventListener('click', () => switchScreen('lessons'))
+
+  // Wheel save
+  document.getElementById('btn-save-wheel')?.addEventListener('click', saveWheel)
+
+  // Ship buttons
+  initShipButtons()
+
+  // Phase filter chips
+  document.querySelectorAll('.chip[data-phase]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      haptic()
+      document.querySelectorAll('.chip').forEach(c => { c.classList.remove('on'); c.classList.add('off') })
+      chip.classList.add('on'); chip.classList.remove('off')
+      renderLessons(chip.dataset.phase)
+    })
+  })
+}
+
+
+// --- main.js ---
+
+initTg()
+initI18n()
+initHome()
+
+// Sync currentWeek from user state into lessons module
+setCurrentWeek(U.currentWeek)
+
+// Nav
+initNav()
+
+// Initial tracker render (for badge dot)
+renderTracker()
+
+// Diagnostic
+initDiagnostic(() => {
+  // After diag finish — reload home state
+  initHome()
+  setCurrentWeek(U.currentWeek)
+})
+
+// Diagnostic trigger buttons
+document.getElementById('btn-open-diag')?.addEventListener('click', openDiag)
+
+// Review sheet (muhasaba)
+initReviewSheet(() => U.currentWeek, WEEKS)
+document.getElementById('btn-muhasaba')?.addEventListener('click', () =>
+  openReviewSheet(U.currentWeek, WEEKS)
+)
+
 </script>
 </body>
 </html>
