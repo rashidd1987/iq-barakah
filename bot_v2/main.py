@@ -10,7 +10,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot_v2.config import load_config
-from bot_v2.db import setup_db, create_tables
+from bot_v2.db import setup_db, ensure_database, create_tables
 from bot_v2.handlers import setup_routers
 from bot_v2.middlewares import DbSessionMiddleware
 from bot_v2.services.jarwas import setup_jarwas
@@ -39,6 +39,7 @@ async def main():
     logger.info("Database URL: %s", _mask_db_url(config.database_url))
 
     # DB
+    await ensure_database(config.database_url)
     setup_db(config.database_url)
     await create_tables()
     logger.info("Database ready")
