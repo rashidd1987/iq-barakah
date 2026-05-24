@@ -7,7 +7,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot_v2.services.program import TARIFFS
+from bot_v2.services.program import TARIFFS, get_tariff_view
 from bot_v2.services.i18n import LANG_FLAGS, LANG_LABELS, SUPPORTED_LANGS, normalize_lang, t
 
 
@@ -185,7 +185,8 @@ def kb_program_overview(
 def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     for tariff in TARIFFS:
-        b.button(text=tariff["name"], callback_data=f"tariff:{tariff['id']}")
+        tariff_view = get_tariff_view(tariff["id"], lang) or tariff
+        b.button(text=tariff_view["name"], callback_data=f"tariff:{tariff['id']}")
     b.button(text=t(lang, "tariffs.back"), callback_data="back_main")
     b.adjust(1)
     return b.as_markup()

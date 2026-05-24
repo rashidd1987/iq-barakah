@@ -13,7 +13,7 @@ from bot_v2.config import Config
 from bot_v2.db.repositories import PaymentRepo, ParticipantRepo, UserRepo
 from bot_v2.keyboards import kb_tariffs, kb_tariff_detail, kb_curator_notify
 from bot_v2.services.i18n import t
-from bot_v2.services.program import get_tariff, TARIFFS
+from bot_v2.services.program import get_tariff, get_tariff_view
 
 router = Router(name="payments")
 
@@ -37,8 +37,9 @@ async def cb_tariff_detail(call: CallbackQuery, session: AsyncSession):
     if not tariff:
         await call.answer(t(lang, "tariffs.not_found"))
         return
+    tariff_view = get_tariff_view(tariff_id, lang) or tariff
     await call.answer()
-    text = f"*{tariff['name']}*\n_{tariff['desc']}_\n\n💰 {tariff['price']:,} ₽".replace(",", " ")
+    text = f"*{tariff_view['name']}*\n_{tariff_view['desc']}_\n\n💰 {tariff['price']:,} ₽".replace(",", " ")
     await call.message.edit_text(text, parse_mode="Markdown", reply_markup=kb_tariff_detail(tariff_id, lang))
 
 
@@ -52,9 +53,10 @@ async def cb_pay(call: CallbackQuery, state: FSMContext, session: AsyncSession, 
         return
 
     if tariff_id in ("jamaat", "leader"):
+        tariff_view = get_tariff_view(tariff_id, lang) or tariff
         await call.answer()
         await call.message.answer(
-            f"*{tariff['name']}*\n\n"
+            f"*{tariff_view['name']}*\n\n"
             f"{t(lang, 'payments.manager')}",
             parse_mode="Markdown"
         )
@@ -79,7 +81,7 @@ async def cb_pay(call: CallbackQuery, state: FSMContext, session: AsyncSession, 
         )
         return
 
-    await _send_invoice(call.message, tariff_id, tariff, config, email)
+    await _send_invoice(call.message, tariff_id, tariff, config, email, lang)
 
 
 @router.message(PayStates.await_email)
@@ -92,19 +94,28 @@ async def msg_pay_email(message: Message, state: FSMContext, session: AsyncSessi
 
     data = await state.get_data()
     tariff_id = data.get("pending_tariff", "vakt")
-    t = get_tariff(tariff_id)
+    lang = data.get("lang") or await _user_lang(session, message.from_user.id)
+    tariff = get_tariff(tariff_id)
     await state.clear()
-    await _send_invoice(message, tariff_id, t, config, email)
+    await _send_invoice(message, tariff_id, tariff, config, email, lang)
 
 
-async def _send_invoice(message: Message, tariff_id: str, tariff: dict, config: Config, email: str | None):
+async def _send_invoice(
+    message: Message,
+    tariff_id: str,
+    tariff: dict,
+    config: Config,
+    email: str | None,
+    lang: str,
+):
+    tariff_view = get_tariff_view(tariff_id, lang) or tariff
     await message.answer_invoice(
-        title=tariff["name"],
-        description=tariff["desc"],
+        title=tariff_view["name"],
+        description=tariff_view["desc"],
         payload=f"{tariff_id}:{message.from_user.id}",
         provider_token=config.payments_provider_token,
         currency="RUB",
-        prices=[LabeledPrice(label=tariff["name"], amount=tariff["price"] * 100)],
+        prices=[LabeledPrice(label=tariff_view["name"], amount=tariff["price"] * 100)],
         need_email=not email,
         send_email_to_provider=not email,
     )
@@ -135,11 +146,12 @@ async def successful_payment(message: Message, session: AsyncSession, config: Co
     user_repo = UserRepo(session)
     user = await user_repo.get(user_id)
     lang = user.language_code if user else "ru"
+    tariff_view = get_tariff_view(tariff_id, lang) or tariff
     await message.answer(
         t(
             lang,
             "payments.success",
-            tariff=tariff["name"],
+            tariff=tariff_view["name"],
             amount=f"{payment.total_amount // 100:,}".replace(",", " "),
         ),
         parse_mode="Markdown"

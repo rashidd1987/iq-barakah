@@ -47,9 +47,52 @@ TARIFFS = [
 
 TARIFF_MAP = {t["id"]: t for t in TARIFFS}
 
+TARIFF_TEXTS = {
+    "ru": {
+        "vakt": ("🌱 ВАКТ", "Тайм-менеджмент мусульманина · 6 недель"),
+        "s1_full": ("📗 IQ Barakah · Сезон 1", "Основание · КТО ты есть · 8 недель"),
+        "s3_full": ("🏆 IQ Barakah · 3 сезона", "Основание + Строительство + Наследие · 24 недели"),
+        "jamaat": ("👥 Джамаат", "Со-общество · до 12 человек · 24 недели"),
+        "leader": ("👑 Лидер Уммы", "1 на 1 с основателем IQ Barakah · 24 недели"),
+    },
+    "en": {
+        "vakt": ("🌱 VAKT", "Muslim time management · 6 weeks"),
+        "s1_full": ("📗 IQ Barakah · Season 1", "Foundation · Who you are · 8 weeks"),
+        "s3_full": ("🏆 IQ Barakah · 3 seasons", "Foundation + Building + Legacy · 24 weeks"),
+        "jamaat": ("👥 Jamaat", "Community cohort · up to 12 people · 24 weeks"),
+        "leader": ("👑 Ummah Leader", "1-on-1 with the founder of IQ Barakah · 24 weeks"),
+    },
+    "ar": {
+        "vakt": ("🌱 VAKT", "إدارة وقت المسلم · 6 أسابيع"),
+        "s1_full": ("📗 IQ Barakah · الموسم 1", "الأساس · من أنت · 8 أسابيع"),
+        "s3_full": ("🏆 IQ Barakah · 3 مواسم", "الأساس + البناء + الأثر · 24 أسبوعاً"),
+        "jamaat": ("👥 الجماعة", "مجموعة تعليمية · حتى 12 شخصاً · 24 أسبوعاً"),
+        "leader": ("👑 قائد الأمة", "جلسات فردية مع مؤسس IQ Barakah · 24 أسبوعاً"),
+    },
+    "tr": {
+        "vakt": ("🌱 VAKT", "Müslüman için zaman yönetimi · 6 hafta"),
+        "s1_full": ("📗 IQ Barakah · Sezon 1", "Temel · Kimsin · 8 hafta"),
+        "s3_full": ("🏆 IQ Barakah · 3 sezon", "Temel + İnşa + Miras · 24 hafta"),
+        "jamaat": ("👥 Cemaat", "Topluluk grubu · en fazla 12 kişi · 24 hafta"),
+        "leader": ("👑 Ümmet Lideri", "IQ Barakah kurucusuyla bire bir · 24 hafta"),
+    },
+}
+
 
 def get_tariff(tariff_id: str) -> dict | None:
     return TARIFF_MAP.get(tariff_id)
+
+
+def get_tariff_view(tariff_id: str, lang: str | None = "ru") -> dict | None:
+    tariff = get_tariff(tariff_id)
+    if not tariff:
+        return None
+    lang = (lang or "ru").lower().split("-")[0]
+    name, desc = TARIFF_TEXTS.get(lang, TARIFF_TEXTS["ru"]).get(
+        tariff_id,
+        (tariff["name"], tariff["desc"]),
+    )
+    return {**tariff, "name": name, "desc": desc}
 
 
 def get_result(score: int, is_female: bool) -> dict:
