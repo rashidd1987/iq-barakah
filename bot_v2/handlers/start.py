@@ -4,8 +4,10 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot_v2.db.models import DiagResult
 from bot_v2.db.repositories import UserRepo
 from bot_v2.keyboards import (
     BTN_CURATOR,
@@ -27,6 +29,7 @@ from bot_v2.keyboards import (
 )
 from bot_v2.config import Config
 from bot_v2.services.i18n import language_name, normalize_lang, t
+from bot_v2.services.program import TARIFFS
 
 router = Router(name="start")
 
@@ -79,6 +82,12 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         parse_mode="Markdown",
         reply_markup=kb_bottom_menu(config.miniapp_url, lang),
     )
+
+    latest_diag = await _latest_diag(session, db_user.id)
+    if latest_diag:
+        await _send_program_after_diag(message, lang, latest_diag)
+    else:
+        await _send_diag_prompt(message, config, lang)
 
 
 @router.callback_query(F.data == "back_main")
@@ -154,10 +163,7 @@ async def onboarding_source(message: Message, state: FSMContext, session: AsyncS
         "и покажет, с какого маршрута начать — ВАКТ, Сезон 1 или более глубокая программа.",
         reply_markup=kb_bottom_menu(config.miniapp_url),
     )
-    await message.answer(
-        "Нажми кнопку ниже:",
-        reply_markup=kb_start_diag(),
-    )
+    await _send_diag_prompt(message, config, "ru")
 
 
 @router.message(Command("language"))
@@ -190,8 +196,14 @@ async def msg_diag_button(message: Message):
 
 
 @router.message(F.text == BTN_PROGRAM)
-async def msg_program(message: Message):
-    await message.answer("📚 Программа откроется после диагностики и активации. Для начала нажми «🎯 Диагностика».")
+async def msg_program(message: Message, session: AsyncSession, config: Config):
+    user = await UserRepo(session).get(message.from_user.id)
+    lang = user.language_code if user else normalize_lang(message.from_user.language_code)
+    latest_diag = await _latest_diag(session, message.from_user.id)
+    if not latest_diag:
+        await _send_diag_prompt(message, config, lang)
+        return
+    await _send_program_after_diag(message, lang, latest_diag)
 
 
 @router.message(F.text == BTN_REMINDERS)
@@ -244,6 +256,44 @@ async def cb_set_language(call: CallbackQuery, session: AsyncSession, config: Co
 
 def _profile_complete(user) -> bool:
     return bool(user.name and user.is_female is not None and user.age and user.occupation and user.source)
+
+
+async def _latest_diag(session: AsyncSession, user_id: int) -> DiagResult | None:
+    result = await session.execute(
+        select(DiagResult)
+        .where(DiagResult.user_id == user_id)
+        .order_by(desc(DiagResult.created_at), desc(DiagResult.id))
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _send_diag_prompt(message: Message, config: Config, lang: str):
+    await message.answer(
+        "🎯 Чтобы подобрать правильный маршрут, пройди короткую диагностику.",
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
+    )
+    await message.answer("Нажми кнопку ниже:", reply_markup=kb_start_diag())
+
+
+async def _send_program_after_diag(message: Message, lang: str, diag: DiagResult):
+    recommended = _recommended_tariff(diag.level_key)
+    text = (
+        "📚 *Твой следующий шаг — программа IQ Barakah*\n\n"
+        f"По диагностике: *уровень {diag.level_key}* · {diag.pct}%.\n"
+        f"Рекомендованный маршрут: *{recommended['name']}*.\n\n"
+        "Выбери программу ниже. Если сомневаешься — напиши куратору, он поможет подобрать путь."
+    )
+    await message.answer(text, parse_mode="Markdown", reply_markup=kb_tariffs(lang))
+
+
+def _recommended_tariff(level_key: str) -> dict:
+    tariff_id = "vakt"
+    if level_key == "Б":
+        tariff_id = "s1_full"
+    elif level_key in {"В", "Г"}:
+        tariff_id = "s3_full"
+    return next((tariff for tariff in TARIFFS if tariff["id"] == tariff_id), TARIFFS[0])
 
 
 def _md_escape(value: str) -> str:
