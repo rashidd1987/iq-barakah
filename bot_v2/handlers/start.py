@@ -2,7 +2,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot_v2.db.repositories import UserRepo
@@ -28,6 +28,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     lang = db_user.language_code or normalize_lang(user.language_code)
     greeting = t(lang, "start.greeting", name=db_user.name)
 
+    await message.answer("Меню обновлено.", reply_markup=ReplyKeyboardRemove())
     await message.answer(
         greeting,
         parse_mode="Markdown",
