@@ -9,8 +9,8 @@ const SECTORS = [
   { name: 'Здоровье',    color: '#5b8fa8', val: 5 },
   { name: 'Ризк',        color: '#7b5ea7', val: 6 },
   { name: 'Знание',      color: '#e07b39', val: 7 },
-  { name: 'Ахляк',       color: '#d4547a', val: 8 },
-  { name: 'Уммет',       color: '#4a9e8c', val: 5 },
+  { name: 'Ахляк (нрав)', color: '#d4547a', val: 8 },
+  { name: 'Умма',         color: '#4a9e8c', val: 5 },
 ]
 
 export function renderWheel() {
