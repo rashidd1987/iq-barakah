@@ -405,8 +405,68 @@ DIAG_QUESTIONS = {
     ],
 }
 
-for _lang in EXTRA_LANGUAGE_TEXTS:
-    DIAG_QUESTIONS[_lang] = DIAG_QUESTIONS["en"]
+DIAG_QUESTIONS.update({
+    "tr": [
+        ("1️⃣ Sabah namazına kalkıyor musun?", [("😔 Hiç", 0), ("🔄 Bazen", 1), ("✅ Düzenli", 2), ("⭐️ Her zaman + teheccüd", 3)]),
+        ("2️⃣ Sabah zikirlerini okuyor musun?", [("❌ Okumuyorum", 0), ("🔄 Bazen", 1), ("📖 Her gün değil", 2), ("✅ Her gün", 3)]),
+        ("3️⃣ Gününü planlıyor musun?", [("🌊 Akışına bırakıyorum", 0), ("💭 Aklımda", 1), ("📝 Bazen yazıyorum", 2), ("⭐️ Her gün Fajr listesi", 3)]),
+        ("4️⃣ Akşam muhasebesi yapıyor musun?", [("❓ Bu nedir?", 0), ("💭 Bazen", 1), ("🔄 Denedim bıraktım", 2), ("✅ Her akşam", 3)]),
+        ("5️⃣ Sabah telefon kullanımın nasıl?", [("📱 Telefon beni yönetiyor", 0), ("🔄 Sınırlamaya çalışıyorum", 1), ("⚖️ Kurallar var ama bozuluyor", 2), ("✅ Kontrol bende", 3)]),
+        ("6️⃣ Kur'an okuyor musun?", [("❌ Okumuyorum", 0), ("🌙 Özel günlerde", 1), ("📖 Haftada bazen", 2), ("✅ Her gün", 3)]),
+        ("7️⃣ İşin veya ticaretin nasıl?", [("🌀 Tam kaos", 0), ("⚙️ Sistem yok", 1), ("📊 Sistem var, bereket az", 2), ("✨ Anlam arıyorum", 3)]),
+        ("8️⃣ Aile hayatın nasıl?", [("🏃 Eve az geliyorum", 0), ("📱 Evdeyim ama telefondayım", 1), ("❤️ Zaman ayırıyorum, artırmak istiyorum", 2), ("🏠 Ailem kalemdir", 3)]),
+    ],
+    "id": [
+        ("1️⃣ Apakah kamu bangun untuk Subuh?", [("😔 Tidak pernah", 0), ("🔄 Kadang-kadang", 1), ("✅ Rutin", 2), ("⭐️ Selalu + tahajjud", 3)]),
+        ("2️⃣ Apakah membaca dzikir pagi?", [("❌ Tidak", 0), ("🔄 Kadang", 1), ("📖 Tidak setiap hari", 2), ("✅ Setiap hari", 3)]),
+        ("3️⃣ Apakah merencanakan harimu?", [("🌊 Mengalir saja", 0), ("💭 Di kepala", 1), ("📝 Kadang ditulis", 2), ("⭐️ Daftar setelah Subuh setiap hari", 3)]),
+        ("4️⃣ Apakah melakukan muhasabah malam?", [("❓ Apa itu?", 0), ("💭 Kadang", 1), ("🔄 Pernah coba lalu berhenti", 2), ("✅ Setiap malam", 3)]),
+        ("5️⃣ Bagaimana penggunaan HP di pagi hari?", [("📱 HP mengendalikan saya", 0), ("🔄 Saya coba batasi", 1), ("⚖️ Ada aturan tapi sering gagal", 2), ("✅ Saya mengendalikan", 3)]),
+        ("6️⃣ Apakah membaca Al-Qur'an?", [("❌ Tidak", 0), ("🌙 Pada hari tertentu", 1), ("📖 Kadang tiap minggu", 2), ("✅ Setiap hari", 3)]),
+        ("7️⃣ Bagaimana kerja atau bisnismu?", [("🌀 Sangat kacau", 0), ("⚙️ Tanpa sistem", 1), ("📊 Ada sistem, kurang barakah", 2), ("✨ Mencari makna", 3)]),
+        ("8️⃣ Bagaimana kehidupan keluargamu?", [("🏃 Jarang di rumah", 0), ("📱 Di rumah tapi di HP", 1), ("❤️ Peduli, ingin lebih", 2), ("🏠 Keluarga adalah bentengku", 3)]),
+    ],
+    "ur": [
+        ("1️⃣ کیا آپ فجر کے لیے اٹھتے ہیں؟", [("😔 کبھی نہیں", 0), ("🔄 کبھی کبھی", 1), ("✅ باقاعدگی سے", 2), ("⭐️ ہمیشہ + تہجد", 3)]),
+        ("2️⃣ کیا آپ صبح کے اذکار پڑھتے ہیں؟", [("❌ نہیں پڑھتا", 0), ("🔄 کبھی کبھی", 1), ("📖 روز نہیں", 2), ("✅ ہر روز", 3)]),
+        ("3️⃣ کیا آپ اپنے دن کی منصوبہ بندی کرتے ہیں؟", [("🌊 جیسے چلتا ہے", 0), ("💭 ذہن میں", 1), ("📝 کبھی لکھتا ہوں", 2), ("⭐️ ہر روز فجر لسٹ", 3)]),
+        ("4️⃣ کیا آپ شام کو محاسبہ کرتے ہیں؟", [("❓ یہ کیا ہے؟", 0), ("💭 کبھی کبھی", 1), ("🔄 آزمایا، پھر چھوڑ دیا", 2), ("✅ ہر شام", 3)]),
+        ("5️⃣ صبح فون کے ساتھ آپ کا حال کیسا ہے؟", [("📱 فون مجھے کنٹرول کرتا ہے", 0), ("🔄 محدود کرنے کی کوشش کرتا ہوں", 1), ("⚖️ اصول ہیں مگر ٹوٹ جاتے ہیں", 2), ("✅ کنٹرول میرے پاس ہے", 3)]),
+        ("6️⃣ کیا آپ قرآن پڑھتے ہیں؟", [("❌ نہیں", 0), ("🌙 خاص دنوں پر", 1), ("📖 ہفتے میں کبھی", 2), ("✅ ہر روز", 3)]),
+        ("7️⃣ آپ کا کام یا کاروبار کیسا ہے؟", [("🌀 مکمل بے ترتیبی", 0), ("⚙️ کوئی نظام نہیں", 1), ("📊 نظام ہے مگر برکت کم", 2), ("✨ معنی تلاش کر رہا ہوں", 3)]),
+        ("8️⃣ آپ کے گھر/خاندان کا حال کیسا ہے؟", [("🏃 گھر میں کم ہوتا ہوں", 0), ("📱 گھر میں ہوں مگر فون پر", 1), ("❤️ وقت دیتا ہوں، مزید چاہتا ہوں", 2), ("🏠 خاندان میری طاقت ہے", 3)]),
+    ],
+    "bn": [
+        ("1️⃣ আপনি কি ফজরের জন্য ওঠেন?", [("😔 কখনও না", 0), ("🔄 মাঝে মাঝে", 1), ("✅ নিয়মিত", 2), ("⭐️ সবসময় + তাহাজ্জুদ", 3)]),
+        ("2️⃣ আপনি কি সকালের আজকার পড়েন?", [("❌ পড়ি না", 0), ("🔄 মাঝে মাঝে", 1), ("📖 প্রতিদিন নয়", 2), ("✅ প্রতিদিন", 3)]),
+        ("3️⃣ আপনি কি দিনের পরিকল্পনা করেন?", [("🌊 যেমন চলে", 0), ("💭 মাথায় রাখি", 1), ("📝 মাঝে মাঝে লিখি", 2), ("⭐️ প্রতিদিন ফজর-লিস্ট", 3)]),
+        ("4️⃣ রাতে মুহাসাবা করেন?", [("❓ এটা কী?", 0), ("💭 মাঝে মাঝে", 1), ("🔄 চেষ্টা করে ছেড়েছি", 2), ("✅ প্রতিরাতে", 3)]),
+        ("5️⃣ সকালে ফোন ব্যবহারে আপনার অবস্থা?", [("📱 ফোন আমাকে নিয়ন্ত্রণ করে", 0), ("🔄 কমানোর চেষ্টা করি", 1), ("⚖️ নিয়ম আছে, ভেঙে যায়", 2), ("✅ আমি নিয়ন্ত্রণ করি", 3)]),
+        ("6️⃣ আপনি কি কুরআন পড়েন?", [("❌ পড়ি না", 0), ("🌙 বিশেষ দিনে", 1), ("📖 সপ্তাহে মাঝে মাঝে", 2), ("✅ প্রতিদিন", 3)]),
+        ("7️⃣ আপনার কাজ বা ব্যবসা কেমন?", [("🌀 পুরো বিশৃঙ্খলা", 0), ("⚙️ সিস্টেম নেই", 1), ("📊 সিস্টেম আছে, বারাকাহ কম", 2), ("✨ অর্থ খুঁজছি", 3)]),
+        ("8️⃣ আপনার পরিবার জীবন কেমন?", [("🏃 বাড়িতে কম থাকি", 0), ("📱 বাড়িতে থাকি, কিন্তু ফোনে", 1), ("❤️ সময় দিই, আরও চাই", 2), ("🏠 পরিবার আমার দুর্গ", 3)]),
+    ],
+    "fr": [
+        ("1️⃣ Te lèves-tu pour Fajr ?", [("😔 Jamais", 0), ("🔄 Parfois", 1), ("✅ Régulièrement", 2), ("⭐️ Toujours + tahajjud", 3)]),
+        ("2️⃣ Lis-tu les adhkar du matin ?", [("❌ Non", 0), ("🔄 Parfois", 1), ("📖 Pas chaque jour", 2), ("✅ Chaque jour", 3)]),
+        ("3️⃣ Planifies-tu ta journée ?", [("🌊 Je laisse faire", 0), ("💭 Dans ma tête", 1), ("📝 J'écris parfois", 2), ("⭐️ Liste après Fajr chaque jour", 3)]),
+        ("4️⃣ Fais-tu la muhasabah le soir ?", [("❓ C'est quoi ?", 0), ("💭 Parfois", 1), ("🔄 J'ai essayé puis arrêté", 2), ("✅ Chaque soir", 3)]),
+        ("5️⃣ Ton téléphone le matin ?", [("📱 Il me contrôle", 0), ("🔄 J'essaie de limiter", 1), ("⚖️ J'ai des règles mais je dérape", 2), ("✅ Je contrôle", 3)]),
+        ("6️⃣ Lis-tu le Coran ?", [("❌ Non", 0), ("🌙 Aux occasions", 1), ("📖 Parfois dans la semaine", 2), ("✅ Chaque jour", 3)]),
+        ("7️⃣ Ton travail ou business ?", [("🌀 Chaos total", 0), ("⚙️ Pas de système", 1), ("📊 Système présent, peu de barakah", 2), ("✨ Je cherche du sens", 3)]),
+        ("8️⃣ Ta vie de famille ?", [("🏃 Presque jamais à la maison", 0), ("📱 Présent mais sur le téléphone", 1), ("❤️ Je donne du temps, je veux plus", 2), ("🏠 Ma famille est ma forteresse", 3)]),
+    ],
+    "ms": [
+        ("1️⃣ Adakah anda bangun untuk Subuh?", [("😔 Tidak pernah", 0), ("🔄 Kadang-kadang", 1), ("✅ Secara tetap", 2), ("⭐️ Sentiasa + tahajjud", 3)]),
+        ("2️⃣ Adakah anda membaca zikir pagi?", [("❌ Tidak", 0), ("🔄 Kadang-kadang", 1), ("📖 Tidak setiap hari", 2), ("✅ Setiap hari", 3)]),
+        ("3️⃣ Adakah anda merancang hari anda?", [("🌊 Ikut sahaja", 0), ("💭 Dalam kepala", 1), ("📝 Kadang-kadang tulis", 2), ("⭐️ Senarai selepas Subuh setiap hari", 3)]),
+        ("4️⃣ Adakah anda buat muhasabah malam?", [("❓ Apa itu?", 0), ("💭 Kadang-kadang", 1), ("🔄 Pernah cuba lalu berhenti", 2), ("✅ Setiap malam", 3)]),
+        ("5️⃣ Bagaimana penggunaan telefon pada waktu pagi?", [("📱 Telefon mengawal saya", 0), ("🔄 Saya cuba hadkan", 1), ("⚖️ Ada aturan tapi gagal", 2), ("✅ Saya mengawal", 3)]),
+        ("6️⃣ Adakah anda membaca Al-Quran?", [("❌ Tidak", 0), ("🌙 Pada hari tertentu", 1), ("📖 Kadang-kadang setiap minggu", 2), ("✅ Setiap hari", 3)]),
+        ("7️⃣ Bagaimana kerja atau bisnes anda?", [("🌀 Sangat kelam-kabut", 0), ("⚙️ Tiada sistem", 1), ("📊 Ada sistem, kurang barakah", 2), ("✨ Mencari makna", 3)]),
+        ("8️⃣ Bagaimana kehidupan keluarga anda?", [("🏃 Jarang di rumah", 0), ("📱 Di rumah tapi dengan telefon", 1), ("❤️ Beri masa, mahu lebih", 2), ("🏠 Keluarga benteng saya", 3)]),
+    ],
+})
 
 
 def normalize_lang(lang: str | None) -> str:
