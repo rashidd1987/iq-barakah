@@ -3,8 +3,11 @@ from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot_v2.keyboards import kb_jarwas_actions
+from bot_v2.db.repositories import UserRepo
+from bot_v2.keyboards import kb_jarwas_actions_i18n
+from bot_v2.services.i18n import t
 from bot_v2.services import jarwas as jarwas_svc
 
 router = Router(name="jarwas")
@@ -15,17 +18,15 @@ class JarwasStates(StatesGroup):
 
 
 @router.callback_query(F.data == "jarwas_start")
-async def cb_jarwas_start(call: CallbackQuery, state: FSMContext):
+async def cb_jarwas_start(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    lang = await _user_lang(session, call.from_user.id)
     await call.answer()
     await state.set_state(JarwasStates.chatting)
-    await state.update_data(history=[])
+    await state.update_data(history=[], lang=lang)
     await call.message.answer(
-        "🤖 *Джарвас — AI-ментор IQ Barakah*\n\n"
-        "Привет! Я здесь чтобы помочь тебе в рамках программы IQ Barakah.\n"
-        "Задай любой вопрос о программе, своём прогрессе или о том, с чего начать. 🌿\n\n"
-        "_Для завершения нажми кнопку ниже._",
+        t(lang, "jarwas.start"),
         parse_mode="Markdown",
-        reply_markup=kb_jarwas_actions(),
+        reply_markup=kb_jarwas_actions_i18n(lang=lang),
     )
 
 
@@ -33,6 +34,7 @@ async def cb_jarwas_start(call: CallbackQuery, state: FSMContext):
 async def msg_jarwas(message: Message, state: FSMContext):
     data = await state.get_data()
     history = data.get("history", [])
+    lang = data.get("lang", "ru")
 
     await message.bot.send_chat_action(message.chat.id, "typing")
 
@@ -46,12 +48,19 @@ async def msg_jarwas(message: Message, state: FSMContext):
     await message.answer(
         clean_text,
         parse_mode="Markdown",
-        reply_markup=kb_jarwas_actions(btn_type),
+        reply_markup=kb_jarwas_actions_i18n(btn_type, lang),
     )
 
 
 @router.callback_query(F.data == "jarwas_end")
 async def cb_jarwas_end(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    lang = data.get("lang", "ru")
     await call.answer()
     await state.clear()
-    await call.message.answer("БаракАллах фикум. Напиши /start чтобы вернуться в меню. 🌿")
+    await call.message.answer(t(lang, "jarwas.end"))
+
+
+async def _user_lang(session: AsyncSession, user_id: int) -> str:
+    user = await UserRepo(session).get(user_id)
+    return user.language_code if user else "ru"

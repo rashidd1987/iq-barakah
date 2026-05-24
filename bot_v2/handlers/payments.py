@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot_v2.config import Config
 from bot_v2.db.repositories import PaymentRepo, ParticipantRepo, UserRepo
 from bot_v2.keyboards import kb_tariffs, kb_tariff_detail, kb_curator_notify
+from bot_v2.services.i18n import t
 from bot_v2.services.program import get_tariff, TARIFFS
 
 router = Router(name="payments")
@@ -22,46 +23,46 @@ class PayStates(StatesGroup):
 
 
 @router.callback_query(F.data == "show_tariffs")
-async def cb_show_tariffs(call: CallbackQuery):
+async def cb_show_tariffs(call: CallbackQuery, session: AsyncSession):
     await call.answer()
-    text = "🎓 *Тарифы IQ Barakah*\n\nВыбери программу:"
-    await call.message.edit_text(text, parse_mode="Markdown", reply_markup=kb_tariffs())
+    lang = await _user_lang(session, call.from_user.id)
+    await call.message.edit_text(t(lang, "tariffs.title"), parse_mode="Markdown", reply_markup=kb_tariffs(lang))
 
 
 @router.callback_query(F.data.startswith("tariff:"))
-async def cb_tariff_detail(call: CallbackQuery):
+async def cb_tariff_detail(call: CallbackQuery, session: AsyncSession):
+    lang = await _user_lang(session, call.from_user.id)
     tariff_id = call.data.split(":")[1]
-    t = get_tariff(tariff_id)
-    if not t:
-        await call.answer("Тариф не найден.")
+    tariff = get_tariff(tariff_id)
+    if not tariff:
+        await call.answer(t(lang, "tariffs.not_found"))
         return
     await call.answer()
-    text = f"*{t['name']}*\n_{t['desc']}_\n\n💰 {t['price']:,} ₽".replace(",", " ")
-    await call.message.edit_text(text, parse_mode="Markdown", reply_markup=kb_tariff_detail(tariff_id))
+    text = f"*{tariff['name']}*\n_{tariff['desc']}_\n\n💰 {tariff['price']:,} ₽".replace(",", " ")
+    await call.message.edit_text(text, parse_mode="Markdown", reply_markup=kb_tariff_detail(tariff_id, lang))
 
 
 @router.callback_query(F.data.startswith("pay:"))
 async def cb_pay(call: CallbackQuery, state: FSMContext, session: AsyncSession, config: Config):
+    lang = await _user_lang(session, call.from_user.id)
     tariff_id = call.data.split(":")[1]
-    t = get_tariff(tariff_id)
-    if not t:
-        await call.answer("Тариф не найден.")
+    tariff = get_tariff(tariff_id)
+    if not tariff:
+        await call.answer(t(lang, "tariffs.not_found"))
         return
 
     if tariff_id in ("jamaat", "leader"):
         await call.answer()
         await call.message.answer(
-            f"*{t['name']}*\n\n"
-            "Для записи свяжитесь с менеджером:\n"
-            "📞 *+7 989 470 80 66* (WhatsApp)\n\n"
-            "Менеджер расскажет об условиях и ответит на вопросы.",
+            f"*{tariff['name']}*\n\n"
+            f"{t(lang, 'payments.manager')}",
             parse_mode="Markdown"
         )
         return
 
     # Telegram Payments (Stars или провайдер)
     if not config.payments_provider_token:
-        await call.answer("Оплата временно недоступна. Напишите куратору.", show_alert=True)
+        await call.answer(t(lang, "payments.unavailable"), show_alert=True)
         return
 
     await call.answer()
@@ -70,15 +71,15 @@ async def cb_pay(call: CallbackQuery, state: FSMContext, session: AsyncSession, 
     email = user.email if user else None
 
     if not email:
-        await state.update_data(pending_tariff=tariff_id)
+        await state.update_data(pending_tariff=tariff_id, lang=lang)
         await state.set_state(PayStates.await_email)
         await call.message.answer(
-            "📧 Введи email для чека ЮKassa:\n_(нажми /skip если не нужен)_",
+            t(lang, "payments.email"),
             parse_mode="Markdown"
         )
         return
 
-    await _send_invoice(call.message, tariff_id, t, config, email)
+    await _send_invoice(call.message, tariff_id, tariff, config, email)
 
 
 @router.message(PayStates.await_email)
@@ -131,17 +132,20 @@ async def successful_payment(message: Message, session: AsyncSession, config: Co
     await repo.mark_paid(p.id, tg_charge_id=payment.telegram_payment_charge_id)
 
     tariff = get_tariff(tariff_id)
+    user_repo = UserRepo(session)
+    user = await user_repo.get(user_id)
+    lang = user.language_code if user else "ru"
     await message.answer(
-        f"✅ *Оплата получена!*\n\n"
-        f"*{tariff['name']}* — {payment.total_amount // 100:,} ₽\n\n"
-        "Куратор активирует тебя в программе в течение 24 часов. ин ша Аллах 🌿",
+        t(
+            lang,
+            "payments.success",
+            tariff=tariff["name"],
+            amount=f"{payment.total_amount // 100:,}".replace(",", " "),
+        ),
         parse_mode="Markdown"
     )
 
     # Уведомляем кураторов
-    from bot_v2.db.repositories import UserRepo
-    user_repo = UserRepo(session)
-    user = await user_repo.get(user_id)
     name = user.name if user else str(user_id)
 
     for curator_id in config.curator_ids:
@@ -159,3 +163,8 @@ async def successful_payment(message: Message, session: AsyncSession, config: Co
             )
         except Exception:
             pass
+
+
+async def _user_lang(session: AsyncSession, user_id: int) -> str:
+    user = await UserRepo(session).get(user_id)
+    return user.language_code if user else "ru"

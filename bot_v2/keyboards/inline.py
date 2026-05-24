@@ -27,27 +27,27 @@ def kb_language() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
-def kb_tariffs() -> InlineKeyboardMarkup:
+def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     for t in TARIFFS:
         b.button(text=t["name"], callback_data=f"tariff:{t['id']}")
-    b.button(text="← Назад", callback_data="back_main")
+    b.button(text=t(lang, "tariffs.back"), callback_data="back_main")
     b.adjust(1)
     return b.as_markup()
 
 
-def kb_tariff_detail(tariff_id: str) -> InlineKeyboardMarkup:
+def kb_tariff_detail(tariff_id: str, lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="💳 Оплатить", callback_data=f"pay:{tariff_id}")
-    b.button(text="← Назад", callback_data="show_tariffs")
+    b.button(text=t(lang, "tariffs.pay"), callback_data=f"pay:{tariff_id}")
+    b.button(text=t(lang, "tariffs.back"), callback_data="show_tariffs")
     b.adjust(1)
     return b.as_markup()
 
 
-def kb_gender() -> InlineKeyboardMarkup:
+def kb_gender(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="👨 Брат", callback_data="gender_m")
-    b.button(text="👩 Сестра", callback_data="gender_f")
+    b.button(text=t(lang, "gender.male"), callback_data="gender_m")
+    b.button(text=t(lang, "gender.female"), callback_data="gender_f")
     b.adjust(2)
     return b.as_markup()
 
@@ -89,16 +89,20 @@ def kb_week_ack() -> InlineKeyboardMarkup:
 
 
 def kb_jarwas_actions(btn_type: str | None = None) -> InlineKeyboardMarkup:
+    return kb_jarwas_actions_i18n(btn_type, "ru")
+
+
+def kb_jarwas_actions_i18n(btn_type: str | None = None, lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     if btn_type == "diag":
-        b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+        b.button(text=t(lang, "jarwas.diag"), callback_data="start_diag")
     elif btn_type == "buy_vakt":
-        b.button(text="🌱 Купить ВАКТ", callback_data="tariff:vakt")
+        b.button(text=t(lang, "jarwas.buy_vakt"), callback_data="tariff:vakt")
     elif btn_type == "buy_s1":
-        b.button(text="📗 Купить Сезон 1", callback_data="tariff:s1_full")
+        b.button(text=t(lang, "jarwas.buy_s1"), callback_data="tariff:s1_full")
     elif btn_type == "curator":
-        b.button(text="🤝 Написать куратору", callback_data="contact_curator")
-    b.button(text="❌ Закрыть чат с Джарвасом", callback_data="jarwas_end")
+        b.button(text=t(lang, "jarwas.curator"), callback_data="contact_curator")
+    b.button(text=t(lang, "jarwas.close"), callback_data="jarwas_end")
     b.adjust(1)
     return b.as_markup()
 
