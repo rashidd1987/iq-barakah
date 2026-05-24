@@ -24,6 +24,7 @@ from bot_v2.keyboards import (
     kb_onboarding_gender,
     kb_onboarding_occupation,
     kb_onboarding_source,
+    kb_program_overview,
     kb_start_diag,
     kb_tariffs,
 )
@@ -201,7 +202,7 @@ async def msg_program(message: Message, session: AsyncSession, config: Config):
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
     latest_diag = await _latest_diag(session, message.from_user.id)
     if not latest_diag:
-        await _send_diag_prompt(message, config, lang)
+        await _send_program_overview(message)
         return
     await _send_program_after_diag(message, lang, latest_diag)
 
@@ -277,14 +278,89 @@ async def _send_diag_prompt(message: Message, config: Config, lang: str):
 
 
 async def _send_program_after_diag(message: Message, lang: str, diag: DiagResult):
-    recommended = _recommended_tariff(diag.level_key)
-    text = (
-        "📚 *Твой следующий шаг — программа IQ Barakah*\n\n"
-        f"По диагностике: *уровень {diag.level_key}* · {diag.pct}%.\n"
-        f"Рекомендованный маршрут: *{recommended['name']}*.\n\n"
-        "Выбери программу ниже. Если сомневаешься — напиши куратору, он поможет подобрать путь."
+    await message.answer(
+        _program_overview_text(diag),
+        parse_mode="Markdown",
+        reply_markup=kb_program_overview(
+            has_diag=True,
+            recommended_tariff_id=_recommended_tariff(diag.level_key)["id"],
+        ),
     )
-    await message.answer(text, parse_mode="Markdown", reply_markup=kb_tariffs(lang))
+
+
+async def _send_program_overview(message: Message):
+    await message.answer(
+        _program_overview_text(),
+        parse_mode="Markdown",
+        reply_markup=kb_program_overview(has_diag=False),
+    )
+
+
+def _program_overview_text(diag: DiagResult | None = None) -> str:
+    diag_block = ""
+    if diag:
+        recommended = _recommended_tariff(diag.level_key)
+        diag_block = (
+            f"🎯 *Твой результат:* уровень {diag.level_key} · {diag.pct}%\n"
+            f"🌿 *Рекомендуемый старт:* {recommended['name']}\n\n"
+            "━━━━━━━━━━━━━━━━\n"
+        )
+
+    return (
+        "📚 *Программа IQ Barakah*\n\n"
+        f"{diag_block}"
+        "Курс для тех, кто устал бегать по кругу.\n\n"
+        "Планируете, но всё равно нет результата и смысла?\n"
+        "IQ Barakah помогает соединить:\n"
+        "✅ Ваше сердце (покой, намерение)\n"
+        "✅ Разум (фокус, ясность)\n"
+        "✅ Поведение (привычки и дела)\n\n"
+        "Курс поможет сделать так, чтобы работа, семья и духовная жизнь не мешали, а поддерживали друг друга.\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "🌱 *ВАКТ · Тайм-менеджмент мусульманина* · 6 недель · 1 500 ₽\n\n"
+        "B1 🌿 Ният (намерение) — тайный разговор\n"
+        "B2 🏁 Фаджр — якорь дня\n"
+        "B3 🕊 Тауба (покаяние) — чистый лист\n"
+        "B4 💪 Сабр (терпение) — держи курс\n"
+        "B5 📿 Зикр — Аллах в каждом деле\n"
+        "B6 🏆 Итог — твоя система\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "📗 *Сезон 1 · Основание · Кто ты есть* — 8 недель\n\n"
+        "C1.1 🌿 Тайный разговор\n"
+        "C1.2 🏠 Возвращение домой\n"
+        "C1.3 ✨ Священное пространство\n"
+        "C1.4 ⏱ Время как свидетель\n"
+        "C1.5 📱 Кто твой Господь?\n"
+        "C1.6 🖊 Нулевой километр\n"
+        "C1.7 💪 Ты — не мозг в банке\n"
+        "C1.8 🌿 Генеральная уборка души\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "📘 *Сезон 2 · Строительство · Как ты живёшь* — 8 недель\n\n"
+        "C2.1 🧠 Как шайтан взламывает мозг\n"
+        "C2.2 🏛 Строительство крепости\n"
+        "C2.3 🔥 Сжигание кораблей\n"
+        "C2.4 ⚖️ Что тяжелее всего на весах?\n"
+        "C2.5 🧳 Дай плату пока не высох пот\n"
+        "C2.6 📖 Самый длинный аят\n"
+        "C2.7 🤝 Партнёрство с Аллахом\n"
+        "C2.8 🌍 Синдром Атланта\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "📙 *Сезон 3 · Наследие · Зачем ты живёшь* — 8 недель\n\n"
+        "C3.1 👣 У подножия их ног\n"
+        "C3.2 🏠 Оставь войну за порогом\n"
+        "C3.3 🧡 Зеркальные нейроны\n"
+        "C3.4 🌹 Кузнец и парфюмер\n"
+        "C3.5 👑 Король без короны\n"
+        "C3.6 🏞 Река и болото\n"
+        "C3.7 📊 Открытый счёт\n"
+        "C3.8 🏛 Точка невозврата\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "Курс рассчитан на 30 недель. Каждый блок даёт конкретный результат и плавно ведёт на следующий уровень.\n\n"
+        "🗓 *Понедельник 9:00* — урок недели в боте\n"
+        "📞 *Пятница 14:00* — живой созвон с основателем IQ Barakah\n"
+        "🌙 *Ежедневно* — азкар + мухасаба\n\n"
+        "🌿 _20% с каждой оплаты → благотворительность_"
+    )
 
 
 def _recommended_tariff(level_key: str) -> dict:

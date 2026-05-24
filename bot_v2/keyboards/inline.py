@@ -100,6 +100,17 @@ def kb_start_diag() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
+def kb_program_overview(has_diag: bool = False, recommended_tariff_id: str = "vakt") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    recommended = next((tariff for tariff in TARIFFS if tariff["id"] == recommended_tariff_id), TARIFFS[0])
+    b.button(text=f"🌿 Рекомендовано: {recommended['name']}", callback_data=f"tariff:{recommended['id']}")
+    b.button(text="🎓 Все тарифы", callback_data="show_tariffs")
+    if not has_diag:
+        b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+    b.adjust(1)
+    return b.as_markup()
+
+
 def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     for tariff in TARIFFS:
