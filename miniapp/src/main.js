@@ -4,7 +4,7 @@ import { initTg } from './utils/tg.js'
 import { initHome, U } from './screens/home.js'
 import { setCurrentWeek } from './screens/lessons.js'
 import { renderTracker } from './screens/tracker.js'
-import { initNav } from './app.js'
+import { initNav, rerenderCurrentScreen } from './app.js'
 import { initDiagnostic, openDiag } from './components/diagnostic.js'
 import { initReviewSheet, openReviewSheet } from './components/sheets.js'
 import { WEEKS } from './data/weeks.js'
@@ -37,3 +37,9 @@ initReviewSheet(() => U.currentWeek, WEEKS)
 document.getElementById('btn-muhasaba')?.addEventListener('click', () =>
   openReviewSheet(U.currentWeek, WEEKS)
 )
+
+window.addEventListener('iq:langchange', () => {
+  initHome()
+  renderTracker()
+  rerenderCurrentScreen()
+})

@@ -340,10 +340,21 @@ export function initI18n() {
   document.documentElement.lang = currentLang
   document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
   applyI18n()
+  initLangSelect()
 }
 
 export function lang() {
   return currentLang
+}
+
+export function setLang(value) {
+  currentLang = normalizeLang(value)
+  localStorage.setItem('iq_lang', currentLang)
+  document.documentElement.lang = currentLang
+  document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
+  applyI18n()
+  syncLangSelect()
+  window.dispatchEvent(new CustomEvent('iq:langchange', { detail: { lang: currentLang } }))
 }
 
 export function t(key) {
@@ -362,6 +373,18 @@ export function tf(key, values = {}) {
 function normalizeLang(value) {
   const code = String(value || 'ru').toLowerCase().split('-')[0]
   return SUPPORTED.includes(code) ? code : 'ru'
+}
+
+function initLangSelect() {
+  const select = document.getElementById('lang-select')
+  if (!select) return
+  syncLangSelect()
+  select.addEventListener('change', () => setLang(select.value))
+}
+
+function syncLangSelect() {
+  const select = document.getElementById('lang-select')
+  if (select) select.value = currentLang
 }
 
 function applyI18n() {

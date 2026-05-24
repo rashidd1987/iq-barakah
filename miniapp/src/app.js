@@ -22,6 +22,13 @@ export function switchScreen(id) {
   if (id === 'ship')    renderShip()
 }
 
+export function rerenderCurrentScreen() {
+  if (current === 'wheel')   renderWheel()
+  if (current === 'lessons') renderLessons('all')
+  if (current === 'tracker') renderTracker()
+  if (current === 'ship')    renderShip()
+}
+
 export function initNav() {
   // Nav buttons
   document.querySelectorAll('.nb[data-screen]').forEach(btn => {

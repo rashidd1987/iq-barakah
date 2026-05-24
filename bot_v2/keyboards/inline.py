@@ -29,8 +29,8 @@ def kb_language() -> InlineKeyboardMarkup:
 
 def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    for t in TARIFFS:
-        b.button(text=t["name"], callback_data=f"tariff:{t['id']}")
+    for tariff in TARIFFS:
+        b.button(text=tariff["name"], callback_data=f"tariff:{tariff['id']}")
     b.button(text=t(lang, "tariffs.back"), callback_data="back_main")
     b.adjust(1)
     return b.as_markup()
