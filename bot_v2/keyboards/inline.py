@@ -1,8 +1,25 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot_v2.services.program import TARIFFS
 from bot_v2.services.i18n import LANG_FLAGS, LANG_LABELS, SUPPORTED_LANGS, normalize_lang, t
+
+
+BTN_DIAG = "🎯 Диагностика"
+BTN_MINIAPP = "📱 Личный кабинет"
+BTN_PROGRAM = "📚 Программа"
+BTN_PAYMENT = "💳 Оплата"
+BTN_REMINDERS = "🔔 Напоминания"
+BTN_CURATOR = "💬 Связаться с куратором"
+BTN_MUHASABA = "🌙 Мухасаба"
+BTN_SITE = "🌐 Сайт"
+BTN_LANGUAGE = "🌍 Язык"
 
 
 def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
@@ -19,11 +36,67 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKey
     return b.as_markup()
 
 
+def kb_bottom_menu(miniapp_url: str, lang: str = "ru") -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=BTN_DIAG),
+                KeyboardButton(text=BTN_MINIAPP, web_app=WebAppInfo(url=miniapp_url)),
+            ],
+            [KeyboardButton(text=BTN_PROGRAM), KeyboardButton(text=BTN_PAYMENT)],
+            [KeyboardButton(text=BTN_REMINDERS), KeyboardButton(text=BTN_CURATOR)],
+            [KeyboardButton(text=BTN_MUHASABA), KeyboardButton(text=BTN_SITE)],
+            [KeyboardButton(text=BTN_LANGUAGE)],
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Выбери действие",
+    )
+
+
+def kb_onboarding_gender() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="👨 Мужской"), KeyboardButton(text="👩 Женский")]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def kb_onboarding_occupation() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="💼 Предприниматель"), KeyboardButton(text="👔 Наёмный сотрудник")],
+            [KeyboardButton(text="🎓 Студент"), KeyboardButton(text="🧑‍💻 Самозанятый")],
+            [KeyboardButton(text="🏠 Другое")],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def kb_onboarding_source() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📱 Соцсети"), KeyboardButton(text="🔍 Интернет")],
+            [KeyboardButton(text="💬 Telegram"), KeyboardButton(text="👥 От знакомых")],
+            [KeyboardButton(text="📺 YouTube/Reels"), KeyboardButton(text="📍 Другое")],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
 def kb_language() -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     for code in SUPPORTED_LANGS:
         b.button(text=f"{LANG_FLAGS.get(code, '')} {LANG_LABELS[code]}", callback_data=f"lang:{code}")
     b.adjust(2)
+    return b.as_markup()
+
+
+def kb_start_diag() -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+    b.adjust(1)
     return b.as_markup()
 
 
