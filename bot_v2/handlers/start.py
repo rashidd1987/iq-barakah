@@ -28,7 +28,11 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     lang = db_user.language_code or normalize_lang(user.language_code)
     greeting = t(lang, "start.greeting", name=db_user.name)
 
-    await message.answer(f"Меню обновлено · {config.version}", reply_markup=ReplyKeyboardRemove())
+    await message.answer(
+        f"Меню обновлено · {config.version}",
+        reply_markup=ReplyKeyboardRemove(),
+        parse_mode=None,
+    )
     await message.answer(
         greeting,
         parse_mode="Markdown",
