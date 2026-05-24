@@ -325,19 +325,19 @@ def _program_tariff_name(lang: str, tariff_id: str) -> str:
             "jamaat": "👥 Jamaat",
             "leader": "👑 Ummah Leader",
         },
-        "de": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · Saison 1",
-            "s3_full": "🏆 IQ Barakah · 3 Saisons",
-            "jamaat": "👥 Jamaat",
-            "leader": "👑 Ummah-Leiter",
-        },
         "ar": {
             "vakt": "🌱 VAKT",
             "s1_full": "📗 IQ Barakah · الموسم 1",
             "s3_full": "🏆 IQ Barakah · 3 مواسم",
             "jamaat": "👥 الجماعة",
             "leader": "👑 قائد الأمة",
+        },
+        "tr": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · Sezon 1",
+            "s3_full": "🏆 IQ Barakah · 3 sezon",
+            "jamaat": "👥 Cemaat",
+            "leader": "👑 Ümmet Lideri",
         },
     }
     return names.get(lang, names["en"]).get(tariff_id, TARIFFS[0]["name"])
@@ -469,66 +469,66 @@ def _program_texts() -> dict[str, dict[str, str]]:
                 "🌿 _20% from each payment goes to charity_"
             ),
         },
-        "de": {
+        "tr": {
             "diag": (
-                "🎯 *Dein Ergebnis:* Level {level} · {pct}%\n"
-                "🌿 *Empfohlener Start:* {recommended}\n\n"
+                "🎯 *Sonucun:* seviye {level} · {pct}%\n"
+                "🌿 *Önerilen başlangıç:* {recommended}\n\n"
                 "━━━━━━━━━━━━━━━━\n"
             ),
             "body": (
-                "📚 *IQ Barakah Programm*\n\n"
+                "📚 *IQ Barakah Programı*\n\n"
                 "{diag_block}"
-                "Ein Programm für Muslime, die nicht mehr im Kreis laufen wollen.\n\n"
-                "Du planst, aber Ergebnis und Sinn fehlen trotzdem?\n"
-                "IQ Barakah verbindet:\n"
-                "✅ Herz: Ruhe, Absicht, Aufrichtigkeit\n"
-                "✅ Verstand: Fokus und Klarheit\n"
-                "✅ Verhalten: Gewohnheiten und Taten\n\n"
-                "Arbeit, Familie und Gottesdienst sollen sich gegenseitig stärken.\n\n"
+                "Aynı döngünün içinde dönmekten yorulan Müslümanlar için bir program.\n\n"
+                "Plan yapıyorsun ama yine de sonuç ve anlam eksik mi?\n"
+                "IQ Barakah şunları birleştirmeye yardım eder:\n"
+                "✅ Kalp: huzur, niyet, ihlas\n"
+                "✅ Akıl: odak ve açıklık\n"
+                "✅ Davranış: alışkanlıklar ve ameller\n\n"
+                "Amaç; iş, aile ve ibadetin birbirine engel değil destek olmasıdır.\n\n"
                 "━━━━━━━━━━━━━━━━\n"
-                "🌱 *VAKT · Zeitmanagement für Muslime* · 6 Wochen\n\n"
-                "B1 🌿 Niyyah — das verborgene Gespräch\n"
-                "B2 🏁 Fajr — Anker des Tages\n"
-                "B3 🕊 Tawbah — eine reine Seite\n"
-                "B4 💪 Sabr — Kurs halten\n"
-                "B5 📿 Dhikr — Allah in jeder Sache\n"
-                "B6 🏆 Ergebnis — dein System\n\n"
+                "🌱 *VAKT · Müslüman için zaman yönetimi* · 6 hafta\n\n"
+                "B1 🌿 Niyet — gizli konuşma\n"
+                "B2 🏁 Fecr — günün çapası\n"
+                "B3 🕊 Tevbe — temiz sayfa\n"
+                "B4 💪 Sabır — istikameti koru\n"
+                "B5 📿 Zikir — her işte Allah\n"
+                "B6 🏆 Sonuç — senin sistemin\n\n"
                 "━━━━━━━━━━━━━━━━\n"
-                "📗 *Saison 1 · Fundament · Wer du bist* — 8 Wochen\n\n"
-                "C1.1 🌿 Das verborgene Gespräch\n"
-                "C1.2 🏠 Nach Hause kommen\n"
-                "C1.3 ✨ Heiliger Raum\n"
-                "C1.4 ⏱ Zeit als Zeuge\n"
-                "C1.5 📱 Wer ist dein Herr?\n"
-                "C1.6 🖊 Kilometer null\n"
-                "C1.7 💪 Du bist kein Gehirn im Glas\n"
-                "C1.8 🌿 Grundreinigung der Seele\n\n"
+                "📗 *Sezon 1 · Temel · Kimsin* — 8 hafta\n\n"
+                "C1.1 🌿 Gizli konuşma\n"
+                "C1.2 🏠 Eve dönüş\n"
+                "C1.3 ✨ Kutsal alan\n"
+                "C1.4 ⏱ Şahit olarak zaman\n"
+                "C1.5 📱 Rabbin kim?\n"
+                "C1.6 🖊 Sıfır kilometre\n"
+                "C1.7 💪 Sen kavanozdaki bir beyin değilsin\n"
+                "C1.8 🌿 Ruhun genel temizliği\n\n"
                 "━━━━━━━━━━━━━━━━\n"
-                "📘 *Saison 2 · Aufbau · Wie du lebst* — 8 Wochen\n\n"
-                "C2.1 🧠 Wie Shaytan das Gehirn hackt\n"
-                "C2.2 🏛 Die Festung bauen\n"
-                "C2.3 🔥 Die Schiffe verbrennen\n"
-                "C2.4 ⚖️ Was wiegt am schwersten?\n"
-                "C2.5 🧳 Zahle, bevor der Schweiß trocknet\n"
-                "C2.6 📖 Der längste Vers\n"
-                "C2.7 🤝 Partnerschaft mit Allah\n"
-                "C2.8 🌍 Atlas-Syndrom\n\n"
+                "📘 *Sezon 2 · İnşa · Nasıl yaşıyorsun* — 8 hafta\n\n"
+                "C2.1 🧠 Şeytan beyni nasıl hackler\n"
+                "C2.2 🏛 Kaleyi inşa etmek\n"
+                "C2.3 🔥 Gemileri yakmak\n"
+                "C2.4 ⚖️ Mizanda en ağır olan nedir?\n"
+                "C2.5 🧳 Ter kurumadan ücretini ver\n"
+                "C2.6 📖 En uzun ayet\n"
+                "C2.7 🤝 Allah ile ortaklık bilinci\n"
+                "C2.8 🌍 Atlas sendromu\n\n"
                 "━━━━━━━━━━━━━━━━\n"
-                "📙 *Saison 3 · Vermächtnis · Warum du lebst* — 8 Wochen\n\n"
-                "C3.1 👣 Unter ihren Füßen\n"
-                "C3.2 🏠 Lass den Krieg vor der Tür\n"
-                "C3.3 🧡 Spiegelneuronen\n"
-                "C3.4 🌹 Der Schmied und der Parfümeur\n"
-                "C3.5 👑 König ohne Krone\n"
-                "C3.6 🏞 Fluss und Sumpf\n"
-                "C3.7 📊 Offenes Konto\n"
-                "C3.8 🏛 Punkt ohne Rückkehr\n\n"
+                "📙 *Sezon 3 · Miras · Neden yaşıyorsun* — 8 hafta\n\n"
+                "C3.1 👣 Ayaklarının altında\n"
+                "C3.2 🏠 Savaşı kapının dışında bırak\n"
+                "C3.3 🧡 Ayna nöronlar\n"
+                "C3.4 🌹 Demirci ve misk satıcısı\n"
+                "C3.5 👑 Taçsız kral\n"
+                "C3.6 🏞 Nehir ve bataklık\n"
+                "C3.7 📊 Açık hesap\n"
+                "C3.8 🏛 Geri dönüşsüz nokta\n\n"
                 "━━━━━━━━━━━━━━━━\n"
-                "Der ganze Weg dauert 30 Wochen. Jeder Block gibt ein konkretes Ergebnis und führt zum nächsten Level.\n\n"
-                "🗓 *Montag 9:00* — Wochenlektion im Bot\n"
-                "📞 *Freitag 14:00* — Live-Call mit dem Gründer von IQ Barakah\n"
-                "🌙 *Täglich* — Adhkar und Muhasabah\n\n"
-                "🌿 _20% jeder Zahlung gehen an Wohltätigkeit_"
+                "Tam yol 30 haftadır. Her blok somut bir sonuç verir ve seni bir sonraki seviyeye taşır.\n\n"
+                "🗓 *Pazartesi 9:00* — botta haftalık ders\n"
+                "📞 *Cuma 14:00* — IQ Barakah kurucusuyla canlı görüşme\n"
+                "🌙 *Her gün* — zikir ve muhasebe\n\n"
+                "🌿 _Her ödemenin %20'si hayra gider_"
             ),
         },
         "ar": {

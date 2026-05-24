@@ -1,5 +1,5 @@
-SUPPORTED_LANGS = ("ru", "en", "ar", "de", "tr", "id", "ur", "bn", "fr", "ms")
-RTL_LANGS = {"ar", "ur"}
+SUPPORTED_LANGS = ("ru", "en", "ar", "tr")
+RTL_LANGS = {"ar"}
 
 LANG_LABELS = {
     "ru": "Русский",

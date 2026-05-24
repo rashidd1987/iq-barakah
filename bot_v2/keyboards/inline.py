@@ -111,8 +111,8 @@ def kb_program_overview(
     labels = {
         "ru": ("🌿 Рекомендовано", "🎓 Все тарифы", "🎯 Пройти диагностику"),
         "en": ("🌿 Recommended", "🎓 All plans", "🎯 Take diagnostic"),
-        "de": ("🌿 Empfohlen", "🎓 Alle Tarife", "🎯 Diagnose starten"),
         "ar": ("🌿 موصى به", "🎓 كل الباقات", "🎯 ابدأ التشخيص"),
+        "tr": ("🌿 Önerilen", "🎓 Tüm tarifeler", "🎯 Teşhise başla"),
     }.get(lang, ("🌿 Recommended", "🎓 All plans", "🎯 Take diagnostic"))
     names = {
         "ru": {
@@ -129,19 +129,19 @@ def kb_program_overview(
             "jamaat": "👥 Jamaat",
             "leader": "👑 Ummah Leader",
         },
-        "de": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · Saison 1",
-            "s3_full": "🏆 IQ Barakah · 3 Saisons",
-            "jamaat": "👥 Jamaat",
-            "leader": "👑 Ummah-Leiter",
-        },
         "ar": {
             "vakt": "🌱 VAKT",
             "s1_full": "📗 IQ Barakah · الموسم 1",
             "s3_full": "🏆 IQ Barakah · 3 مواسم",
             "jamaat": "👥 الجماعة",
             "leader": "👑 قائد الأمة",
+        },
+        "tr": {
+            "vakt": "🌱 VAKT",
+            "s1_full": "📗 IQ Barakah · Sezon 1",
+            "s3_full": "🏆 IQ Barakah · 3 sezon",
+            "jamaat": "👥 Cemaat",
+            "leader": "👑 Ümmet Lideri",
         },
     }.get(lang, {})
     name = names.get(recommended["id"], recommended["name"])
