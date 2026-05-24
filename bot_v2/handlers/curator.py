@@ -150,7 +150,7 @@ async def cmd_activate(message: Message, session: AsyncSession, config: Config):
     await user_repo.get_or_create(target_id, f"Участник {target_id}")
 
     p_repo = ParticipantRepo(session)
-    await p_repo.activate(target_id, level, week)
+    participant = await p_repo.activate(target_id, level, week)
 
     # Автопарринг
     pair_repo = PairRepo(session)
@@ -165,6 +165,7 @@ async def cmd_activate(message: Message, session: AsyncSession, config: Config):
         f"{pair_status}",
         parse_mode="Markdown"
     )
+    await _notify_activation(message.bot, target_id, participant, session, config)
 
 
 async def _auto_pair(uid: int, pair_repo: PairRepo, p_repo: ParticipantRepo) -> int | None:
@@ -328,9 +329,37 @@ async def cb_curator_activate(call: CallbackQuery, session: AsyncSession, config
     level = tariff_to_level.get(tariff_id, "Б")
 
     repo = ParticipantRepo(session)
-    await repo.activate(user_id, level, week=1)
+    participant = await repo.activate(user_id, level, week=1)
 
     await call.answer("Активировано!")
     await call.message.edit_text(
         call.message.text + f"\n\n✅ Активирован на уровень {level}"
     )
+    await _notify_activation(call.bot, user_id, participant, session, config)
+
+
+async def _notify_activation(bot, user_id: int, participant: Participant, session: AsyncSession, config: Config):
+    user = await UserRepo(session).get(user_id)
+    name = _md_escape(user.name) if user else "брат"
+    level_name = LEVEL_NAMES.get(participant.level, participant.level)
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=(
+                f"🌿 *Бисмиллях, {name}!*\n\n"
+                "Ты активирован в программе *IQ Barakah*.\n\n"
+                f"📍 Маршрут: *{level_name}*\n"
+                f"📅 Старт: неделя *{participant.week}* из *{LEVEL_WEEKS.get(participant.level, 8)}*\n\n"
+                "Ниже отправляю первый урок и ссылку на личный кабинет."
+            ),
+            parse_mode="Markdown",
+        )
+        from bot_v2.handlers.program import send_weekly_lesson
+
+        await send_weekly_lesson(bot, user_id, participant, session, config)
+    except Exception:
+        logger.exception("Failed to notify activated participant %s", user_id)
+
+
+def _md_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("*", "\\*").replace("_", "\\_").replace("`", "\\`")

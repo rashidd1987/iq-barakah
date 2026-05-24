@@ -1,7 +1,10 @@
 """Уроки программы, подтверждение недели, прогресс."""
+from urllib.parse import urlencode
+
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot_v2.db.models import WeekAck
@@ -47,9 +50,9 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession):
     current_week = p.week
     max_weeks = LEVEL_WEEKS.get(level, 8)
 
-    # Сохраняем подтверждение
-    ack = WeekAck(user_id=uid, level=level, week=current_week)
-    session.add(ack)
+    stmt = insert(WeekAck).values(user_id=uid, level=level, week=current_week)
+    stmt = stmt.on_conflict_do_nothing(constraint="uq_week_ack")
+    await session.execute(stmt)
 
     if current_week >= max_weeks:
         await repo.graduate(uid)
@@ -82,11 +85,14 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     video = await media_repo.get(level, week, "video")
     audio = await media_repo.get(level, week, "audio")
 
+    sep = "&" if "?" in config.miniapp_url else "?"
+    miniapp_link = f"{config.miniapp_url}{sep}{urlencode({'lvl': level, 'wk': week, 'lang': lang})}"
+
     text = (
         f"📖 *{LEVEL_NAMES.get(level, level)}*\n"
         f"_Неделя {week} из {max_weeks}_\n\n"
         f"{t(lang, 'lesson.ready')}\n\n"
-        f"[{t(lang, 'lesson.open')}]({config.miniapp_url}?lvl={level}&wk={week}&lang={lang})"
+        f"[{t(lang, 'lesson.open')}]({miniapp_link})"
     )
 
     if video:
