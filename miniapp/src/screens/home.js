@@ -1,6 +1,7 @@
 import { getTgUser } from '../utils/tg.js'
 import { WEEKS, LEVEL_OFFSET, LEVEL_ICONS, LEVEL_LABELS } from '../data/weeks.js'
 import { lsGet } from '../utils/storage.js'
+import { t } from '../i18n.js'
 
 export const U = {
   name: 'Участник',
@@ -23,7 +24,7 @@ export function initHome() {
 
   // Greeting
   const h = new Date().getHours()
-  const greets = ['Ас-саляму алейкум', 'Доброе утро', 'Добрый день', 'Добрый вечер', 'Доброй ночи']
+  const greets = ['Ас-саляму алейкум', t('goodMorning'), t('goodDay'), t('goodEvening'), t('goodNight')]
   const gi = h < 5 ? 4 : h < 12 ? 1 : h < 17 ? 2 : h < 22 ? 3 : 4
   const greetEl = document.getElementById('greet')
   if (greetEl) greetEl.textContent = greets[gi] + ' 👋'
@@ -54,12 +55,12 @@ export function initHome() {
     if (cw) {
       document.getElementById('cw-icon').textContent  = cw.icon
       document.getElementById('cw-title').textContent = cw.num + ' · ' + cw.title
-      document.getElementById('cw-sub').textContent   = cw.sub + ' · Активна'
+      document.getElementById('cw-sub').textContent   = cw.sub + ' · ' + t('active')
       document.getElementById('act-cur-week').textContent = cw.num + ' · ' + cw.title
     }
   } else {
-    document.getElementById('cw-title').textContent = 'Программа не начата'
-    document.getElementById('cw-sub').textContent   = 'Открой в боте /start'
+    document.getElementById('cw-title').textContent = t('programNotStarted')
+    document.getElementById('cw-sub').textContent   = t('openBotStart')
   }
 }
 
