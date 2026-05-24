@@ -2,6 +2,7 @@
 """IQ BARAKAH — aiogram 3.x + asyncpg/PostgreSQL."""
 import asyncio
 import logging
+from urllib.parse import urlsplit, urlunsplit
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -19,8 +20,23 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
+def _mask_db_url(url: str) -> str:
+    try:
+        parts = urlsplit(url)
+        netloc = parts.netloc
+        if "@" in netloc:
+            credentials, host = netloc.rsplit("@", 1)
+            user = credentials.split(":", 1)[0]
+            netloc = f"{user}:***@{host}"
+        return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    except Exception:
+        return "<invalid database url>"
+
+
 async def main():
     config = load_config()
+    logger.info("Booting %s", config.version)
+    logger.info("Database URL: %s", _mask_db_url(config.database_url))
 
     # DB
     setup_db(config.database_url)
