@@ -18,6 +18,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # telegram_id
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     username: Mapped[str | None] = mapped_column(String(128))
+    language_code: Mapped[str] = mapped_column(String(8), nullable=False, default="ru", server_default="ru")
     is_female: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     email: Mapped[str | None] = mapped_column(String(256))
     phone: Mapped[str | None] = mapped_column(String(32))

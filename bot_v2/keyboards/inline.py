@@ -2,15 +2,28 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot_v2.services.program import TARIFFS
+from bot_v2.services.i18n import LANG_FLAGS, LANG_LABELS, SUPPORTED_LANGS, normalize_lang, t
 
 
-def kb_main_menu(miniapp_url: str, ship_url: str) -> InlineKeyboardMarkup:
+def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
+    lang = normalize_lang(lang)
     b = InlineKeyboardBuilder()
-    b.button(text="📱 Mini App", web_app=WebAppInfo(url=miniapp_url))
-    b.button(text="🚢 Диагностика бизнеса", web_app=WebAppInfo(url=ship_url))
-    b.button(text="🎓 Тарифы", callback_data="show_tariffs")
-    b.button(text="🤖 Джарвас — AI-ментор", callback_data="jarwas_start")
+    miniapp_sep = "&" if "?" in miniapp_url else "?"
+    ship_sep = "&" if "?" in ship_url else "?"
+    b.button(text=t(lang, "menu.miniapp"), web_app=WebAppInfo(url=f"{miniapp_url}{miniapp_sep}lang={lang}"))
+    b.button(text=t(lang, "menu.ship"), web_app=WebAppInfo(url=f"{ship_url}{ship_sep}lang={lang}"))
+    b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
+    b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
+    b.button(text=t(lang, "menu.language"), callback_data="language")
     b.adjust(1)
+    return b.as_markup()
+
+
+def kb_language() -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    for code in SUPPORTED_LANGS:
+        b.button(text=f"{LANG_FLAGS.get(code, '')} {LANG_LABELS[code]}", callback_data=f"lang:{code}")
+    b.adjust(2)
     return b.as_markup()
 
 

@@ -1,4 +1,5 @@
 import './style.css'
+import { initI18n } from './i18n.js'
 import { initTg } from './utils/tg.js'
 import { initHome, U } from './screens/home.js'
 import { setCurrentWeek } from './screens/lessons.js'
@@ -9,6 +10,7 @@ import { initReviewSheet, openReviewSheet } from './components/sheets.js'
 import { WEEKS } from './data/weeks.js'
 
 initTg()
+initI18n()
 initHome()
 
 // Sync currentWeek from user state into lessons module

@@ -24,6 +24,7 @@ def upgrade() -> None:
         sa.Column("id", sa.BigInteger(), primary_key=True, comment="Telegram user ID"),
         sa.Column("name", sa.String(256), nullable=False),
         sa.Column("username", sa.String(128), nullable=True),
+        sa.Column("language_code", sa.String(8), nullable=False, server_default="ru"),
         sa.Column("is_female", sa.Boolean(), nullable=True),
         sa.Column("email", sa.String(256), nullable=True),
         sa.Column("phone", sa.String(32), nullable=True),

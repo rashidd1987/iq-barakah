@@ -13,11 +13,23 @@ class UserRepo:
     async def get(self, user_id: int) -> User | None:
         return await self.session.get(User, user_id)
 
-    async def get_or_create(self, user_id: int, name: str, username: str | None = None) -> tuple[User, bool]:
+    async def get_or_create(
+        self,
+        user_id: int,
+        name: str,
+        username: str | None = None,
+        language_code: str = "ru",
+    ) -> tuple[User, bool]:
         user = await self.get(user_id)
         if user:
+            changed = False
+            if username and user.username != username:
+                user.username = username
+                changed = True
+            if changed:
+                await self.session.flush()
             return user, False
-        user = User(id=user_id, name=name, username=username)
+        user = User(id=user_id, name=name, username=username, language_code=language_code)
         self.session.add(user)
         await self.session.flush()
         return user, True

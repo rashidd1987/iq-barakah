@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot_v2.config import Config
 from bot_v2.db.models import DiagResult, Participant, Payment, TrackerRecord, User, WeekAck, WheelRecord
 from bot_v2.db.repositories import ParticipantRepo, UserRepo, SettingsRepo, PairRepo
+from bot_v2.services.i18n import language_name
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 from bot_v2.services.insights import analyze_participant
 
@@ -75,6 +76,16 @@ async def cmd_analytics(message: Message, session: AsyncSession, config: Config)
         for level in LEVEL_WEEKS
     ]
 
+    lang_rows = await session.execute(
+        select(User.language_code, func.count(User.id))
+        .group_by(User.language_code)
+        .order_by(func.count(User.id).desc())
+    )
+    language_lines = [
+        f"• {language_name(lang)} — {count}"
+        for lang, count in lang_rows.all()
+    ] or ["• пока нет данных"]
+
     recent_rows = await session.execute(
         select(User)
         .order_by(User.created_at.desc())
@@ -96,6 +107,8 @@ async def cmd_analytics(message: Message, session: AsyncSession, config: Config)
         f"🧭 Колёса баланса: *{wheel_count}*\n\n"
         "*По уровням:*\n"
         + "\n".join(level_lines)
+        + "\n\n*По языкам:*\n"
+        + "\n".join(language_lines)
         + "\n\n*Последние пользователи:*\n"
         + "\n".join(recent_lines)
     )

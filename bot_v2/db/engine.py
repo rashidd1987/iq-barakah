@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy import inspect, text
 
 _engine = None
 _session_factory = None
@@ -18,6 +19,17 @@ async def create_tables():
     from bot_v2.db.base import Base
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_ensure_compat_columns)
+
+
+def _ensure_compat_columns(sync_conn):
+    inspector = inspect(sync_conn)
+    if "users" not in inspector.get_table_names():
+        return
+
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
+    if "language_code" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN language_code VARCHAR(8) NOT NULL DEFAULT 'ru'"))
 
 
 async def close_db():
