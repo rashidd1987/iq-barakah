@@ -1,6 +1,7 @@
 import { NAMAZ, DAILY, WEEKLY, ONETIME } from '../data/habits.js'
 import { haptic } from '../utils/tg.js'
 import { lsGet, lsSet, todayKey } from '../utils/storage.js'
+import { t, tf } from '../i18n.js'
 
 let checked = lsGet('checked', {})
 
@@ -27,7 +28,7 @@ export function updateProgress() {
   const all = [...NAMAZ.map(n => n.id), ...DAILY.map(d => d.id)]
   const total = all.length
   const done = all.filter(id => isChecked(id)).length
-  document.getElementById('tp-sub').textContent = `${done} из ${total} выполнено`
+  document.getElementById('tp-sub').textContent = tf('doneOf', { done, total })
   document.getElementById('tp-count').textContent = `${done}/${total}`
   document.getElementById('tp-bar').style.width = `${Math.round(done / total * 100)}%`
   document.getElementById('tracker-dot')?.classList.toggle('show', done < total)
@@ -37,9 +38,11 @@ export function renderTracker() {
   checked = lsGet('checked', {})
 
   const d = new Date()
-  const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']
-  const days = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота']
-  document.getElementById('tracker-date').textContent = `${d.getDate()} ${months[d.getMonth()]}, ${days[d.getDay()]}`
+  document.getElementById('tracker-date').textContent = d.toLocaleDateString(t('dateLocale'), {
+    day: 'numeric',
+    month: 'long',
+    weekday: 'long',
+  })
 
   renderWeekStrip()
   renderNamaz()
@@ -52,7 +55,7 @@ export function renderTracker() {
 function renderWeekStrip() {
   const strip = document.getElementById('week-strip')
   strip.innerHTML = ''
-  const DAYS = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб']
+  const DAYS = t('weekdaysShort')
   const today = new Date()
   const dow = today.getDay()
   const monday = new Date(today)

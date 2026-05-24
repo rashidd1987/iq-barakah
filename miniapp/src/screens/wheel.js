@@ -1,5 +1,6 @@
 import { haptic, sendData } from '../utils/tg.js'
 import { showToast } from '../components/sheets.js'
+import { t } from '../i18n.js'
 
 const SECTORS = [
   { name: 'Вера (Иман)', color: '#2c5f2d', val: 7 },
@@ -85,5 +86,5 @@ export function saveWheel() {
   haptic('success')
   const scores = Object.fromEntries(SECTORS.map(s => [s.name, s.val]))
   sendData({ action: 'save_wheel', scores })
-  showToast('Колесо баланса сохранено ✓')
+  showToast(t('wheelSaved'))
 }

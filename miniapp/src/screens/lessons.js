@@ -1,6 +1,7 @@
 import { WEEKS, PHASE_LABELS, WEEK_CONTENT } from '../data/weeks.js'
 import { haptic } from '../utils/tg.js'
 import { openSheet } from '../components/sheets.js'
+import { t } from '../i18n.js'
 
 export let currentWeek = 0
 
@@ -53,24 +54,24 @@ function openLessonSheet(w, done, isCur, locked) {
   haptic()
   document.getElementById('sl-icon').textContent = w.icon
   document.getElementById('sl-title').textContent = w.title
-  document.getElementById('sl-sub').textContent = `${w.sub} · ${locked ? '🔒 Заблокировано' : done ? '✅ Завершена' : '📖 Текущая'}`
+  document.getElementById('sl-sub').textContent = `${w.sub} · ${locked ? t('locked') : done ? t('completedLesson') : t('current')}`
 
   const c = WEEK_CONTENT[w.phase] || WEEK_CONTENT.s1
   const rows = document.getElementById('sl-rows')
   rows.innerHTML = locked
-    ? `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">Как открыть</div><div class="v">Сдайте мухасабу за текущую неделю — куратор откроет следующую</div></div></div>`
-    : `<div class="s-row"><div class="s-ri">📿</div><div class="s-rt"><div class="l">Азкар недели</div><div class="v">${c.az}</div></div></div>
-       <div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">Коран</div><div class="v">${c.qu}</div></div></div>
-       <div class="s-row"><div class="s-ri">🤲</div><div class="s-rt"><div class="l">Доброе дело</div><div class="v">${c.deed}</div></div></div>`
+    ? `<div class="s-row"><div class="s-ri">🔒</div><div class="s-rt"><div class="l">${t('howToOpen')}</div><div class="v">${t('unlockHint')}</div></div></div>`
+    : `<div class="s-row"><div class="s-ri">📿</div><div class="s-rt"><div class="l">${t('weeklyAzkar')}</div><div class="v">${c.az}</div></div></div>
+       <div class="s-row"><div class="s-ri">📖</div><div class="s-rt"><div class="l">${t('quran')}</div><div class="v">${c.qu}</div></div></div>
+       <div class="s-row"><div class="s-ri">🤲</div><div class="s-rt"><div class="l">${t('goodDeed')}</div><div class="v">${c.deed}</div></div></div>`
 
   const btns = document.getElementById('sl-btns')
   if (locked || done) {
-    btns.innerHTML = `<button class="btn btn-o" id="sl-close">Закрыть</button>`
+    btns.innerHTML = `<button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   } else {
     btns.innerHTML = `
-      <button class="btn btn-p" id="sl-review">✍️ Сдать мухасабу</button>
-      <button class="btn btn-o" id="sl-close">Закрыть</button>`
+      <button class="btn btn-p" id="sl-review">${t('submitMuhasaba')}</button>
+      <button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-review').onclick = () => {
       closeSheetById('lesson')
       openSheet('review')

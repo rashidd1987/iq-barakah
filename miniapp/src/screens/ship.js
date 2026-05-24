@@ -1,5 +1,6 @@
 import { openLink, cloudGet } from '../utils/tg.js'
 import { haptic } from '../utils/tg.js'
+import { lang, t } from '../i18n.js'
 
 const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html'
 
@@ -18,9 +19,9 @@ export function renderShip() {
       scoreEl.textContent = avg + '%'
       scoreEl.className = 'ship-result-score ' + (avg >= 70 ? 'hi' : avg >= 45 ? 'mid' : 'lo')
       const dt = new Date(d.ts || d.date)
-      dateEl.textContent = dt.toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+      dateEl.textContent = dt.toLocaleDateString(t('dateLocale'), { day: 'numeric', month: 'short' })
       resultEl.style.display = 'flex'
-      btnEl.textContent = (type === 'business' ? '⚓' : '🌙') + ' Пройти снова'
+      btnEl.textContent = (type === 'business' ? '⚓' : '🌙') + ' ' + t('retake')
     } catch (e) {}
   })
 
@@ -38,7 +39,7 @@ export function renderShip() {
 
 export function openShip(type) {
   haptic()
-  openLink(SHIP_URL + '?tab=' + type)
+  openLink(SHIP_URL + '?tab=' + type + '&lang=' + lang())
 }
 
 export function initShipButtons() {
