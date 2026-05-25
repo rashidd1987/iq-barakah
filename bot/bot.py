@@ -1888,6 +1888,11 @@ async def onboard_ready(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     """Шаг 2 — мост: современный язык → исламский фундамент (ният)."""
     query = update.callback_query
     await query.answer()
+    # Убираем кнопку у предыдущего сообщения, но оставляем текст видимым
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
     text = (
         "Смотри, в чём корень.\n\n"
         "Любое дело, начатое на автопилоте — без секунды осознанности, — "
@@ -1907,11 +1912,10 @@ async def onboard_ready(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [[InlineKeyboardButton(
         "Посмотреть, где теряю силы", callback_data="onboard_audit"
     )]]
-    try:
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
-    except Exception:
-        await ctx.bot.send_message(update.effective_chat.id, text,
-                                   reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    await ctx.bot.send_message(
+        update.effective_chat.id, text,
+        reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+    )
     return ONBOARD_AUDIT
 
 
@@ -1919,6 +1923,11 @@ async def onboard_audit(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     """Шаг 3 — диагностика «Корабль Бараката» через миниапп."""
     query = update.callback_query
     await query.answer()
+    # Убираем кнопку у предыдущего сообщения
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
     text = (
         "Представь, что твоя жизнь — это корабль. Если он идёт не туда, "
         "куда хочешь, — значит, где-то в трюме пробоина. В фокусе. "
@@ -1934,11 +1943,10 @@ async def onboard_audit(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         [InlineKeyboardButton("🚢 Пройти диагностику", web_app=WebAppInfo(url=MINIAPP_URL))],
         [InlineKeyboardButton("✅ Сразу познакомиться →", callback_data="onboard_to_name")],
     ]
-    try:
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
-    except Exception:
-        await ctx.bot.send_message(update.effective_chat.id, text,
-                                   reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    await ctx.bot.send_message(
+        update.effective_chat.id, text,
+        reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+    )
     return ONBOARD_AUDIT
 
 
@@ -1946,17 +1954,16 @@ async def onboard_to_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int
     """Переход из онбординга к регистрации (ввод имени)."""
     query = update.callback_query
     await query.answer()
+    # Убираем кнопки у сообщения с диагностикой
     try:
-        await query.message.edit_text(
-            "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
-            parse_mode="HTML"
-        )
+        await query.message.edit_reply_markup(reply_markup=None)
     except Exception:
-        await ctx.bot.send_message(
-            update.effective_chat.id,
-            "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
-            parse_mode="HTML"
-        )
+        pass
+    await ctx.bot.send_message(
+        update.effective_chat.id,
+        "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
+        parse_mode="HTML"
+    )
     return NAME
 
 
