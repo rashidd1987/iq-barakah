@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IQ Barakah — Трансформация мусульманина</title>
-<meta name="available-languages" content="ru,en,ar,de,tr,id,ur,bn,fr,ms">
+<meta name="available-languages" content="ru,en,ar,tr">
 <link rel="alternate" hreflang="ru" href="https://iq-barakah.ru/?lang=ru">
 <link rel="alternate" hreflang="en" href="https://iq-barakah.ru/?lang=en">
 <link rel="alternate" hreflang="ar" href="https://iq-barakah.ru/?lang=ar">
-<link rel="alternate" hreflang="de" href="https://iq-barakah.ru/?lang=de">
+<link rel="alternate" hreflang="tr" href="https://iq-barakah.ru/?lang=tr">
 <link rel="alternate" hreflang="x-default" href="https://iq-barakah.ru/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Mulish:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
@@ -87,6 +87,7 @@ nav.scrolled .nav-inner{padding:14px 32px}
   font-size:13px;text-decoration:none
 }
 .nav-lang a:hover{border-color:var(--gold);background:var(--white)}
+.nav-lang a.active{border-color:var(--green);background:var(--green);color:var(--white)}
 
 /* Dropdown menu for documents */
 .nav-dropdown {
@@ -416,7 +417,7 @@ nav.scrolled .nav-inner{padding:14px 32px}
    LEVELS
 ════════════════════════════════════════════ */
 .levels-section{background:var(--sand);padding:96px 0}
-.levels-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.levels-row{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
 .level-card{
   border-radius:20px;overflow:hidden;
   border:1px solid var(--border);background:var(--white);
@@ -1014,22 +1015,22 @@ footer{
     </div>
     
     <ul class="nav-links" id="nav-links">
-      <li><a href="#program">Программа</a></li>
-      <li><a href="#how">Как устроена программа</a></li>
-      <li><a href="#levels">Диагностика</a></li>
-      <li><a href="/ship">⚓ Углублённая диагностика</a></li>
-      <li><a href="#tariffs">Тарифы</a></li>
-      <li><a href="#founder">Об основателе</a></li>
+      <li><a href="#program" data-i18n="nav.program">Программа</a></li>
+      <li><a href="#how" data-i18n="nav.how">Как устроена программа</a></li>
+      <li><a href="#levels" data-i18n="nav.diagnostic">Диагностика</a></li>
+      <li><a href="/ship" data-i18n="nav.deep">⚓ Углублённая диагностика</a></li>
+      <li><a href="#tariffs" data-i18n="nav.tariffs">Тарифы</a></li>
+      <li><a href="#founder" data-i18n="nav.founder">Об основателе</a></li>
       <li><a href="#faq">FAQ</a></li>
-      <li><a href="#impact">Масштаб</a></li>
+      <li><a href="#impact" data-i18n="nav.impact">Масштаб</a></li>
       <li class="nav-lang" aria-label="Language">
         <a href="?lang=ru" title="Русский">RU</a>
         <a href="?lang=en" title="English">EN</a>
         <a href="?lang=ar" title="العربية">AR</a>
-        <a href="?lang=de" title="Deutsch">DE</a>
+        <a href="?lang=tr" title="Türkçe">TR</a>
       </li>
       <li class="nav-dropdown">
-        <a href="javascript:void(0)" class="nav-dropdown-toggle" id="dropdown-toggle">Документы ▾</a>
+        <a href="javascript:void(0)" class="nav-dropdown-toggle" id="dropdown-toggle" data-i18n="nav.docs">Документы ▾</a>
         <ul class="nav-dropdown-menu">
           <li><a href="oferta.html">Публичная оферта</a></li>
           <li><a href="privacy-policy.html">Политика конфиденциальности</a></li>
@@ -1038,7 +1039,7 @@ footer{
         </ul>
       </li>
     </ul>
-    <a href="#tariffs" class="nav-cta">Начать путь</a>
+    <a href="#tariffs" class="nav-cta" data-i18n="nav.cta">Начать путь</a>
   </div>
 </nav>
 
@@ -1050,39 +1051,39 @@ footer{
       <div class="hero-badge fade-up d1"><span>IQ BARAKAH SYSTEM</span></div>
 
       <h1 class="hero-title fade-up d2">
-        Ты не устал.<br>
-        <em>Ты живёшь без системы.</em>
+        <span data-i18n="hero.title_1">Ты не устал.</span><br>
+        <em data-i18n="hero.title_2">Ты живёшь без системы.</em>
       </h1>
 
       <div class="hero-divider fade-up d3"></div>
 
       <p class="hero-sub fade-up d3">
-        Система для мусульманина и мусульманки которые хотят выйти из хаоса и вернуть порядок<br>
-        в день, намаз, время и внимание. <strong style="color:var(--green3)">Первый сдвиг — уже в первую неделю.</strong>
+        <span data-i18n="hero.sub">Система для мусульманина и мусульманки которые хотят выйти из хаоса и вернуть порядок в день, намаз, время и внимание.</span>
+        <strong style="color:var(--green3)" data-i18n="hero.sub_strong">Первый сдвиг — уже в первую неделю.</strong>
       </p>
 
       <div class="hero-cta-row fade-up d4">
-        <a href="#tariffs" class="btn-hero">Начать с ВАКТ — 1 500 ₽</a>
-        <a href="#levels" class="btn-hero-ghost" style="border-color:var(--gold2);color:var(--gold2)">🌿 Пройти диагностику бесплатно</a>
-        <a href="https://t.me/iqbarakah_bot" target="_blank" class="btn-hero-ghost">✈️ Открыть бота в Telegram</a>
+        <a href="#tariffs" class="btn-hero" data-i18n="hero.cta">Начать с ВАКТ — 1 500 ₽</a>
+        <a href="#levels" class="btn-hero-ghost" style="border-color:var(--gold2);color:var(--gold2)" data-i18n="hero.diag">🌿 Пройти диагностику бесплатно</a>
+        <a href="https://t.me/iqbarakah_bot" target="_blank" class="btn-hero-ghost" data-i18n="hero.bot">✈️ Открыть бота в Telegram</a>
       </div>
 
       <div class="hero-stats fade-up d5">
         <div class="stat-item">
           <div class="stat-n">6</div>
-          <div class="stat-l">НЕДЕЛЬ<br>ВАКТ</div>
+          <div class="stat-l" data-i18n="stats.vakt">НЕДЕЛЬ<br>ВАКТ</div>
         </div>
         <div class="stat-item">
           <div class="stat-n">20%</div>
-          <div class="stat-l">НА БЛАГО-<br>ТВОРИТЕЛЬНОСТЬ</div>
+          <div class="stat-l" data-i18n="stats.charity">НА БЛАГО-<br>ТВОРИТЕЛЬНОСТЬ</div>
         </div>
         <div class="stat-item">
-          <div class="stat-n">3</div>
-          <div class="stat-l">УРОВНЯ<br>А · Б · В</div>
+          <div class="stat-n">4</div>
+          <div class="stat-l" data-i18n="stats.levels">УРОВНЯ<br>А · Б · В · Г</div>
         </div>
         <div class="stat-item">
           <div class="stat-n">1</div>
-          <div class="stat-l">ЦЕЛЬ — ДОВОЛЬСТВО<br>АЛЛАХА</div>
+          <div class="stat-l" data-i18n="stats.goal">ЦЕЛЬ — ДОВОЛЬСТВО<br>АЛЛАХА</div>
         </div>
       </div>
     </div>
@@ -1122,7 +1123,7 @@ footer{
       </div>
       <p style="font-size:12px;color:var(--mid2);text-align:center;margin-bottom:16px">
         Не уверен с какого уровня начать? →
-        <a href="#levels" style="color:var(--green2);font-weight:700;text-decoration:none">Определи свой уровень А/Б/В бесплатно →</a>
+        <a href="#levels" style="color:var(--green2);font-weight:700;text-decoration:none">Определи свой уровень А/Б/В/Г бесплатно →</a>
       </p>
       <p style="font-size:13px;color:var(--mid2);font-style:italic;text-align:center;font-weight:300;margin-bottom:28px">
         Это только первая неделя. Впереди ещё пять.
@@ -1167,17 +1168,17 @@ footer{
 <!-- PATH -->
 <section class="path-section" id="program">
   <div class="wrap">
-    <div class="section-eyebrow reveal"><span class="eyebrow-text">ПУТЬ ТРАНСФОРМАЦИИ</span></div>
-    <h2 class="section-title reveal">От хаоса — <em>к наследию</em></h2>
-    <p class="section-sub reveal">Чёткий путь из 4 этапов. Ты всегда знаешь где находишься.</p>
+    <div class="section-eyebrow reveal"><span class="eyebrow-text" data-i18n="path.eyebrow">ПУТЬ ТРАНСФОРМАЦИИ</span></div>
+    <h2 class="section-title reveal"><span data-i18n="path.title_1">От хаоса —</span> <em data-i18n="path.title_2">к наследию</em></h2>
+    <p class="section-sub reveal" data-i18n="path.sub">Чёткий путь из 4 этапов. Ты всегда знаешь где находишься.</p>
 
     <div class="path-row">
       <div class="path-connector"></div>
-      <div class="path-step reveal"><div class="path-circle" style="border-color:#9A9A8A;color:#9A9A8A">🌀</div><div class="path-lbl" style="color:#9A9A8A">СЕЙЧАС</div><div class="path-name">Хаос</div><div class="path-price">Точка входа</div></div>
-      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--green2);color:var(--green2)">⏰</div><div class="path-lbl" style="color:var(--green2)">ВАКТ</div><div class="path-name">Время</div><div class="path-price">1 500 ₽ · 6 нед</div></div>
-      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--blue);color:var(--blue)">🌱</div><div class="path-lbl" style="color:var(--blue)">СЕЗОН 1</div><div class="path-name">Основание</div><div class="path-price">10 000 ₽ · 8 нед</div></div>
-      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--amber);color:var(--amber)">⚙️</div><div class="path-lbl" style="color:var(--amber)">СЕЗОН 2</div><div class="path-name">Строительство</div><div class="path-price">10 000 ₽ · 8 нед</div></div>
-      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--purple);color:var(--purple)">🌍</div><div class="path-lbl" style="color:var(--purple)">СЕЗОН 3</div><div class="path-name">Наследие</div><div class="path-price">10 000 ₽ · 8 нед</div></div>
+      <div class="path-step reveal"><div class="path-circle" style="border-color:#9A9A8A;color:#9A9A8A">🌀</div><div class="path-lbl" style="color:#9A9A8A" data-i18n="path.now">СЕЙЧАС</div><div class="path-name" data-i18n="path.chaos">Хаос</div><div class="path-price" data-i18n="path.entry">Точка входа</div></div>
+      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--green2);color:var(--green2)">⏰</div><div class="path-lbl" style="color:var(--green2)">ВАКТ</div><div class="path-name" data-i18n="path.time">Время</div><div class="path-price" data-i18n="path.vakt_price">1 500 ₽ · 6 нед</div></div>
+      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--blue);color:var(--blue)">🌱</div><div class="path-lbl" style="color:var(--blue)" data-i18n="path.season1">СЕЗОН 1</div><div class="path-name" data-i18n="path.foundation">Основание</div><div class="path-price" data-i18n="path.season_price">10 000 ₽ · 8 нед</div></div>
+      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--amber);color:var(--amber)">⚙️</div><div class="path-lbl" style="color:var(--amber)" data-i18n="path.season2">СЕЗОН 2</div><div class="path-name" data-i18n="path.building">Строительство</div><div class="path-price" data-i18n="path.season_price">10 000 ₽ · 8 нед</div></div>
+      <div class="path-step reveal"><div class="path-circle" style="border-color:var(--purple);color:var(--purple)">🌍</div><div class="path-lbl" style="color:var(--purple)" data-i18n="path.season3">СЕЗОН 3</div><div class="path-name" data-i18n="path.legacy">Наследие</div><div class="path-price" data-i18n="path.season_price">10 000 ₽ · 8 нед</div></div>
     </div>
   </div>
 </section>
@@ -1192,7 +1193,7 @@ footer{
     <p class="section-sub reveal">Живая система которая работает каждый день без твоего участия.</p>
 
     <div class="how-grid">
-      <div class="how-card reveal"><div class="how-time">ПОНЕДЕЛЬНИК · 9:00</div><div class="how-icon">📖</div><div class="how-title">Урок недели</div><div class="how-desc">Бот присылает урок с заданиями по уровню А/Б/В. Следующий откроется только после отзыва.</div></div>
+      <div class="how-card reveal"><div class="how-time">ПОНЕДЕЛЬНИК · 9:00</div><div class="how-icon">📖</div><div class="how-title">Урок недели</div><div class="how-desc">Бот присылает урок с заданиями по уровню А/Б/В/Г. Следующий откроется только после отзыва.</div></div>
       <div class="how-card reveal"><div class="how-time">ПЯТНИЦА · 14:00</div><div class="how-icon">🎙️</div><div class="how-title">Живой созвон</div><div class="how-desc">Еженедельный созвон с основателем IQ Barakah. 60-90 минут. Разбор кейсов.</div></div>
       <div class="how-card reveal"><div class="how-time">КАЖДЫЙ ДЕНЬ · 06:00</div><div class="how-icon">📿</div><div class="how-title">Утренний азкар</div><div class="how-desc">Бот напоминает об утренних азкарах и Фаджре. Начни день с Аллаха — до телефона.</div></div>
       <div class="how-card reveal"><div class="how-time">КАЖДЫЙ ДЕНЬ · 22:00</div><div class="how-icon">🌙</div><div class="how-title">Мухасаба</div><div class="how-desc">Три вопроса каждый вечер: что сделал, что мог лучше, за что благодарен. Честность перед собой.</div></div>
@@ -1209,26 +1210,32 @@ footer{
 <!-- LEVELS -->
 <section class="levels-section" id="levels">
   <div class="wrap">
-    <div class="section-eyebrow reveal"><span class="eyebrow-text">СИСТЕМА УРОВНЕЙ</span></div>
-    <h2 class="section-title reveal">Начни <em>там где ты есть</em></h2>
-    <p class="section-sub reveal">Без стыда и давления. Каждый начинает со своего уровня. Программа адаптируется.</p>
+    <div class="section-eyebrow reveal"><span class="eyebrow-text" data-i18n="levels.eyebrow">СИСТЕМА УРОВНЕЙ</span></div>
+    <h2 class="section-title reveal"><span data-i18n="levels.title_1">Начни</span> <em data-i18n="levels.title_2">там где ты есть</em></h2>
+    <p class="section-sub reveal" data-i18n="levels.sub">Без стыда и давления. Каждый начинает со своего уровня. Программа адаптируется.</p>
     <div class="levels-row">
       <div class="level-card reveal">
-        <div class="level-head" style="background:var(--redli)"><div class="level-letter" style="color:var(--red)">А</div><div class="level-name" style="color:var(--red)">НАЧИНАЮ С НУЛЯ</div><div class="level-who" style="color:#A83010">Намаза нет. Коран не читаю. Хочу попробовать.</div></div>
+        <div class="level-head" style="background:var(--redli)"><div class="level-letter" style="color:var(--red)">А</div><div class="level-name" style="color:var(--red)" data-i18n="level.a.name">НАЧИНАЮ С НУЛЯ</div><div class="level-who" style="color:#A83010" data-i18n="level.a.who">Намаза нет. Коран не читаю. Хочу попробовать.</div></div>
         <div class="level-body">
-          <ul class="level-items"><li>«Альхамдулиллях» утром до телефона</li><li>Послушать Аль-Фатиху. Просто послушать.</li><li>Улыбнуться трём людям сегодня</li><li>Никаких требований. Первый успех.</li></ul>
+          <ul class="level-items"><li data-i18n="level.a.i1">«Альхамдулиллях» утром до телефона</li><li data-i18n="level.a.i2">Послушать Аль-Фатиху. Просто послушать.</li><li data-i18n="level.a.i3">Улыбнуться трём людям сегодня</li><li data-i18n="level.a.i4">Никаких требований. Первый успех.</li></ul>
         </div>
       </div>
       <div class="level-card reveal">
-        <div class="level-head" style="background:var(--blue2)"><div class="level-letter" style="color:var(--blue)">Б</div><div class="level-name" style="color:var(--blue)">ИНОГДА ПРАКТИКУЮ</div><div class="level-who" style="color:var(--blue)">Намаз бывает. Коран читаю редко.</div></div>
+        <div class="level-head" style="background:var(--blue2)"><div class="level-letter" style="color:var(--blue)">Б</div><div class="level-name" style="color:var(--blue)" data-i18n="level.b.name">ИНОГДА ПРАКТИКУЮ</div><div class="level-who" style="color:var(--blue)" data-i18n="level.b.who">Намаз бывает. Коран читаю редко.</div></div>
         <div class="level-body">
-          <ul class="level-items"><li>Утренние азкары — 5 минут каждый день</li><li>1 страница Корана после Фаджра</li><li>Фаджр-лист: 3 дела + ахира + семья</li><li>Цель — постоянство. Истикама.</li></ul>
+          <ul class="level-items"><li data-i18n="level.b.i1">Утренние азкары — 5 минут каждый день</li><li data-i18n="level.b.i2">1 страница Корана после Фаджра</li><li data-i18n="level.b.i3">Фаджр-лист: 3 дела + ахира + семья</li><li data-i18n="level.b.i4">Цель — постоянство. Истикама.</li></ul>
         </div>
       </div>
       <div class="level-card reveal">
-        <div class="level-head" style="background:var(--green4)"><div class="level-letter" style="color:var(--green2)">В</div><div class="level-name" style="color:var(--green2)">ПРАКТИКУЮ РЕГУЛЯРНО</div><div class="level-who" style="color:var(--green2)">Намаз есть. Хочу глубины.</div></div>
+        <div class="level-head" style="background:var(--green4)"><div class="level-letter" style="color:var(--green2)">В</div><div class="level-name" style="color:var(--green2)" data-i18n="level.c.name">ПРАКТИКУЮ РЕГУЛЯРНО</div><div class="level-who" style="color:var(--green2)" data-i18n="level.c.who">Намаз есть. Хочу глубины.</div></div>
         <div class="level-body">
-          <ul class="level-items"><li>Тафсир, хифз, личный вирд</li><li>Тафаккур 20 минут каждый день</li><li>Передать знание одному человеку</li><li>Цель — глубина и передача.</li></ul>
+          <ul class="level-items"><li data-i18n="level.c.i1">Тафсир, хифз, личный вирд</li><li data-i18n="level.c.i2">Тафаккур 20 минут каждый день</li><li data-i18n="level.c.i3">Передать знание одному человеку</li><li data-i18n="level.c.i4">Цель — глубина и передача.</li></ul>
+        </div>
+      </div>
+      <div class="level-card reveal">
+        <div class="level-head" style="background:var(--purpleli)"><div class="level-letter" style="color:var(--purple)">Г</div><div class="level-name" style="color:var(--purple)" data-i18n="level.d.name">НАСЛЕДИЕ И УММА</div><div class="level-who" style="color:var(--purple)" data-i18n="level.d.who">Практика есть. Хочу служить, вести и передавать.</div></div>
+        <div class="level-body">
+          <ul class="level-items"><li data-i18n="level.d.i1">Работа с миссией, аманатом и влиянием</li><li data-i18n="level.d.i2">Служение семье, команде и умме</li><li data-i18n="level.d.i3">Наставничество и передача знания</li><li data-i18n="level.d.i4">Цель — наследие ради довольства Аллаха.</li></ul>
         </div>
       </div>
     </div>
@@ -1384,7 +1391,7 @@ footer{
         <div style="font-size:17px;font-weight:700;color:var(--dark);margin-bottom:6px">Пройди бесплатную диагностику — 8 вопросов</div>
         <div style="font-size:13px;color:var(--mid);font-weight:300;line-height:1.6">Узнай свой уровень А, Б или В. Получи конкретную рекомендацию с чего начать именно тебе. Бесплатно. Прямо в Telegram.</div>
       </div>
-      <a href="#levels" style="padding:14px 28px;border-radius:40px;background:var(--green);color:white;font-family:'Mulish',sans-serif;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;transition:all .2s;box-shadow:0 4px 16px rgba(26,61,8,.2)">Определить уровень А/Б/В →</a>
+      <a href="#levels" style="padding:14px 28px;border-radius:40px;background:var(--green);color:white;font-family:'Mulish',sans-serif;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;transition:all .2s;box-shadow:0 4px 16px rgba(26,61,8,.2)">Определить уровень А/Б/В/Г →</a>
     </div>
 
     <div class="products-main">
@@ -1414,7 +1421,7 @@ footer{
           <div class="product-price" style="color:var(--blue)">от 5 000 <span class="product-period">₽/мес</span></div>
         </div>
         <div class="product-body">
-          <ul class="product-features"><li>Сезон 1 «Основание» — КТО ты есть</li><li>Сезон 2 «Строительство» — КАК ты живёшь</li><li>Сезон 3 «Наследие» — ЗАЧЕМ ты живёшь</li><li>Живой созвон каждую пятницу 14:00</li><li>Бот с заданиями по уровню А/Б/В</li><li>3 сертификата — по одному за сезон</li></ul>
+          <ul class="product-features"><li>Сезон 1 «Основание» — КТО ты есть</li><li>Сезон 2 «Строительство» — КАК ты живёшь</li><li>Сезон 3 «Наследие» — ЗАЧЕМ ты живёшь</li><li>Живой созвон каждую пятницу 14:00</li><li>Бот с заданиями по уровню А/Б/В/Г</li><li>3 сертификата — по одному за сезон</li></ul>
           <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
             <div class="price-option" style="background:var(--blue2);color:var(--blue)">📅 По 4 недели — <strong>5 000 ₽</strong></div>
             <div class="price-option" style="background:var(--blue);color:white;font-weight:700">⭐ Весь сезон — <strong>10 000 ₽</strong></div>
@@ -1989,7 +1996,7 @@ footer{
           <span style="font-size:20px;color:var(--green2);flex-shrink:0;margin-left:16px">+</span>
         </summary>
         <div style="padding-bottom:20px;font-size:14px;color:var(--mid);line-height:1.75;font-weight:300">
-          Да. Программа для братьев и сестёр. Все уровни А/Б/В адаптированы для обоих. Якорный партнёр подбирается одного пола.<br><br>
+          Да. Программа для братьев и сестёр. Все уровни А/Б/В/Г адаптированы для обоих. Якорный партнёр подбирается одного пола.<br><br>
           Если у тебя нет намаза — начни с уровня А. Если намаз есть но нестабильный — уровень Б. Программа встретит тебя там где ты есть — без давления и осуждения.
         </div>
       </details>
@@ -2235,7 +2242,7 @@ var Q_RESULTS = {
     path:'➤ Твой старт: IQ Barakah Сезон 1 → Сезон 2  ·  Уровень В  ·  Глубина',
     cta:'Начать IQ Barakah'},
   d:{color:'#1A3D08',bg:'#D4ECC0',
-    level:'Уровень В+ — Готов(а) к наследию',
+    level:'Уровень Г — Наследие и Умма',
     wheel:[8,8,8,8,8,8,8,6],
     wc:'Колесо почти полное. Осталась Миссия — последняя и главная сфера.',
     intro:'МашаАллах! Практика есть, система есть. Но ты чувствуешь что готов(а) к чему-то большему — стать причиной блага для других.',
@@ -3015,16 +3022,71 @@ function hideCookieBanner(){
 </div>
 
 <script>
-const pageLang = new URLSearchParams(window.location.search).get('lang');
-if (pageLang) {
-  const code = pageLang.toLowerCase().split('-')[0];
-  const supported = ['ru','en','ar','de','tr','id','ur','bn','fr','ms'];
-  if (supported.includes(code)) {
-    document.documentElement.lang = code;
-    document.documentElement.dir = ['ar','ur'].includes(code) ? 'rtl' : 'ltr';
-    localStorage.setItem('iq_site_lang', code);
+const SITE_I18N = {
+  ru: {
+    'nav.program':'Программа','nav.how':'Как устроена программа','nav.diagnostic':'Диагностика','nav.deep':'⚓ Углублённая диагностика','nav.tariffs':'Тарифы','nav.founder':'Об основателе','nav.impact':'Масштаб','nav.docs':'Документы ▾','nav.cta':'Начать путь',
+    'hero.title_1':'Ты не устал.','hero.title_2':'Ты живёшь без системы.','hero.sub':'Система для мусульманина и мусульманки которые хотят выйти из хаоса и вернуть порядок в день, намаз, время и внимание.','hero.sub_strong':'Первый сдвиг — уже в первую неделю.','hero.cta':'Начать с ВАКТ — 1 500 ₽','hero.diag':'🌿 Пройти диагностику бесплатно','hero.bot':'✈️ Открыть бота в Telegram',
+    'stats.vakt':'НЕДЕЛЬ<br>ВАКТ','stats.charity':'НА БЛАГО-<br>ТВОРИТЕЛЬНОСТЬ','stats.levels':'УРОВНЯ<br>А · Б · В · Г','stats.goal':'ЦЕЛЬ — ДОВОЛЬСТВО<br>АЛЛАХА',
+    'path.eyebrow':'ПУТЬ ТРАНСФОРМАЦИИ','path.title_1':'От хаоса —','path.title_2':'к наследию','path.sub':'Чёткий путь из 4 этапов. Ты всегда знаешь где находишься.','path.now':'СЕЙЧАС','path.chaos':'Хаос','path.entry':'Точка входа','path.time':'Время','path.vakt_price':'1 500 ₽ · 6 нед','path.season1':'СЕЗОН 1','path.season2':'СЕЗОН 2','path.season3':'СЕЗОН 3','path.foundation':'Основание','path.building':'Строительство','path.legacy':'Наследие','path.season_price':'10 000 ₽ · 8 нед',
+    'levels.eyebrow':'СИСТЕМА УРОВНЕЙ','levels.title_1':'Начни','levels.title_2':'там где ты есть','levels.sub':'Без стыда и давления. Каждый начинает со своего уровня. Программа адаптируется.',
+    'level.a.name':'НАЧИНАЮ С НУЛЯ','level.a.who':'Намаза нет. Коран не читаю. Хочу попробовать.','level.a.i1':'«Альхамдулиллях» утром до телефона','level.a.i2':'Послушать Аль-Фатиху. Просто послушать.','level.a.i3':'Улыбнуться трём людям сегодня','level.a.i4':'Никаких требований. Первый успех.',
+    'level.b.name':'ИНОГДА ПРАКТИКУЮ','level.b.who':'Намаз бывает. Коран читаю редко.','level.b.i1':'Утренние азкары — 5 минут каждый день','level.b.i2':'1 страница Корана после Фаджра','level.b.i3':'Фаджр-лист: 3 дела + ахира + семья','level.b.i4':'Цель — постоянство. Истикама.',
+    'level.c.name':'ПРАКТИКУЮ РЕГУЛЯРНО','level.c.who':'Намаз есть. Хочу глубины.','level.c.i1':'Тафсир, хифз, личный вирд','level.c.i2':'Тафаккур 20 минут каждый день','level.c.i3':'Передать знание одному человеку','level.c.i4':'Цель — глубина и передача.',
+    'level.d.name':'НАСЛЕДИЕ И УММА','level.d.who':'Практика есть. Хочу служить, вести и передавать.','level.d.i1':'Работа с миссией, аманатом и влиянием','level.d.i2':'Служение семье, команде и умме','level.d.i3':'Наставничество и передача знания','level.d.i4':'Цель — наследие ради довольства Аллаха.'
+  },
+  en: {
+    'nav.program':'Program','nav.how':'How it works','nav.diagnostic':'Diagnostic','nav.deep':'⚓ Deep diagnostic','nav.tariffs':'Plans','nav.founder':'Founder','nav.impact':'Impact','nav.docs':'Documents ▾','nav.cta':'Start the path',
+    'hero.title_1':'You are not tired.','hero.title_2':'You are living without a system.','hero.sub':'A system for Muslim men and women who want to leave chaos and restore order to their day, salah, time and attention.','hero.sub_strong':'The first shift comes in the first week.','hero.cta':'Start with VAKT — 1,500 ₽','hero.diag':'🌿 Take free diagnostic','hero.bot':'✈️ Open Telegram bot',
+    'stats.vakt':'WEEKS<br>VAKT','stats.charity':'TO<br>CHARITY','stats.levels':'LEVELS<br>A · B · C · D','stats.goal':'ONE GOAL — THE PLEASURE<br>OF ALLAH',
+    'path.eyebrow':'TRANSFORMATION PATH','path.title_1':'From chaos —','path.title_2':'to legacy','path.sub':'A clear 4-stage path. You always know where you are.','path.now':'NOW','path.chaos':'Chaos','path.entry':'Entry point','path.time':'Time','path.vakt_price':'1,500 ₽ · 6 weeks','path.season1':'SEASON 1','path.season2':'SEASON 2','path.season3':'SEASON 3','path.foundation':'Foundation','path.building':'Building','path.legacy':'Legacy','path.season_price':'10,000 ₽ · 8 weeks',
+    'levels.eyebrow':'LEVEL SYSTEM','levels.title_1':'Begin','levels.title_2':'where you are','levels.sub':'No shame, no pressure. Everyone starts from their real level. The program adapts.',
+    'level.a.name':'STARTING FROM ZERO','level.a.who':'No salah yet. I do not read Qur’an. I want to try.','level.a.i1':'Say “Alhamdulillah” in the morning before the phone','level.a.i2':'Listen to Al-Fatihah. Just listen.','level.a.i3':'Smile at three people today','level.a.i4':'No pressure. First success.',
+    'level.b.name':'PRACTICING SOMETIMES','level.b.who':'Salah happens sometimes. Qur’an is rare.','level.b.i1':'Morning adhkar — 5 minutes daily','level.b.i2':'One page of Qur’an after Fajr','level.b.i3':'Fajr-list: 3 tasks + akhirah + family','level.b.i4':'Goal — consistency. Istiqamah.',
+    'level.c.name':'PRACTICING REGULARLY','level.c.who':'Salah is there. I want depth.','level.c.i1':'Tafsir, hifz, personal wird','level.c.i2':'20 minutes of tafakkur daily','level.c.i3':'Share knowledge with one person','level.c.i4':'Goal — depth and transmission.',
+    'level.d.name':'LEGACY AND UMMAH','level.d.who':'Practice is there. I want to serve, lead and transmit.','level.d.i1':'Work with mission, amanah and influence','level.d.i2':'Service to family, team and ummah','level.d.i3':'Mentorship and knowledge transmission','level.d.i4':'Goal — legacy for the pleasure of Allah.'
+  },
+  ar: {
+    'nav.program':'البرنامج','nav.how':'كيف يعمل','nav.diagnostic':'التشخيص','nav.deep':'⚓ تشخيص عميق','nav.tariffs':'الباقات','nav.founder':'المؤسس','nav.impact':'الأثر','nav.docs':'الوثائق ▾','nav.cta':'ابدأ الطريق',
+    'hero.title_1':'أنت لست متعباً.','hero.title_2':'أنت تعيش بلا نظام.','hero.sub':'نظام للمسلم والمسلمة للخروج من الفوضى وإعادة الترتيب إلى اليوم والصلاة والوقت والانتباه.','hero.sub_strong':'أول تحوّل يظهر في الأسبوع الأول.','hero.cta':'ابدأ مع VAKT — 1,500 ₽','hero.diag':'🌿 ابدأ التشخيص مجاناً','hero.bot':'✈️ افتح بوت تيليجرام',
+    'stats.vakt':'أسابيع<br>VAKT','stats.charity':'إلى<br>الصدقة','stats.levels':'المستويات<br>أ · ب · ج · د','stats.goal':'هدف واحد — رضا<br>الله',
+    'path.eyebrow':'طريق التحول','path.title_1':'من الفوضى —','path.title_2':'إلى الأثر','path.sub':'طريق واضح من 4 مراحل. تعرف دائماً أين أنت.','path.now':'الآن','path.chaos':'فوضى','path.entry':'نقطة الدخول','path.time':'الوقت','path.vakt_price':'1,500 ₽ · 6 أسابيع','path.season1':'الموسم 1','path.season2':'الموسم 2','path.season3':'الموسم 3','path.foundation':'الأساس','path.building':'البناء','path.legacy':'الأثر','path.season_price':'10,000 ₽ · 8 أسابيع',
+    'levels.eyebrow':'نظام المستويات','levels.title_1':'ابدأ','levels.title_2':'من مكانك الحقيقي','levels.sub':'بلا خجل ولا ضغط. كل شخص يبدأ من مستواه الحقيقي. البرنامج يتكيف.',
+    'level.a.name':'أبدأ من الصفر','level.a.who':'لا توجد صلاة بعد. لا أقرأ القرآن. أريد أن أجرب.','level.a.i1':'قل الحمد لله صباحاً قبل الهاتف','level.a.i2':'استمع إلى الفاتحة. فقط استمع.','level.a.i3':'ابتسم لثلاثة أشخاص اليوم','level.a.i4':'بلا ضغط. أول نجاح.',
+    'level.b.name':'أمارس أحياناً','level.b.who':'الصلاة موجودة أحياناً. القرآن نادر.','level.b.i1':'أذكار الصباح — 5 دقائق يومياً','level.b.i2':'صفحة من القرآن بعد الفجر','level.b.i3':'قائمة الفجر: 3 أعمال + آخرة + أسرة','level.b.i4':'الهدف — الثبات والاستقامة.',
+    'level.c.name':'أمارس بانتظام','level.c.who':'الصلاة موجودة. أريد عمقاً.','level.c.i1':'تفسير، حفظ، ورد شخصي','level.c.i2':'20 دقيقة تفكر يومياً','level.c.i3':'نقل علم لشخص واحد','level.c.i4':'الهدف — العمق والنقل.',
+    'level.d.name':'الأثر والأمة','level.d.who':'الممارسة موجودة. أريد أن أخدم وأقود وأنقل.','level.d.i1':'عمل على الرسالة والأمانة والتأثير','level.d.i2':'خدمة الأسرة والفريق والأمة','level.d.i3':'إرشاد ونقل المعرفة','level.d.i4':'الهدف — أثر يطلب رضا الله.'
+  },
+  tr: {
+    'nav.program':'Program','nav.how':'Nasıl çalışır','nav.diagnostic':'Teşhis','nav.deep':'⚓ Derin teşhis','nav.tariffs':'Tarifeler','nav.founder':'Kurucu','nav.impact':'Etki','nav.docs':'Belgeler ▾','nav.cta':'Yola başla',
+    'hero.title_1':'Yorgun değilsin.','hero.title_2':'Sistemsiz yaşıyorsun.','hero.sub':'Kaostan çıkıp gününe, namazına, zamanına ve dikkatine düzen getirmek isteyen Müslüman erkek ve kadınlar için bir sistem.','hero.sub_strong':'İlk değişim daha ilk haftada başlar.','hero.cta':'VAKT ile başla — 1.500 ₽','hero.diag':'🌿 Ücretsiz teşhis yap','hero.bot':'✈️ Telegram botunu aç',
+    'stats.vakt':'HAFTA<br>VAKT','stats.charity':'HAYRA<br>GİDER','stats.levels':'SEVİYE<br>A · B · C · D','stats.goal':'TEK HEDEF — ALLAH’IN<br>RIZASI',
+    'path.eyebrow':'DÖNÜŞÜM YOLU','path.title_1':'Kaostan —','path.title_2':'mirasa','path.sub':'4 aşamalı net yol. Her zaman nerede olduğunu bilirsin.','path.now':'ŞİMDİ','path.chaos':'Kaos','path.entry':'Giriş noktası','path.time':'Zaman','path.vakt_price':'1.500 ₽ · 6 hafta','path.season1':'SEZON 1','path.season2':'SEZON 2','path.season3':'SEZON 3','path.foundation':'Temel','path.building':'İnşa','path.legacy':'Miras','path.season_price':'10.000 ₽ · 8 hafta',
+    'levels.eyebrow':'SEVİYE SİSTEMİ','levels.title_1':'Başla','levels.title_2':'olduğun yerden','levels.sub':'Utanç yok, baskı yok. Herkes gerçek seviyesinden başlar. Program uyum sağlar.',
+    'level.a.name':'SIFIRDAN BAŞLIYORUM','level.a.who':'Namaz yok. Kur’an okumuyorum. Denemek istiyorum.','level.a.i1':'Sabah telefondan önce “Elhamdülillah” de','level.a.i2':'Fatiha’yı dinle. Sadece dinle.','level.a.i3':'Bugün üç kişiye gülümse','level.a.i4':'Baskı yok. İlk başarı.',
+    'level.b.name':'BAZEN PRATİK EDİYORUM','level.b.who':'Namaz bazen var. Kur’an nadir.','level.b.i1':'Sabah zikirleri — her gün 5 dakika','level.b.i2':'Fecrden sonra 1 sayfa Kur’an','level.b.i3':'Fecr listesi: 3 iş + ahiret + aile','level.b.i4':'Hedef — süreklilik. İstikamet.',
+    'level.c.name':'DÜZENLİ PRATİK EDİYORUM','level.c.who':'Namaz var. Derinlik istiyorum.','level.c.i1':'Tefsir, hıfz, kişisel vird','level.c.i2':'Her gün 20 dakika tefekkür','level.c.i3':'Bir kişiye ilim aktarmak','level.c.i4':'Hedef — derinlik ve aktarım.',
+    'level.d.name':'MİRAS VE ÜMMET','level.d.who':'Pratik var. Hizmet etmek, liderlik etmek ve aktarmak istiyorum.','level.d.i1':'Misyon, emanet ve etki üzerine çalışma','level.d.i2':'Aileye, ekibe ve ümmete hizmet','level.d.i3':'Mentorluk ve bilgi aktarımı','level.d.i4':'Hedef — Allah’ın rızası için miras.'
   }
+};
+
+function setSiteLang(raw){
+  const supported = ['ru','en','ar','tr'];
+  const code = supported.includes(raw) ? raw : 'ru';
+  const dict = SITE_I18N[code] || SITE_I18N.ru;
+  document.documentElement.lang = code;
+  document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr';
+  localStorage.setItem('iq_site_lang', code);
+  document.querySelectorAll('[data-i18n]').forEach((node) => {
+    const value = dict[node.dataset.i18n] || SITE_I18N.ru[node.dataset.i18n];
+    if (value) node.innerHTML = value;
+  });
+  document.querySelectorAll('.nav-lang a').forEach((a) => {
+    a.classList.toggle('active', a.getAttribute('href') === `?lang=${code}`);
+  });
 }
+
+const pageLang = new URLSearchParams(window.location.search).get('lang');
+setSiteLang((pageLang || localStorage.getItem('iq_site_lang') || 'ru').toLowerCase().split('-')[0]);
 function toggleFab(){
   const menu=document.getElementById('fab-menu');
   const btn=document.getElementById('fab-main');
