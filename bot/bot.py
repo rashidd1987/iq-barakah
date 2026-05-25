@@ -846,8 +846,9 @@ MAIN_MENU = ReplyKeyboardMarkup(
     NAME, GENDER, OCCUPATION, AGE, SOURCE, READY,
     Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
     REG_CONSENT, REG_FIO, REG_BIRTHDATE, REG_GENDER, REG_ACTIVITY, REG_PHONE, PAY_EMAIL,
-    MUH_Q1, MUH_Q2, MUH_Q3
-) = range(24)
+    MUH_Q1, MUH_Q2, MUH_Q3,
+    ONBOARD_READY, ONBOARD_AUDIT,
+) = range(26)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -2167,6 +2168,86 @@ async def cmd_mymuhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ОНБОРДИНГ — тёплая воронка для новых пользователей
+# ══════════════════════════════════════════════════════════════════
+
+async def onboard_ready(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Шаг 2 — мост: современный язык → исламский фундамент (ният)."""
+    query = update.callback_query
+    await query.answer()
+    text = (
+        "Смотри, в чём корень.\n\n"
+        "Любое дело, начатое на автопилоте — без секунды осознанности, — "
+        "превращается в пустую беготню. Делаешь и делаешь, а смысла "
+        "не чувствуешь.\n\n"
+        "Современные книги о продуктивности зовут это «фокусом». Учёные "
+        "изучают, как работает мозг в момент осознанного решения. А наша "
+        "религия знала это четырнадцать веков назад и назвала одним "
+        "словом — <b>ният</b>, намерение.\n\n"
+        "С этого и начинается курс ВАКТ. Не «поменяй всю жизнь за день» — "
+        "а одна маленькая привычка: короткая пауза перед делом. Три "
+        "секунды, которые возвращают тебе контроль и наполняют обычное "
+        "дело смыслом и баракатом — благодатью.\n\n"
+        "Но прежде чем что-то строить, давай честно посмотрим, где ты "
+        "сейчас и где у тебя утекают силы."
+    )
+    keyboard = [[InlineKeyboardButton(
+        "Посмотреть, где теряю силы", callback_data="onboard_audit"
+    )]]
+    try:
+        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    except Exception:
+        await ctx.bot.send_message(update.effective_chat.id, text,
+                                   reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    return ONBOARD_AUDIT
+
+
+async def onboard_audit(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Шаг 3 — диагностика «Корабль Бараката» через миниапп."""
+    query = update.callback_query
+    await query.answer()
+    text = (
+        "Представь, что твоя жизнь — это корабль. Если он идёт не туда, "
+        "куда хочешь, — значит, где-то в трюме пробоина. В фокусе. "
+        "В здоровье. В семье. В связи с Аллахом.\n\n"
+        "Я подготовил короткую диагностику — <b>«Корабль Бараката»</b>. "
+        "Три минуты, простые вопросы.\n\n"
+        "В конце ты увидишь свою карту: где всё крепко, а где уходит сила. "
+        "И получишь свой следующий честный шаг — одно конкретное действие "
+        "именно на твоём уровне.\n\n"
+        "Открывай диагностику — и возвращайся. Я жду."
+    )
+    keyboard = [
+        [InlineKeyboardButton("🚢 Пройти диагностику", web_app=WebAppInfo(url=MINIAPP_URL))],
+        [InlineKeyboardButton("✅ Сразу познакомиться →", callback_data="onboard_to_name")],
+    ]
+    try:
+        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    except Exception:
+        await ctx.bot.send_message(update.effective_chat.id, text,
+                                   reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML")
+    return ONBOARD_AUDIT
+
+
+async def onboard_to_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Переход из онбординга к регистрации (ввод имени)."""
+    query = update.callback_query
+    await query.answer()
+    try:
+        await query.message.edit_text(
+            "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
+            parse_mode="HTML"
+        )
+    except Exception:
+        await ctx.bot.send_message(
+            update.effective_chat.id,
+            "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
+            parse_mode="HTML"
+        )
+    return NAME
+
+
+# ══════════════════════════════════════════════════════════════════
 #  СТАТИЧЕСКИЕ ХЭНДЛЕРЫ (кнопки меню)
 # ══════════════════════════════════════════════════════════════════
 
@@ -2200,20 +2281,29 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         )
         return ConversationHandler.END
 
-    # Новый пользователь — красивое приветствие + сбор данных
+    # Новый пользователь — тёплый онбординг (3 шага перед регистрацией)
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
-    await update.message.reply_text(
-        "🌿 *Ассаляму алейкум!*\n\n"
-        "Ты попал в *IQ Barakah* — место, где наводят порядок "
-        "в душе, в делах и в семье.\n\n"
-        "Без лишних слов. По шагам. С поддержкой единомышленников.\n\n"
-        "Давай познакомимся 🤝\n\n"
-        "Как тебя зовут? _(Имя и фамилия)_",
-        parse_mode="Markdown"
+    text = (
+        "Ассаляму алейкум, брат / сестра! 🌿\n\n"
+        "Если ты здесь — значит, что-то в твоих днях идёт не так. Знакомо: "
+        "бежишь с утра до ночи, тушишь один пожар за другим, а вечером "
+        "падаешь без сил — и внутри пусто? Будто жизнь идёт, а ты в ней "
+        "не водитель, а пассажир.\n\n"
+        "Так живёт почти каждый. И это не лень и не слабость — просто "
+        "никто не показал, как по-другому.\n\n"
+        "Здесь не будет давления, упрёков и «соберись». Будет другое — "
+        "спокойные маленькие шаги, которые возвращают тебе твоё время "
+        "и твои силы. В твоём темпе, без надрыва.\n\n"
+        "Меня зовут Джарвас, и я буду рядом на этом пути.\n\n"
+        "Готов / готова сделать первый шаг?"
     )
-    return NAME
+    keyboard = [[InlineKeyboardButton("Готов / Готова", callback_data="onboard_ready")]]
+    await update.message.reply_text(
+        text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+    )
+    return ONBOARD_READY
 
 
 async def reg_got_consent(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -5165,6 +5255,11 @@ def main():
             CallbackQueryHandler(cb_start_diag, pattern="^start_diag$"),
         ],
         states={
+            ONBOARD_READY: [CallbackQueryHandler(onboard_ready,   pattern="^onboard_ready$")],
+            ONBOARD_AUDIT: [
+                CallbackQueryHandler(onboard_audit,   pattern="^onboard_audit$"),
+                CallbackQueryHandler(onboard_to_name, pattern="^onboard_to_name$"),
+            ],
             NAME:       [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, got_name)],
             GENDER:     [CallbackQueryHandler(got_gender,     pattern="^gender_")],
             OCCUPATION: [CallbackQueryHandler(got_occupation, pattern="^occ_")],
