@@ -661,7 +661,7 @@ textarea:focus { border-color: var(--g2); }
         <div class="choice-icon">⚡</div>
         <div class="choice-text">
           <div class="t">Я знаю свой уровень</div>
-          <div class="s">Выбрать А, Б или В вручную — займёт 10 секунд</div>
+          <div class="s">Выбрать I, II или III вручную — займёт 10 секунд</div>
         </div>
       </div>
       <div class="choice-card" id="btn-quiz">
@@ -677,16 +677,16 @@ textarea:focus { border-color: var(--g2); }
       <div class="diag-sub">Честно — можно сменить позже</div>
       <div class="level-cards">
         <div class="lcard" id="lcard-a" data-key="a">
-          <div class="lcard-head"><div class="lcard-letter">А</div><div class="lcard-name">Начинаю с нуля</div></div>
-          <div class="lcard-who">Намаз бывает, азкары нет. Хочу выстроить основы.</div>
+          <div class="lcard-head"><div class="lcard-letter">I</div><div class="lcard-name">Пробуждение</div></div>
+          <div class="lcard-who">Делаю первые шаги.</div>
         </div>
         <div class="lcard" id="lcard-b" data-key="b">
-          <div class="lcard-head"><div class="lcard-letter" style="background:var(--gold);">Б</div><div class="lcard-name">Иногда практикую</div></div>
-          <div class="lcard-who">Намаз есть, Коран иногда. Система не держится.</div>
+          <div class="lcard-head"><div class="lcard-letter" style="background:var(--gold);">II</div><div class="lcard-name">Практика</div></div>
+          <div class="lcard-who">Встраиваю в жизнь.</div>
         </div>
         <div class="lcard" id="lcard-c" data-key="c">
-          <div class="lcard-head"><div class="lcard-letter" style="background:#1E4D0A;">В</div><div class="lcard-name">Практикую регулярно</div></div>
-          <div class="lcard-who">МашаАллах! Намаз, азкары, Коран — есть.</div>
+          <div class="lcard-head"><div class="lcard-letter" style="background:#1E4D0A;">III</div><div class="lcard-name">Баракат</div></div>
+          <div class="lcard-who">Это часть меня, живу с благословением.</div>
         </div>
       </div>
       <button class="btn btn-p" id="quick-confirm" disabled>Начать программу →</button>
@@ -1758,19 +1758,19 @@ const WHEEL_LABELS = ['Иман','Время','Привычки','Тело','Б�
 const WHEEL_COLORS = ['#2c5f2d','#c9a84c','#5b8fa8','#e07b39','#7b5ea7','#d4547a','#4a9e8c','#3d7a3e']
 
 const RESULTS = {
-  a:{color:'#C0420A',level:'Уровень А — Начинаю с нуля',levelKey:'А',wheel:[1,1,1,2,2,2,2,1],
+  a:{color:'#C0420A',level:'I — Пробуждение (делаю первые шаги)',levelKey:'А',wheel:[1,1,1,2,2,2,2,1],
      intro:'Это честный результат. Точка силы, не слабости.',
      pains:['😔 День управляется обстоятельствами','📱 Телефон — первое что видишь утром','🌙 Фаджр уходит мимо','🔄 Начинаешь с понедельника — срыв через 3-7 дней'],
      path:'➤ Твой старт: ВАКТ — Тайм-менеджмент мусульманина'},
-  b:{color:'#0C3D7A',level:'Уровень Б — Иногда практикую',levelKey:'Б',wheel:[3,4,3,3,4,3,3,2],
+  b:{color:'#0C3D7A',level:'II — Практика (встраиваю в жизнь)',levelKey:'Б',wheel:[3,4,3,3,4,3,3,2],
      intro:'Ты уже на пути. Есть база — намаз бывает, Коран иногда. Но система не держится.',
      pains:['📉 Знаешь как надо — но не делаешь стабильно','🔁 Привычки: неделя хорошо — срыв — стыд','⏰ Утро без системы','🎯 Нет ясности зачем всё это'],
      path:'➤ Твой старт: ВАКТ → IQ Barakah Сезон 1'},
-  c:{color:'#1E4D0A',level:'Уровень В — Практикую регулярно',levelKey:'В',wheel:[6,6,6,6,6,6,5,4],
+  c:{color:'#1E4D0A',level:'III — Баракат (это часть меня, живу с благословением)',levelKey:'В',wheel:[6,6,6,6,6,6,5,4],
      intro:'МашаАллах! Намаз, азкары, Коран — есть. Но чего-то не хватает.',
      pains:['🔍 Намаз без присутствия','🏔️ Плато — застрял(а)','💰 Бизнес есть — нет баракта','🕊️ Хочешь передать знание — нет инструмента'],
      path:'➤ Твой старт: IQ Barakah Сезон 1 → Сезон 2'},
-  d:{color:'#1A3D08',level:'Уровень В+ — Готов к наследию',levelKey:'В',wheel:[8,8,8,8,8,8,8,6],
+  d:{color:'#1A3D08',level:'III — Баракат (это часть меня, живу с благословением)',levelKey:'В',wheel:[8,8,8,8,8,8,8,6],
      intro:'МашаАллах! Практика есть, система есть. Готов(а) к большему.',
      pains:['🌍 Хочешь влиять на Умму — нет структуры','🔗 Достижения заканчиваются на тебе','👑 Ты лидер — без сообщества','🏛️ Хочешь оставить наследие — не знаешь как'],
      path:'➤ Твой старт: Джамаат или Лидер Уммы'},
