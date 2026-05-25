@@ -122,6 +122,28 @@ def kb_language() -> InlineKeyboardMarkup:
     return b.as_markup()
 
 
+def kb_onboard_step1(lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=t(lang, "onboard.step1_btn"), callback_data="onboard_ready")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_onboard_step2(lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=t(lang, "onboard.step2_btn"), callback_data="onboard_audit")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_onboard_step3(miniapp_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=t(lang, "onboard.step3_diag_btn"), web_app=WebAppInfo(url=miniapp_url))
+    b.button(text=t(lang, "onboard.step3_skip_btn"), callback_data="onboard_to_fio")
+    b.adjust(1)
+    return b.as_markup()
+
+
 def kb_start_diag(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     b.button(text=t(lang, "diag.button"), callback_data="start_diag")

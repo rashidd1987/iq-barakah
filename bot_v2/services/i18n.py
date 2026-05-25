@@ -133,6 +133,53 @@ TEXTS = {
         "onboarding.src_word": "👥 От знакомых",
         "onboarding.src_video": "📺 YouTube/Reels",
         "onboarding.src_other": "📍 Другое",
+        # --- 3-шаговый тёплый онбординг ---
+        "onboard.step1": (
+            "Ассаляму алейкум, брат / сестра! 🌿\n\n"
+            "Если ты здесь — значит, что-то в твоих днях идёт не так. Знакомо: "
+            "бежишь с утра до ночи, тушишь один пожар за другим, а вечером "
+            "падаешь без сил — и внутри пусто? Будто жизнь идёт, а ты в ней "
+            "не водитель, а пассажир.\n\n"
+            "Так живёт почти каждый. И это не лень и не слабость — просто "
+            "никто не показал, как по-другому.\n\n"
+            "Здесь не будет давления, упрёков и «соберись». Будет другое — "
+            "спокойные маленькие шаги, которые возвращают тебе твоё время "
+            "и твои силы. В твоём темпе, без надрыва.\n\n"
+            "Меня зовут Джарвас, и я буду рядом на этом пути.\n\n"
+            "Готов / готова сделать первый шаг?"
+        ),
+        "onboard.step1_btn": "Готов / Готова",
+        "onboard.step2": (
+            "Смотри, в чём корень.\n\n"
+            "Любое дело, начатое на автопилоте — без секунды осознанности, — "
+            "превращается в пустую беготню. Делаешь и делаешь, а смысла "
+            "не чувствуешь.\n\n"
+            "Современные книги о продуктивности зовут это «фокусом». Учёные "
+            "изучают, как работает мозг в момент осознанного решения. А наша "
+            "религия знала это четырнадцать веков назад и назвала одним "
+            "словом — <b>ният</b>, намерение.\n\n"
+            "С этого и начинается курс ВАКТ. Не «поменяй всю жизнь за день» — "
+            "а одна маленькая привычка: короткая пауза перед делом. Три "
+            "секунды, которые возвращают тебе контроль и наполняют обычное "
+            "дело смыслом и баракатом — благодатью.\n\n"
+            "Но прежде чем что-то строить, давай честно посмотрим, где ты "
+            "сейчас и где у тебя утекают силы."
+        ),
+        "onboard.step2_btn": "Посмотреть, где теряю силы",
+        "onboard.step3": (
+            "Представь, что твоя жизнь — это корабль. Если он идёт не туда, "
+            "куда хочешь, — значит, где-то в трюме пробоина. В фокусе. "
+            "В здоровье. В семье. В связи с Аллахом.\n\n"
+            "Я подготовил короткую диагностику — <b>«Корабль Бараката»</b>. "
+            "Три минуты, простые вопросы.\n\n"
+            "В конце ты увидишь свою карту: где всё крепко, а где уходит сила. "
+            "И получишь свой следующий честный шаг — одно конкретное действие "
+            "именно на твоём уровне.\n\n"
+            "Открывай диагностику — и возвращайся. Я жду."
+        ),
+        "onboard.step3_diag_btn": "🚢 Пройти диагностику",
+        "onboard.step3_skip_btn": "✅ Сразу познакомиться →",
+        "onboard.to_fio": "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
     },
     "en": {
         "start.greeting": (
@@ -239,6 +286,43 @@ TEXTS = {
         "onboarding.src_word": "👥 From friends",
         "onboarding.src_video": "📺 YouTube/Reels",
         "onboarding.src_other": "📍 Other",
+        "onboard.step1": (
+            "As-salamu alaykum, brother / sister! 🌿\n\n"
+            "If you're here — something in your days isn't going right. "
+            "You rush from morning to night, put out one fire after another, "
+            "and in the evening you fall exhausted — empty inside.\n\n"
+            "This is how almost everyone lives. It's not laziness or weakness — "
+            "no one showed you how to live differently.\n\n"
+            "Here there's no pressure or blame. Just calm, small steps "
+            "that return your time and energy to you. At your pace.\n\n"
+            "My name is Jarwas, and I'll be with you on this path.\n\n"
+            "Ready to take the first step?"
+        ),
+        "onboard.step1_btn": "Ready / I'm ready",
+        "onboard.step2": (
+            "Here's the root of it.\n\n"
+            "Any task started on autopilot — without a moment of awareness — "
+            "turns into empty running. You do and do, but feel no meaning.\n\n"
+            "Modern productivity books call this 'focus'. Our religion knew this "
+            "fourteen centuries ago and named it in one word — <b>niyyah</b>, intention.\n\n"
+            "This is where the VAKT course begins. Not 'change your whole life in a day' — "
+            "but one small habit: a short pause before each task. Three seconds "
+            "that return control to you and fill ordinary work with meaning and barakah.\n\n"
+            "But before building anything, let's honestly look at where you are now."
+        ),
+        "onboard.step2_btn": "See where I lose energy",
+        "onboard.step3": (
+            "Imagine your life is a ship. If it's going the wrong way — "
+            "there's a leak somewhere in the hull. In focus. In health. In family. In your connection with Allah.\n\n"
+            "I've prepared a short diagnostic — <b>«Ship of Barakah»</b>. "
+            "Three minutes, simple questions.\n\n"
+            "At the end you'll see your map: what's solid and where energy leaks. "
+            "And you'll get your next honest step — one concrete action at your level.\n\n"
+            "Open the diagnostic and come back. I'm waiting."
+        ),
+        "onboard.step3_diag_btn": "🚢 Take diagnostic",
+        "onboard.step3_skip_btn": "✅ Let's get acquainted →",
+        "onboard.to_fio": "Great! Let's get acquainted 🤝\n\nWhat is your name? <i>(First and last name)</i>",
     },
     "ar": {
         "start.greeting": (
@@ -343,6 +427,14 @@ TEXTS = {
         "onboarding.src_word": "👥 من المعارف",
         "onboarding.src_video": "📺 YouTube/Reels",
         "onboarding.src_other": "📍 أخرى",
+        "onboard.step1": "السلام عليكم، أخ / أخت! 🌿\n\nإذا كنت هنا — فهناك شيء لا يسير على ما يرام في أيامك.\n\nلن يكون هناك ضغط أو لوم. فقط خطوات صغيرة هادئة ترجع إليك وقتك وطاقتك.\n\nهل أنت مستعد للخطوة الأولى؟",
+        "onboard.step1_btn": "مستعد / مستعدة",
+        "onboard.step2": "هنا جوهر المسألة.\n\nأي عمل يُبدأ على الطيار الآلي يتحول إلى جري فارغ. كتب الإنتاجية الحديثة تسمي هذا «التركيز». ديننا عرف هذا منذ أربعة عشر قرنًا وسماه بكلمة واحدة — <b>النية</b>.\n\nلكن قبل بناء أي شيء، دعنا ننظر بصدق أين أنت الآن.",
+        "onboard.step2_btn": "أرى أين تتسرب طاقتي",
+        "onboard.step3": "تخيل أن حياتك سفينة. إذا كانت تسير في الاتجاه الخطأ — فهناك تسرب في مكان ما.\n\nأعددت تشخيصًا قصيرًا — <b>«سفينة البركة»</b>. ثلاث دقائق، أسئلة بسيطة.\n\nافتح التشخيص وعد إليّ.",
+        "onboard.step3_diag_btn": "🚢 إجراء التشخيص",
+        "onboard.step3_skip_btn": "✅ التعرف عليك مباشرة →",
+        "onboard.to_fio": "رائع! دعنا نتعرف 🤝\n\nما اسمك الكامل؟",
     },
     "de": {
         "start.greeting": (
@@ -473,6 +565,14 @@ EXTRA_LANGUAGE_TEXTS = {
         "onboarding.src_word": "👥 Tanıdıklardan",
         "onboarding.src_video": "📺 YouTube/Reels",
         "onboarding.src_other": "📍 Diğer",
+        "onboard.step1": "Es-selamu aleyküm, kardeş! 🌿\n\nEğer burdaysan — günlerinde iyi gitmeyen bir şeyler var.\n\nBaskı veya suçlama olmayacak. Sadece sakin küçük adımlar.\n\nİlk adımı atmaya hazır mısın?",
+        "onboard.step1_btn": "Hazırım",
+        "onboard.step2": "İşte meselenin özü.\n\nFarkındalık olmadan başlayan her iş boş koşturmaya dönüşür. Modern kitaplar buna «odak» der. Dinimiz bunu on dört asır önce tek kelimeyle adlandırdı — <b>niyet</b>.\n\nAma bir şey inşa etmeden önce, şu an nerede olduğuna dürüstçe bakalım.",
+        "onboard.step2_btn": "Enerjimi nerede kaybettiğimi göreyim",
+        "onboard.step3": "Hayatının bir gemi olduğunu hayal et. Yanlış yöne gidiyorsa — bir yerlerde sızıntı var.\n\nKısa bir teşhis hazırladım — <b>«Bereket Gemisi»</b>. Üç dakika, basit sorular.\n\nTeşhisi aç ve geri dön. Bekliyorum.",
+        "onboard.step3_diag_btn": "🚢 Teşhise başla",
+        "onboard.step3_skip_btn": "✅ Hemen tanışalım →",
+        "onboard.to_fio": "Harika! Tanışalım 🤝\n\nAdın ne? <i>(Ad ve soyad)</i>",
     },
     "id": {
         "start.greeting": "Assalamu'alaikum, *{name}*! 🌿\n\nSelamat datang di IQ Barakah — program untuk Muslim yang ingin membangun hidup dengan Allah sebagai pusat.\n\nPilih mulai dari mana 👇",

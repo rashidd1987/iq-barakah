@@ -24,6 +24,9 @@ from bot_v2.keyboards import (
     kb_onboarding_gender,
     kb_onboarding_occupation,
     kb_onboarding_source,
+    kb_onboard_step1,
+    kb_onboard_step2,
+    kb_onboard_step3,
     kb_program_overview,
     kb_start_diag,
     kb_tariffs,
@@ -60,7 +63,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     await state.clear()
     user = message.from_user
     repo = UserRepo(session)
-    db_user, _ = await repo.get_or_create(
+    db_user, created = await repo.get_or_create(
         user_id=user.id,
         name=user.full_name or user.first_name or "Участник",
         username=user.username,
@@ -76,11 +79,11 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     )
 
     if not _profile_complete(db_user):
-        await state.set_state(OnboardingStates.fio)
+        # Новый пользователь — запускаем тёплый 3-шаговый онбординг
         await message.answer(
-            t(lang, "onboarding.welcome"),
-            parse_mode="Markdown",
-            reply_markup=kb_bottom_menu(config.miniapp_url, lang),
+            t(lang, "onboard.step1"),
+            reply_markup=kb_onboard_step1(lang),
+            parse_mode="HTML",
         )
         return
 
@@ -96,6 +99,58 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         await _send_program_after_diag(message, lang, latest_diag)
     else:
         await _send_diag_prompt(message, config, lang)
+
+
+@router.callback_query(F.data == "onboard_ready")
+async def cb_onboard_ready(call: CallbackQuery, session: AsyncSession):
+    """Шаг 2 — объяснение ниятa."""
+    await call.answer()
+    user = await UserRepo(session).get(call.from_user.id)
+    lang = user.language_code if user else normalize_lang(call.from_user.language_code)
+    # Убираем кнопку у шага 1, шаг 2 — новое сообщение
+    try:
+        await call.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await call.message.answer(
+        t(lang, "onboard.step2"),
+        reply_markup=kb_onboard_step2(lang),
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data == "onboard_audit")
+async def cb_onboard_audit(call: CallbackQuery, session: AsyncSession, config: Config):
+    """Шаг 3 — Корабль Бараката / миниапп."""
+    await call.answer()
+    user = await UserRepo(session).get(call.from_user.id)
+    lang = user.language_code if user else normalize_lang(call.from_user.language_code)
+    try:
+        await call.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await call.message.answer(
+        t(lang, "onboard.step3"),
+        reply_markup=kb_onboard_step3(config.miniapp_url, lang),
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data == "onboard_to_fio")
+async def cb_onboard_to_fio(call: CallbackQuery, session: AsyncSession, state: FSMContext):
+    """Пропуск диагностики — сразу к регистрации (ФИО)."""
+    await call.answer()
+    user = await UserRepo(session).get(call.from_user.id)
+    lang = user.language_code if user else normalize_lang(call.from_user.language_code)
+    try:
+        await call.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await state.set_state(OnboardingStates.fio)
+    await call.message.answer(
+        t(lang, "onboard.to_fio"),
+        parse_mode="HTML",
+    )
 
 
 @router.callback_query(F.data == "back_main")
