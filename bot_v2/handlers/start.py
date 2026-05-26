@@ -4,7 +4,7 @@ from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot_v2.db.models import DiagResult
@@ -295,6 +295,23 @@ async def msg_muhasaba(message: Message, session: AsyncSession):
 async def msg_site(message: Message, session: AsyncSession, config: Config):
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "site.open", url=config.site))
+
+
+@router.message(Command("resetme"))
+async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext, config: Config):
+    """Сброс профиля для тестирования — только кураторам."""
+    if message.from_user.id not in config.curator_ids:
+        return
+    from bot_v2.db.models import User
+    await session.execute(
+        update(User)
+        .where(User.user_id == message.from_user.id)
+        .values(name=message.from_user.first_name or "Участник",
+                is_female=None, age=None, occupation=None, source=None)
+    )
+    await session.commit()
+    await state.clear()
+    await message.answer("✅ Готово — бот тебя забыл.\n\nНапиши /start — увидишь экран нового пользователя.")
 
 
 @router.callback_query(F.data == "language")
