@@ -23,13 +23,18 @@ async def ask_jarwas(history: list[dict], user_message: str) -> str:
     history = history[-MAX_HISTORY:]
     messages = history + [{"role": "user", "content": user_message}]
 
-    response = await _client.messages.create(
-        model="claude-opus-4-7",
-        max_tokens=512,
-        system=[{"type": "text", "text": JARWAS_SYSTEM, "cache_control": {"type": "ephemeral"}}],
-        messages=messages,
-    )
-    return response.content[0].text
+    try:
+        response = await _client.messages.create(
+            model="claude-opus-4-5",
+            max_tokens=512,
+            system=[{"type": "text", "text": JARWAS_SYSTEM, "cache_control": {"type": "ephemeral"}}],
+            messages=messages,
+        )
+        return response.content[0].text
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error("Jarwas API error: %s", e)
+        return "Джарвас сейчас перегружен. Попробуй чуть позже или напиши куратору. 🤍"
 
 
 def parse_btn_marker(text: str) -> tuple[str, str | None]:
