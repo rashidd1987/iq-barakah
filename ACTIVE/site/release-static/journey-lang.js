@@ -167,20 +167,7 @@ var JOURNEY_TEXT_NODES = [];
 var JOURNEY_OBSERVER_LOCK = false;
 
 function journeyEnsureSwitcher(){
-  var hasInline = document.querySelector('.lang-switch');
-  if (hasInline || document.querySelector('.journey-lang-floating')) return;
-  var box = document.createElement('div');
-  box.className = 'journey-lang-floating';
-  box.setAttribute('aria-label','Language');
-  JOURNEY_LANGS.forEach(function(lang){
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'lang-btn';
-    btn.dataset.lang = lang;
-    btn.textContent = lang.toUpperCase();
-    box.appendChild(btn);
-  });
-  document.body.appendChild(box);
+  // Language switcher removed — site is Russian-only
 }
 
 function journeyApplyStaticLabels(lang){
