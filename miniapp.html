@@ -116,23 +116,6 @@ nav {
   border: 1px solid rgba(255,255,255,.25);
   font-size: 12px; font-weight: 600; color: white;
 }
-.lang-select {
-  height: 32px;
-  min-width: 48px;
-  border: 1px solid rgba(255,255,255,.28);
-  border-radius: 16px;
-  background: rgba(255,255,255,.18);
-  color: white;
-  font-size: 12px;
-  font-weight: 800;
-  text-align: center;
-  outline: none;
-  cursor: pointer;
-}
-.lang-select option {
-  color: #111827;
-  background: #fff;
-}
 
 /* ── CONTENT ── */
 .c { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
@@ -733,13 +716,7 @@ textarea:focus { border-color: var(--g2); }
     <div class="hdr-top">
       <div class="logo">IQ <em>Barakah</em></div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <select class="lang-select" id="lang-select" aria-label="Language">
-          <option value="ru">RU</option>
-          <option value="en">EN</option>
-          <option value="ar">AR</option>
-          <option value="tr">TR</option>
-        </select>
-        <div class="pill" id="lvl-pill">🌱 IQ Barakah</div>
+<div class="pill" id="lvl-pill">🌱 IQ Barakah</div>
         <div class="avatar-btn" id="ava">👤</div>
       </div>
     </div>
@@ -1260,8 +1237,7 @@ const ONETIME = [
 
 
 // --- i18n.js ---
-const SUPPORTED = ['ru', 'en', 'ar', 'tr']
-const RTL = new Set(['ar'])
+const SUPPORTED = ['ru']
 
 const TEXT = {
   ru: {
@@ -1732,10 +1708,8 @@ function initI18n() {
   currentLang = normalizeLang(fromUrl || saved || window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code)
   localStorage.setItem('iq_lang', currentLang)
 
-  document.documentElement.lang = currentLang
-  document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
+  document.documentElement.lang = 'ru'
   applyI18n()
-  initLangSelect()
 }
 
 function lang() {
@@ -1743,13 +1717,7 @@ function lang() {
 }
 
 function setLang(value) {
-  currentLang = normalizeLang(value)
-  localStorage.setItem('iq_lang', currentLang)
-  document.documentElement.lang = currentLang
-  document.documentElement.dir = RTL.has(currentLang) ? 'rtl' : 'ltr'
-  applyI18n()
-  syncLangSelect()
-  window.dispatchEvent(new CustomEvent('iq:langchange', { detail: { lang: currentLang } }))
+  // Language switching removed — Russian only
 }
 
 function t(key) {
@@ -1770,17 +1738,6 @@ function normalizeLang(value) {
   return SUPPORTED.includes(code) ? code : 'ru'
 }
 
-function initLangSelect() {
-  const select = document.getElementById('lang-select')
-  if (!select) return
-  syncLangSelect()
-  select.addEventListener('change', () => setLang(select.value))
-}
-
-function syncLangSelect() {
-  const select = document.getElementById('lang-select')
-  if (select) select.value = currentLang
-}
 
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
