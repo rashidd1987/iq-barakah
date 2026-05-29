@@ -8,7 +8,7 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot_v2.services.program import TARIFFS, get_tariff_view
-from bot_v2.services.i18n import LANG_FLAGS, LANG_LABELS, SUPPORTED_LANGS, normalize_lang, t
+from bot_v2.services.i18n import normalize_lang, t
 
 
 BTN_DIAG = "🎯 Диагностика"
@@ -19,8 +19,6 @@ BTN_REMINDERS = "🔔 Напоминания"
 BTN_CURATOR = "💬 Связаться с куратором"
 BTN_MUHASABA = "🌙 Мухасаба"
 BTN_SITE = "🌐 Сайт"
-BTN_LANGUAGE = "🌍 Язык"
-
 
 def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
     lang = normalize_lang(lang)
@@ -31,7 +29,6 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKey
     b.button(text=t(lang, "menu.ship"), web_app=WebAppInfo(url=f"{ship_url}{ship_sep}lang={lang}"))
     b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
     b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
-    b.button(text=t(lang, "menu.language"), callback_data="language")
     b.adjust(1)
     return b.as_markup()
 
@@ -47,7 +44,6 @@ def kb_bottom_menu(miniapp_url: str, lang: str = "ru") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t(lang, "bottom.program")), KeyboardButton(text=t(lang, "bottom.payment"))],
             [KeyboardButton(text=t(lang, "bottom.reminders")), KeyboardButton(text=t(lang, "bottom.curator"))],
             [KeyboardButton(text=t(lang, "bottom.muhasaba")), KeyboardButton(text=t(lang, "bottom.site"))],
-            [KeyboardButton(text=t(lang, "bottom.language"))],
         ],
         resize_keyboard=True,
         input_field_placeholder=t(lang, "bottom.placeholder"),
@@ -114,13 +110,6 @@ def kb_onboarding_source(lang: str = "ru") -> ReplyKeyboardMarkup:
     )
 
 
-def kb_language() -> InlineKeyboardMarkup:
-    b = InlineKeyboardBuilder()
-    for code in SUPPORTED_LANGS:
-        b.button(text=f"{LANG_FLAGS.get(code, '')} {LANG_LABELS[code]}", callback_data=f"lang:{code}")
-    b.adjust(2)
-    return b.as_markup()
-
 
 def kb_onboard_step1(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
@@ -158,48 +147,18 @@ def kb_program_overview(
 ) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     recommended = next((tariff for tariff in TARIFFS if tariff["id"] == recommended_tariff_id), TARIFFS[0])
-    lang = normalize_lang(lang)
-    labels = {
-        "ru": ("🌿 Рекомендовано", "🎓 Все тарифы", "🎯 Пройти диагностику"),
-        "en": ("🌿 Recommended", "🎓 All plans", "🎯 Take diagnostic"),
-        "ar": ("🌿 موصى به", "🎓 كل الباقات", "🎯 ابدأ التشخيص"),
-        "tr": ("🌿 Önerilen", "🎓 Tüm tarifeler", "🎯 Teşhise başla"),
-    }.get(lang, ("🌿 Recommended", "🎓 All plans", "🎯 Take diagnostic"))
     names = {
-        "ru": {
-            "vakt": "🌱 ВАКТ",
-            "s1_full": "📗 IQ Barakah · Сезон 1",
-            "s3_full": "🏆 IQ Barakah · 3 сезона",
-            "jamaat": "👥 Джамаат",
-            "leader": "👑 Лидер Уммы",
-        },
-        "en": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · Season 1",
-            "s3_full": "🏆 IQ Barakah · 3 seasons",
-            "jamaat": "👥 Jamaat",
-            "leader": "👑 Ummah Leader",
-        },
-        "ar": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · الموسم 1",
-            "s3_full": "🏆 IQ Barakah · 3 مواسم",
-            "jamaat": "👥 الجماعة",
-            "leader": "👑 قائد الأمة",
-        },
-        "tr": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · Sezon 1",
-            "s3_full": "🏆 IQ Barakah · 3 sezon",
-            "jamaat": "👥 Cemaat",
-            "leader": "👑 Ümmet Lideri",
-        },
-    }.get(lang, {})
+        "vakt": "🌱 ВАКТ",
+        "s1_full": "📗 IQ Barakah · Сезон 1",
+        "s3_full": "🏆 IQ Barakah · 3 сезона",
+        "jamaat": "👥 Джамаат",
+        "leader": "👑 Лидер Уммы",
+    }
     name = names.get(recommended["id"], recommended["name"])
-    b.button(text=f"{labels[0]}: {name}", callback_data=f"tariff:{recommended['id']}")
-    b.button(text=labels[1], callback_data="show_tariffs")
+    b.button(text=f"🌿 Рекомендовано: {name}", callback_data=f"tariff:{recommended['id']}")
+    b.button(text="🎓 Все тарифы", callback_data="show_tariffs")
     if not has_diag:
-        b.button(text=labels[2], callback_data="start_diag")
+        b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
     b.adjust(1)
     return b.as_markup()
 

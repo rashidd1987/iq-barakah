@@ -12,14 +12,12 @@ from bot_v2.db.repositories import UserRepo
 from bot_v2.keyboards import (
     BTN_CURATOR,
     BTN_DIAG,
-    BTN_LANGUAGE,
     BTN_MUHASABA,
     BTN_PAYMENT,
     BTN_PROGRAM,
     BTN_REMINDERS,
     BTN_SITE,
     kb_bottom_menu,
-    kb_language,
     kb_main_menu,
     kb_onboarding_gender,
     kb_onboarding_occupation,
@@ -32,21 +30,19 @@ from bot_v2.keyboards import (
     kb_tariffs,
 )
 from bot_v2.config import Config
-from bot_v2.services.i18n import language_name, normalize_lang, t
-from bot_v2.services.i18n import SUPPORTED_LANGS
+from bot_v2.services.i18n import normalize_lang, t
 from bot_v2.services.program import TARIFFS
 
 router = Router(name="start")
 
 BOTTOM_TEXTS = {
-    "diag": {BTN_DIAG, *(t(lang, "bottom.diag") for lang in SUPPORTED_LANGS)},
-    "program": {BTN_PROGRAM, *(t(lang, "bottom.program") for lang in SUPPORTED_LANGS)},
-    "payment": {BTN_PAYMENT, *(t(lang, "bottom.payment") for lang in SUPPORTED_LANGS)},
-    "reminders": {BTN_REMINDERS, *(t(lang, "bottom.reminders") for lang in SUPPORTED_LANGS)},
-    "curator": {BTN_CURATOR, *(t(lang, "bottom.curator") for lang in SUPPORTED_LANGS)},
-    "muhasaba": {BTN_MUHASABA, *(t(lang, "bottom.muhasaba") for lang in SUPPORTED_LANGS)},
-    "site": {BTN_SITE, *(t(lang, "bottom.site") for lang in SUPPORTED_LANGS)},
-    "language": {BTN_LANGUAGE, *(t(lang, "bottom.language") for lang in SUPPORTED_LANGS)},
+    "diag": {BTN_DIAG, t("ru", "bottom.diag")},
+    "program": {BTN_PROGRAM, t("ru", "bottom.program")},
+    "payment": {BTN_PAYMENT, t("ru", "bottom.payment")},
+    "reminders": {BTN_REMINDERS, t("ru", "bottom.reminders")},
+    "curator": {BTN_CURATOR, t("ru", "bottom.curator")},
+    "muhasaba": {BTN_MUHASABA, t("ru", "bottom.muhasaba")},
+    "site": {BTN_SITE, t("ru", "bottom.site")},
 }
 
 
@@ -232,23 +228,6 @@ async def onboarding_source(message: Message, state: FSMContext, session: AsyncS
     await _send_diag_prompt(message, config, lang)
 
 
-@router.message(Command("language"))
-async def cmd_language(message: Message, session: AsyncSession):
-    repo = UserRepo(session)
-    user, _ = await repo.get_or_create(
-        user_id=message.from_user.id,
-        name=message.from_user.full_name or message.from_user.first_name or "Участник",
-        username=message.from_user.username,
-        language_code=normalize_lang(message.from_user.language_code),
-    )
-    await message.answer(t(user.language_code, "language.choose"), reply_markup=kb_language())
-
-
-@router.message(F.text.in_(BOTTOM_TEXTS["language"]))
-async def msg_language(message: Message, session: AsyncSession):
-    await cmd_language(message, session)
-
-
 @router.message(F.text.in_(BOTTOM_TEXTS["payment"]))
 async def msg_payment(message: Message, session: AsyncSession):
     user = await UserRepo(session).get(message.from_user.id)
@@ -314,34 +293,6 @@ async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext
     await message.answer("✅ Готово — бот тебя забыл.\n\nНапиши /start — увидишь экран нового пользователя.")
 
 
-@router.callback_query(F.data == "language")
-async def cb_language(call: CallbackQuery, session: AsyncSession):
-    repo = UserRepo(session)
-    user = await repo.get(call.from_user.id)
-    lang = user.language_code if user else normalize_lang(call.from_user.language_code)
-    await call.answer()
-    await call.message.answer(t(lang, "language.choose"), reply_markup=kb_language())
-
-
-@router.callback_query(F.data.startswith("lang:"))
-async def cb_set_language(call: CallbackQuery, session: AsyncSession, config: Config):
-    lang = normalize_lang(call.data.split(":", 1)[1])
-    repo = UserRepo(session)
-    user, _ = await repo.get_or_create(
-        user_id=call.from_user.id,
-        name=call.from_user.full_name or call.from_user.first_name or "Участник",
-        username=call.from_user.username,
-        language_code=lang,
-    )
-    await repo.update(user.id, language_code=lang)
-    await call.answer(t(lang, "language.saved", language=language_name(lang)), show_alert=False)
-    await call.message.answer(
-        t(lang, "language.saved", language=language_name(lang)),
-        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
-        parse_mode="Markdown",
-    )
-
-
 def _profile_complete(user) -> bool:
     return bool(user.name and user.is_female is not None and user.age and user.occupation and user.source)
 
@@ -390,49 +341,24 @@ async def _send_program_overview(message: Message, lang: str):
 
 
 def _program_overview_text(lang: str, diag: DiagResult | None = None) -> str:
-    lang = normalize_lang(lang)
     texts = _program_texts()
-    data = texts.get(lang, texts["en"])
+    data = texts["ru"]
     diag_block = ""
     if diag:
-        recommended = _program_tariff_name(lang, _recommended_tariff(diag.level_key)["id"])
+        recommended = _program_tariff_name("ru", _recommended_tariff(diag.level_key)["id"])
         diag_block = data["diag"].format(level=diag.level_key, pct=diag.pct, recommended=recommended)
     return data["body"].format(diag_block=diag_block)
 
 
 def _program_tariff_name(lang: str, tariff_id: str) -> str:
-    lang = normalize_lang(lang)
     names = {
-        "ru": {
-            "vakt": "🌱 ВАКТ",
-            "s1_full": "📗 IQ Barakah · Сезон 1",
-            "s3_full": "🏆 IQ Barakah · 3 сезона",
-            "jamaat": "👥 Джамаат",
-            "leader": "👑 Лидер Уммы",
-        },
-        "en": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · Season 1",
-            "s3_full": "🏆 IQ Barakah · 3 seasons",
-            "jamaat": "👥 Jamaat",
-            "leader": "👑 Ummah Leader",
-        },
-        "ar": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · الموسم 1",
-            "s3_full": "🏆 IQ Barakah · 3 مواسم",
-            "jamaat": "👥 الجماعة",
-            "leader": "👑 قائد الأمة",
-        },
-        "tr": {
-            "vakt": "🌱 VAKT",
-            "s1_full": "📗 IQ Barakah · Sezon 1",
-            "s3_full": "🏆 IQ Barakah · 3 sezon",
-            "jamaat": "👥 Cemaat",
-            "leader": "👑 Ümmet Lideri",
-        },
+        "vakt": "🌱 ВАКТ",
+        "s1_full": "📗 IQ Barakah · Сезон 1",
+        "s3_full": "🏆 IQ Barakah · 3 сезона",
+        "jamaat": "👥 Джамаат",
+        "leader": "👑 Лидер Уммы",
     }
-    return names.get(lang, names["en"]).get(tariff_id, TARIFFS[0]["name"])
+    return names.get(tariff_id, TARIFFS[0]["name"])
 
 
 def _program_texts() -> dict[str, dict[str, str]]:
@@ -499,192 +425,6 @@ def _program_texts() -> dict[str, dict[str, str]]:
                 "🌿 _20% с каждой оплаты → благотворительность_"
             ),
         },
-        "en": {
-            "diag": (
-                "🎯 *Your result:* level {level} · {pct}%\n"
-                "🌿 *Recommended start:* {recommended}\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-            ),
-            "body": (
-                "📚 *IQ Barakah Program*\n\n"
-                "{diag_block}"
-                "A program for Muslims who are tired of running in circles.\n\n"
-                "You plan, but still feel there is no result or meaning?\n"
-                "IQ Barakah helps connect:\n"
-                "✅ Heart: calm, intention, sincerity\n"
-                "✅ Mind: focus and clarity\n"
-                "✅ Behavior: habits and actions\n\n"
-                "The goal is to make work, family and worship support each other instead of competing.\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "🌱 *VAKT · Muslim Time Management* · 6 weeks\n\n"
-                "B1 🌿 Niyyah — the hidden conversation\n"
-                "B2 🏁 Fajr — the anchor of the day\n"
-                "B3 🕊 Tawbah — a clean page\n"
-                "B4 💪 Sabr — stay the course\n"
-                "B5 📿 Dhikr — Allah in every matter\n"
-                "B6 🏆 Result — your system\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📗 *Season 1 · Foundation · Who you are* — 8 weeks\n\n"
-                "C1.1 🌿 The hidden conversation\n"
-                "C1.2 🏠 Coming home\n"
-                "C1.3 ✨ Sacred space\n"
-                "C1.4 ⏱ Time as witness\n"
-                "C1.5 📱 Who is your Lord?\n"
-                "C1.6 🖊 Kilometer zero\n"
-                "C1.7 💪 You are not a brain in a jar\n"
-                "C1.8 🌿 Deep cleaning of the soul\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📘 *Season 2 · Building · How you live* — 8 weeks\n\n"
-                "C2.1 🧠 How shaytan hacks the brain\n"
-                "C2.2 🏛 Building the fortress\n"
-                "C2.3 🔥 Burning the ships\n"
-                "C2.4 ⚖️ What is heaviest on the scales?\n"
-                "C2.5 🧳 Pay before the sweat dries\n"
-                "C2.6 📖 The longest ayah\n"
-                "C2.7 🤝 Partnership with Allah\n"
-                "C2.8 🌍 Atlas syndrome\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📙 *Season 3 · Legacy · Why you live* — 8 weeks\n\n"
-                "C3.1 👣 Beneath their feet\n"
-                "C3.2 🏠 Leave the war outside\n"
-                "C3.3 🧡 Mirror neurons\n"
-                "C3.4 🌹 The blacksmith and the perfumer\n"
-                "C3.5 👑 King without a crown\n"
-                "C3.6 🏞 River and swamp\n"
-                "C3.7 📊 Open account\n"
-                "C3.8 🏛 Point of no return\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "The full path is 30 weeks. Each block gives a concrete result and leads into the next level.\n\n"
-                "🗓 *Monday 9:00* — weekly lesson in the bot\n"
-                "📞 *Friday 14:00* — live call with the founder of IQ Barakah\n"
-                "🌙 *Daily* — adhkar and muhasabah\n\n"
-                "🌿 _20% from each payment goes to charity_"
-            ),
-        },
-        "tr": {
-            "diag": (
-                "🎯 *Sonucun:* seviye {level} · {pct}%\n"
-                "🌿 *Önerilen başlangıç:* {recommended}\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-            ),
-            "body": (
-                "📚 *IQ Barakah Programı*\n\n"
-                "{diag_block}"
-                "Aynı döngünün içinde dönmekten yorulan Müslümanlar için bir program.\n\n"
-                "Plan yapıyorsun ama yine de sonuç ve anlam eksik mi?\n"
-                "IQ Barakah şunları birleştirmeye yardım eder:\n"
-                "✅ Kalp: huzur, niyet, ihlas\n"
-                "✅ Akıl: odak ve açıklık\n"
-                "✅ Davranış: alışkanlıklar ve ameller\n\n"
-                "Amaç; iş, aile ve ibadetin birbirine engel değil destek olmasıdır.\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "🌱 *VAKT · Müslüman için zaman yönetimi* · 6 hafta\n\n"
-                "B1 🌿 Niyet — gizli konuşma\n"
-                "B2 🏁 Fecr — günün çapası\n"
-                "B3 🕊 Tevbe — temiz sayfa\n"
-                "B4 💪 Sabır — istikameti koru\n"
-                "B5 📿 Zikir — her işte Allah\n"
-                "B6 🏆 Sonuç — senin sistemin\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📗 *Sezon 1 · Temel · Kimsin* — 8 hafta\n\n"
-                "C1.1 🌿 Gizli konuşma\n"
-                "C1.2 🏠 Eve dönüş\n"
-                "C1.3 ✨ Kutsal alan\n"
-                "C1.4 ⏱ Şahit olarak zaman\n"
-                "C1.5 📱 Rabbin kim?\n"
-                "C1.6 🖊 Sıfır kilometre\n"
-                "C1.7 💪 Sen kavanozdaki bir beyin değilsin\n"
-                "C1.8 🌿 Ruhun genel temizliği\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📘 *Sezon 2 · İnşa · Nasıl yaşıyorsun* — 8 hafta\n\n"
-                "C2.1 🧠 Şeytan beyni nasıl hackler\n"
-                "C2.2 🏛 Kaleyi inşa etmek\n"
-                "C2.3 🔥 Gemileri yakmak\n"
-                "C2.4 ⚖️ Mizanda en ağır olan nedir?\n"
-                "C2.5 🧳 Ter kurumadan ücretini ver\n"
-                "C2.6 📖 En uzun ayet\n"
-                "C2.7 🤝 Allah ile ortaklık bilinci\n"
-                "C2.8 🌍 Atlas sendromu\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📙 *Sezon 3 · Miras · Neden yaşıyorsun* — 8 hafta\n\n"
-                "C3.1 👣 Ayaklarının altında\n"
-                "C3.2 🏠 Savaşı kapının dışında bırak\n"
-                "C3.3 🧡 Ayna nöronlar\n"
-                "C3.4 🌹 Demirci ve misk satıcısı\n"
-                "C3.5 👑 Taçsız kral\n"
-                "C3.6 🏞 Nehir ve bataklık\n"
-                "C3.7 📊 Açık hesap\n"
-                "C3.8 🏛 Geri dönüşsüz nokta\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "Tam yol 30 haftadır. Her blok somut bir sonuç verir ve seni bir sonraki seviyeye taşır.\n\n"
-                "🗓 *Pazartesi 9:00* — botta haftalık ders\n"
-                "📞 *Cuma 14:00* — IQ Barakah kurucusuyla canlı görüşme\n"
-                "🌙 *Her gün* — zikir ve muhasebe\n\n"
-                "🌿 _Her ödemenin %20'si hayra gider_"
-            ),
-        },
-        "ar": {
-            "diag": (
-                "🎯 *نتيجتك:* المستوى {level} · {pct}%\n"
-                "🌿 *البداية المقترحة:* {recommended}\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-            ),
-            "body": (
-                "📚 *برنامج IQ Barakah*\n\n"
-                "{diag_block}"
-                "برنامج للمسلم الذي يريد الخروج من الدوران في نفس الدائرة.\n\n"
-                "تخطط، لكن لا ترى نتيجة واضحة أو معنى عميقاً؟\n"
-                "IQ Barakah يساعدك على ربط:\n"
-                "✅ القلب: السكينة والنية\n"
-                "✅ العقل: التركيز والوضوح\n"
-                "✅ السلوك: العادات والأعمال\n\n"
-                "الهدف أن تصبح العبادة والأسرة والعمل عناصر تدعم بعضها.\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "🌱 *VAKT · إدارة وقت المسلم* · 6 أسابيع\n\n"
-                "B1 🌿 النية — الحديث الخفي\n"
-                "B2 🏁 الفجر — مرساة اليوم\n"
-                "B3 🕊 التوبة — صفحة جديدة\n"
-                "B4 💪 الصبر — الثبات على الطريق\n"
-                "B5 📿 الذكر — الله في كل أمر\n"
-                "B6 🏆 النتيجة — نظامك\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📗 *الموسم 1 · الأساس · من أنت* — 8 أسابيع\n\n"
-                "C1.1 🌿 الحديث الخفي\n"
-                "C1.2 🏠 الرجوع إلى البيت\n"
-                "C1.3 ✨ المساحة المقدسة\n"
-                "C1.4 ⏱ الوقت كشاهد\n"
-                "C1.5 📱 من ربك؟\n"
-                "C1.6 🖊 الكيلومتر صفر\n"
-                "C1.7 💪 أنت لست عقلاً في زجاجة\n"
-                "C1.8 🌿 تنظيف عميق للروح\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📘 *الموسم 2 · البناء · كيف تعيش* — 8 أسابيع\n\n"
-                "C2.1 🧠 كيف يخترق الشيطان الدماغ\n"
-                "C2.2 🏛 بناء الحصن\n"
-                "C2.3 🔥 إحراق السفن\n"
-                "C2.4 ⚖️ ما أثقل شيء في الميزان؟\n"
-                "C2.5 🧳 أعط الأجير أجره قبل أن يجف عرقه\n"
-                "C2.6 📖 أطول آية\n"
-                "C2.7 🤝 شراكة مع الله\n"
-                "C2.8 🌍 متلازمة أطلس\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "📙 *الموسم 3 · الأثر · لماذا تعيش* — 8 أسابيع\n\n"
-                "C3.1 👣 تحت أقدامهن\n"
-                "C3.2 🏠 اترك الحرب خارج الباب\n"
-                "C3.3 🧡 الخلايا المرآتية\n"
-                "C3.4 🌹 الحداد وبائع الطيب\n"
-                "C3.5 👑 ملك بلا تاج\n"
-                "C3.6 🏞 النهر والمستنقع\n"
-                "C3.7 📊 الحساب المفتوح\n"
-                "C3.8 🏛 نقطة اللاعودة\n\n"
-                "━━━━━━━━━━━━━━━━\n"
-                "المسار الكامل 30 أسبوعاً. كل مرحلة تعطي نتيجة عملية وتنقلك إلى المستوى التالي.\n\n"
-                "🗓 *الاثنين 9:00* — درس الأسبوع في البوت\n"
-                "📞 *الجمعة 14:00* — لقاء مباشر مع مؤسس IQ Barakah\n"
-                "🌙 *يومياً* — الأذكار والمحاسبة\n\n"
-                "🌿 _20% من كل دفعة تذهب إلى الصدقة_"
-            ),
-        },
     }
 
 
@@ -703,31 +443,31 @@ def _md_escape(value: str) -> str:
 
 def _occupation_key(text: str) -> str | None:
     text = text.lower()
-    if "💼" in text or "предприним" in text or "entrepreneur" in text or "girişim" in text or "رائد" in text:
+    if "💼" in text or "предприним" in text:
         return "entrepreneur"
-    if "👔" in text or "сотруд" in text or "наём" in text or "наем" in text or "employee" in text or "çalışan" in text or "موظف" in text:
+    if "👔" in text or "сотруд" in text or "наём" in text or "наем" in text:
         return "employee"
-    if "🎓" in text or "студ" in text or "student" in text or "öğrenci" in text or "طالب" in text:
+    if "🎓" in text or "студ" in text:
         return "student"
-    if "🧑‍💻" in text or "самозан" in text or "фриланс" in text or "self-employed" in text or "serbest" in text or "عمل حر" in text:
+    if "🧑‍💻" in text or "самозан" in text or "фриланс" in text:
         return "freelance"
-    if "🏠" in text or "другое" in text or "other" in text or "diğer" in text or "أخرى" in text:
+    if "🏠" in text or "другое" in text:
         return "other"
     return None
 
 
 def _source_key(text: str) -> str | None:
     text = text.lower()
-    if "📱" in text or "соц" in text or "social" in text or "sosyal" in text or "التواصل" in text:
+    if "📱" in text or "соц" in text:
         return "social"
-    if "🔍" in text or "интернет" in text or "internet" in text or "الإنترنت" in text:
+    if "🔍" in text or "интернет" in text:
         return "internet"
     if "telegram" in text or "телеграм" in text:
         return "telegram"
-    if "👥" in text or "знаком" in text or "friends" in text or "tanıdık" in text or "المعارف" in text:
+    if "👥" in text or "знаком" in text:
         return "word_of_mouth"
     if "youtube" in text or "reels" in text:
         return "video"
-    if "📍" in text or "другое" in text or "other" in text or "diğer" in text or "أخرى" in text:
+    if "📍" in text or "другое" in text:
         return "other"
     return None
