@@ -157,7 +157,6 @@ def kb_program_overview(
     name = names.get(recommended["id"], recommended["name"])
     b.button(text=f"🌿 Рекомендовано: {name}", callback_data=f"tariff:{recommended['id']}")
     b.button(text="🎓 Все тарифы", callback_data="show_tariffs")
-    b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
     if not has_diag:
         b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
     b.adjust(1)

@@ -4,3 +4,4 @@ asyncpg==0.30.0
 alembic==1.16.1
 anthropic>=0.100.0
 yookassa>=3.0.0
+apscheduler==3.10.4

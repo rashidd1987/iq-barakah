@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot_v2.db.models import BotSetting, LessonMedia, Pair
+from bot_v2.db.models import BotSetting, LessonMedia, MuhasabaLog, Pair
 
 
 class SettingsRepo:
@@ -48,6 +50,26 @@ class LessonMediaRepo:
 
     async def all(self) -> list[LessonMedia]:
         result = await self.session.execute(select(LessonMedia).order_by(LessonMedia.level, LessonMedia.week))
+        return list(result.scalars())
+
+
+class MuhasabaRepo:
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def save(self, user_id: int, answers: list[dict]) -> MuhasabaLog:
+        log = MuhasabaLog(user_id=user_id, answers=answers)
+        self.session.add(log)
+        await self.session.flush()
+        return log
+
+    async def recent(self, user_id: int, limit: int = 5) -> list[MuhasabaLog]:
+        result = await self.session.execute(
+            select(MuhasabaLog)
+            .where(MuhasabaLog.user_id == user_id)
+            .order_by(MuhasabaLog.created_at.desc())
+            .limit(limit)
+        )
         return list(result.scalars())
 
 

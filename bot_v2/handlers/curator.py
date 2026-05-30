@@ -338,6 +338,70 @@ async def cb_curator_activate(call: CallbackQuery, session: AsyncSession, config
     await _notify_activation(call.bot, user_id, participant, session, config)
 
 
+@router.message(Command("send_now"))
+async def cmd_send_now(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /send_now <user_id> — отправить текущий урок участнику прямо сейчас."""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer(
+            "Использование: `/send_now <user_id>`\n\nПример: `/send_now 123456789`",
+            parse_mode="Markdown",
+        )
+        return
+    try:
+        target_uid = int(args[0])
+    except ValueError:
+        await message.answer("❌ user_id должен быть числом.")
+        return
+
+    repo = ParticipantRepo(session)
+    participant = await repo.get(target_uid)
+    if not participant:
+        await message.answer(f"❌ Участник {target_uid} не найден или не активен.")
+        return
+
+    from bot_v2.handlers.program import send_weekly_lesson
+    try:
+        await send_weekly_lesson(message.bot, target_uid, participant, session, config)
+        await message.answer(
+            f"✅ Урок отправлен участнику {target_uid}\n"
+            f"Уровень {participant.level} · Неделя {participant.week}"
+        )
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
+
+
+@router.message(Command("send_all"))
+async def cmd_send_all(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /send_all — разослать текущий урок ВСЕМ активным участникам."""
+    if not is_curator(message.from_user.id, config):
+        return
+    from bot_v2.handlers.program import send_weekly_lesson
+    from sqlalchemy import select as sa_select
+
+    result = await session.execute(
+        sa_select(Participant).where(Participant.is_active == True)
+    )
+    participants = result.scalars().all()
+
+    await message.answer(f"📤 Начинаю рассылку уроков для {len(participants)} участников...")
+    ok = 0
+    fail = 0
+    for p in participants:
+        try:
+            await send_weekly_lesson(message.bot, p.user_id, p, session, config)
+            ok += 1
+        except Exception as e:
+            logger.warning("send_all → %s: %s", p.user_id, e)
+            fail += 1
+
+    await message.answer(
+        f"✅ Готово!\n\nОтправлено: {ok}\nОшибок: {fail}"
+    )
+
+
 async def _notify_activation(bot, user_id: int, participant: Participant, session: AsyncSession, config: Config):
     user = await UserRepo(session).get(user_id)
     name = _md_escape(user.name) if user else "брат"

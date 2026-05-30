@@ -8,6 +8,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 from bot_v2.config import load_config
 from bot_v2.db import setup_db, ensure_database, create_tables
@@ -15,7 +17,12 @@ from bot_v2.handlers import setup_routers
 from bot_v2.middlewares import DbSessionMiddleware
 from bot_v2.services.jarwas import setup_jarwas
 from bot_v2.services.insights import setup_insights
-from bot_v2.services.yookassa_svc import setup_yookassa
+from bot_v2.services.jobs import (
+    job_jarwas_fajr,
+    job_jarwas_friday,
+    job_silence_check,
+    job_progress_mirror,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -49,9 +56,6 @@ async def main():
     setup_jarwas(config.anthropic_api_key)
     setup_insights(config.anthropic_api_key)
 
-    # Payments
-    setup_yookassa(config.yookassa_shop_id, config.yookassa_secret_key)
-
     # Bot & Dispatcher
     bot = Bot(
         token=config.bot_token,
@@ -68,12 +72,68 @@ async def main():
     # Routers
     dp.include_router(setup_routers())
 
-    # Weekly lesson job — воскресенье 09:00 UTC
-    # (можно заменить на APScheduler или aiogram-scheduler)
-    # Здесь показан шаблон; конкретный cron — в amvera.yml или отдельном процессе.
+    # ── Планировщик задач ──────────────────────────────────────
+    scheduler = AsyncIOScheduler(timezone="UTC")
+
+    # Фаджр-напоминание: ежедневно 02:30 UTC = 05:30 МСК
+    scheduler.add_job(
+        job_jarwas_fajr, CronTrigger(hour=2, minute=30),
+        args=[bot], id="fajr",
+    )
+    # Пятничная рефлексия: пятница 17:00 UTC = 20:00 МСК
+    scheduler.add_job(
+        job_jarwas_friday, CronTrigger(day_of_week="fri", hour=17, minute=0),
+        args=[bot], id="friday",
+    )
+    # Silence check: ежедневно 07:00 UTC = 10:00 МСК
+    scheduler.add_job(
+        job_silence_check, CronTrigger(hour=7, minute=0),
+        args=[bot, config.curator_ids], id="silence",
+    )
+    # Зеркало прогресса: воскресенье 16:00 UTC = 19:00 МСК
+    scheduler.add_job(
+        job_progress_mirror, CronTrigger(day_of_week="sun", hour=16, minute=0),
+        args=[bot, config.miniapp_url], id="progress_mirror",
+    )
+    # Еженедельный урок: воскресенье 09:00 UTC
+    scheduler.add_job(
+        _job_weekly_lesson, CronTrigger(day_of_week="sun", hour=9, minute=0),
+        args=[bot, config], id="weekly_lesson",
+    )
+
+    scheduler.start()
+    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson")
 
     logger.info("Starting bot...")
-    await dp.start_polling(bot, skip_updates=True)
+    try:
+        await dp.start_polling(bot, skip_updates=True)
+    finally:
+        scheduler.shutdown()
+
+
+async def _job_weekly_lesson(bot: Bot, config):
+    """Воскресенье 09:00 UTC — рассылка урока всем активным участникам."""
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.models import Participant, User
+    from bot_v2.handlers.program import send_weekly_lesson
+    from sqlalchemy import select
+
+    async with get_session_factory()() as session:
+        async with session.begin():
+            result = await session.execute(
+                select(Participant, User)
+                .join(User, User.id == Participant.user_id)
+                .where(Participant.is_active == True)
+            )
+            rows = result.all()
+            count = 0
+            for participant, _user in rows:
+                try:
+                    await send_weekly_lesson(bot, participant.user_id, participant, session, config)
+                    count += 1
+                except Exception as e:
+                    logger.warning("weekly_lesson → %s: %s", participant.user_id, e)
+    logger.info("Weekly lesson sent: %d чел.", count)
 
 
 if __name__ == "__main__":
