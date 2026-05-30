@@ -109,19 +109,18 @@ nav.scrolled{
   box-shadow:0 2px 32px var(--shadow);
 }
 .nav-inner{
-  max-width:1280px;margin:0 auto;padding:16px 28px 14px;
-  display:grid;grid-template-columns:1fr auto;grid-template-areas:"brand actions" "links links";
-  align-items:center;gap:12px 18px;
+  max-width:1280px;margin:0 auto;padding:14px 28px;
+  display:flex;align-items:center;gap:16px;
   transition:padding .3s;
 }
-nav.scrolled .nav-inner{padding:10px 28px 12px}
+nav.scrolled .nav-inner{padding:10px 28px}
 .nav-logo{
-  grid-area:brand;font-family:'Cormorant Garamond',serif;
+  font-family:'Cormorant Garamond',serif;
   font-size:19px;font-weight:700;letter-spacing:3px;
-  color:var(--green);text-decoration:none;white-space:nowrap;justify-self:start;
+  color:var(--green);text-decoration:none;white-space:nowrap;flex-shrink:0;
 }
-.nav-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap}
-.nav-links{grid-area:links;display:flex;gap:8px;list-style:none;align-items:center;justify-content:center;flex-wrap:wrap;min-width:0}
+.nav-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+.nav-links{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;flex:1}
 .nav-links a{
   display:inline-flex;align-items:center;justify-content:center;
   min-height:34px;padding:8px 13px;border-radius:999px;
@@ -1332,101 +1331,14 @@ footer{
 /* ════════════════════════════════════════════
    MOBILE NAVIGATION
 ════════════════════════════════════════════ */
-.nav-hamburger {
-  display: none;
-  width: 28px;
-  height: 22px;
-  position: relative;
-  cursor: pointer;
-  z-index: 201;
-}
-.nav-hamburger span {
-  display: block;
-  position: absolute;
-  height: 3px;
-  width: 100%;
-  background: var(--green);
-  border-radius: 3px;
-  opacity: 1;
-  left: 0;
-  transition: .25s ease-in-out;
-}
-.nav-hamburger span:nth-child(1) {
-  top: 0;
-}
-.nav-hamburger span:nth-child(2) {
-  top: 9px;
-}
-.nav-hamburger span:nth-child(3) {
-  top: 18px;
-}
-.nav-hamburger.active span:nth-child(1) {
-  top: 9px;
-  transform: rotate(135deg);
-}
-.nav-hamburger.active span:nth-child(2) {
-  opacity: 0;
-  left: -60px;
-}
-.nav-hamburger.active span:nth-child(3) {
-  top: 9px;
-  transform: rotate(-135deg);
-}
-
-@media (max-width: 968px) {
-  .nav-links {
-    display: none;
-  }
-  .nav-hamburger {
-    display: block;
-  }
-  .nav-links.active {
-    display: flex;
-    position: fixed;
-    top: 70px;
-    right: 0;
-    width: 280px;
-    height: calc(100vh - 70px);
-    background: var(--white);
-    flex-direction: column;
-    gap: 0;
-    padding: 20px 0;
-    box-shadow: -4px 0 32px var(--shadow2);
-    overflow-y: auto;
-    z-index: 199;
-    animation: slideInRight 0.3s ease-out;
-  }
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
-  .nav-links li {
-    border-bottom: 1px solid var(--border);
-  }
-  .nav-links > li > a {
-    display: block;
-    padding: 16px 24px;
-    font-size: 13px;
-  }
-  .nav-dropdown-menu {
-    position: static;
-    box-shadow: none;
-    border: none;
-    border-radius: 0;
-    background: var(--green4);
-    margin-top: 0;
-    padding: 0;
-    transform: none;
-    opacity: 1;
-  }
-  .nav-dropdown-menu a {
-    padding: 12px 24px 12px 40px;
-    font-size: 12px;
-  }
+.burger{display:none;font-size:26px;line-height:1;cursor:pointer;color:var(--green);user-select:none;padding:4px}
+.mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(250,253,246,.98);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:12px 0;z-index:300;flex-direction:column}
+.mobile-menu.active{display:flex}
+.mobile-menu a{padding:14px 28px;font-size:12px;font-weight:800;letter-spacing:1.2px;color:var(--mid);text-decoration:none;border-bottom:1px solid rgba(216,234,200,.5);transition:background .2s,color .2s}
+.mobile-menu a:hover{background:var(--green4);color:var(--green)}
+@media(max-width:968px){
+  .nav-links{display:none}
+  .burger{display:block}
 }
 
 .itabs{display:flex;gap:6px;margin-bottom:24px}
@@ -1448,41 +1360,28 @@ footer{
 <nav id="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">IQ BARAKAH</a>
-    
-    <!-- Hamburger menu button (mobile) -->
-    <div class="nav-hamburger" id="nav-hamburger">
-      <span></span>
-      <span></span>
-      <span></span>
-    </div>
-    
-    <div class="nav-actions">
-      <a href="#tariffs" class="nav-cta" data-i18n="nav.cta">Начать путь</a>
+
+    <div class="nav-links" id="nav-links">
+      <a href="index.html">ВАКТ</a>
+      <a href="iq-barakah.html">IQ BARAKAH</a>
+      <a href="jamat.html">ДЖАМААТ</a>
+      <a href="premium.html">ЛИДЕР УММЫ</a>
+      <a href="ecosystem.html">ЭКОСИСТЕМА</a>
     </div>
 
-    <ul class="nav-links" id="nav-links">
-      <li><a href="index.html" data-i18n="nav.entry">Вход</a></li>
-      <li><a href="#program" data-i18n="nav.program">Программа</a></li>
-      <li><a href="#how" data-i18n="nav.how">Как устроена программа</a></li>
-      <li><a href="#levels" data-i18n="nav.diag">Диагностика</a></li>
-      <li><a href="#ship-section" data-i18n="nav.ship">⚓ Корабль Бараката</a></li>
-      <li><a href="#tariffs" data-i18n="nav.tariffs">Тарифы</a></li>
-      <li><a href="premium.html" data-i18n="nav.leader">Лидер Уммы</a></li>
-      <li><a href="#founder" data-i18n="nav.founder">Об основателе</a></li>
-      <li><a href="#faq" data-i18n="nav.faq">FAQ</a></li>
-      <li><a href="#impact" data-i18n="nav.impact">Масштаб</a></li>
-      <li class="nav-dropdown">
-        <a href="javascript:void(0)" class="nav-dropdown-toggle" id="dropdown-toggle" data-i18n="nav.docs">Документы ▾</a>
-        <ul class="nav-dropdown-menu">
-          <li><a href="oferta.html">Публичная оферта</a></li>
-          <li><a href="privacy-policy.html">Политика конфиденциальности</a></li>
-          <li><a href="terms.html">Пользовательское соглашение</a></li>
-          <li><a href="contacts.html">Контакты и реквизиты</a></li>
-        </ul>
-      </li>
-    </ul>
+    <div class="nav-actions">
+      <div class="burger" id="nav-burger" onclick="toggleEcoMenu()">☰</div>
+      <a href="#tariffs" class="nav-cta" data-i18n="nav.cta">Начать путь</a>
+    </div>
   </div>
 </nav>
+<div class="mobile-menu" id="eco-mobile-menu">
+  <a href="index.html">ВАКТ</a>
+  <a href="iq-barakah.html">IQ BARAKAH</a>
+  <a href="jamat.html">ДЖАМААТ</a>
+  <a href="premium.html">ЛИДЕР УММЫ</a>
+  <a href="ecosystem.html">ЭКОСИСТЕМА</a>
+</div>
 
 <a href="#tariffs" class="mobile-sticky-cta">Начать с ВАКТ - 1 500 ₽</a>
 
@@ -3316,37 +3215,19 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Hamburger menu
-  const hamburger = document.getElementById('nav-hamburger');
-  const navLinks = document.getElementById('nav-links');
-  
-  if (hamburger && navLinks) {
-    hamburger.addEventListener('click', function(e) {
-      e.stopPropagation();
-      hamburger.classList.toggle('active');
-      navLinks.classList.toggle('active');
-    });
-    
-    // Закрываем мобильное меню при клике на ссылку
-    const allNavLinks = navLinks.querySelectorAll('a');
-    allNavLinks.forEach(link => {
-      link.addEventListener('click', function() {
-        if (window.innerWidth <= 968) {
-          hamburger.classList.remove('active');
-          navLinks.classList.remove('active');
-        }
-      });
-    });
-    
-    // Закрываем при клике вне меню
-    document.addEventListener('click', function(e) {
-      if (!hamburger.contains(e.target) && !navLinks.contains(e.target)) {
-        hamburger.classList.remove('active');
-        navLinks.classList.remove('active');
-      }
-    });
-  }
+  // Закрываем мобильное меню при клике вне
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('eco-mobile-menu');
+    var burger = document.getElementById('nav-burger');
+    if (menu && burger && !burger.contains(e.target) && !menu.contains(e.target)) {
+      menu.classList.remove('active');
+    }
+  });
 });
+
+function toggleEcoMenu() {
+  document.getElementById('eco-mobile-menu').classList.toggle('active');
+}
 </script>
 
 <!-- ДОКУМЕНТЫ — БОКОВАЯ ПАНЕЛЬ -->
