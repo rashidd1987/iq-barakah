@@ -15,6 +15,7 @@ from bot_v2.handlers import setup_routers
 from bot_v2.middlewares import DbSessionMiddleware
 from bot_v2.services.jarwas import setup_jarwas
 from bot_v2.services.insights import setup_insights
+from bot_v2.services.yookassa_svc import setup_yookassa
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -47,6 +48,9 @@ async def main():
     # AI services
     setup_jarwas(config.anthropic_api_key)
     setup_insights(config.anthropic_api_key)
+
+    # Payments
+    setup_yookassa(config.yookassa_shop_id, config.yookassa_secret_key)
 
     # Bot & Dispatcher
     bot = Bot(
