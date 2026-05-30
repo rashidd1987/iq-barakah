@@ -92,29 +92,21 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     lesson = lessons[week_idx]
     title = lesson["title"]
 
-    # Текст: для ВАКТ — по уровню участника
+    # Уровень навыка участника (I / II / III) — общий для всех программ
+    skill_level = participant.vakt_level or "I"
+
+    # Текст урока по уровню навыка
     raw_text = lesson["text"]
     if isinstance(raw_text, dict):
-        vakt_level = participant.vakt_level or "А"
-        text_body = raw_text.get(vakt_level, raw_text.get("А", ""))
+        text_body = raw_text.get(skill_level, raw_text.get("I", ""))
     else:
         text_body = raw_text.replace("{name}", name)
 
-    # Задания
+    # Задания по уровню навыка
     raw_tasks = lesson["tasks"]
     if isinstance(raw_tasks, dict):
-        if level == "А" and participant.vakt_level:
-            vakt_level = participant.vakt_level or "А"
-            level_tasks = raw_tasks.get(vakt_level, [])
-            tasks = "\n".join(f"  {t_}" for t_ in level_tasks)
-        else:
-            labels = {"А": "🌱 Уровень А", "Б": "📗 Уровень Б", "В": "📘 Уровень В"}
-            parts = []
-            for key, label in labels.items():
-                lvl_tasks = raw_tasks.get(key, [])
-                if lvl_tasks:
-                    parts.append(f"*{label}:*\n" + "\n".join(f"  {t_}" for t_ in lvl_tasks))
-            tasks = "\n\n".join(parts)
+        level_tasks = raw_tasks.get(skill_level, raw_tasks.get("I", []))
+        tasks = "\n".join(f"  {t_}" for t_ in level_tasks)
     else:
         tasks = "\n".join(f"  {t_}" for t_ in raw_tasks)
 

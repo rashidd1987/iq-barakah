@@ -1,5 +1,17 @@
 """Контент уроков программы IQ Barakah."""
+from .content_vakt import VAKT
+from .content_s1 import SEASON1
+from .content_s2 import SEASON2
+from .content_s3 import SEASON3
+
 PROGRAM = {
+    "А": VAKT,    # ВАКТ (6 недель)
+    "Б": SEASON1, # Сезон 1 — Основание (8 недель)
+    "В": SEASON2, # Сезон 2 — Углубление (8 недель)
+    "Г": SEASON3, # Сезон 3 — Зрелость (8 недель)
+}
+
+_PROGRAM_OLD = {
     # ── УРОВЕНЬ А: ВАКТ (6 недель) ───────────────────────────────
     "А": [
         {
