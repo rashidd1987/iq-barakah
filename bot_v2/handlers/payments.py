@@ -112,9 +112,10 @@ async def _send_invoice(
     tariff_view = get_tariff_view(tariff_id, lang) or tariff
 
     # ЮKassa LIVE требует данные чека (ФЗ-54): email и состав заказа
+    # vat_code 1 = «без НДС» — для ИП/ООО на УСН (не плательщиков НДС)
     provider_data = json.dumps({
         "receipt": {
-            "customer": {"email": email or "noreply@iqbarakah.ru"},
+            "email": email or "noreply@iqbarakah.ru",
             "items": [{
                 "description": tariff_view["name"][:128],
                 "quantity": "1.00",
@@ -122,7 +123,7 @@ async def _send_invoice(
                     "value": f"{tariff['price']:.2f}",
                     "currency": "RUB",
                 },
-                "vat_code": 6,          # без НДС (УСН)
+                "vat_code": 1,
                 "payment_mode": "full_prepayment",
                 "payment_subject": "service",
             }],
