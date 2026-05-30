@@ -98,7 +98,7 @@ async def main():
     # Еженедельный урок: воскресенье 09:00 UTC
     scheduler.add_job(
         _job_weekly_lesson, CronTrigger(day_of_week="sun", hour=9, minute=0),
-        args=[bot], id="weekly_lesson",
+        args=[bot, config], id="weekly_lesson",
     )
 
     scheduler.start()
@@ -111,14 +111,13 @@ async def main():
         scheduler.shutdown()
 
 
-async def _job_weekly_lesson(bot: Bot):
+async def _job_weekly_lesson(bot: Bot, config):
     """Воскресенье 09:00 UTC — рассылка урока всем активным участникам."""
     from bot_v2.db.engine import get_session_factory
     from bot_v2.db.models import Participant, User
     from bot_v2.handlers.program import send_weekly_lesson
     from sqlalchemy import select
 
-    config = load_config()
     async with get_session_factory()() as session:
         async with session.begin():
             result = await session.execute(
