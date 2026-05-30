@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Джамаат — IQ Barakah · Среда удержания · Малая группа</title>
+<meta name="description" content="Джамаат — IQ Barakah в малой группе с куратором. 4 недели — 50 000 ₽, сезон — 100 000 ₽, полная программа — 300 000 ₽.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://iq-barakah.ru/jamat.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Mulish:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:#E8C97A;--gold3:#F5DFA0;--gold4:rgba(201,168,76,.12);
+  --dark:#070B04;--dark2:#0D1A12;
+  --green:#1A3D08;--green2:#2A5C10;--green3:#3B7A18;
+  --teal:#1A3D35;--teal2:#2A6B5C;--teal3:#3D9B84;--teal4:rgba(61,155,132,.12);
+  --text:#F8F4E8;--muted:rgba(255,255,255,.58);--muted2:rgba(255,255,255,.35);
+  --line:rgba(201,168,76,.2);--line2:rgba(201,168,76,.1);
+  --lineteal:rgba(61,155,132,.25);--lineteal2:rgba(61,155,132,.12);
+  --panel:rgba(255,255,255,.05);--panel2:rgba(255,255,255,.08);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Mulish',sans-serif;background:var(--dark);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(61,155,132,.12),transparent 45%),
+    radial-gradient(ellipse at 90% 55%,rgba(201,168,76,.08),transparent 44%),
+    radial-gradient(ellipse at 40% 100%,rgba(26,61,8,.15),transparent 50%);
+}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,11,4,.82);backdrop-filter:blur(18px);border-bottom:1px solid var(--line2)}
+.nav{max-width:1040px;margin:0 auto;padding:0 28px;height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:relative;z-index:1}
+.logo{font-family:'Cormorant Garamond',serif;font-size:21px;letter-spacing:3px;color:var(--gold2);text-decoration:none;font-weight:700}
+.nav-links{display:flex;align-items:center;gap:6px}
+.nav-links a{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;border:1px solid rgba(201,168,76,.15);font-size:11.5px;font-weight:800;color:var(--muted);text-decoration:none;letter-spacing:.5px;transition:.2s}
+.nav-links a:hover,.nav-links a.active{background:var(--gold4);border-color:var(--line);color:var(--gold2)}
+.nav-cta{padding:11px 22px;border-radius:999px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12!important;font-weight:900;font-size:12px;text-decoration:none;letter-spacing:.5px;border:none!important;box-shadow:0 8px 28px rgba(201,168,76,.25)}
+.burger{display:none;font-size:26px;cursor:pointer;color:var(--gold2);background:none;border:none;padding:4px}
+.mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(7,11,4,.97);border-top:1px solid var(--line2);padding:12px 0 18px;z-index:200;backdrop-filter:blur(20px)}
+.mobile-menu a{display:block;padding:15px 28px;color:var(--muted);font-size:15px;font-weight:800;text-decoration:none;border-bottom:1px solid var(--line2);transition:.2s}
+.mobile-menu a:last-child{border-bottom:none;margin-top:8px;color:var(--gold2)}
+.mobile-menu a:hover{color:var(--gold2);background:var(--gold4)}
+
+/* ── WRAP ── */
+.wrap{max-width:1040px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+/* ── HERO ── */
+.hero{min-height:100svh;padding:130px 0 80px;display:flex;align-items:center;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;left:-180px;bottom:-100px;width:500px;height:500px;border-radius:50%;border:1px solid rgba(61,155,132,.08);background:radial-gradient(circle,rgba(61,155,132,.06),transparent 65%);pointer-events:none}
+.hero-grid{display:grid;grid-template-columns:1fr .85fr;gap:54px;align-items:center}
+.eyebrow-tag{display:inline-flex;align-items:center;gap:10px;padding:8px 20px;border-radius:999px;background:var(--teal4);border:1px solid var(--lineteal);font-size:10px;font-weight:900;letter-spacing:3px;color:var(--teal3);margin-bottom:28px;text-transform:uppercase}
+.eyebrow-tag::before{content:"🤝";font-size:13px}
+h1{font-family:'Cormorant Garamond',serif;font-size:clamp(48px,7vw,88px);line-height:.97;font-weight:700;margin-bottom:24px;letter-spacing:-.5px}
+h1 span{display:block}
+h1 em{display:block;color:var(--teal3);font-weight:300;font-style:italic}
+.hero-divider{width:52px;height:2px;background:linear-gradient(90deg,transparent,var(--teal3),transparent);border-radius:2px;margin:0 0 24px}
+.hero-lead{font-size:19px;line-height:1.75;color:var(--muted);max-width:520px;margin-bottom:34px;font-weight:300}
+.hero-btns{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:36px}
+.btn-teal{display:inline-flex;align-items:center;justify-content:center;padding:17px 34px;border-radius:999px;background:linear-gradient(135deg,var(--teal2),var(--teal3));color:#fff;font-size:14px;font-weight:900;text-decoration:none;box-shadow:0 14px 40px rgba(61,155,132,.25);transition:.2s;letter-spacing:.3px}
+.btn-teal:hover{transform:translateY(-2px);box-shadow:0 18px 50px rgba(61,155,132,.35)}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;padding:16px 28px;border-radius:999px;border:1px solid var(--lineteal);color:var(--teal3);font-size:14px;font-weight:800;text-decoration:none;transition:.2s}
+.btn-ghost:hover{background:var(--teal4);border-color:var(--teal3)}
+.hero-note{font-size:12px;color:var(--muted2);font-weight:600;display:flex;align-items:center;gap:6px}
+.hero-note::before{content:"🌿"}
+
+/* HERO PANEL */
+.hero-panel{border:1px solid var(--lineteal);border-radius:28px;background:linear-gradient(160deg,rgba(61,155,132,.1),rgba(255,255,255,.03));padding:32px;box-shadow:0 18px 70px rgba(0,0,0,.28)}
+.panel-eyebrow{font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;color:var(--teal3);margin-bottom:16px}
+.panel-price{font-family:'Cormorant Garamond',serif;font-size:52px;color:var(--gold2);line-height:1;margin-bottom:4px}
+.panel-per{font-size:12px;color:var(--muted);margin-bottom:22px}
+.panel-features{display:grid;gap:9px}
+.feat{padding:12px 16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);font-size:13px;line-height:1.5;color:rgba(255,255,255,.72);display:flex;align-items:flex-start;gap:10px}
+.feat-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* ── SECTIONS ── */
+section{padding:80px 0;position:relative}
+.section-eyebrow{font-size:10px;font-weight:900;letter-spacing:3.5px;color:var(--teal3);text-align:center;margin-bottom:14px;text-transform:uppercase}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,5vw,60px);line-height:1.04;text-align:center;margin-bottom:16px}
+.section-title em{color:var(--gold2);font-weight:300;font-style:italic}
+.section-sub{max-width:620px;margin:0 auto 50px;text-align:center;font-size:16px;line-height:1.8;color:var(--muted);font-weight:300}
+
+/* ── COMPARISON ── */
+.compare-wrap{max-width:860px;margin:0 auto;overflow-x:auto}
+.compare-table{width:100%;border-collapse:separate;border-spacing:0}
+.compare-table th{padding:16px 20px;font-size:11px;font-weight:900;letter-spacing:2px;text-transform:uppercase;background:var(--panel);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)}
+.compare-table th:first-child{text-align:left;color:var(--muted);border-left:1px solid var(--line2);border-radius:12px 0 0 0}
+.compare-table th:nth-child(2){color:var(--muted);border-right:1px solid var(--line2)}
+.compare-table th:last-child{color:var(--teal3);border:1px solid var(--lineteal);background:var(--teal4);border-radius:0 12px 0 0}
+.compare-table td{padding:14px 20px;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.05)}
+.compare-table td:first-child{color:var(--muted);border-left:1px solid rgba(255,255,255,.05)}
+.compare-table td:nth-child(2){text-align:center;color:var(--muted2);border-right:1px solid rgba(255,255,255,.05)}
+.compare-table td:last-child{text-align:center;border-right:1px solid var(--lineteal2);background:rgba(61,155,132,.04)}
+.check-yes{color:var(--teal3);font-weight:900;font-size:16px}
+.check-no{color:var(--muted2);font-size:16px}
+.check-plus{color:var(--gold2);font-weight:800;font-size:12px;letter-spacing:.5px}
+.compare-table tr:last-child td:first-child{border-radius:0 0 0 12px}
+.compare-table tr:last-child td:last-child{border-radius:0 0 12px 0;border-bottom:1px solid var(--lineteal)}
+
+/* ── WHAT YOU GET ── */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feature-card{padding:28px 22px;border-radius:22px;border:1px solid var(--line2);background:var(--panel);transition:.3s}
+.feature-card:hover{border-color:var(--lineteal);transform:translateY(-2px);background:var(--panel2)}
+.feature-card.highlight{border-color:var(--lineteal);background:linear-gradient(160deg,var(--teal4),var(--panel))}
+.feat-num{font-family:'Cormorant Garamond',serif;font-size:42px;color:rgba(61,155,132,.3);line-height:1;margin-bottom:12px;font-weight:700}
+.feat-title{font-size:15px;font-weight:800;color:var(--gold2);margin-bottom:8px}
+.feat-desc{font-size:13px;line-height:1.7;color:var(--muted);font-weight:300}
+.feat-tag{display:inline-block;margin-top:12px;padding:4px 12px;border-radius:999px;background:var(--teal4);border:1px solid var(--lineteal);font-size:10px;font-weight:900;letter-spacing:1.5px;color:var(--teal3);text-transform:uppercase}
+
+/* ── SHIP SECTION ── */
+.ship-bg{background:linear-gradient(180deg,transparent,rgba(61,155,132,.08),transparent)}
+.ship-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:860px;margin:0 auto}
+.ship-card{padding:28px;border-radius:24px;border:1px solid var(--lineteal);background:linear-gradient(160deg,var(--teal4),var(--panel));position:relative;overflow:hidden}
+.ship-card::after{content:"";position:absolute;right:-40px;bottom:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(61,155,132,.12),transparent 65%)}
+.ship-type{font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;color:var(--teal3);margin-bottom:12px}
+.ship-name{font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--text);margin-bottom:12px;line-height:1.1}
+.ship-desc{font-size:13px;line-height:1.7;color:var(--muted);font-weight:300;margin-bottom:16px}
+.ship-sectors{display:flex;flex-wrap:wrap;gap:6px}
+.sector{padding:5px 11px;border-radius:999px;background:rgba(61,155,132,.1);border:1px solid rgba(61,155,132,.2);font-size:11px;font-weight:700;color:rgba(255,255,255,.65)}
+
+/* ── GROUP ── */
+.group-visual{max-width:760px;margin:0 auto}
+.group-row{display:flex;align-items:center;gap:18px;margin-bottom:22px;padding:22px;border-radius:20px;border:1px solid var(--line2);background:var(--panel)}
+.group-icon{width:52px;height:52px;border-radius:16px;background:var(--teal4);border:1px solid var(--lineteal);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.group-text h4{font-size:15px;font-weight:800;color:var(--gold2);margin-bottom:5px}
+.group-text p{font-size:13px;line-height:1.6;color:var(--muted);font-weight:300}
+.group-limit{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:rgba(201,168,76,.1);border:1px solid var(--line);font-size:11px;font-weight:800;color:var(--gold2);margin-top:8px}
+
+/* ── JARVAS PRO ── */
+.jarvas-wrap{max-width:760px;margin:0 auto}
+.jarvas-card{padding:36px;border-radius:28px;border:1px solid var(--lineteal);background:linear-gradient(135deg,rgba(61,155,132,.1),rgba(255,255,255,.03));position:relative;overflow:hidden}
+.jarvas-card::before{content:"🤖";position:absolute;right:32px;top:28px;font-size:64px;opacity:.15}
+.jarvas-label{font-size:10px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:var(--teal3);margin-bottom:14px}
+.jarvas-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4vw,44px);margin-bottom:14px;line-height:1.1}
+.jarvas-title em{color:var(--gold2);font-style:italic;font-weight:300}
+.jarvas-desc{font-size:15px;line-height:1.75;color:var(--muted);font-weight:300;margin-bottom:26px;max-width:580px}
+.jarvas-features{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.jfeat{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);font-size:13px;line-height:1.5;color:rgba(255,255,255,.7);display:flex;gap:10px}
+.jfeat-dot{width:6px;height:6px;border-radius:50%;background:var(--teal3);flex-shrink:0;margin-top:5px}
+
+/* ── PRICING ── */
+.pricing-bg{background:linear-gradient(180deg,transparent,rgba(26,61,8,.1),transparent)}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1000px;margin:0 auto 28px}
+@media(max-width:780px){.pricing-grid{grid-template-columns:1fr}}
+.price-card{padding:32px 26px;border-radius:24px;border:1px solid var(--line2);background:var(--panel);text-align:center;transition:.3s;position:relative}
+.price-card:hover{border-color:var(--lineteal);transform:translateY(-3px)}
+.price-card.featured{border-color:var(--lineteal);background:linear-gradient(160deg,var(--teal4),rgba(255,255,255,.04));box-shadow:0 24px 60px rgba(61,155,132,.1)}
+.price-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--teal2),var(--teal3));color:#fff;font-size:10px;font-weight:900;letter-spacing:1.5px;padding:4px 16px;border-radius:999px;white-space:nowrap}
+.price-label{font-size:10px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.price-amount{font-family:'Cormorant Garamond',serif;font-size:48px;color:var(--gold2);line-height:1;margin-bottom:4px}
+.price-period{font-size:12px;color:var(--muted);margin-bottom:20px}
+.price-desc{font-size:13px;line-height:1.65;color:rgba(255,255,255,.6);font-weight:300;margin-bottom:26px}
+.price-btn{display:block;padding:14px;border-radius:999px;color:#fff;font-size:13px;font-weight:900;text-decoration:none;transition:.2s;background:linear-gradient(135deg,var(--teal2),var(--teal3))}
+.price-btn:hover{opacity:.9;transform:translateY(-1px)}
+.price-card:not(.featured) .price-btn{background:transparent;border:1px solid var(--lineteal);color:var(--teal3)}
+.price-card:not(.featured) .price-btn:hover{background:var(--teal4)}
+.sadaka-note{max-width:560px;margin:0 auto;text-align:center;padding:18px 24px;border-radius:18px;background:rgba(109,191,138,.08);border:1px solid rgba(109,191,138,.2);font-size:14px;line-height:1.65;color:rgba(255,255,255,.68)}
+.sadaka-note strong{color:#6DBF8A}
+
+/* ── HADITH ── */
+.hadith-section{text-align:center;padding:60px 0;background:linear-gradient(180deg,transparent,rgba(61,155,132,.05),transparent)}
+.hadith-quote{font-family:'Cormorant Garamond',serif;font-size:clamp(24px,3.5vw,44px);line-height:1.35;color:var(--gold2);font-style:italic;max-width:760px;margin:0 auto 20px}
+.hadith-source{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--teal3);text-transform:uppercase}
+
+/* ── IQ BRIDGE ── */
+.iq-bridge{background:linear-gradient(135deg,rgba(201,168,76,.08),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:28px;padding:40px;max-width:760px;margin:0 auto;text-align:center}
+.iq-bridge .eyebrow{font-size:10px;font-weight:900;letter-spacing:3px;color:var(--gold2);text-transform:uppercase;margin-bottom:14px}
+.iq-bridge h3{font-family:'Cormorant Garamond',serif;font-size:clamp(24px,3.5vw,40px);line-height:1.2;margin-bottom:12px}
+.iq-bridge p{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:26px;font-weight:300}
+.iq-bridge-btns{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+.btn-gold{display:inline-flex;align-items:center;justify-content:center;padding:15px 30px;border-radius:999px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;font-size:13px;font-weight:900;text-decoration:none;transition:.2s}
+.btn-gold:hover{transform:translateY(-2px)}
+.btn-ghost-gold{display:inline-flex;align-items:center;justify-content:center;padding:14px 26px;border-radius:999px;border:1px solid var(--line);color:var(--gold2);font-size:13px;font-weight:800;text-decoration:none;transition:.2s}
+.btn-ghost-gold:hover{background:var(--gold4)}
+
+/* ── FOOTER ── */
+footer{padding:36px 0;border-top:1px solid var(--line2)}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.foot-links{display:flex;gap:18px}
+.foot-links a{font-size:12px;color:var(--muted);text-decoration:none;transition:.2s}
+.foot-links a:hover{color:var(--gold2)}
+.foot-copy{font-size:12px;color:var(--muted2)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:820px){
+  .wrap{padding:0 18px}
+  .nav-links{display:none}
+  .burger{display:block}
+  .hero{padding:110px 0 60px}
+  .hero-grid{grid-template-columns:1fr}
+  .features-grid{grid-template-columns:1fr 1fr}
+  .ship-grid{grid-template-columns:1fr}
+  .jarvas-features{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .compare-wrap{overflow-x:auto}
+  .compare-table{min-width:500px}
+  section{padding:58px 0}
+  .foot{flex-direction:column;text-align:center;gap:12px}
+  .foot-links{flex-wrap:wrap;justify-content:center}
+}
+@media(max-width:560px){
+  h1{font-size:44px}
+  .features-grid{grid-template-columns:1fr}
+  .hero-btns{flex-direction:column}
+  .hero-btns a{width:100%;text-align:center}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav">
+    <a class="logo" href="index.html">IQ BARAKAH</a>
+    <div class="nav-links">
+      <a href="index.html">ВАКТ</a>
+      <a href="iq-barakah.html">IQ BARAKAH</a>
+      <a href="jamat.html" class="active">ДЖАМААТ</a>
+      <a href="premium.html">ЛИДЕР УММЫ</a>
+      <a href="ecosystem.html">ЭКОСИСТЕМА</a>
+    </div>
+    <a class="nav-cta" href="https://t.me/iqbarakah_bot" target="_blank">Записаться</a>
+    <button class="burger" onclick="toggleMenu()" aria-label="Меню">☰</button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="index.html">ВАКТ — 6 недель</a>
+    <a href="iq-barakah.html">IQ BARAKAH — 3 сезона</a>
+    <a href="jamat.html">ДЖАМААТ — малая группа</a>
+    <a href="premium.html">Лидер Уммы</a>
+    <a href="ecosystem.html">Экосистема</a>
+    <a href="https://t.me/iqbarakah_bot" target="_blank">→ Записаться</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow-tag">Джамаат · Среда удержания</div>
+        <h1>
+          <span>В одиночку</span>
+          <span>тяжело.</span>
+          <em>В Джамаате — иначе.</em>
+        </h1>
+        <div class="hero-divider"></div>
+        <p class="hero-lead">IQ Barakah в малой группе с живым куратором. Тебя видят, знают и не дают потеряться. До 12 человек — один путь, один ритм, один Джамаат.</p>
+        <div class="hero-btns">
+          <a class="btn-teal" href="https://t.me/iqbarakah_bot" target="_blank">Записаться в Джамаат</a>
+          <a class="btn-ghost" href="#what-you-get">Что входит</a>
+        </div>
+        <div class="hero-note">20% с каждой оплаты идут на благотворительность</div>
+      </div>
+      <div class="hero-panel">
+        <div class="panel-eyebrow">Джамаат · Формат</div>
+        <div class="panel-price">50 000 ₽</div>
+        <div class="panel-per">4 недели · сезон 100 000 ₽ · полная 300 000 ₽</div>
+        <div class="panel-features">
+          <div class="feat"><span class="feat-icon">✅</span>Всё что в IQ Barakah — 3 сезона, 24 недели</div>
+          <div class="feat"><span class="feat-icon">👥</span>Малая группа до 12 человек — один ритм</div>
+          <div class="feat"><span class="feat-icon">🧭</span>Живой куратор — еженедельная обратная связь</div>
+          <div class="feat"><span class="feat-icon">🤖</span>Джарвас Pro — персональный ИИ-наставник</div>
+          <div class="feat"><span class="feat-icon">⚓</span>Разбор Корабля Бараката при входе и выходе</div>
+          <div class="feat"><span class="feat-icon">🤝</span>Якорные пары и коллективная миссия</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HADITH -->
+<section class="hadith-section">
+  <div class="wrap">
+    <div class="hadith-quote">«Рука Аллаха — с Джамаатом. Кто обособился — обособился в Огонь»</div>
+    <div class="hadith-source">Сунан ат-Тирмизи №2167 · хадис хороший</div>
+  </div>
+</section>
+
+<!-- WHAT YOU GET -->
+<section id="what-you-get">
+  <div class="wrap">
+    <div class="section-eyebrow">Что входит в Джамаат</div>
+    <h2 class="section-title">Среда, которая <em>держит курс.</em></h2>
+    <p class="section-sub">Джамаат — это не просто группа. Это специально выстроенная среда удержания, где каждый элемент работает на твой рост.</p>
+    <div class="features-grid">
+
+      <div class="feature-card highlight">
+        <div class="feat-num">01</div>
+        <div class="feat-title">Малая группа до 12</div>
+        <p class="feat-desc">Тебя знают по имени, по ситуации, по пробоине. Невозможно стать невидимым. Куратор работает с каждым лично.</p>
+        <div class="feat-tag">Ядро формата</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">02</div>
+        <div class="feat-title">Живой куратор</div>
+        <p class="feat-desc">Еженедельная обратная связь от куратора. Разборы, вопросы, точечная поддержка — не общий чат, а личное внимание.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">03</div>
+        <div class="feat-title">Джарвас Pro</div>
+        <p class="feat-desc">Персональный ИИ-наставник знает твои пробоины, уровень и историю. Даёт точечную обратную связь, а не общие слова.</p>
+        <div class="feat-tag">Только в Джамаате</div>
+      </div>
+
+      <div class="feature-card highlight">
+        <div class="feat-num">04</div>
+        <div class="feat-title">Корабль Бараката ×2</div>
+        <p class="feat-desc">Полный разбор при входе и по завершении программы. Личная жизнь + бизнес — все 15 отсеков. Видишь точку старта и точку роста.</p>
+        <div class="feat-tag">Только в Джамаате</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">05</div>
+        <div class="feat-title">Якорные пары</div>
+        <p class="feat-desc">Пара по подотчётности внутри группы. Ты держишь слово не только перед собой — но перед братом, который идёт рядом.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">06</div>
+        <div class="feat-title">Коллективная миссия</div>
+        <p class="feat-desc">Одна общая садака или проект на весь Джамаат. Братство через совместное действие, а не только через разговоры.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">07</div>
+        <div class="feat-title">Закрытый чат Джамаата</div>
+        <p class="feat-desc">Только участники твоей группы. Не общий поток — своя атмосфера, свой ритм, свои люди.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">08</div>
+        <div class="feat-title">Квартальный итог</div>
+        <p class="feat-desc">В конце каждого сезона — групповой разбор: что изменилось на Корабле Бараката vs точка входа. Рост становится видимым.</p>
+        <div class="feat-tag">Только в Джамаате</div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feat-num">09</div>
+        <div class="feat-title">Приоритет на Лидер Уммы</div>
+        <p class="feat-desc">Выпускники Джамаата получают приоритетный доступ при переходе на уровень личного сопровождения.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- JARVAS PRO -->
+<section>
+  <div class="wrap">
+    <div class="jarvas-wrap">
+      <div class="jarvas-card">
+        <div class="jarvas-label">Только в Джамаате</div>
+        <div class="jarvas-title">Джарвас Pro — <em>твой личный наставник</em></div>
+        <p class="jarvas-desc">В обычном IQ Barakah Джарвас отвечает на вопросы. В Джамаате он знает тебя: твой уровень I/II/III, твои пробоины из диагностики Корабля, твою историю недель. Это не чат-бот — это точечная поддержка, настроенная под тебя.</p>
+        <div class="jarvas-features">
+          <div class="jfeat"><div class="jfeat-dot"></div>Знает твои пробоины из Корабля Бараката</div>
+          <div class="jfeat"><div class="jfeat-dot"></div>Адаптирует задания под уровень I/II/III</div>
+          <div class="jfeat"><div class="jfeat-dot"></div>Помнит историю твоих недель</div>
+          <div class="jfeat"><div class="jfeat-dot"></div>Точечная обратная связь, не общие слова</div>
+          <div class="jfeat"><div class="jfeat-dot"></div>Возвращает в путь после срыва</div>
+          <div class="jfeat"><div class="jfeat-dot"></div>Работает вместе с живым куратором</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHIP SECTION -->
+<section class="ship-bg">
+  <div class="wrap">
+    <div class="section-eyebrow">Диагностика при входе</div>
+    <h2 class="section-title">Корабль Бараката — <em>карта пробоин.</em></h2>
+    <p class="section-sub">При входе в Джамаат — полный разбор твоей жизни и дела. Куратор видит карту каждого участника и работает точечно.</p>
+    <div class="ship-grid">
+      <div class="ship-card">
+        <div class="ship-type">🌙 Личная жизнь</div>
+        <div class="ship-name">Корабль Личного</div>
+        <p class="ship-desc">Полный разбор 8 сфер жизни: где утекает сила, где пробоина, где первый шаг.</p>
+        <div class="ship-sectors">
+          <span class="sector">Иман</span>
+          <span class="sector">Здоровье</span>
+          <span class="sector">Семья</span>
+          <span class="sector">Время</span>
+          <span class="sector">Эмоции</span>
+          <span class="sector">Финансы</span>
+          <span class="sector">Служение</span>
+        </div>
+      </div>
+      <div class="ship-card">
+        <div class="ship-type">⚓ Бизнес</div>
+        <div class="ship-name">Корабль Бизнеса</div>
+        <p class="ship-desc">Разбор 7 отсеков дела: где тормоз, где хаос, где ближайшая точка роста.</p>
+        <div class="ship-sectors">
+          <span class="sector">Стратегия</span>
+          <span class="sector">Продажи</span>
+          <span class="sector">Команда</span>
+          <span class="sector">Финансы</span>
+          <span class="sector">Сервис</span>
+          <span class="sector">Система</span>
+          <span class="sector">Лидерство</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section>
+  <div class="wrap">
+    <div class="section-eyebrow">Сравнение форматов</div>
+    <h2 class="section-title">IQ Barakah vs <em>Джамаат</em></h2>
+    <p class="section-sub">Оба формата ведут по одной программе. Разница — в глубине среды и уровне поддержки.</p>
+    <div class="compare-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Что входит</th>
+            <th>IQ Barakah</th>
+            <th>Джамаат</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>3 сезона · 24 недели программы</td><td><span class="check-yes">✓</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Пятничный созвон 14:00</td><td><span class="check-yes">✓</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Джарвас (базовый бот)</td><td><span class="check-yes">✓</span></td><td><span class="check-plus">Pro</span></td></tr>
+          <tr><td>Якорный брат</td><td><span class="check-yes">✓</span></td><td><span class="check-plus">Усиленный</span></td></tr>
+          <tr><td>3 сертификата за сезоны</td><td><span class="check-yes">✓</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Малая группа до 12 человек</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Живой куратор</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Джарвас Pro (персональный)</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Разбор Корабля Бараката (вход + выход)</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Квартальный итог сезона</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Коллективная миссия группы</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Закрытый чат Джамаата</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+          <tr><td>Приоритет на Лидер Уммы</td><td><span class="check-no">—</span></td><td><span class="check-yes">✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-bg">
+  <div class="wrap">
+    <div class="section-eyebrow">Стоимость</div>
+    <h2 class="section-title">Войди <em>целиком.</em></h2>
+    <p class="section-sub">Джамаат — это серьёзный формат. Он требует присутствия, подотчётности и готовности идти до конца.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-label">За 4 недели</div>
+        <div class="price-amount">50 000 ₽</div>
+        <div class="price-period">1 месяц · малая группа</div>
+        <p class="price-desc">Полный формат Джамаата с доступом ко всем инструментам и живым куратором.</p>
+        <a class="price-btn" href="https://t.me/iqbarakah_bot" target="_blank">Записаться</a>
+      </div>
+      <div class="price-card featured">
+        <div class="price-badge">⭐ ПОПУЛЯРНО</div>
+        <div class="price-label">За сезон</div>
+        <div class="price-amount">100 000 ₽</div>
+        <div class="price-period">8 недель · экономия 50%</div>
+        <p class="price-desc">Один полный сезон Джамаата. Глубина, подотчётность и сдвиг за 2 месяца.</p>
+        <a class="price-btn" href="https://t.me/iqbarakah_bot" target="_blank">Записаться на сезон</a>
+      </div>
+      <div class="price-card">
+        <div class="price-badge" style="background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12">🏆 ПОЛНЫЙ ПУТЬ</div>
+        <div class="price-label">Полная программа</div>
+        <div class="price-amount">300 000 ₽</div>
+        <div class="price-period">24 недели · 3 сезона целиком</div>
+        <p class="price-desc">Максимальная вовлечённость. Весь путь Джамаата от входа до наследия.</p>
+        <a class="price-btn" href="https://t.me/iqbarakah_bot" target="_blank">Начать весь путь</a>
+      </div>
+    </div>
+    <div class="sadaka-note">
+      🌿 <strong>20% с каждой оплаты</strong> идут на благотворительность. Твой шаг в Джамаате — это и твоя садака джария.
+    </div>
+  </div>
+</section>
+
+<!-- IQ BRIDGE -->
+<section>
+  <div class="wrap">
+    <div class="iq-bridge">
+      <div class="eyebrow">Готов к Джамаату?</div>
+      <h3>Сначала пройди <em>IQ Barakah или ВАКТ</em></h3>
+      <p>Джамаат строится на системе. Без фундамента ВАКТ и хотя бы одного сезона IQ Barakah — среда не встанет. Начни с входа, потом поднимайся.</p>
+      <div class="iq-bridge-btns">
+        <a class="btn-gold" href="iq-barakah.html">IQ Barakah — 3 сезона</a>
+        <a class="btn-ghost-gold" href="index.html#vakt">ВАКТ — 6 недель · 1 500 ₽</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a class="logo" href="index.html">IQ BARAKAH</a>
+    <div class="foot-links">
+      <a href="index.html">ВАКТ</a>
+      <a href="iq-barakah.html">IQ Barakah</a>
+      <a href="jamat.html">Джамаат</a>
+      <a href="premium.html">Лидер Уммы</a>
+      <a href="ecosystem.html">Экосистема</a>
+    </div>
+    <div class="foot-copy">IQ Barakah · Среда удержания</div>
+  </div>
+</footer>
+
+<script>
+function toggleMenu(){
+  const m=document.getElementById('mobileMenu');
+  const open=m.style.display==='block';
+  m.style.display=open?'none':'block';
+}
+document.addEventListener('click',function(e){
+  const m=document.getElementById('mobileMenu');
+  if(m.style.display==='block'&&!e.target.closest('nav')){m.style.display='none'}
+});
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',function(e){
+    const id=this.getAttribute('href').slice(1);
+    const el=document.getElementById(id);
+    if(el){e.preventDefault();el.scrollIntoView({behavior:'smooth',block:'start'})}
+  });
+});
+</script>
+</body>
+</html>
