@@ -1,4 +1,5 @@
 """Платежи — ЮKassa + Telegram Payments."""
+import json
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -109,6 +110,25 @@ async def _send_invoice(
     lang: str,
 ):
     tariff_view = get_tariff_view(tariff_id, lang) or tariff
+
+    # ЮKassa LIVE требует данные чека (ФЗ-54): email и состав заказа
+    provider_data = json.dumps({
+        "receipt": {
+            "customer": {"email": email or "noreply@iqbarakah.ru"},
+            "items": [{
+                "description": tariff_view["name"][:128],
+                "quantity": "1.00",
+                "amount": {
+                    "value": f"{tariff['price']:.2f}",
+                    "currency": "RUB",
+                },
+                "vat_code": 6,          # без НДС (УСН)
+                "payment_mode": "full_prepayment",
+                "payment_subject": "service",
+            }],
+        }
+    })
+
     await message.answer_invoice(
         title=tariff_view["name"],
         description=tariff_view["desc"],
@@ -117,7 +137,8 @@ async def _send_invoice(
         currency="RUB",
         prices=[LabeledPrice(label=tariff_view["name"], amount=tariff["price"] * 100)],
         need_email=not email,
-        send_email_to_provider=not email,
+        send_email_to_provider=True,
+        provider_data=provider_data,
     )
 
 
