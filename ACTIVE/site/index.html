@@ -312,7 +312,7 @@ footer{padding:34px 0;background:#071005;color:rgba(255,255,255,.4)}
         <div class="level-result-list" id="level-result-list"></div>
         <div class="level-path" id="level-path"></div>
         <div class="level-result-actions">
-          <a class="btn-main" id="level-cta" href="https://t.me/iqbarakah_bot" target="_blank">Начать путь</a>
+          <a class="btn-main" id="level-cta" href="https://t.me/iqbaraka_bot" target="_blank">Начать путь</a>
           <button class="level-retry" onclick="levelReset()">Пройти снова</button>
           <a class="btn-ghost" href="#ship">Корабль Бараката</a>
         </div>
@@ -394,7 +394,7 @@ footer{padding:34px 0;background:#071005;color:rgba(255,255,255,.4)}
           <li>Первый контролируемый сдвиг уже в первую неделю.</li>
         </ul>
         <div class="soft-note">300 ₽ с каждой оплаты ВАКТ идут на благотворительность.</div>
-        <a class="btn-main" href="https://t.me/iqbarakah_bot" target="_blank">Начать ВАКТ</a>
+        <a class="btn-main" href="https://t.me/iqbaraka_bot" target="_blank">Начать ВАКТ</a>
       </div>
     </div>
   </div>
@@ -480,7 +480,7 @@ footer{padding:34px 0;background:#071005;color:rgba(255,255,255,.4)}
     <h2 class="title">Если хочешь глубже — <em>есть вся экосистема</em></h2>
     <p class="sub">Сезоны, Mini App, Джамаат, благотворительность, история основателя и премиальное наставничество вынесены отдельно, чтобы первая страница не перегружала.</p>
     <div class="cta-row">
-      <a class="btn-main" href="https://t.me/iqbarakah_bot" target="_blank">Начать в Telegram</a>
+      <a class="btn-main" href="https://t.me/iqbaraka_bot" target="_blank">Начать в Telegram</a>
       <a class="btn-ghost" href="ecosystem.html">Посмотреть экосистему</a>
       <a class="btn-ghost" href="premium.html">Лидер Уммы</a>
     </div>
@@ -629,7 +629,7 @@ function showLevelResult(){
   path.style.background = result.color;
   var cta = document.getElementById('level-cta');
   cta.textContent = result.cta;
-  cta.href = key === 'c' ? 'ecosystem.html' : 'https://t.me/iqbarakah_bot';
+  cta.href = key === 'c' ? 'ecosystem.html' : 'https://t.me/iqbaraka_bot';
   if(key === 'c') cta.removeAttribute('target'); else cta.target = '_blank';
   document.getElementById('level-result').scrollIntoView({behavior:'smooth', block:'start'});
 }
