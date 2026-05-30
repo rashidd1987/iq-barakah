@@ -118,7 +118,7 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     )
 
     sep = "&" if "?" in config.miniapp_url else "?"
-    miniapp_link = f"{config.miniapp_url}{sep}{urlencode({'lvl': level, 'wk': week, 'lang': lang})}"
+    miniapp_link = f"{config.miniapp_url}{sep}{urlencode({'lvl': level, 'wk': week, 'lang': lang, 'skill': skill_level})}"
 
     media_repo = LessonMediaRepo(session)
     video = await media_repo.get(level, week, "video")

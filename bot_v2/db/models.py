@@ -176,6 +176,20 @@ class WheelRecord(Base):
     user: Mapped["User"] = relationship(back_populates="wheel_records")
 
 
+class TaskCompletion(Base):
+    """Факт выполнения отдельного задания участником."""
+    __tablename__ = "task_completions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    level: Mapped[str] = mapped_column(String(4), nullable=False)      # А / Б / В / Г
+    week: Mapped[int] = mapped_column(Integer, nullable=False)
+    task_index: Mapped[int] = mapped_column(Integer, nullable=False)   # порядковый номер задания (0-based)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "level", "week", "task_index", name="uq_task_completion"),)
+
+
 class BotSetting(Base):
     """Настройки бота (call_link, friday_guest и т.д.)."""
     __tablename__ = "bot_settings"
