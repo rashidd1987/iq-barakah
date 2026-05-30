@@ -1,6 +1,7 @@
 import { getTgUser } from '../utils/tg.js'
 import { WEEKS, LEVEL_OFFSET, LEVEL_ICONS, LEVEL_LABELS } from '../data/weeks.js'
 import { lsGet } from '../utils/storage.js'
+import { computeAllStats } from '../utils/stats.js'
 import { t } from '../i18n.js'
 
 export const U = {
@@ -38,11 +39,25 @@ export function initHome() {
     ? (LEVEL_ICONS[U.level] || '🌱') + ' ' + (LEVEL_LABELS[U.level] || U.level)
     : '🌱 IQ Barakah'
 
-  // Stats
+  // Stats — вычисляем из реальных данных localStorage
+  const weeksDone = U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0
+  const stats = computeAllStats(U.level, weeksDone)
+  U.streak = stats.streak
+  U.deeds  = stats.deeds
+  U.xp     = stats.xp
+
   document.getElementById('sv-streak').textContent = U.streak
-  document.getElementById('sv-weeks').textContent = U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0
-  document.getElementById('sv-deeds').textContent = U.deeds
-  document.getElementById('sv-xp').textContent = U.xp
+  document.getElementById('sv-weeks').textContent  = weeksDone
+  document.getElementById('sv-deeds').textContent  = U.deeds
+  document.getElementById('sv-xp').textContent     = U.xp
+
+  // Streak fire animation
+  const streakEl = document.getElementById('sv-streak')
+  if (U.streak >= 7) streakEl.classList.add('streak-hot')
+  else streakEl.classList.remove('streak-hot')
+
+  // 7-day streak dots
+  _renderStreakWeek()
 
   // Ring progress
   const pct = U.currentWeek > 0 ? Math.round(Math.max(0, U.currentWeek - 1) / 30 * 100) : 0
@@ -63,6 +78,37 @@ export function initHome() {
     document.getElementById('cw-title').textContent = t('programNotStarted')
     document.getElementById('cw-sub').textContent   = t('openBotStart')
   }
+}
+
+function _renderStreakWeek() {
+  const el = document.getElementById('streak-week')
+  if (!el) return
+
+  const checked = lsGet('checked', {})
+  const today = new Date()
+  const DAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+
+  let html = ''
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    const key = d.toISOString().split('T')[0]
+    const isToday = i === 0
+    const hasDone = checked[key] && Object.keys(checked[key]).length > 0
+
+    // Count how many habits done for fill %
+    const dayHabits = checked[key] ? Object.keys(checked[key]).length : 0
+    const full = dayHabits >= 5  // 5+ привычек = полный день
+    const partial = dayHabits >= 1 && dayHabits < 5
+
+    const cls = isToday ? 'sw-dot today' : full ? 'sw-dot full' : partial ? 'sw-dot partial' : 'sw-dot empty'
+    html += `
+      <div class="${cls}">
+        <div class="sw-icon">${full ? '✅' : partial ? '🟡' : isToday ? '📍' : '⬜'}</div>
+        <div class="sw-day">${DAYS_RU[d.getDay()]}</div>
+      </div>`
+  }
+  el.innerHTML = html
 }
 
 function readUrlParams() {

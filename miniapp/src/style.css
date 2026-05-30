@@ -671,3 +671,22 @@ textarea:focus { border-color: var(--g2); }
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Streak week dots (home) ────────────────────────────────────────── */
+.streak-week {
+  display: flex; justify-content: space-between;
+  margin: 12px 0 4px; padding: 0 2px;
+}
+.sw-dot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex: 1;
+}
+.sw-icon { font-size: 18px; line-height: 1; }
+.sw-day  { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; }
+
+/* Stat value animation for streak */
+.streak-hot { color: #ff6b35 !important; animation: pulse-streak 1.5s ease infinite; }
+@keyframes pulse-streak {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
