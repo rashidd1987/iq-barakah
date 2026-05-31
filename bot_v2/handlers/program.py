@@ -107,9 +107,13 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     else:
         tasks = "\n".join(f"  {t_}" for t_ in raw_tasks)
 
+    hadith = lesson.get("hadith", "")
+    hadith_block = f"\n📌 *Хадис недели:*\n{hadith}\n" if hadith else ""
+
     lesson_text = (
-        f"📅 *{title}*\n"
-        f"_{LEVEL_NAMES.get(level, level)} · Неделя {week} из {max_weeks}_\n\n"
+        f"🌿 *{title}*\n"
+        f"_{LEVEL_NAMES.get(level, level)} · Неделя {week} из {max_weeks}_\n"
+        f"{hadith_block}\n"
         f"{text_body}\n\n"
         f"*Задания на эту неделю:*\n{tasks}"
     )
