@@ -1,4 +1,4 @@
-"""Прямые платежи через ЮKassa API (без Telegram Payments).
+"""Платежи через официальный yookassa SDK (как в старом боте).
 
 Поток:
 1. create_payment() — создаёт платёж, возвращает confirmation_url
@@ -7,84 +7,96 @@
 4. При статусе "succeeded" — активируем участника и шлём урок
 """
 import uuid
+import asyncio
 import logging
-import aiohttp
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
-YOOKASSA_API = "https://api.yookassa.ru/v3/payments"
+
+def _create_payment_sync(shop_id: str, secret_key: str, amount: int,
+                          description: str, return_url: str,
+                          metadata: dict | None, customer_email: str | None) -> dict | None:
+    """Синхронный вызов yookassa SDK — запускается в executor."""
+    from yookassa import Configuration, Payment
+
+    Configuration.account_id = shop_id
+    Configuration.secret_key = secret_key
+
+    idempotency_key = str(uuid.uuid4())
+    payment_data = {
+        "amount": {"value": f"{amount}.00", "currency": "RUB"},
+        "confirmation": {"type": "redirect", "return_url": return_url},
+        "capture": True,
+        "description": description,
+    }
+    if metadata:
+        payment_data["metadata"] = metadata
+
+    # Чек 54-ФЗ
+    email = customer_email or "noreply@iq-barakah.ru"
+    payment_data["receipt"] = {
+        "customer": {"email": email},
+        "items": [{
+            "description": description[:128],
+            "quantity": "1.00",
+            "amount": {"value": f"{amount}.00", "currency": "RUB"},
+            "vat_code": 1,
+            "payment_mode": "full_payment",
+            "payment_subject": "service",
+        }],
+    }
+
+    payment = Payment.create(payment_data, idempotency_key)
+    return {
+        "id": payment.id,
+        "confirmation_url": payment.confirmation.confirmation_url,
+        "status": payment.status,
+    }
+
+
+def _get_payment_status_sync(shop_id: str, secret_key: str, payment_id: str) -> str | None:
+    """Синхронный вызов yookassa SDK."""
+    from yookassa import Configuration, Payment
+
+    Configuration.account_id = shop_id
+    Configuration.secret_key = secret_key
+    payment = Payment.find_one(payment_id)
+    return payment.status
 
 
 async def create_payment(
     shop_id: str,
     secret_key: str,
-    amount: int,          # в рублях
+    amount: int,
     description: str,
     return_url: str,
     metadata: dict | None = None,
+    customer_email: str | None = None,
 ) -> dict | None:
-    """
-    Создаёт платёж в ЮKassa и возвращает dict с полями:
-      - id: str
-      - confirmation_url: str  (ссылка для пользователя)
-      - status: str
-    Возвращает None при ошибке.
-    """
-    idempotency_key = str(uuid.uuid4())
-    payload = {
-        "amount": {
-            "value": f"{amount}.00",
-            "currency": "RUB",
-        },
-        "confirmation": {
-            "type": "redirect",
-            "return_url": return_url,
-        },
-        "capture": True,
-        "description": description,
-    }
-    if metadata:
-        payload["metadata"] = metadata
-
+    """Создаёт платёж через yookassa SDK асинхронно."""
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                YOOKASSA_API,
-                json=payload,
-                auth=aiohttp.BasicAuth(shop_id, secret_key),
-                headers={"Idempotency-Key": idempotency_key},
-                timeout=aiohttp.ClientTimeout(total=10),
-            ) as resp:
-                data = await resp.json()
-                if resp.status == 200:
-                    return {
-                        "id": data["id"],
-                        "confirmation_url": data["confirmation"]["confirmation_url"],
-                        "status": data["status"],
-                    }
-                else:
-                    logger.error("YooKassa error %s: %s", resp.status, data)
-                    return None
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None,
+            partial(_create_payment_sync, shop_id, secret_key, amount,
+                    description, return_url, metadata, customer_email)
+        )
+        return result
     except Exception as e:
-        logger.error("YooKassa request failed: %s", e)
+        logger.error("YooKassa create_payment failed: %s", e)
         return None
 
 
 async def get_payment_status(shop_id: str, secret_key: str, payment_id: str) -> str | None:
-    """Возвращает статус платежа: pending / waiting_for_capture / succeeded / canceled / None при ошибке."""
+    """Проверяет статус платежа через yookassa SDK асинхронно."""
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{YOOKASSA_API}/{payment_id}",
-                auth=aiohttp.BasicAuth(shop_id, secret_key),
-                timeout=aiohttp.ClientTimeout(total=10),
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("status")
-                else:
-                    logger.error("YooKassa get_payment error %s for %s", resp.status, payment_id)
-                    return None
+        loop = asyncio.get_event_loop()
+        status = await loop.run_in_executor(
+            None,
+            partial(_get_payment_status_sync, shop_id, secret_key, payment_id)
+        )
+        return status
     except Exception as e:
-        logger.error("YooKassa get_payment failed: %s", e)
+        logger.error("YooKassa get_payment_status failed: %s", e)
         return None
