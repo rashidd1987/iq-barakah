@@ -20,7 +20,7 @@ class Config:
     anthropic_api_key: str = ""
 
     default_call_link: str = "https://t.me/iqbarakah"
-    version: str = "bot_v2.20260531.2"
+    version: str = "bot_v2.20260531.3"
 
 
 def load_config() -> Config:
