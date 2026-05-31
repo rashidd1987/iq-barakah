@@ -148,6 +148,7 @@ async def _setup_commands(bot: Bot, config) -> None:
     user_commands = [
         BotCommand(command="start",    description="🚀 Запустить / перезапустить бота"),
         BotCommand(command="progress", description="📊 Мой прогресс"),
+        BotCommand(command="myid",     description="🪪 Мой Telegram ID"),
     ]
 
     # Полный список команд для каждого куратора
@@ -163,6 +164,7 @@ async def _setup_commands(bot: Bot, config) -> None:
         BotCommand(command="pair",         description="🤝 Создать пару участников"),
         BotCommand(command="analyze",      description="🔍 AI-анализ участника"),
         BotCommand(command="analytics",    description="📈 Общая аналитика"),
+        BotCommand(command="myid",         description="🪪 Мой Telegram ID"),
         BotCommand(command="health",       description="🩺 Health check бота"),
         BotCommand(command="setcalllink",  description="🔗 Изменить ссылку на созвон"),
     ]

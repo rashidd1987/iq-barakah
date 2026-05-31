@@ -23,6 +23,18 @@ def is_curator(user_id: int, config: Config) -> bool:
     return user_id in config.curator_ids
 
 
+@router.message(Command("myid"))
+async def cmd_myid(message: Message, config: Config):
+    """Любой: /myid — показывает свой Telegram ID."""
+    uid = message.from_user.id
+    is_cur = is_curator(uid, config)
+    await message.answer(
+        f"👤 Твой Telegram ID: `{uid}`\n"
+        f"{'✅ Ты куратор' if is_cur else '👤 Обычный пользователь'}",
+        parse_mode="Markdown",
+    )
+
+
 @router.message(Command("health"))
 async def cmd_health(message: Message, session: AsyncSession, config: Config):
     if not is_curator(message.from_user.id, config):
@@ -35,6 +47,9 @@ async def cmd_health(message: Message, session: AsyncSession, config: Config):
         payment_count = await _scalar_count(session, Payment.id)
         tracker_count = await _scalar_count(session, TrackerRecord.id)
 
+        from bot_v2.services import jarwas as jarwas_svc
+        jarwas_ok = jarwas_svc._client is not None
+
         checks = [
             "✅ База данных: подключена",
             f"✅ Пользователи: {users_count}",
@@ -42,9 +57,11 @@ async def cmd_health(message: Message, session: AsyncSession, config: Config):
             f"✅ Диагностики: {diag_count}",
             f"✅ Платежи: {payment_count}",
             f"✅ Записи трекера: {tracker_count}",
-            f"{'✅' if config.anthropic_api_key else '⚠️'} ANTHROPIC_API_KEY: {'задан' if config.anthropic_api_key else 'не задан'}",
+            f"{'✅' if jarwas_ok else '❌'} Джарвас (AI): {'работает' if jarwas_ok else 'НЕ РАБОТАЕТ — нет ANTHROPIC_API_KEY'}",
+            f"{'✅' if config.anthropic_api_key else '❌'} ANTHROPIC_API_KEY: {'задан' if config.anthropic_api_key else 'НЕ ЗАДАН'}",
             f"{'✅' if config.payments_provider_token else '⚠️'} PAYMENTS_TOKEN: {'задан' if config.payments_provider_token else 'не задан'}",
             f"{'✅' if config.yookassa_shop_id and config.yookassa_secret_key else '⚠️'} YooKassa: {'задана' if config.yookassa_shop_id and config.yookassa_secret_key else 'не задана'}",
+            f"ℹ️ Твой ID: `{message.from_user.id}` | Кураторы: {config.curator_ids}",
         ]
         await message.answer("🩺 *Health check bot_v2*\n\n" + "\n".join(checks), parse_mode="Markdown")
     except Exception as exc:
@@ -405,10 +422,9 @@ async def cmd_send_all(message: Message, session: AsyncSession, config: Config):
 @router.message(Command("reset"))
 async def cmd_reset(message: Message, session: AsyncSession, config: Config):
     """
-    /reset          — сброс самого себя (только куратор)
-    /reset <uid>    — сброс любого пользователя (только куратор)
-    Сбрасывает: неделю → 1, снимает graduated_at, оставляет уровень.
-    WeekAck-и НЕ удаляются (история сохраняется).
+    /reset          — полный сброс самого себя (только куратор)
+    /reset <uid>    — полный сброс любого пользователя
+    Сбрасывает: неделя → 1, удаляет WeekAck (разблокирует уроки), is_active → True
     """
     if not is_curator(message.from_user.id, config):
         return
@@ -419,22 +435,35 @@ async def cmd_reset(message: Message, session: AsyncSession, config: Config):
         try:
             target_id = int(args[0])
         except ValueError:
-            await message.answer("❌ Неверный user_id. Формат: `/reset` или `/reset <uid>`", parse_mode="Markdown")
+            await message.answer("❌ Формат: `/reset` или `/reset <uid>`", parse_mode="Markdown")
             return
+
+    from sqlalchemy import delete
+    from bot_v2.db.models import WeekAck
 
     repo = ParticipantRepo(session)
     p = await repo.reset(target_id)
     if not p:
-        await message.answer(f"❌ Участник `{target_id}` не найден.", parse_mode="Markdown")
+        await message.answer(
+            f"❌ Участник `{target_id}` не найден в базе.\n"
+            f"Твой ID: `{message.from_user.id}`",
+            parse_mode="Markdown"
+        )
         return
+
+    # Удаляем WeekAck чтобы уроки разблокировались в Mini App
+    await session.execute(
+        delete(WeekAck).where(WeekAck.user_id == target_id)
+    )
 
     level_name = LEVEL_NAMES.get(p.level, p.level)
     await message.answer(
-        f"♻️ *Сброс выполнен*\n\n"
+        f"♻️ *Полный сброс выполнен*\n\n"
         f"👤 `{target_id}`\n"
         f"📍 Уровень: {level_name}\n"
-        f"📅 Неделя сброшена → *1 из {LEVEL_WEEKS.get(p.level, 8)}*\n\n"
-        "История WeekAck сохранена. Отправить урок заново — `/send_now {target_id}`",
+        f"📅 Неделя → *1 из {LEVEL_WEEKS.get(p.level, 8)}*\n"
+        f"🗑 WeekAck удалены — все уроки разблокированы\n\n"
+        f"Отправить первый урок: `/send_now {target_id}`",
         parse_mode="Markdown",
     )
 
