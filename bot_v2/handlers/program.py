@@ -159,16 +159,26 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
         except Exception:
             pass
 
-    # Максимальная длина caption Telegram — 1024 символа
+    # Максимальная длина caption Telegram — 4096 символов
     if len(lesson_text) > 4096:
         lesson_text = lesson_text[:4090] + "…"
 
-    await bot.send_message(
-        chat_id=user_id,
-        text=lesson_text,
-        parse_mode="Markdown",
-        reply_markup=reply_markup,
-    )
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=lesson_text,
+            parse_mode="Markdown",
+            reply_markup=reply_markup,
+        )
+    except Exception as md_err:
+        logger.warning("send_message Markdown failed (%s), retrying plain text", md_err)
+        # Убираем markdown-символы и шлём plain text
+        plain = lesson_text.replace("*", "").replace("_", "")
+        await bot.send_message(
+            chat_id=user_id,
+            text=plain,
+            reply_markup=reply_markup,
+        )
 
 
 async def _user_lang(session: AsyncSession, user_id: int) -> str:
