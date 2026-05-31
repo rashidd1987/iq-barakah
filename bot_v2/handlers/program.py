@@ -127,9 +127,9 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     else:
         ack_label = "✅ Понял, иду делать"
 
-    reply_markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📱 Открыть карту пути", web_app=WebAppInfo(url=miniapp_link))],
-        [InlineKeyboardButton(ack_label, callback_data="week_ack")],
+    reply_markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📱 Открыть карту пути", web_app=WebAppInfo(url=miniapp_link))],
+        [InlineKeyboardButton(text=ack_label, callback_data="week_ack")],
     ])
 
     if video:
