@@ -59,25 +59,11 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config
     stmt = stmt.on_conflict_do_nothing(constraint="uq_week_ack")
     await session.execute(stmt)
 
-    if current_week >= max_weeks:
-        await repo.graduate(uid)
-        await call.message.answer(
-            t(lang, "week.graduated", level=LEVEL_NAMES.get(level, level)),
-            parse_mode="Markdown"
-        )
-    else:
-        await repo.advance_week(uid)
-        await call.message.answer(
-            t(lang, "week.acked", week=current_week),
-            parse_mode="Markdown"
-        )
-        # Сдал досрочно — сразу даём следующий урок, не ждём понедельника
-        try:
-            p_next = await repo.get(uid)
-            if p_next:
-                await send_weekly_lesson(call.bot, uid, p_next, session, config)
-        except Exception as e:
-            logger.warning("send_weekly_lesson after week_ack failed for %s: %s", uid, e)
+    # Просто фиксируем выполнение недели — неделя переключится в понедельник по расписанию
+    await call.message.answer(
+        t(lang, "week.acked", week=current_week),
+        parse_mode="Markdown"
+    )
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):

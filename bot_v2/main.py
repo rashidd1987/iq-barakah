@@ -117,15 +117,20 @@ async def main():
 
 
 async def _job_weekly_lesson(bot: Bot, config):
-    """Понедельник 06:00 UTC = 09:00 МСК — рассылка урока всем активным участникам.
+    """Понедельник 06:00 UTC = 09:00 МСК — переключаем неделю и рассылаем урок.
 
-    Логика простая: каждый понедельник участник получает урок своей текущей недели.
-    Продвижение недели — только через кнопку «Сдать неделю» (или куратор /preview).
-    Планировщик не трогает счётчик недель — он только рассылает.
+    Каждый понедельник:
+    - Неделя участника сдвигается вперёд (независимо от того, нажал ли он «Сдать»)
+    - Отправляется урок новой недели
+    - Если дошёл до последней недели — выпускается из программы
+
+    «Сдать неделю» — только для рефлексии и уведомления куратора, не влияет на расписание.
     """
     from bot_v2.db.engine import get_session_factory
     from bot_v2.db.models import Participant, User
+    from bot_v2.db.repositories.participant import ParticipantRepo
     from bot_v2.handlers.program import send_weekly_lesson
+    from bot_v2.services.program import LEVEL_WEEKS
     from sqlalchemy import select
 
     async with get_session_factory()() as session:
@@ -139,7 +144,20 @@ async def _job_weekly_lesson(bot: Bot, config):
             count = 0
             for participant, _user in rows:
                 try:
-                    await send_weekly_lesson(bot, participant.user_id, participant, session, config)
+                    uid = participant.user_id
+                    max_weeks = LEVEL_WEEKS.get(participant.level, 8)
+
+                    if participant.week >= max_weeks:
+                        repo = ParticipantRepo(session)
+                        await repo.graduate(uid)
+                        logger.info("Graduated %s (%s wk%s)", uid, participant.level, participant.week)
+                        continue
+
+                    # Переключаем на следующую неделю
+                    participant.week += 1
+                    await session.flush()
+
+                    await send_weekly_lesson(bot, uid, participant, session, config)
                     count += 1
                 except Exception as e:
                     logger.warning("weekly_lesson → %s: %s", participant.user_id, e)
