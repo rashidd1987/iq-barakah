@@ -4214,11 +4214,21 @@ function readUrlParams() {
   if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
     U.level = lvl
     U.currentWeek = LEVEL_OFFSET[lvl] + wk
+    // Save to localStorage so next opens without params still work
+    lsSet('level', lvl)
+    lsSet('currentWeek', U.currentWeek)
+    lsSet('skill', skill)
   }
   U.skill = ['I', 'II', 'III'].includes(skill) ? skill : 'I'
 
   // Fallback to localStorage
-  if (!U.level) U.level = lsGet('level', '')
+  if (!U.level) {
+    U.level = lsGet('level', '')
+    const savedWeek = lsGet('currentWeek', 0)
+    if (savedWeek > 0) U.currentWeek = savedWeek
+    const savedSkill = lsGet('skill', 'I')
+    if (['I','II','III'].includes(savedSkill)) U.skill = savedSkill
+  }
 }
 
 

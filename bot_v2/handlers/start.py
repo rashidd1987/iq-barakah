@@ -7,7 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from sqlalchemy import desc, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot_v2.db.models import DiagResult
+from bot_v2.db.models import DiagResult, Participant
 from bot_v2.db.repositories import UserRepo
 from bot_v2.keyboards import (
     BTN_CURATOR,
@@ -68,9 +68,11 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
 
     lang = db_user.language_code or normalize_lang(user.language_code)
 
+    participant = await _get_participant(session, db_user.id)
+
     await message.answer(
         t(lang, "menu.updated", version=config.version),
-        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
         parse_mode=None,
     )
 
@@ -87,7 +89,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     await message.answer(
         greeting,
         parse_mode="Markdown",
-        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
     )
 
     latest_diag = await _latest_diag(session, db_user.id)
@@ -155,8 +157,9 @@ async def cb_back_main(call: CallbackQuery, session: AsyncSession, config: Confi
     repo = UserRepo(session)
     user = await repo.get(call.from_user.id)
     lang = user.language_code if user else normalize_lang(call.from_user.language_code)
+    participant = await _get_participant(session, call.from_user.id)
     await call.message.edit_reply_markup(
-        reply_markup=kb_main_menu(config.miniapp_url, config.ship_url, lang)
+        reply_markup=kb_main_menu(config.miniapp_url, config.ship_url, lang, participant)
     )
 
 
@@ -221,9 +224,10 @@ async def onboarding_source(message: Message, state: FSMContext, session: AsyncS
         return
     await UserRepo(session).update(message.from_user.id, source=source)
     await state.clear()
+    participant = await _get_participant(session, message.from_user.id)
     await message.answer(
         t(lang, "onboarding.saved"),
-        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
     )
     await _send_diag_prompt(message, config, lang)
 
@@ -304,6 +308,10 @@ def _profile_complete(user) -> bool:
     return bool(user.name and user.is_female is not None and user.age and user.occupation and user.source)
 
 
+async def _get_participant(session: AsyncSession, user_id: int) -> Participant | None:
+    return await session.get(Participant, user_id)
+
+
 async def _latest_diag(session: AsyncSession, user_id: int) -> DiagResult | None:
     result = await session.execute(
         select(DiagResult)
@@ -322,7 +330,7 @@ async def _message_lang(session: AsyncSession, message: Message) -> str:
 async def _send_diag_prompt(message: Message, config: Config, lang: str):
     await message.answer(
         t(lang, "diag.route_prompt"),
-        reply_markup=kb_bottom_menu(config.miniapp_url, lang),
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang),  # no participant yet at diag stage
     )
     await message.answer(t(lang, "diag.prompt"), reply_markup=kb_start_diag(lang))
 
