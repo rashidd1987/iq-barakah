@@ -71,6 +71,13 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config
             t(lang, "week.acked", week=current_week),
             parse_mode="Markdown"
         )
+        # Сдал досрочно — сразу даём следующий урок, не ждём понедельника
+        try:
+            p_next = await repo.get(uid)
+            if p_next:
+                await send_weekly_lesson(call.bot, uid, p_next, session, config)
+        except Exception as e:
+            logger.warning("send_weekly_lesson after week_ack failed for %s: %s", uid, e)
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):
