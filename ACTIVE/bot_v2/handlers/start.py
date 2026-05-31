@@ -1,6 +1,6 @@
 """Хендлер /start и главное меню."""
 from aiogram import Router, F
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
@@ -228,21 +228,24 @@ async def onboarding_source(message: Message, state: FSMContext, session: AsyncS
     await _send_diag_prompt(message, config, lang)
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["payment"]))
-async def msg_payment(message: Message, session: AsyncSession):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["payment"]))
+async def msg_payment(message: Message, state: FSMContext, session: AsyncSession):
+    await state.clear()
     user = await UserRepo(session).get(message.from_user.id)
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
     await message.answer(t(lang, "tariffs.title"), parse_mode="Markdown", reply_markup=kb_tariffs(lang))
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["diag"]))
-async def msg_diag_button(message: Message, session: AsyncSession):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["diag"]))
+async def msg_diag_button(message: Message, state: FSMContext, session: AsyncSession):
+    await state.clear()
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "diag.prompt"), reply_markup=kb_start_diag(lang))
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["program"]))
-async def msg_program(message: Message, session: AsyncSession, config: Config):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["program"]))
+async def msg_program(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    await state.clear()
     user = await UserRepo(session).get(message.from_user.id)
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
     latest_diag = await _latest_diag(session, message.from_user.id)
@@ -252,26 +255,30 @@ async def msg_program(message: Message, session: AsyncSession, config: Config):
     await _send_program_after_diag(message, lang, latest_diag)
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["reminders"]))
-async def msg_reminders(message: Message, session: AsyncSession):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["reminders"]))
+async def msg_reminders(message: Message, state: FSMContext, session: AsyncSession):
+    await state.clear()
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "reminders.soon"))
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["curator"]))
-async def msg_curator(message: Message, session: AsyncSession):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["curator"]))
+async def msg_curator(message: Message, state: FSMContext, session: AsyncSession):
+    await state.clear()
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "curator.contact", url="https://t.me/iqbarakah"))
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["muhasaba"]))
-async def msg_muhasaba(message: Message, session: AsyncSession):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["muhasaba"]))
+async def msg_muhasaba(message: Message, state: FSMContext, session: AsyncSession):
+    await state.clear()
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "muhasaba.locked"))
 
 
-@router.message(F.text.in_(BOTTOM_TEXTS["site"]))
-async def msg_site(message: Message, session: AsyncSession, config: Config):
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["site"]))
+async def msg_site(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    await state.clear()
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "site.open", url=config.site))
 
