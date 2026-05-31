@@ -7,6 +7,8 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from urllib.parse import urlencode
+
 from bot_v2.services.program import TARIFFS, get_tariff_view
 from bot_v2.services.i18n import normalize_lang, t
 
@@ -20,12 +22,28 @@ BTN_CURATOR = "💬 Связаться с куратором"
 BTN_MUHASABA = "🌙 Мухасаба"
 BTN_SITE = "🌐 Сайт"
 
-def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
+
+def _miniapp_url_with_params(base_url: str, lang: str, participant=None) -> str:
+    """Build miniapp URL with level/week/skill params if participant is active."""
+    params: dict = {"lang": normalize_lang(lang)}
+    if participant and participant.is_active and participant.level:
+        from bot_v2.services.program import LEVEL_WEEKS
+        level = participant.level
+        offsets = {"А": 0, "Б": 6, "В": 14, "Г": 22}
+        week_in_level = participant.week - offsets.get(level, 0)
+        week_in_level = max(1, min(week_in_level, LEVEL_WEEKS.get(level, 8)))
+        params["lvl"] = level
+        params["wk"] = week_in_level
+        params["skill"] = participant.vakt_level or "I"
+    sep = "&" if "?" in base_url else "?"
+    return f"{base_url}{sep}{urlencode(params)}"
+
+
+def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru", participant=None) -> InlineKeyboardMarkup:
     lang = normalize_lang(lang)
     b = InlineKeyboardBuilder()
-    miniapp_sep = "&" if "?" in miniapp_url else "?"
     ship_sep = "&" if "?" in ship_url else "?"
-    b.button(text=t(lang, "menu.miniapp"), web_app=WebAppInfo(url=f"{miniapp_url}{miniapp_sep}lang={lang}"))
+    b.button(text=t(lang, "menu.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant)))
     b.button(text=t(lang, "menu.ship"), web_app=WebAppInfo(url=f"{ship_url}{ship_sep}lang={lang}"))
     b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
     b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
@@ -33,13 +51,13 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru") -> InlineKey
     return b.as_markup()
 
 
-def kb_bottom_menu(miniapp_url: str, lang: str = "ru") -> ReplyKeyboardMarkup:
+def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> ReplyKeyboardMarkup:
     lang = normalize_lang(lang)
     return ReplyKeyboardMarkup(
         keyboard=[
             [
                 KeyboardButton(text=t(lang, "bottom.diag")),
-                KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_url_with_lang(miniapp_url, lang))),
+                KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant))),
             ],
             [KeyboardButton(text=t(lang, "bottom.program")), KeyboardButton(text=t(lang, "bottom.payment"))],
             [KeyboardButton(text=t(lang, "bottom.reminders")), KeyboardButton(text=t(lang, "bottom.curator"))],
@@ -168,9 +186,15 @@ def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
     for tariff in TARIFFS:
         tariff_view = get_tariff_view(tariff["id"], lang) or tariff
         price = tariff["price"]
+        tid = tariff["id"]
         if price:
             price_str = f"{price:,}".replace(",", " ")
-            label = f"{tariff_view['name']} · {price_str} ₽"
+            if tid == "s1_month":
+                label = f"{tariff_view['name']} · {price_str} ₽/мес"
+            elif tid == "s1_full":
+                label = f"⭐ {tariff_view['name']} · {price_str} ₽"
+            else:
+                label = f"{tariff_view['name']} · {price_str} ₽"
         else:
             label = f"{tariff_view['name']} · по запросу"
         b.button(text=label, callback_data=f"tariff:{tariff['id']}")
