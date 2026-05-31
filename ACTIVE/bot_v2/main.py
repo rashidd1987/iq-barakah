@@ -117,11 +117,18 @@ async def main():
 
 
 async def _job_weekly_lesson(bot: Bot, config):
-    """Воскресенье 09:00 UTC — рассылка урока всем активным участникам."""
+    """Понедельник 06:00 UTC — рассылка урока всем активным участникам.
+
+    Если участник не нажал «Сдать неделю» — неделя всё равно засчитывается
+    автоматически и приходит следующий урок (человек мог просто забыть).
+    """
     from bot_v2.db.engine import get_session_factory
-    from bot_v2.db.models import Participant, User
+    from bot_v2.db.models import Participant, User, WeekAck
+    from bot_v2.db.repositories.participant import ParticipantRepo
     from bot_v2.handlers.program import send_weekly_lesson
+    from bot_v2.services.program import LEVEL_WEEKS
     from sqlalchemy import select
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
 
     async with get_session_factory()() as session:
         async with session.begin():
@@ -134,7 +141,39 @@ async def _job_weekly_lesson(bot: Bot, config):
             count = 0
             for participant, _user in rows:
                 try:
-                    await send_weekly_lesson(bot, participant.user_id, participant, session, config)
+                    uid = participant.user_id
+                    level = participant.level
+                    week = participant.week
+                    max_weeks = LEVEL_WEEKS.get(level, 8)
+
+                    # Проверяем, сдал ли участник текущую неделю
+                    ack_q = await session.execute(
+                        select(WeekAck).where(
+                            WeekAck.user_id == uid,
+                            WeekAck.level == level,
+                            WeekAck.week == week,
+                        )
+                    )
+                    already_acked = ack_q.scalar_one_or_none() is not None
+
+                    if not already_acked:
+                        # Автоматически засчитываем неделю
+                        stmt = pg_insert(WeekAck).values(
+                            user_id=uid, level=level, week=week
+                        ).on_conflict_do_nothing(constraint="uq_week_ack")
+                        await session.execute(stmt)
+
+                        if week >= max_weeks:
+                            # Программа завершена — выпускаем
+                            repo = ParticipantRepo(session)
+                            await repo.graduate(uid)
+                            logger.info("Auto-graduated %s (%s wk%s)", uid, level, week)
+                            continue
+                        else:
+                            participant.week += 1
+                            await session.flush()
+
+                    await send_weekly_lesson(bot, uid, participant, session, config)
                     count += 1
                 except Exception as e:
                     logger.warning("weekly_lesson → %s: %s", participant.user_id, e)
