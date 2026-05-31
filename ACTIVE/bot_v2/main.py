@@ -8,6 +8,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand, BotCommandScopeChat
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -104,6 +105,10 @@ async def main():
     scheduler.start()
     logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson")
 
+    # ── Команды бота ──────────────────────────────────────────────
+    await _setup_commands(bot, config)
+    logger.info("Bot commands registered")
+
     logger.info("Starting bot...")
     try:
         await dp.start_polling(bot, skip_updates=True)
@@ -134,6 +139,46 @@ async def _job_weekly_lesson(bot: Bot, config):
                 except Exception as e:
                     logger.warning("weekly_lesson → %s: %s", participant.user_id, e)
     logger.info("Weekly lesson sent: %d чел.", count)
+
+
+async def _setup_commands(bot: Bot, config) -> None:
+    """Регистрирует команды в меню / Telegram."""
+
+    # Команды для всех участников
+    user_commands = [
+        BotCommand(command="start",    description="🚀 Запустить / перезапустить бота"),
+        BotCommand(command="progress", description="📊 Мой прогресс"),
+    ]
+
+    # Полный список команд для каждого куратора
+    curator_commands = user_commands + [
+        BotCommand(command="participants", description="👥 Список участников"),
+        BotCommand(command="activate",     description="✅ Активировать участника"),
+        BotCommand(command="deactivate",   description="❌ Деактивировать участника"),
+        BotCommand(command="reset",        description="♻️ Сбросить на неделю 1"),
+        BotCommand(command="preview",      description="📺 Перейти на любую неделю"),
+        BotCommand(command="tester",       description="🧪 Дать тестовый доступ"),
+        BotCommand(command="send_now",     description="📤 Отправить урок прямо сейчас"),
+        BotCommand(command="send_all",     description="📢 Разослать урок всем"),
+        BotCommand(command="pair",         description="🤝 Создать пару участников"),
+        BotCommand(command="analyze",      description="🔍 AI-анализ участника"),
+        BotCommand(command="analytics",    description="📈 Общая аналитика"),
+        BotCommand(command="health",       description="🩺 Health check бота"),
+        BotCommand(command="setcalllink",  description="🔗 Изменить ссылку на созвон"),
+    ]
+
+    # Глобальные команды (для всех)
+    await bot.set_my_commands(user_commands)
+
+    # Персональные команды для каждого куратора
+    for curator_id in config.curator_ids:
+        try:
+            await bot.set_my_commands(
+                curator_commands,
+                scope=BotCommandScopeChat(chat_id=curator_id),
+            )
+        except Exception as e:
+            logger.warning("Could not set curator commands for %s: %s", curator_id, e)
 
 
 if __name__ == "__main__":
