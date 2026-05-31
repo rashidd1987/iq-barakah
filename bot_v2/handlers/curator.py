@@ -402,6 +402,154 @@ async def cmd_send_all(message: Message, session: AsyncSession, config: Config):
     )
 
 
+@router.message(Command("reset"))
+async def cmd_reset(message: Message, session: AsyncSession, config: Config):
+    """
+    /reset          — сброс самого себя (только куратор)
+    /reset <uid>    — сброс любого пользователя (только куратор)
+    Сбрасывает: неделю → 1, снимает graduated_at, оставляет уровень.
+    WeekAck-и НЕ удаляются (история сохраняется).
+    """
+    if not is_curator(message.from_user.id, config):
+        return
+
+    args = message.text.split()[1:]
+    target_id = message.from_user.id
+    if args:
+        try:
+            target_id = int(args[0])
+        except ValueError:
+            await message.answer("❌ Неверный user_id. Формат: `/reset` или `/reset <uid>`", parse_mode="Markdown")
+            return
+
+    repo = ParticipantRepo(session)
+    p = await repo.reset(target_id)
+    if not p:
+        await message.answer(f"❌ Участник `{target_id}` не найден.", parse_mode="Markdown")
+        return
+
+    level_name = LEVEL_NAMES.get(p.level, p.level)
+    await message.answer(
+        f"♻️ *Сброс выполнен*\n\n"
+        f"👤 `{target_id}`\n"
+        f"📍 Уровень: {level_name}\n"
+        f"📅 Неделя сброшена → *1 из {LEVEL_WEEKS.get(p.level, 8)}*\n\n"
+        "История WeekAck сохранена. Отправить урок заново — `/send_now {target_id}`",
+        parse_mode="Markdown",
+    )
+
+
+@router.message(Command("preview"))
+async def cmd_preview(message: Message, session: AsyncSession, config: Config):
+    """
+    /preview <week>              — переставить себя на нужную неделю
+    /preview <uid> <week>        — переставить любого участника
+    Позволяет куратору и команде проверять любой урок.
+    """
+    if not is_curator(message.from_user.id, config):
+        return
+
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer(
+            "📺 *Режим предпросмотра*\n\n"
+            "Использование:\n"
+            "`/preview <неделя>` — переставить себя\n"
+            "`/preview <uid> <неделя>` — переставить участника\n\n"
+            "Например: `/preview 3` или `/preview 123456789 5`",
+            parse_mode="Markdown",
+        )
+        return
+
+    try:
+        if len(args) == 1:
+            target_id = message.from_user.id
+            week = int(args[0])
+        else:
+            target_id = int(args[0])
+            week = int(args[1])
+    except ValueError:
+        await message.answer("❌ Формат: `/preview <неделя>` или `/preview <uid> <неделя>`", parse_mode="Markdown")
+        return
+
+    if week < 1:
+        await message.answer("❌ Неделя должна быть ≥ 1")
+        return
+
+    repo = ParticipantRepo(session)
+    p = await repo.set_week(target_id, week)
+    if not p:
+        await message.answer(f"❌ Участник `{target_id}` не найден.", parse_mode="Markdown")
+        return
+
+    max_w = LEVEL_WEEKS.get(p.level, 8)
+    await message.answer(
+        f"📺 *Предпросмотр установлен*\n\n"
+        f"👤 `{target_id}` → неделя *{week}* из {max_w}\n"
+        f"📍 {LEVEL_NAMES.get(p.level, p.level)}\n\n"
+        "Открой Мини Апп или нажми «Открыть карту пути» — увидишь нужный урок.\n"
+        "Чтобы получить урок текстом: `/send_now {target_id}`",
+        parse_mode="Markdown",
+    )
+
+
+@router.message(Command("tester"))
+async def cmd_tester(message: Message, session: AsyncSession, config: Config):
+    """
+    /tester <uid> [level]   — активировать тестера со всеми уроками открытыми
+    Ставит уровень А (или указанный), неделя 1, vakt_level = I.
+    Используй /preview после, чтобы перейти на нужную неделю.
+    """
+    if not is_curator(message.from_user.id, config):
+        return
+
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer(
+            "🧪 *Режим тестера*\n\n"
+            "Использование: `/tester <uid> [уровень]`\n"
+            "Уровни: А, Б, В, Г (по умолчанию А)\n\n"
+            "Пример: `/tester 123456789 Б`\n\n"
+            "После активации используй `/preview <uid> <неделя>` для перехода на нужный урок.",
+            parse_mode="Markdown",
+        )
+        return
+
+    try:
+        target_id = int(args[0])
+    except ValueError:
+        await message.answer("❌ Неверный user_id.")
+        return
+
+    level = args[1].upper() if len(args) > 1 else "А"
+    if level not in LEVEL_WEEKS:
+        await message.answer(f"❌ Неверный уровень `{level}`. Допустимые: А, Б, В, Г", parse_mode="Markdown")
+        return
+
+    repo = ParticipantRepo(session)
+    # Проверяем что пользователь существует
+    user = await UserRepo(session).get(target_id)
+    if not user:
+        await message.answer(
+            f"❌ Пользователь `{target_id}` не найден в базе.\n"
+            "Он должен хотя бы раз написать боту /start",
+            parse_mode="Markdown"
+        )
+        return
+
+    p = await repo.activate(target_id, level=level, week=1, vakt_level="I")
+    max_w = LEVEL_WEEKS.get(level, 8)
+    await message.answer(
+        f"🧪 *Тестер активирован*\n\n"
+        f"👤 `{target_id}` — {user.name}\n"
+        f"📍 {LEVEL_NAMES.get(level, level)} | Уровень навыка: I\n"
+        f"📅 Неделя 1 из {max_w}\n\n"
+        "Используй `/preview` для перехода на нужную неделю.\n"
+        "Сбросить обратно: `/reset`",
+        parse_mode="Markdown",
+    )
+
+
 async def _notify_activation(bot, user_id: int, participant: Participant, session: AsyncSession, config: Config):
     user = await UserRepo(session).get(user_id)
     name = _md_escape(user.name) if user else "брат"
