@@ -1,0 +1,13 @@
+meta:
+  environment: python
+  toolchain:
+    name: pip
+    version: "3.11"
+
+build:
+  requirementsPath: bot_v2/requirements.txt
+  useCache: false
+
+run:
+  command: python -m bot_v2.main
+  persistenceMount: /data
