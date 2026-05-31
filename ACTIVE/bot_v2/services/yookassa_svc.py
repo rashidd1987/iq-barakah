@@ -64,7 +64,8 @@ async def create_payment(
                     }
                 else:
                     logger.error("YooKassa error %s: %s", resp.status, data)
-                    return None
+                    # Возвращаем ошибку для отображения пользователю
+                    return {"error": True, "status_code": resp.status, "detail": data}
     except Exception as e:
         logger.error("YooKassa request failed: %s", e)
         return None

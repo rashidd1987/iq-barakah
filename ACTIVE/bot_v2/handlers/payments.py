@@ -84,8 +84,15 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         metadata={"tariff_id": tariff_id, "user_id": str(user_id)},
     )
 
-    if not payment:
-        await call.message.answer("⚠️ Не удалось создать платёж. Попробуйте позже или напишите @iqbarakah")
+    if not payment or payment.get("error"):
+        err_detail = payment.get("detail", {}) if payment else {}
+        err_code = err_detail.get("code", "unknown")
+        err_desc = err_detail.get("description", "нет описания")
+        err_http = payment.get("status_code", "?") if payment else "?"
+        await call.message.answer(
+            f"⚠️ Ошибка ЮKassa [{err_http}]: `{err_code}`\n_{err_desc}_",
+            parse_mode="Markdown"
+        )
         return
 
     # Записываем pending-платёж
