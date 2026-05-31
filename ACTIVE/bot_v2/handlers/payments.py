@@ -100,7 +100,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         user_id=user_id,
         tariff_id=tariff_id,
         amount=tariff["price"],
-        tg_charge_id=payment["id"],
+        yoo_payment_id=payment["id"],
     )
 
     name = user.name if user else "участник"
