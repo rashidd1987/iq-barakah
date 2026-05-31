@@ -165,6 +165,7 @@ async def _setup_commands(bot: Bot, config) -> None:
         BotCommand(command="analyze",      description="🔍 AI-анализ участника"),
         BotCommand(command="analytics",    description="📈 Общая аналитика"),
         BotCommand(command="myid",         description="🪪 Мой Telegram ID"),
+        BotCommand(command="testjarwas",   description="🤖 Тест Jarwas API"),
         BotCommand(command="health",       description="🩺 Health check бота"),
         BotCommand(command="setcalllink",  description="🔗 Изменить ссылку на созвон"),
     ]

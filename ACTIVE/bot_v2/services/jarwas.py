@@ -234,6 +234,12 @@ def build_jarwas_system(
     return JARWAS_SYSTEM + context
 
 
+import logging as _logging
+_log = _logging.getLogger(__name__)
+
+JARWAS_MODEL = "claude-sonnet-4-5"
+
+
 async def ask_jarwas(
     history: list[dict],
     user_message: str,
@@ -248,19 +254,24 @@ async def ask_jarwas(
     history = history[-MAX_HISTORY:]
     messages = history + [{"role": "user", "content": user_message}]
 
-    response = await _client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1024,
-        system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
-        messages=messages,
-    )
-    return response.content[0].text
+    try:
+        response = await _client.messages.create(
+            model=JARWAS_MODEL,
+            max_tokens=1024,
+            system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
+            messages=messages,
+        )
+        return response.content[0].text
+    except Exception as e:
+        _log.error("Jarwas API error: %s: %s", type(e).__name__, e)
+        return f"⚠️ Ошибка Джарваса: {type(e).__name__}: {str(e)[:200]}"
 
 
 async def ask_jarwas_muhasaba(q1: str, q2: str, q3: str) -> str:
     """Персональная AI-рефлексия после мухасабы."""
     if not _client:
         return "МашаАллах! Мухасаба записана. Каждый раз когда ты останавливаешься и честно смотришь на себя — ты растёшь. 🌿"
+
 
     system = (
         "Ты — Джарвас, AI-ментор программы IQ Barakah.\n"
@@ -282,7 +293,7 @@ async def ask_jarwas_muhasaba(q1: str, q2: str, q3: str) -> str:
     )
     try:
         response = await _client.messages.create(
-            model="claude-sonnet-4-6",
+            model=JARWAS_MODEL,
             max_tokens=512,
             system=system,
             messages=[{"role": "user", "content": user_msg}],

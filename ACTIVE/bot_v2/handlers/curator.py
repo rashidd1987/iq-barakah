@@ -23,6 +23,43 @@ def is_curator(user_id: int, config: Config) -> bool:
     return user_id in config.curator_ids
 
 
+@router.message(Command("testjarwas"))
+async def cmd_testjarwas(message: Message, config: Config):
+    """Куратор: тестирует Jarwas API и показывает точную ошибку."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    from bot_v2.services import jarwas as jarwas_svc
+
+    await message.answer("🔄 Тестирую Jarwas API...")
+
+    if not jarwas_svc._client:
+        await message.answer(
+            "❌ `_client = None`\n\n"
+            "ANTHROPIC\\_API\\_KEY не задан или пустой.\n"
+            f"Значение в config: `{'задан' if config.anthropic_api_key else 'ПУСТОЙ'}`\n"
+            f"Длина ключа: {len(config.anthropic_api_key)} символов",
+            parse_mode="Markdown",
+        )
+        return
+
+    try:
+        result = await jarwas_svc._client.messages.create(
+            model=jarwas_svc.JARWAS_MODEL,
+            max_tokens=50,
+            messages=[{"role": "user", "content": "Скажи «Тест пройден» — одно предложение."}],
+        )
+        answer = result.content[0].text
+        await message.answer(f"✅ Jarwas работает!\n\nОтвет: _{answer}_", parse_mode="Markdown")
+    except Exception as e:
+        await message.answer(
+            f"❌ Ошибка API:\n\n"
+            f"`{type(e).__name__}`\n\n"
+            f"`{str(e)[:500]}`",
+            parse_mode="Markdown",
+        )
+
+
 @router.message(Command("myid"))
 async def cmd_myid(message: Message, config: Config):
     """Любой: /myid — показывает свой Telegram ID."""
