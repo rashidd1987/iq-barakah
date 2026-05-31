@@ -64,6 +64,11 @@ def _ensure_compat_columns(sync_conn):
     if "language_code" not in user_columns:
         sync_conn.execute(text("ALTER TABLE users ADD COLUMN language_code VARCHAR(8) NOT NULL DEFAULT 'ru'"))
 
+    if "participants" in inspector.get_table_names():
+        p_columns = {col["name"] for col in inspector.get_columns("participants")}
+        if "last_active" not in p_columns:
+            sync_conn.execute(text("ALTER TABLE participants ADD COLUMN last_active TIMESTAMP WITH TIME ZONE"))
+
 
 async def close_db():
     if _engine:
