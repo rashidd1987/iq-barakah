@@ -96,14 +96,14 @@ async def main():
         job_progress_mirror, CronTrigger(day_of_week="sun", hour=16, minute=0),
         args=[bot, config.miniapp_url], id="progress_mirror",
     )
-    # Еженедельный урок: воскресенье 09:00 UTC
+    # Еженедельный урок: понедельник 06:00 UTC = 09:00 МСК
     scheduler.add_job(
-        _job_weekly_lesson, CronTrigger(day_of_week="sun", hour=9, minute=0),
+        _job_weekly_lesson, CronTrigger(day_of_week="mon", hour=6, minute=0),
         args=[bot, config], id="weekly_lesson",
     )
 
     scheduler.start()
-    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson")
+    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson(mon 06:00 UTC)")
 
     # ── Команды бота ──────────────────────────────────────────────
     await _setup_commands(bot, config)
