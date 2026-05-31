@@ -167,7 +167,13 @@ def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     for tariff in TARIFFS:
         tariff_view = get_tariff_view(tariff["id"], lang) or tariff
-        b.button(text=tariff_view["name"], callback_data=f"tariff:{tariff['id']}")
+        price = tariff["price"]
+        if price:
+            price_str = f"{price:,}".replace(",", " ")
+            label = f"{tariff_view['name']} · {price_str} ₽"
+        else:
+            label = f"{tariff_view['name']} · по запросу"
+        b.button(text=label, callback_data=f"tariff:{tariff['id']}")
     b.button(text=t(lang, "tariffs.back"), callback_data="back_main")
     b.adjust(1)
     return b.as_markup()

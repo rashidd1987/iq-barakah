@@ -18,9 +18,10 @@ from bot_v2.services.yookassa_svc import create_payment
 logger = logging.getLogger(__name__)
 
 TARIFF_LEVEL_MAP = {
-    "vakt":    "А",
-    "s1_full": "Б",
-    "s3_full": "Б",
+    "vakt":     "А",
+    "s1_month": "Б",
+    "s1_full":  "Б",
+    "s3_full":  "Б",
 }
 
 router = Router(name="payments")
@@ -61,8 +62,26 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
 
     if tariff_id in ("jamaat", "leader"):
         tariff_view = get_tariff_view(tariff_id, lang) or tariff
+        user = await UserRepo(session).get(call.from_user.id)
+        name = user.name if user else str(call.from_user.id)
+        # Уведомляем куратора
+        for curator_id in config.curator_ids:
+            try:
+                await call.bot.send_message(
+                    chat_id=curator_id,
+                    text=(
+                        f"📩 *Запрос на {tariff_view['name']}*\n\n"
+                        f"👤 {name} (`{call.from_user.id}`)\n"
+                        f"📦 {tariff_view['name']}\n\n"
+                        f"Свяжись с участником для обсуждения условий."
+                    ),
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                pass
         await call.message.answer(
-            f"*{tariff_view['name']}*\n\n{t(lang, 'payments.manager')}",
+            f"✅ Твой запрос на *{tariff_view['name']}* отправлен!\n\n"
+            f"Куратор свяжется с тобой в ближайшее время. 🌿",
             parse_mode="Markdown",
         )
         return
