@@ -108,6 +108,9 @@ async def msg_pay_email(message: Message, state: FSMContext, session: AsyncSessi
 
 async def _send_invoice(message: Message, tariff_id: str, tariff: dict, config: Config, email, lang: str):
     tariff_view = get_tariff_view(tariff_id, lang) or tariff
+    amount_kopecks = tariff["price"] * 100
+    logger.info("Sending invoice: tariff=%s price=%s amount_kopecks=%s token_len=%s",
+                tariff_id, tariff["price"], amount_kopecks, len(config.payments_provider_token or ""))
     await message.answer_invoice(
         title=tariff_view["name"],
         description=tariff_view["desc"],
