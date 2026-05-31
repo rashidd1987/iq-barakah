@@ -54,6 +54,17 @@ async def main():
     await create_tables()
     logger.info("Database ready")
 
+    # Загружаем дополнительных кураторов из БД
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.repositories import SettingsRepo
+    async with get_session_factory()() as _s:
+        _extra = await SettingsRepo(_s).get("extra_curators", "")
+        if _extra:
+            for _id in _extra.split(","):
+                if _id and int(_id) not in config.curator_ids:
+                    config.curator_ids.append(int(_id))
+    logger.info("Curators: %s", config.curator_ids)
+
     # AI services
     setup_jarwas(config.anthropic_api_key)
     setup_insights(config.anthropic_api_key)

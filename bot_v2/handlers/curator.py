@@ -641,3 +641,56 @@ async def _notify_activation(bot, user_id: int, participant: Participant, sessio
 
 def _md_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("*", "\\*").replace("_", "\\_").replace("`", "\\`")
+
+
+@router.message(Command("addcurator"))
+async def cmd_addcurator(message: Message, session: AsyncSession, config: Config):
+    """/addcurator <telegram_id> — добавить куратора"""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args or not args[0].lstrip("-").isdigit():
+        await message.answer("Использование: `/addcurator <telegram_id>`", parse_mode="Markdown")
+        return
+    new_id = int(args[0])
+    if new_id in config.curator_ids:
+        await message.answer(f"✅ `{new_id}` уже куратор.", parse_mode="Markdown")
+        return
+    config.curator_ids.append(new_id)
+    # Сохраняем в БД для постоянства
+    repo = SettingsRepo(session)
+    existing = await repo.get("extra_curators", "")
+    ids = [i for i in existing.split(",") if i] if existing else []
+    ids.append(str(new_id))
+    await repo.set("extra_curators", ",".join(ids))
+    await message.answer(f"✅ `{new_id}` добавлен как куратор.\n\nТеперь он может использовать все команды бота.", parse_mode="Markdown")
+
+
+@router.message(Command("removecurator"))
+async def cmd_removecurator(message: Message, session: AsyncSession, config: Config):
+    """/removecurator <telegram_id> — убрать куратора"""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args or not args[0].lstrip("-").isdigit():
+        await message.answer("Использование: `/removecurator <telegram_id>`", parse_mode="Markdown")
+        return
+    rem_id = int(args[0])
+    if rem_id not in config.curator_ids:
+        await message.answer(f"❌ `{rem_id}` не является куратором.", parse_mode="Markdown")
+        return
+    config.curator_ids.remove(rem_id)
+    repo = SettingsRepo(session)
+    existing = await repo.get("extra_curators", "")
+    ids = [i for i in existing.split(",") if i and int(i) != rem_id]
+    await repo.set("extra_curators", ",".join(ids))
+    await message.answer(f"✅ `{rem_id}` удалён из кураторов.", parse_mode="Markdown")
+
+
+@router.message(Command("curators"))
+async def cmd_curators(message: Message, session: AsyncSession, config: Config):
+    """/curators — список всех кураторов"""
+    if not is_curator(message.from_user.id, config):
+        return
+    lines = [f"`{uid}`" for uid in config.curator_ids]
+    await message.answer(f"👥 *Кураторы:*\n" + "\n".join(lines), parse_mode="Markdown")
