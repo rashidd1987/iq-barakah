@@ -104,20 +104,25 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
     )
 
     name = user.name if user else "участник"
+    price_str = f"{tariff['price']:,}".replace(",", " ")
     text = (
-        f"💳 *{tariff_view['name']}*\n"
-        f"_{tariff_view['desc']}_\n\n"
-        f"💰 Сумма: *{tariff['price']:,} ₽*\n\n"
+        f"💳 {tariff_view['name']}\n\n"
+        f"💰 Сумма: {price_str} ₽\n\n"
         f"Нажми кнопку ниже — оплати на сайте ЮKassa.\n"
-        f"После оплаты вернись в бот — урок придёт автоматически в течение 2 минут 🌱"
-    ).replace(",", " ")
+        f"После оплаты нажми «✅ Я оплатил» — урок придёт сразу 🌱"
+    )
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Перейти к оплате", url=payment["confirmation_url"])],
         [InlineKeyboardButton(text="✅ Я оплатил", callback_data=f"check_pay:{tariff_id}:{payment['id']}")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="show_tariffs")],
     ])
-    await call.message.answer(text, parse_mode="Markdown", reply_markup=kb)
+    logger.info("Sending payment message to user %s, payment_id=%s", call.from_user.id, payment["id"])
+    try:
+        await call.message.answer(text, reply_markup=kb)
+    except Exception as e:
+        logger.error("Failed to send payment message: %s", e)
+        await call.message.answer(f"✅ Платёж создан! Перейди по ссылке: {payment['confirmation_url']}")
 
     # Уведомляем куратора о заказе
     for curator_id in config.curator_ids:
