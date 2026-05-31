@@ -23,6 +23,7 @@ from bot_v2.services.jobs import (
     job_jarwas_friday,
     job_silence_check,
     job_progress_mirror,
+    job_check_payments,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -102,8 +103,14 @@ async def main():
         args=[bot, config], id="weekly_lesson",
     )
 
+    # Проверка оплат ЮKassa: каждые 2 минуты
+    scheduler.add_job(
+        job_check_payments, "interval", minutes=2,
+        args=[bot, config], id="check_payments",
+    )
+
     scheduler.start()
-    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson(mon 06:00 UTC)")
+    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson, check_payments")
 
     # ── Команды бота ──────────────────────────────────────────────
     await _setup_commands(bot, config)

@@ -226,3 +226,107 @@ async def job_progress_mirror(bot: Bot, miniapp_url: str):
                 )
             except Exception as e:
                 logger.warning("progress_mirror → %s: %s", user.id, e)
+
+
+async def job_check_payments(bot, config):
+    """Каждые 2 минуты проверяем pending-платежи в ЮKassa и активируем оплативших."""
+    from datetime import timezone
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.models import Payment, User
+    from bot_v2.db.repositories.participant import ParticipantRepo
+    from bot_v2.handlers.payments import TARIFF_LEVEL_MAP
+    from bot_v2.services.yookassa_svc import get_payment_status
+    from bot_v2.services.i18n import t
+    from bot_v2.services.program import get_tariff_view
+    from sqlalchemy import select
+    import datetime as _dt
+
+    if not config.yookassa_shop_id or not config.yookassa_secret_key:
+        return
+
+    async with get_session_factory()() as session:
+        async with session.begin():
+            # Берём pending-платежи не старше 24 часов
+            cutoff = _dt.datetime.now(timezone.utc) - _dt.timedelta(hours=24)
+            result = await session.execute(
+                select(Payment).where(
+                    Payment.status == "pending",
+                    Payment.tg_charge_id.isnot(None),
+                    Payment.created_at >= cutoff,
+                )
+            )
+            pending = result.scalars().all()
+
+        for payment in pending:
+            yoo_id = payment.tg_charge_id  # мы храним yookassa payment id в tg_charge_id
+            status = await get_payment_status(
+                config.yookassa_shop_id, config.yookassa_secret_key, yoo_id
+            )
+
+            if status == "succeeded":
+                async with get_session_factory()() as session:
+                    async with session.begin():
+                        # Помечаем оплаченным
+                        db_pay = await session.get(Payment, payment.id)
+                        if not db_pay or db_pay.status == "paid":
+                            continue
+                        db_pay.status = "paid"
+                        db_pay.paid_at = _dt.datetime.now(timezone.utc)
+
+                        user = await session.get(User, payment.user_id)
+                        lang = user.language_code if user else "ru"
+                        tariff_view = get_tariff_view(payment.tariff_id, lang)
+                        tariff_name = tariff_view["name"] if tariff_view else payment.tariff_id
+
+                        # Активируем участника
+                        level = TARIFF_LEVEL_MAP.get(payment.tariff_id)
+                        if level:
+                            p_repo = ParticipantRepo(session)
+                            participant = await p_repo.activate(payment.user_id, level=level, week=1)
+                            await session.flush()
+
+                            # Отправляем подтверждение
+                            try:
+                                await bot.send_message(
+                                    chat_id=payment.user_id,
+                                    text=(
+                                        f"✅ *Оплата подтверждена!*\n\n"
+                                        f"📦 {tariff_name}\n\n"
+                                        f"Добро пожаловать в программу! Сейчас пришлю первый урок 🌱"
+                                    ),
+                                    parse_mode="Markdown",
+                                )
+                            except Exception as e:
+                                logger.warning("payment confirm msg failed %s: %s", payment.user_id, e)
+
+                            # Отправляем урок
+                            from bot_v2.handlers.program import send_weekly_lesson
+                            try:
+                                await send_weekly_lesson(bot, payment.user_id, participant, session, config)
+                            except Exception as e:
+                                logger.warning("send_weekly_lesson after payment failed %s: %s", payment.user_id, e)
+
+                            # Уведомляем кураторов
+                            name = user.name if user else str(payment.user_id)
+                            for cid in (config.curator_ids or []):
+                                try:
+                                    await bot.send_message(
+                                        chat_id=cid,
+                                        text=(
+                                            f"💳 *Оплата получена!*\n\n"
+                                            f"👤 {name} (`{payment.user_id}`)\n"
+                                            f"📦 {tariff_name}\n"
+                                            f"💰 {payment.amount:,} ₽\n"
+                                            f"✅ Участник активирован автоматически"
+                                        ).replace(",", " "),
+                                        parse_mode="Markdown",
+                                    )
+                                except Exception:
+                                    pass
+
+            elif status == "canceled":
+                async with get_session_factory()() as session:
+                    async with session.begin():
+                        db_pay = await session.get(Payment, payment.id)
+                        if db_pay:
+                            db_pay.status = "failed"
