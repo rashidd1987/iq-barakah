@@ -22,6 +22,7 @@ async def create_payment(
     description: str,
     return_url: str,
     metadata: dict | None = None,
+    customer_email: str | None = None,
 ) -> dict | None:
     """
     Создаёт платёж в ЮKassa и возвращает dict с полями:
@@ -46,13 +47,27 @@ async def create_payment(
     if metadata:
         payload["metadata"] = metadata
 
+    # Чек для 54-ФЗ (обязателен если в ЮKassa включён режим с чеками)
+    email = customer_email or "noreply@iq-barakah.ru"
+    payload["receipt"] = {
+        "customer": {"email": email},
+        "items": [{
+            "description": description[:128],
+            "quantity": "1.00",
+            "amount": {"value": f"{amount}.00", "currency": "RUB"},
+            "vat_code": 1,
+            "payment_mode": "full_payment",
+            "payment_subject": "service",
+        }],
+    }
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 YOOKASSA_API,
                 json=payload,
                 auth=aiohttp.BasicAuth(shop_id, secret_key),
-                headers={"Idempotency-Key": idempotency_key},
+                headers={"Idempotence-Key": idempotency_key},
                 timeout=aiohttp.ClientTimeout(total=10),
             ) as resp:
                 data = await resp.json()
