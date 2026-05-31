@@ -15,6 +15,13 @@ from bot_v2.keyboards import kb_tariffs, kb_tariff_detail, kb_curator_notify
 from bot_v2.services.i18n import t
 from bot_v2.services.program import get_tariff, get_tariff_view
 
+# Какой уровень программы активируется при покупке тарифа
+TARIFF_LEVEL_MAP = {
+    "vakt":    "А",   # ВАКТ · 6 недель
+    "s1_full": "Б",   # Сезон 1 · 8 недель
+    "s3_full": "Б",   # 3 сезона · начинаем с Сезона 1
+}
+
 router = Router(name="payments")
 
 
@@ -128,11 +135,14 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 @router.message(F.successful_payment)
 async def successful_payment(message: Message, session: AsyncSession, config: Config):
+    from bot_v2.handlers.program import send_weekly_lesson
+
     payment: SuccessfulPayment = message.successful_payment
     payload = payment.invoice_payload
     tariff_id, user_id_str = payload.split(":", 1)
     user_id = int(user_id_str)
 
+    # Записываем оплату
     repo = PaymentRepo(session)
     p = await repo.create(
         user_id=user_id,
@@ -147,6 +157,8 @@ async def successful_payment(message: Message, session: AsyncSession, config: Co
     user = await user_repo.get(user_id)
     lang = user.language_code if user else "ru"
     tariff_view = get_tariff_view(tariff_id, lang) or tariff
+
+    # Подтверждение оплаты
     await message.answer(
         t(
             lang,
@@ -154,12 +166,23 @@ async def successful_payment(message: Message, session: AsyncSession, config: Co
             tariff=tariff_view["name"],
             amount=f"{payment.total_amount // 100:,}".replace(",", " "),
         ),
-        parse_mode="Markdown"
+        parse_mode="Markdown",
     )
+
+    # Автоматически активируем и отправляем урок 1
+    level = TARIFF_LEVEL_MAP.get(tariff_id)
+    if level:
+        p_repo = ParticipantRepo(session)
+        participant = await p_repo.activate(user_id, level=level, week=1)
+        await session.flush()
+        try:
+            await send_weekly_lesson(message.bot, user_id, participant, session, config)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("send_weekly_lesson after payment failed: %s", e)
 
     # Уведомляем кураторов
     name = user.name if user else str(user_id)
-
     for curator_id in config.curator_ids:
         try:
             await message.bot.send_message(

@@ -1,4 +1,5 @@
 """Уроки программы, подтверждение недели, прогресс."""
+import logging
 from urllib.parse import urlencode
 
 from aiogram import Router, F
@@ -7,12 +8,15 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot_v2.config import Config
 from bot_v2.db.models import WeekAck
 from bot_v2.db.repositories import ParticipantRepo, UserRepo
 from bot_v2.keyboards import kb_week_ack
 from bot_v2.services.i18n import t
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 from bot_v2.services.program_content import PROGRAM
+
+logger = logging.getLogger(__name__)
 
 router = Router(name="program")
 
@@ -37,7 +41,7 @@ async def cmd_progress(message: Message, session: AsyncSession):
 
 
 @router.callback_query(F.data == "week_ack")
-async def cb_week_ack(call: CallbackQuery, session: AsyncSession):
+async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config = None):
     await call.answer()
     uid = call.from_user.id
     lang = await _user_lang(session, uid)
@@ -67,6 +71,13 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession):
             t(lang, "week.acked", week=current_week),
             parse_mode="Markdown"
         )
+        # Сразу отправляем следующий урок
+        try:
+            p_updated = await repo.get(uid)
+            if p_updated:
+                await send_weekly_lesson(call.bot, uid, p_updated, session, config)
+        except Exception as e:
+            logger.warning("send_weekly_lesson after week_ack failed for %s: %s", uid, e)
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):
