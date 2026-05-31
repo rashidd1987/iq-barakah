@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot_v2.config import Config
 from bot_v2.db.models import Participant, TaskCompletion, TrackerRecord, User, WheelRecord
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
+from bot_v2.services.program_content import PROGRAM
 
 logger = logging.getLogger(__name__)
 router = Router(name="miniapp")
@@ -34,6 +35,8 @@ async def handle_webapp_data(message: Message, session: AsyncSession, bot=None, 
         await _save_wheel(session, uid, payload)
     elif action == "check_task":
         await _check_task(session, uid, payload, bot, config)
+    elif action == "open_lesson":
+        await _send_full_lesson(session, uid, payload, message)
     else:
         logger.debug("Unknown WebApp action: %s", action)
 
@@ -119,3 +122,61 @@ async def _notify_all_tasks_done(session: AsyncSession, user_id: int, level: str
             await bot.send_message(chat_id=cid, text=text, parse_mode="Markdown")
         except Exception as e:
             logger.warning("Cannot notify curator %s: %s", cid, e)
+
+
+async def _send_full_lesson(session: AsyncSession, user_id: int, payload: dict, message: Message):
+    """Отправить полный урок из бота когда студент нажимает 'Полный урок в боте'."""
+    level = payload.get("level")
+    week = payload.get("week")
+
+    if not level or not week:
+        logger.warning("open_lesson: missing level/week from %s", user_id)
+        return
+
+    lessons = PROGRAM.get(level, [])
+    week_idx = int(week) - 1
+    if week_idx < 0 or week_idx >= len(lessons):
+        logger.warning("open_lesson: week %s out of range for level %s", week, level)
+        return
+
+    # Get skill level from participant record
+    participant = await session.get(Participant, user_id)
+    skill_level = (participant.vakt_level or "I") if participant else "I"
+
+    lesson = lessons[week_idx]
+    title = lesson.get("title", f"Неделя {week}")
+    hadith = lesson.get("hadith", "")
+
+    raw_text = lesson.get("text", "")
+    if isinstance(raw_text, dict):
+        text_body = raw_text.get(skill_level, raw_text.get("I", ""))
+    else:
+        text_body = raw_text
+
+    raw_tasks = lesson.get("tasks", [])
+    if isinstance(raw_tasks, dict):
+        tasks_list = raw_tasks.get(skill_level, raw_tasks.get("I", []))
+    else:
+        tasks_list = raw_tasks
+    tasks_str = "\n".join(f"  {t}" for t in tasks_list)
+
+    level_name = LEVEL_NAMES.get(level, level)
+    lesson_text = (
+        f"*{title}*\n"
+        f"_{level_name}_\n\n"
+        f"📜 _{hadith}_\n\n"
+        f"{text_body}\n\n"
+        f"*Задания на эту неделю:*\n{tasks_str}"
+    )
+
+    if len(lesson_text) > 4096:
+        lesson_text = lesson_text[:4090] + "…"
+
+    try:
+        await message.answer(lesson_text, parse_mode="Markdown")
+    except Exception:
+        plain = lesson_text.replace("*", "").replace("_", "")
+        try:
+            await message.answer(plain)
+        except Exception as e:
+            logger.warning("Cannot send full lesson to %s: %s", user_id, e)

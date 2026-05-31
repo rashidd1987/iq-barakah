@@ -136,6 +136,7 @@ nav {
 }
 .btn:active { opacity: .82; transform: scale(.97); }
 .btn-p { background: linear-gradient(135deg, var(--g2), var(--g3)); color: white; box-shadow: 0 4px 16px rgba(44,95,45,.35); }
+.btn-p2 { background: var(--gpale); color: var(--g2); border: 1.5px solid var(--g3); }
 .btn-o { background: var(--gpale); color: var(--g2); }
 .btn-g { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: white; box-shadow: 0 4px 16px rgba(201,168,76,.35); }
 
@@ -689,4 +690,24 @@ textarea:focus { border-color: var(--g2); }
 @keyframes pulse-streak {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
+}
+
+/* ── Lesson content block in sheet ─────────────────────────────────── */
+.lesson-hadith {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: linear-gradient(135deg, #f9f6ed, #fdf8f0);
+  border-left: 3px solid var(--gold);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 12px;
+}
+.hadith-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.hadith-text {
+  font-size: 13px; line-height: 1.55; color: #5a4a1e;
+  font-style: italic;
+}
+.lesson-text-preview {
+  font-size: 14px; line-height: 1.6; color: var(--txt);
+  background: var(--card); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 14px;
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
 }

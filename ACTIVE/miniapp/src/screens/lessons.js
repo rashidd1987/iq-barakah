@@ -1,5 +1,6 @@
 import { WEEKS, PHASE_LABELS } from '../data/weeks.js'
 import { TASKS } from '../data/tasks.js'
+import { PROGRAM_CONTENT } from '../data/content.js'
 import { haptic, sendData, cloudGet, cloudSet } from '../utils/tg.js'
 import { openSheet } from '../components/sheets.js'
 import { t } from '../i18n.js'
@@ -136,27 +137,61 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
     const tasks = getWeekTasks(level, levelWeekIndex)
     const checked = loadChecked(level, levelWeekIndex)
+    const content = _getLessonContent(level, levelWeekIndex)
 
-    rows.innerHTML = _renderTasksHtml(tasks, checked, level, levelWeekIndex)
+    rows.innerHTML = _renderLessonContent(content) + _renderTasksHtml(tasks, checked, level, levelWeekIndex)
     _bindCheckboxes(rows, level, levelWeekIndex, tasks)
   }
 
   const btns = document.getElementById('sl-btns')
-  if (locked || done) {
+  if (locked) {
     btns.innerHTML = `<button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   } else {
     btns.innerHTML = `
-      <button class="btn btn-p" id="sl-review">${t('submitMuhasaba')}</button>
+      <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
+      ${!done ? `<button class="btn btn-p2" id="sl-review">${t('submitMuhasaba')}</button>` : ''}
       <button class="btn btn-o" id="sl-close">${t('close')}</button>`
-    document.getElementById('sl-review').onclick = () => {
+    document.getElementById('sl-fullbot').onclick = () => {
+      sendData({ action: 'open_lesson', level: U.level, week: weekToLevelIndex(globalWeekIndex).levelWeekIndex })
+    }
+    document.getElementById('sl-review')?.addEventListener('click', () => {
       closeSheetById('lesson')
       openSheet('review')
-    }
+    })
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   }
 
   openSheet('lesson')
+}
+
+// ── Lesson content from PROGRAM_CONTENT ───────────────────────────────────────
+function _getLessonContent(level, weekInLevel) {
+  if (!level || !weekInLevel) return null
+  const levelData = PROGRAM_CONTENT[level]
+  if (!levelData) return null
+  return levelData[weekInLevel - 1] || null
+}
+
+function _renderLessonContent(content) {
+  if (!content) return ''
+  const skill = U.skill || 'I'
+  const text = typeof content.text === 'object' ? (content.text[skill] || content.text['I'] || '') : (content.text || '')
+
+  // Show first ~400 chars as preview
+  const preview = text.length > 400 ? text.slice(0, 400).trimEnd() + '…' : text
+
+  let html = ''
+  if (content.hadith) {
+    html += `<div class="lesson-hadith">
+      <div class="hadith-icon">📜</div>
+      <div class="hadith-text">${content.hadith}</div>
+    </div>`
+  }
+  if (preview) {
+    html += `<div class="lesson-text-preview">${preview.replace(/\n/g, '<br>')}</div>`
+  }
+  return html
 }
 
 // ── Tasks HTML ────────────────────────────────────────────────────────────────

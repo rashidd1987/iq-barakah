@@ -15,6 +15,7 @@ MODULES = [
     "data/weeks.js",
     "data/habits.js",
     "data/tasks.js",
+    "data/content.js",
     "i18n.js",
     "components/sheets.js",
     "components/diagnostic.js",
