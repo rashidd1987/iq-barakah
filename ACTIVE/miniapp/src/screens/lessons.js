@@ -139,7 +139,7 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     const checked = loadChecked(level, levelWeekIndex)
     const content = _getLessonContent(level, levelWeekIndex)
 
-    rows.innerHTML = _renderLessonContent(content) + _renderTasksHtml(tasks, checked, level, levelWeekIndex)
+    rows.innerHTML = _renderLessonContent(content, level, levelWeekIndex) + _renderTasksHtml(tasks, checked, level, levelWeekIndex)
     _bindCheckboxes(rows, level, levelWeekIndex, tasks)
   }
 
@@ -173,15 +173,14 @@ function _getLessonContent(level, weekInLevel) {
   return levelData[weekInLevel - 1] || null
 }
 
-function _renderLessonContent(content) {
+function _renderLessonContent(content, level, weekInLevel) {
   if (!content) return ''
   const skill = U.skill || 'I'
-  const text = typeof content.text === 'object' ? (content.text[skill] || content.text['I'] || '') : (content.text || '')
 
-  // Show first 2 paragraphs only (split by double newline)
-  const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
-  const previewParagraphs = paragraphs.slice(0, 2)
-  const hasMore = paragraphs.length > 2
+  // Use curated summary if available
+  const summary = (typeof LESSON_SUMMARIES !== 'undefined')
+    ? LESSON_SUMMARIES?.[level]?.[weekInLevel - 1]?.[skill]
+    : null
 
   let html = ''
   if (content.hadith) {
@@ -190,9 +189,18 @@ function _renderLessonContent(content) {
       <div class="hadith-text">${content.hadith}</div>
     </div>`
   }
-  if (previewParagraphs.length > 0) {
-    const previewHtml = previewParagraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
-    html += `<div class="lesson-text-preview">${previewHtml}${hasMore ? '<div class="lesson-read-more">📖 Полный текст — в боте</div>' : ''}</div>`
+
+  if (summary) {
+    html += `<div class="lesson-text-preview"><p>${summary}</p><div class="lesson-read-more">📖 Полный текст — в боте</div></div>`
+  } else {
+    // Fallback: first 2 paragraphs
+    const text = typeof content.text === 'object' ? (content.text[skill] || content.text['I'] || '') : (content.text || '')
+    const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+    const preview = paragraphs.slice(0, 2)
+    if (preview.length > 0) {
+      const previewHtml = preview.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
+      html += `<div class="lesson-text-preview">${previewHtml}<div class="lesson-read-more">📖 Полный текст — в боте</div></div>`
+    }
   }
   return html
 }

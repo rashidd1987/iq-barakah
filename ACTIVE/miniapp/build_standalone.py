@@ -16,6 +16,7 @@ MODULES = [
     "data/habits.js",
     "data/tasks.js",
     "data/content.js",
+    "data/summaries.js",
     "i18n.js",
     "components/sheets.js",
     "components/diagnostic.js",
