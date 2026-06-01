@@ -618,14 +618,17 @@ async def cmd_tester(message: Message, session: AsyncSession, config: Config):
 
 async def _notify_activation(bot, user_id: int, participant: Participant, session: AsyncSession, config: Config):
     user = await UserRepo(session).get(user_id)
-    name = _md_escape(user.name) if user else "брат"
+    is_female = user.is_female if user else False
+    default_name = "сестра" if is_female else "брат"
+    name = _md_escape(user.name) if user else default_name
+    activated = "активирована" if is_female else "активирован"
     level_name = LEVEL_NAMES.get(participant.level, participant.level)
     try:
         await bot.send_message(
             chat_id=user_id,
             text=(
                 f"🌿 *Бисмиллях, {name}!*\n\n"
-                "Ты активирован в программе *IQ Barakah*.\n\n"
+                f"Ты {activated} в программе *IQ Barakah*.\n\n"
                 f"📍 Маршрут: *{level_name}*\n"
                 f"📅 Старт: неделя *{participant.week}* из *{LEVEL_WEEKS.get(participant.level, 8)}*\n\n"
                 "Ниже отправляю первый урок и ссылку на личный кабинет."
