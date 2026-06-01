@@ -3,7 +3,7 @@
  * Не требует серверных запросов.
  */
 import { lsGet } from './storage.js'
-import { TASKS } from '../data/tasks.js'
+import { PROGRAM_TASKS } from '../data/tasks.js'
 
 // ── Стрик (дней подряд) ──────────────────────────────────────────────────────
 // День «засчитывается», если в трекере отмечено хотя бы 1 привычка.
@@ -41,7 +41,7 @@ export function computeDeeds(level) {
 
   // 2) Выполненные задания по урокам
   if (level) {
-    const prog = TASKS[level]
+    const prog = PROGRAM_TASKS[level]
     if (prog) {
       prog.forEach((_, weekIdx) => {
         const weekNum = weekIdx + 1

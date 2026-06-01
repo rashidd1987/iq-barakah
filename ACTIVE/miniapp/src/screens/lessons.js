@@ -1,5 +1,5 @@
 import { WEEKS, PHASE_LABELS } from '../data/weeks.js'
-import { TASKS } from '../data/tasks.js'
+import { PROGRAM_TASKS } from '../data/tasks.js'
 import { PROGRAM_CONTENT } from '../data/content.js'
 import { haptic, sendData, cloudGet, cloudSet } from '../utils/tg.js'
 import { openSheet } from '../components/sheets.js'
@@ -27,7 +27,7 @@ function saveChecked(level, week, state) {
 
 // ── Get tasks for current user ────────────────────────────────────────────────
 function getWeekTasks(level, weekInLevel) {
-  const prog = TASKS[level]
+  const prog = PROGRAM_TASKS[level]
   if (!prog) return []
   const weekData = prog[weekInLevel - 1]
   if (!weekData) return []

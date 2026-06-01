@@ -1144,7 +1144,7 @@ function computeDeeds(level) {
 
   // 2) Выполненные задания по урокам
   if (level) {
-    const prog = TASKS[level]
+    const prog = PROGRAM_TASKS[level]
     if (prog) {
       prog.forEach((_, weekIdx) => {
         const weekNum = weekIdx + 1
@@ -3267,7 +3267,7 @@ function saveChecked(level, week, state) {
 
 // ── Get tasks for current user ────────────────────────────────────────────────
 function getWeekTasks(level, weekInLevel) {
-  const prog = TASKS[level]
+  const prog = PROGRAM_TASKS[level]
   if (!prog) return []
   const weekData = prog[weekInLevel - 1]
   if (!weekData) return []
