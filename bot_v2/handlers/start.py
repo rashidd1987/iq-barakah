@@ -312,19 +312,27 @@ async def msg_jarwas(message: Message, state: FSMContext, session: AsyncSession,
 
 @router.message(Command("resetme"))
 async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext, config: Config):
-    """Сброс профиля для тестирования — только кураторам."""
+    """Полный сброс профиля для тестирования — только кураторам."""
     if message.from_user.id not in config.curator_ids:
         return
     from bot_v2.db.models import User
+    from sqlalchemy import delete
+    uid = message.from_user.id
+    # Сбрасываем профиль
     await session.execute(
         update(User)
-        .where(User.user_id == message.from_user.id)
+        .where(User.user_id == uid)
         .values(name=message.from_user.first_name or "Участник",
-                is_female=None, age=None, occupation=None, source=None)
+                is_female=None, age=None, occupation=None, source=None,
+                referral_code=None)
     )
+    # Удаляем participant (прогресс)
+    await session.execute(delete(Participant).where(Participant.user_id == uid))
+    # Удаляем диагностики
+    await session.execute(delete(DiagResult).where(DiagResult.user_id == uid))
     await session.commit()
     await state.clear()
-    await message.answer("✅ Готово — бот тебя забыл.\n\nНапиши /start — увидишь экран нового пользователя.")
+    await message.answer("✅ Полный сброс выполнен — профиль, прогресс и диагностика удалены.\n\nНапиши /start — увидишь экран нового пользователя.")
 
 
 def _profile_complete(user) -> bool:
