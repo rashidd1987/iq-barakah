@@ -124,15 +124,6 @@ function renderProgramTasks() {
       setTimeout(() => el.classList.remove('pop'), 350)
 
       _updatePtasksHeader()
-
-      sendData({
-        action: 'check_task',
-        level,
-        week: weekInLevel,
-        task_index: idx,
-        checked: nowDone,
-        total_tasks: tasks.length,
-      })
     }
     container.appendChild(el)
   })

@@ -262,16 +262,6 @@ function _bindCheckboxes(container, level, weekInLevel, tasks) {
       if (pbar) pbar.style.width = pct + '%'
       if (pctEl) pctEl.textContent = `${doneCount}/${total}`
 
-      // Send to bot (saves to PostgreSQL, notifies curator if all done)
-      sendData({
-        action: 'check_task',
-        level,
-        week: weekInLevel,
-        task_index: idx,
-        checked: newVal,
-        total_tasks: total,
-      })
-
       // Celebration if all done
       if (doneCount === total) {
         haptic('success')
