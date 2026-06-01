@@ -178,8 +178,10 @@ function _renderLessonContent(content) {
   const skill = U.skill || 'I'
   const text = typeof content.text === 'object' ? (content.text[skill] || content.text['I'] || '') : (content.text || '')
 
-  // Show first ~400 chars as preview
-  const preview = text.length > 400 ? text.slice(0, 400).trimEnd() + '…' : text
+  // Show first 2 paragraphs only (split by double newline)
+  const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+  const previewParagraphs = paragraphs.slice(0, 2)
+  const hasMore = paragraphs.length > 2
 
   let html = ''
   if (content.hadith) {
@@ -188,8 +190,9 @@ function _renderLessonContent(content) {
       <div class="hadith-text">${content.hadith}</div>
     </div>`
   }
-  if (preview) {
-    html += `<div class="lesson-text-preview">${preview.replace(/\n/g, '<br>')}</div>`
+  if (previewParagraphs.length > 0) {
+    const previewHtml = previewParagraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
+    html += `<div class="lesson-text-preview">${previewHtml}${hasMore ? '<div class="lesson-read-more">📖 Полный текст — в боте</div>' : ''}</div>`
   }
   return html
 }

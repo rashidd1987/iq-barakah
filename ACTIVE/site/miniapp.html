@@ -771,11 +771,18 @@ textarea:focus { border-color: var(--g2); }
   font-style: italic;
 }
 .lesson-text-preview {
-  font-size: 14px; line-height: 1.6; color: var(--txt);
+  font-size: 14px; line-height: 1.6; color: var(--text);
   background: var(--card); border-radius: 10px;
   padding: 12px 14px; margin-bottom: 14px;
   border: 1px solid var(--border);
-  white-space: pre-wrap;
+}
+.lesson-text-preview p { margin-bottom: 10px; }
+.lesson-text-preview p:last-of-type { margin-bottom: 0; }
+.lesson-read-more {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px; color: var(--g2);
+  font-weight: 600; text-align: center;
 }
 
   </style>
@@ -3496,8 +3503,10 @@ function _renderLessonContent(content) {
   const skill = U.skill || 'I'
   const text = typeof content.text === 'object' ? (content.text[skill] || content.text['I'] || '') : (content.text || '')
 
-  // Show first ~400 chars as preview
-  const preview = text.length > 400 ? text.slice(0, 400).trimEnd() + '…' : text
+  // Show first 2 paragraphs only (split by double newline)
+  const paragraphs = text.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+  const previewParagraphs = paragraphs.slice(0, 2)
+  const hasMore = paragraphs.length > 2
 
   let html = ''
   if (content.hadith) {
@@ -3506,8 +3515,9 @@ function _renderLessonContent(content) {
       <div class="hadith-text">${content.hadith}</div>
     </div>`
   }
-  if (preview) {
-    html += `<div class="lesson-text-preview">${preview.replace(/\n/g, '<br>')}</div>`
+  if (previewParagraphs.length > 0) {
+    const previewHtml = previewParagraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')
+    html += `<div class="lesson-text-preview">${previewHtml}${hasMore ? '<div class="lesson-read-more">📖 Полный текст — в боте</div>' : ''}</div>`
   }
   return html
 }
