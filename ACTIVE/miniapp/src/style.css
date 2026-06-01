@@ -718,13 +718,25 @@ textarea:focus { border-color: var(--g2); }
 }
 
 .all-done-banner {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 12px;
   background: linear-gradient(135deg, var(--gpale, #e8f5e9), #fff8e1);
   border-radius: 12px; padding: 14px 16px; margin-top: 12px;
   animation: fadeIn .4s ease;
 }
-.all-done-icon { font-size: 28px; }
+.all-done-icon { font-size: 28px; flex-shrink: 0; }
 .all-done-text { font-size: 14px; font-weight: 700; color: var(--g2, #388e3c); }
+.all-done-sub { font-size: 12px; color: var(--sub); margin-top: 3px; }
+
+/* Tracker program-tasks celebration */
+.ptasks-all-done {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,.12);
+  border-radius: 10px; padding: 12px 14px; margin-top: 10px;
+  animation: fadeIn .4s ease;
+}
+.ptasks-done-icon { font-size: 26px; flex-shrink: 0; }
+.ptasks-done-text { font-size: 13px; font-weight: 700; color: #fff; }
+.ptasks-done-sub { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }

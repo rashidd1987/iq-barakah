@@ -282,7 +282,10 @@ function _showAllDoneBanner(container) {
   banner.className = 'all-done-banner'
   banner.innerHTML = `
     <div class="all-done-icon">🎉</div>
-    <div class="all-done-text">Все задания выполнены! Альхамдулиллях</div>`
+    <div>
+      <div class="all-done-text">Все задания выполнены! Альхамдулиллях</div>
+      <div class="all-done-sub">Ты молодец — продолжай в том же духе 💚</div>
+    </div>`
   container.appendChild(banner)
 }
 

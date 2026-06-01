@@ -99,6 +99,23 @@ function renderProgramTasks() {
     if (subEl) subEl.textContent = `${doneCount} из ${total} выполнено`
     if (badgeEl) badgeEl.textContent = `${pct}%`
     if (pbarEl) pbarEl.style.width = `${pct}%`
+
+    // Celebration banner when all done
+    const existing = container.querySelector('.ptasks-all-done')
+    if (doneCount === total && total > 0 && !existing) {
+      haptic('success')
+      const banner = document.createElement('div')
+      banner.className = 'ptasks-all-done'
+      banner.innerHTML = `
+        <div class="ptasks-done-icon">🎉</div>
+        <div>
+          <div class="ptasks-done-text">Все задания выполнены! Альхамдулиллях</div>
+          <div class="ptasks-done-sub">Ты молодец — продолжай в том же духе 💚</div>
+        </div>`
+      container.appendChild(banner)
+    } else if (doneCount < total && existing) {
+      existing.remove()
+    }
   }
 
   container.innerHTML = ''
