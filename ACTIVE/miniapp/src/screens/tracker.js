@@ -74,7 +74,6 @@ function renderProgramTasks() {
   const tasks = getProgramTasks()
   const section = document.getElementById('program-tasks-section')
   const container = document.getElementById('program-tasks')
-  const label = document.getElementById('program-tasks-label')
   if (!tasks || tasks.length === 0) {
     section.style.display = 'none'
     return
@@ -84,19 +83,32 @@ function renderProgramTasks() {
   const level = U.level
   const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
   const weekInLevel = U.currentWeek - (LEVEL_OFFSET[level] ?? 0)
-  label.textContent = `📋 Задания · Уровень ${level} · Неделя ${weekInLevel}`
 
   const storageKey = `ptasks_${level}_w${weekInLevel}_${U.skill}`
   const done = lsGet(storageKey, {})
+
+  function _updatePtasksHeader() {
+    const doneCount = Object.values(done).filter(Boolean).length
+    const total = tasks.length
+    const pct = total > 0 ? Math.round(doneCount / total * 100) : 0
+    const subEl = document.getElementById('program-tasks-sub')
+    const badgeEl = document.getElementById('program-tasks-badge')
+    const pbarEl = document.getElementById('program-tasks-pbar')
+    const labelEl = document.getElementById('program-tasks-label')
+    if (labelEl) labelEl.textContent = `Задания · Уровень ${level} · Неделя ${weekInLevel}`
+    if (subEl) subEl.textContent = `${doneCount} из ${total} выполнено`
+    if (badgeEl) badgeEl.textContent = `${pct}%`
+    if (pbarEl) pbarEl.style.width = `${pct}%`
+  }
 
   container.innerHTML = ''
   tasks.forEach((taskText, idx) => {
     const isDone = !!done[idx]
     const el = document.createElement('div')
-    el.className = `habit-item${isDone ? ' checked' : ''}`
+    el.className = `ptask-item${isDone ? ' ptask-done' : ''}`
     el.innerHTML = `
-      <div class="hcheck">${isDone ? '<span style="color:white;font-size:14px;">✓</span>' : ''}</div>
-      <div class="habit-info" style="flex:1"><div class="t" style="white-space:pre-wrap;line-height:1.4;">${taskText}</div></div>`
+      <div class="ptask-cb${isDone ? ' done' : ''}"></div>
+      <div class="ptask-text">${taskText}</div>`
 
     el.onclick = () => {
       haptic()
@@ -105,10 +117,13 @@ function renderProgramTasks() {
       else delete done[idx]
       lsSet(storageKey, done)
 
-      el.classList.toggle('checked', nowDone)
-      el.querySelector('.hcheck').innerHTML = nowDone ? '<span style="color:white;font-size:14px;">✓</span>' : ''
+      el.classList.toggle('ptask-done', nowDone)
+      const cb = el.querySelector('.ptask-cb')
+      cb.classList.toggle('done', nowDone)
       el.classList.add('pop')
       setTimeout(() => el.classList.remove('pop'), 350)
+
+      _updatePtasksHeader()
 
       sendData({
         action: 'check_task',
@@ -121,6 +136,8 @@ function renderProgramTasks() {
     }
     container.appendChild(el)
   })
+
+  _updatePtasksHeader()
 }
 
 function renderWeekStrip() {

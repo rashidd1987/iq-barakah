@@ -166,8 +166,20 @@
       <div class="prog-bar"><div class="prog-fill" id="tp-bar" style="width:0%"></div></div>
     </div></div>
     <div id="program-tasks-section" style="display:none;">
-      <div class="habit-section-label" id="program-tasks-label">📋 Задания программы</div>
-      <div style="display:flex;flex-direction:column;gap:8px;" id="program-tasks"></div>
+      <div class="ptasks-card">
+        <div class="ptasks-header">
+          <div class="ptasks-header-left">
+            <div class="ptasks-icon">📋</div>
+            <div>
+              <div class="ptasks-title" id="program-tasks-label">Задания недели</div>
+              <div class="ptasks-sub" id="program-tasks-sub">0 из 0 выполнено</div>
+            </div>
+          </div>
+          <div class="ptasks-badge" id="program-tasks-badge">0%</div>
+        </div>
+        <div class="ptasks-pbar-wrap"><div class="ptasks-pbar" id="program-tasks-pbar" style="width:0%"></div></div>
+        <div id="program-tasks"></div>
+      </div>
     </div>
     <div class="habit-section-label" data-i18n="namazTitle">🕌 Намаз (5 раз в день)</div>
     <div class="card"><div class="cb" style="padding:14px;"><div class="namaz-grid" id="namaz-grid"></div></div></div>

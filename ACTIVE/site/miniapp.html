@@ -630,6 +630,64 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Program Tasks Card (Tracker) ───────────────────────────────────── */
+.ptasks-card {
+  background: linear-gradient(135deg, #1a3d1b 0%, #2c5f2d 100%);
+  border-radius: var(--r, 18px);
+  padding: 16px;
+  margin-bottom: 4px;
+  box-shadow: 0 4px 20px rgba(26,61,27,.25);
+}
+.ptasks-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.ptasks-header-left { display: flex; align-items: center; gap: 10px; }
+.ptasks-icon { font-size: 26px; line-height: 1; }
+.ptasks-title { font-size: 15px; font-weight: 700; color: #fff; }
+.ptasks-sub { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 1px; }
+.ptasks-badge {
+  background: rgba(255,255,255,.15); color: #fff;
+  font-size: 13px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+.ptasks-pbar-wrap {
+  height: 5px; border-radius: 3px;
+  background: rgba(255,255,255,.2); overflow: hidden; margin-bottom: 14px;
+}
+.ptasks-pbar {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #81c784, #c9a84c);
+  transition: width .4s ease;
+}
+#program-tasks { display: flex; flex-direction: column; gap: 0; }
+.ptask-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  cursor: pointer; transition: opacity .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.ptask-item:last-child { border-bottom: none; padding-bottom: 0; }
+.ptask-item:active { opacity: .7; }
+.ptask-cb {
+  width: 24px; height: 24px; border-radius: 7px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; margin-top: 1px;
+}
+.ptask-cb.done {
+  background: #81c784; border-color: #81c784;
+}
+.ptask-cb.done::after { content: '✓'; color: #1a3d1b; font-size: 13px; font-weight: 800; }
+.ptask-text {
+  font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.9);
+  flex: 1;
+}
+.ptask-item.ptask-done .ptask-text {
+  color: rgba(255,255,255,.4); text-decoration: line-through;
+}
+
 /* ── Tasks / Checkboxes ──────────────────────────────────────────────── */
 .tasks-header {
   padding: 12px 0 8px;
@@ -882,8 +940,20 @@ textarea:focus { border-color: var(--g2); }
       <div class="prog-bar"><div class="prog-fill" id="tp-bar" style="width:0%"></div></div>
     </div></div>
     <div id="program-tasks-section" style="display:none;">
-      <div class="habit-section-label" id="program-tasks-label">📋 Задания программы</div>
-      <div style="display:flex;flex-direction:column;gap:8px;" id="program-tasks"></div>
+      <div class="ptasks-card">
+        <div class="ptasks-header">
+          <div class="ptasks-header-left">
+            <div class="ptasks-icon">📋</div>
+            <div>
+              <div class="ptasks-title" id="program-tasks-label">Задания недели</div>
+              <div class="ptasks-sub" id="program-tasks-sub">0 из 0 выполнено</div>
+            </div>
+          </div>
+          <div class="ptasks-badge" id="program-tasks-badge">0%</div>
+        </div>
+        <div class="ptasks-pbar-wrap"><div class="ptasks-pbar" id="program-tasks-pbar" style="width:0%"></div></div>
+        <div id="program-tasks"></div>
+      </div>
     </div>
     <div class="habit-section-label" data-i18n="namazTitle">🕌 Намаз (5 раз в день)</div>
     <div class="card"><div class="cb" style="padding:14px;"><div class="namaz-grid" id="namaz-grid"></div></div></div>
@@ -3092,7 +3162,6 @@ function renderProgramTasks() {
   const tasks = getProgramTasks()
   const section = document.getElementById('program-tasks-section')
   const container = document.getElementById('program-tasks')
-  const label = document.getElementById('program-tasks-label')
   if (!tasks || tasks.length === 0) {
     section.style.display = 'none'
     return
@@ -3102,19 +3171,32 @@ function renderProgramTasks() {
   const level = U.level
   const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
   const weekInLevel = U.currentWeek - (LEVEL_OFFSET[level] ?? 0)
-  label.textContent = `📋 Задания · Уровень ${level} · Неделя ${weekInLevel}`
 
   const storageKey = `ptasks_${level}_w${weekInLevel}_${U.skill}`
   const done = lsGet(storageKey, {})
+
+  function _updatePtasksHeader() {
+    const doneCount = Object.values(done).filter(Boolean).length
+    const total = tasks.length
+    const pct = total > 0 ? Math.round(doneCount / total * 100) : 0
+    const subEl = document.getElementById('program-tasks-sub')
+    const badgeEl = document.getElementById('program-tasks-badge')
+    const pbarEl = document.getElementById('program-tasks-pbar')
+    const labelEl = document.getElementById('program-tasks-label')
+    if (labelEl) labelEl.textContent = `Задания · Уровень ${level} · Неделя ${weekInLevel}`
+    if (subEl) subEl.textContent = `${doneCount} из ${total} выполнено`
+    if (badgeEl) badgeEl.textContent = `${pct}%`
+    if (pbarEl) pbarEl.style.width = `${pct}%`
+  }
 
   container.innerHTML = ''
   tasks.forEach((taskText, idx) => {
     const isDone = !!done[idx]
     const el = document.createElement('div')
-    el.className = `habit-item${isDone ? ' checked' : ''}`
+    el.className = `ptask-item${isDone ? ' ptask-done' : ''}`
     el.innerHTML = `
-      <div class="hcheck">${isDone ? '<span style="color:white;font-size:14px;">✓</span>' : ''}</div>
-      <div class="habit-info" style="flex:1"><div class="t" style="white-space:pre-wrap;line-height:1.4;">${taskText}</div></div>`
+      <div class="ptask-cb${isDone ? ' done' : ''}"></div>
+      <div class="ptask-text">${taskText}</div>`
 
     el.onclick = () => {
       haptic()
@@ -3123,10 +3205,13 @@ function renderProgramTasks() {
       else delete done[idx]
       lsSet(storageKey, done)
 
-      el.classList.toggle('checked', nowDone)
-      el.querySelector('.hcheck').innerHTML = nowDone ? '<span style="color:white;font-size:14px;">✓</span>' : ''
+      el.classList.toggle('ptask-done', nowDone)
+      const cb = el.querySelector('.ptask-cb')
+      cb.classList.toggle('done', nowDone)
       el.classList.add('pop')
       setTimeout(() => el.classList.remove('pop'), 350)
+
+      _updatePtasksHeader()
 
       sendData({
         action: 'check_task',
@@ -3139,6 +3224,8 @@ function renderProgramTasks() {
     }
     container.appendChild(el)
   })
+
+  _updatePtasksHeader()
 }
 
 function renderWeekStrip() {

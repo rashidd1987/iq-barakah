@@ -622,6 +622,64 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Program Tasks Card (Tracker) ───────────────────────────────────── */
+.ptasks-card {
+  background: linear-gradient(135deg, #1a3d1b 0%, #2c5f2d 100%);
+  border-radius: var(--r, 18px);
+  padding: 16px;
+  margin-bottom: 4px;
+  box-shadow: 0 4px 20px rgba(26,61,27,.25);
+}
+.ptasks-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.ptasks-header-left { display: flex; align-items: center; gap: 10px; }
+.ptasks-icon { font-size: 26px; line-height: 1; }
+.ptasks-title { font-size: 15px; font-weight: 700; color: #fff; }
+.ptasks-sub { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 1px; }
+.ptasks-badge {
+  background: rgba(255,255,255,.15); color: #fff;
+  font-size: 13px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px;
+  backdrop-filter: blur(4px);
+}
+.ptasks-pbar-wrap {
+  height: 5px; border-radius: 3px;
+  background: rgba(255,255,255,.2); overflow: hidden; margin-bottom: 14px;
+}
+.ptasks-pbar {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, #81c784, #c9a84c);
+  transition: width .4s ease;
+}
+#program-tasks { display: flex; flex-direction: column; gap: 0; }
+.ptask-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,.1);
+  cursor: pointer; transition: opacity .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.ptask-item:last-child { border-bottom: none; padding-bottom: 0; }
+.ptask-item:active { opacity: .7; }
+.ptask-cb {
+  width: 24px; height: 24px; border-radius: 7px; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s; margin-top: 1px;
+}
+.ptask-cb.done {
+  background: #81c784; border-color: #81c784;
+}
+.ptask-cb.done::after { content: '✓'; color: #1a3d1b; font-size: 13px; font-weight: 800; }
+.ptask-text {
+  font-size: 13px; line-height: 1.5; color: rgba(255,255,255,.9);
+  flex: 1;
+}
+.ptask-item.ptask-done .ptask-text {
+  color: rgba(255,255,255,.4); text-decoration: line-through;
+}
+
 /* ── Tasks / Checkboxes ──────────────────────────────────────────────── */
 .tasks-header {
   padding: 12px 0 8px;
