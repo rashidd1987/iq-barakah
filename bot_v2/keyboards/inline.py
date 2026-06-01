@@ -62,6 +62,7 @@ def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> Repl
             [KeyboardButton(text=t(lang, "bottom.program")), KeyboardButton(text=t(lang, "bottom.payment"))],
             [KeyboardButton(text=t(lang, "bottom.reminders")), KeyboardButton(text=t(lang, "bottom.curator"))],
             [KeyboardButton(text=t(lang, "bottom.muhasaba")), KeyboardButton(text=t(lang, "bottom.site"))],
+            [KeyboardButton(text=t(lang, "bottom.jarwas"))],
         ],
         resize_keyboard=True,
         input_field_placeholder=t(lang, "bottom.placeholder"),

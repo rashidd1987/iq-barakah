@@ -43,6 +43,7 @@ BOTTOM_TEXTS = {
     "curator": {BTN_CURATOR, t("ru", "bottom.curator")},
     "muhasaba": {BTN_MUHASABA, t("ru", "bottom.muhasaba")},
     "site": {BTN_SITE, t("ru", "bottom.site")},
+    "jarwas": {t("ru", "bottom.jarwas")},
 }
 
 
@@ -229,6 +230,16 @@ async def onboarding_source(message: Message, state: FSMContext, session: AsyncS
         t(lang, "onboarding.saved"),
         reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
     )
+    # Приглашаем познакомиться с AI-наставником
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await message.answer(
+        "🤖 *Познакомься с Джарвасом — твоим AI-наставником!*\n\n"
+        "Он поможет выбрать программу, ответит на вопросы и поддержит на пути. 🌿",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🤖 Поговорить с AI-наставником", callback_data="jarwas_start")],
+        ]),
+    )
     await _send_diag_prompt(message, config, lang)
 
 
@@ -285,6 +296,18 @@ async def msg_site(message: Message, state: FSMContext, session: AsyncSession, c
     await state.clear()
     lang = await _message_lang(session, message)
     await message.answer(t(lang, "site.open", url=config.site))
+
+
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["jarwas"]))
+async def msg_jarwas(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    await state.clear()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    lang = await _message_lang(session, message)
+    from bot_v2.services.i18n import t as _t
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🤖 Открыть AI-наставника", callback_data="jarwas_start")],
+    ])
+    await message.answer(_t(lang, "jarwas.start"), parse_mode="Markdown", reply_markup=kb)
 
 
 @router.message(Command("resetme"))
