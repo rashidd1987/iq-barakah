@@ -1,6 +1,6 @@
 import { getTgUser } from '../utils/tg.js'
 import { WEEKS, LEVEL_OFFSET, LEVEL_ICONS, LEVEL_LABELS } from '../data/weeks.js'
-import { lsGet } from '../utils/storage.js'
+import { lsGet, lsSet } from '../utils/storage.js'
 import { computeAllStats } from '../utils/stats.js'
 import { t } from '../i18n.js'
 

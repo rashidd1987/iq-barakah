@@ -59,9 +59,10 @@ def build_html() -> str:
     bundle = build_bundle()
 
     html = html.replace("</head>", f"  <style>\n{css}\n  </style>\n</head>")
+    _replacement = f"\n<script>\n{bundle}\n</script>\n"
     html = re.sub(
         r"\s*<script\s+type=\"module\"\s+src=\"/src/main\.js\"></script>\s*",
-        f"\n<script>\n{bundle}\n</script>\n",
+        lambda m: _replacement,
         html,
     )
     return html

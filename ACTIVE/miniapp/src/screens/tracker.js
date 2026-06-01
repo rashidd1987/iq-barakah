@@ -40,11 +40,14 @@ export function renderTracker() {
   checked = lsGet('checked', {})
 
   const d = new Date()
-  document.getElementById('tracker-date').textContent = d.toLocaleDateString(t('dateLocale'), {
-    day: 'numeric',
-    month: 'long',
-    weekday: 'long',
-  })
+  try {
+    const dateLocale = t('dateLocale')
+    document.getElementById('tracker-date').textContent = d.toLocaleDateString(dateLocale, {
+      day: 'numeric',
+      month: 'long',
+      weekday: 'long',
+    })
+  } catch(e) { console.error('[tracker] date error:', e.message) }
 
   renderWeekStrip()
   renderProgramTasks()
