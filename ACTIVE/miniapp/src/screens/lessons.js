@@ -5,7 +5,7 @@ import { haptic, sendData, cloudGet, cloudSet } from '../utils/tg.js'
 import { openSheet } from '../components/sheets.js'
 import { t } from '../i18n.js'
 import { U } from './home.js'
-import { lsGet, lsSet } from '../utils/storage.js'
+import { lsGet } from '../utils/storage.js'
 
 export let currentWeek = 0
 
@@ -136,11 +136,9 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     const level = U.level
     const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
     const tasks = getWeekTasks(level, levelWeekIndex)
-    const checked = loadChecked(level, levelWeekIndex)
     const content = _getLessonContent(level, levelWeekIndex)
 
-    rows.innerHTML = _renderLessonContent(content, level, levelWeekIndex) + _renderTasksHtml(tasks, checked, level, levelWeekIndex)
-    _bindCheckboxes(rows, level, levelWeekIndex, tasks)
+    rows.innerHTML = _renderLessonContent(content, level, levelWeekIndex) + _renderTasksHtml(tasks)
   }
 
   const btns = document.getElementById('sl-btns')
@@ -206,80 +204,15 @@ function _renderLessonContent(content, level, weekInLevel) {
 }
 
 // ── Tasks HTML ────────────────────────────────────────────────────────────────
-function _renderTasksHtml(tasks, checked, level, weekInLevel) {
-  if (!tasks || tasks.length === 0) {
-    return `<div class="s-row"><div class="s-ri">📋</div><div class="s-rt"><div class="l">Задания</div><div class="v">Задания появятся скоро</div></div></div>`
-  }
+function _renderTasksHtml(tasks) {
+  if (!tasks || tasks.length === 0) return ''
 
-  const doneCount = Object.values(checked).filter(Boolean).length
-  const total = tasks.length
-  const pct = total > 0 ? Math.round(doneCount / total * 100) : 0
-
-  let html = `
-    <div class="tasks-header">
-      <div class="tasks-title">📋 Задания недели</div>
-      <div class="tasks-progress">
-        <div class="tasks-pbar-wrap">
-          <div class="tasks-pbar" style="width:${pct}%"></div>
-        </div>
-        <div class="tasks-pct">${doneCount}/${total}</div>
-      </div>
-    </div>`
-
+  let html = `<div class="lesson-tasks-list"><div class="lesson-tasks-title">📋 Задания недели</div>`
   tasks.forEach((task, i) => {
-    const isChecked = !!checked[i]
-    html += `
-      <label class="task-item${isChecked ? ' task-done' : ''}" data-task-idx="${i}">
-        <span class="task-cb${isChecked ? ' checked' : ''}">
-          ${isChecked ? '✅' : '⬜'}
-        </span>
-        <span class="task-text">${task}</span>
-      </label>`
+    html += `<div class="lesson-task-row"><span class="lesson-task-num">${i + 1}</span><span class="lesson-task-text">${task}</span></div>`
   })
-
+  html += `<div class="lesson-tasks-hint">✅ Отмечай выполненное в Трекере</div></div>`
   return html
-}
-
-// ── Bind checkbox interactions ────────────────────────────────────────────────
-function _bindCheckboxes(container, level, weekInLevel, tasks) {
-  container.querySelectorAll('.task-item').forEach(item => {
-    item.addEventListener('click', () => {
-      haptic()
-      const idx = parseInt(item.dataset.taskIdx, 10)
-      const checked = loadChecked(level, weekInLevel)
-      const newVal = !checked[idx]
-      checked[idx] = newVal
-
-      saveChecked(level, weekInLevel, checked)
-
-      // Update UI inline (no re-render, smooth UX)
-      const cb = item.querySelector('.task-cb')
-      if (newVal) {
-        cb.textContent = '✅'
-        cb.classList.add('checked')
-        item.classList.add('task-done')
-      } else {
-        cb.textContent = '⬜'
-        cb.classList.remove('checked')
-        item.classList.remove('task-done')
-      }
-
-      // Update progress bar
-      const doneCount = Object.values(checked).filter(Boolean).length
-      const total = tasks.length
-      const pct = Math.round(doneCount / total * 100)
-      const pbar = container.querySelector('.tasks-pbar')
-      const pctEl = container.querySelector('.tasks-pct')
-      if (pbar) pbar.style.width = pct + '%'
-      if (pctEl) pctEl.textContent = `${doneCount}/${total}`
-
-      // Celebration if all done
-      if (doneCount === total) {
-        haptic('success')
-        setTimeout(() => _showAllDoneBanner(container), 200)
-      }
-    })
-  })
 }
 
 // ── All done celebration ──────────────────────────────────────────────────────
