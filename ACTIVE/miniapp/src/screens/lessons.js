@@ -216,7 +216,7 @@ function _renderTasksHtml(tasks) {
   tasks.forEach((task, i) => {
     html += `<div class="lesson-task-row"><span class="lesson-task-num">${i + 1}</span><span class="lesson-task-text">${task}</span></div>`
   })
-  html += `<div class="lesson-tasks-hint">✅ Отмечай выполненное в Трекере</div></div>`
+  html += `<div class="lesson-tasks-hint">🔁 Выполняй каждый день · ✅ Отмечай в Трекере</div></div>`
   return html
 }
 
@@ -236,28 +236,34 @@ function _showAllDoneBanner(container) {
 }
 
 function _openCalendar(w, globalWeekIndex) {
-  // Calculate Monday of current week for this lesson
+  // Monday of the current week at 9:00 AM
   const today = new Date()
-  // Find Monday of the week containing today (if current week), or nearest future Monday
   const dow = today.getDay()
   const monday = new Date(today)
   monday.setDate(today.getDate() - ((dow + 6) % 7))
   monday.setHours(9, 0, 0, 0)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 0, 0)
+  const mondayEnd = new Date(monday)
+  mondayEnd.setHours(9, 30, 0, 0)
 
-  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  // Format: YYYYMMDDTHHmmss (local time, no Z so Google Calendar uses user's timezone)
+  const fmt = (d) => {
+    const pad = n => String(n).padStart(2, '0')
+    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+  }
 
   const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
   const tasks = getWeekTasks(U.level, levelWeekIndex)
-  const taskList = tasks.slice(0, 5).map((t, i) => `${i+1}. ${t.replace(/<[^>]+>/g, '').substring(0, 80)}`).join('%0A')
+  // Build task list for description
+  const taskLines = tasks.slice(0, 5).map((t, i) =>
+    `${i+1}. ${t.replace(/[🕐📿📖🌙⏰🌤🤲📵⚓🤝📝🌅🤫✨📿💼]/g, '').substring(0, 100).trim()}`
+  ).join('\n')
 
   const title = encodeURIComponent(`IQ Barakah · ${w.num} · ${w.title}`)
-  const details = encodeURIComponent(`${w.sub}\n\nЗадания недели:\n`) + taskList
+  const details = encodeURIComponent(`${w.sub}\n\nЗадания на каждый день этой недели:\n${taskLines}\n\nОтмечай выполненное в Трекере`)
+  // Daily recurring event, 7 days
+  const recur = encodeURIComponent('RRULE:FREQ=DAILY;COUNT=7')
 
-  // Google Calendar URL
-  const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(monday)}/${fmt(sunday)}&details=${details}&sf=true&output=xml`
+  const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(monday)}/${fmt(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`
   openLink(gcal)
 }
 

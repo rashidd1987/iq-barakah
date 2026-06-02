@@ -115,12 +115,18 @@ function renderMonthCal() {
   </div>`
   cal.innerHTML = html
 
-  // Nav buttons
+  // Replace buttons with clones to remove stale listeners
+  ;['mcal-prev', 'mcal-next'].forEach(id => {
+    const old = document.getElementById(id)
+    if (old) { const c = old.cloneNode(true); old.parentNode.replaceChild(c, old) }
+  })
   document.getElementById('mcal-prev')?.addEventListener('click', () => {
+    haptic()
     _calMonth--; if (_calMonth < 0) { _calMonth = 11; _calYear-- }
     renderMonthCal()
   })
   document.getElementById('mcal-next')?.addEventListener('click', () => {
+    haptic()
     _calMonth++; if (_calMonth > 11) { _calMonth = 0; _calYear++ }
     renderMonthCal()
   })
