@@ -222,6 +222,31 @@ function renderProgramTasks() {
   _updatePtasksHeader()
 }
 
+// ── Individual habit streak ───────────────────────────────────────────────────
+function getHabitStreak(id) {
+  const today = new Date()
+  let streak = 0
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    const key = d.toISOString().split('T')[0]
+    if (checked[key]?.[id]) {
+      streak++
+    } else {
+      if (i === 0) continue // today not yet done — don't break streak
+      break
+    }
+  }
+  return streak
+}
+
+function streakBadge(id) {
+  const s = getHabitStreak(id)
+  if (s < 2) return ''
+  const color = s >= 7 ? '#e74c3c' : s >= 3 ? '#e67e22' : '#f39c12'
+  return `<div class="habit-streak-badge" style="background:${color}">🔥${s}</div>`
+}
+
 function renderWeekStrip() {
   const strip = document.getElementById('week-strip')
   strip.innerHTML = ''
@@ -250,15 +275,23 @@ function renderNamaz() {
   ng.innerHTML = ''
   NAMAZ.forEach(n => {
     const done = isChecked(n.id)
+    const s = getHabitStreak(n.id)
     const btn = document.createElement('button')
     btn.className = `namaz-btn${done ? ' done' : ''}`
-    btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${done ? '✅' : n.icon}</span>`
+    btn.innerHTML = `
+      <span class="nl">${n.label}</span>
+      <span class="ni">${done ? '✅' : n.icon}</span>
+      ${s >= 2 ? `<span class="namaz-streak">🔥${s}</span>` : ''}`
     btn.onclick = () => {
       haptic()
       toggle(n.id)
       const d = isChecked(n.id)
+      const s2 = getHabitStreak(n.id)
       btn.className = `namaz-btn${d ? ' done' : ''}`
-      btn.innerHTML = `<span class="nl">${n.label}</span><span class="ni">${d ? '✅' : n.icon}</span>`
+      btn.innerHTML = `
+        <span class="nl">${n.label}</span>
+        <span class="ni">${d ? '✅' : n.icon}</span>
+        ${s2 >= 2 ? `<span class="namaz-streak">🔥${s2}</span>` : ''}`
       updateProgress()
     }
     ng.appendChild(btn)
@@ -271,12 +304,13 @@ function renderDaily() {
   DAILY.forEach(h => {
     const el = document.createElement('div')
     const done = isChecked(h.id)
+    const s = getHabitStreak(h.id)
     el.className = `habit-item${done ? ' checked' : ''}`
     el.innerHTML = `
       <div class="hcheck">${done ? '<span style="color:white;font-size:14px;">✓</span>' : ''}</div>
       <div class="act-ic gr" style="width:38px;height:38px;border-radius:10px;font-size:18px;">${h.icon}</div>
       <div class="habit-info"><div class="t">${h.label}</div><div class="s">${h.sub}</div></div>
-      <div class="habit-streak">🔥${h.streak}</div>`
+      ${s >= 1 ? `<div class="habit-streak ${s >= 7 ? 'hot' : s >= 3 ? 'warm' : ''}">🔥${s}</div>` : '<div class="habit-streak muted">○</div>'}`
     el.onclick = () => {
       haptic()
       toggle(h.id)
@@ -285,6 +319,13 @@ function renderDaily() {
       el.querySelector('.hcheck').innerHTML = d ? '<span style="color:white;font-size:14px;">✓</span>' : ''
       el.classList.add('pop')
       setTimeout(() => el.classList.remove('pop'), 350)
+      // Update streak display
+      const s2 = getHabitStreak(h.id)
+      const sd = el.querySelector('.habit-streak')
+      if (sd) {
+        sd.className = `habit-streak ${s2 >= 7 ? 'hot' : s2 >= 3 ? 'warm' : s2 >= 1 ? '' : 'muted'}`
+        sd.textContent = s2 >= 1 ? `🔥${s2}` : '○'
+      }
       updateProgress()
     }
     dh.appendChild(el)

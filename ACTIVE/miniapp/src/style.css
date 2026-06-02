@@ -622,6 +622,22 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Individual habit streaks ───────────────────────────────────────── */
+.habit-streak { font-size: 12px; font-weight: 700; color: #e67e22; min-width: 28px; text-align: right; }
+.habit-streak.hot { color: #e74c3c; animation: pulse .8s ease-in-out infinite alternate; }
+.habit-streak.warm { color: #e67e22; }
+.habit-streak.muted { color: var(--muted); font-size: 14px; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+.namaz-btn { position: relative; }
+.namaz-streak {
+  position: absolute; top: -6px; right: -6px;
+  font-size: 9px; font-weight: 800; color: #fff;
+  background: #e74c3c; border-radius: 10px;
+  padding: 1px 4px; line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+
 /* ── Month Calendar ─────────────────────────────────────────────────── */
 .month-cal-header {
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
