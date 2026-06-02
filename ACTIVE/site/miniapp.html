@@ -3246,7 +3246,10 @@ function readUrlParams() {
 
 let checked = lsGet('checked', {})
 
-function save() { lsSet('checked', checked) }
+function save() {
+  lsSet('checked', checked)
+  cloudSet('iq_checked', JSON.stringify(checked))
+}
 
 function isChecked(id) { return !!(checked[todayKey()]?.[id]) }
 
@@ -3998,8 +4001,27 @@ setCurrentWeek(U.currentWeek)
 // Nav
 initNav()
 
-// Initial tracker render (for badge dot)
-renderTracker()
+// Sync habits from CloudStorage → merge with localStorage → then render
+function _mergeAndRender() {
+  cloudGet('iq_checked', (err, value) => {
+    if (!err && value) {
+      try {
+        const cloud = JSON.parse(value)
+        const local = lsGet('checked', {})
+        // Union merge: if either device checked an item, it stays checked
+        const merged = { ...cloud }
+        for (const [day, items] of Object.entries(local)) {
+          if (!merged[day]) merged[day] = {}
+          Object.assign(merged[day], items)
+        }
+        lsSet('checked', merged)
+        cloudSet('iq_checked', JSON.stringify(merged))
+      } catch(e) {}
+    }
+    renderTracker()
+  })
+}
+_mergeAndRender()
 
 // Diagnostic
 initDiagnostic(() => {

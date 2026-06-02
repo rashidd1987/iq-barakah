@@ -1,13 +1,16 @@
 import { NAMAZ, DAILY, WEEKLY, ONETIME } from '../data/habits.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
-import { haptic, sendData } from '../utils/tg.js'
+import { haptic, sendData, cloudSet } from '../utils/tg.js'
 import { lsGet, lsSet, todayKey } from '../utils/storage.js'
 import { t, tf } from '../i18n.js'
 import { U } from './home.js'
 
 let checked = lsGet('checked', {})
 
-function save() { lsSet('checked', checked) }
+function save() {
+  lsSet('checked', checked)
+  cloudSet('iq_checked', JSON.stringify(checked))
+}
 
 export function isChecked(id) { return !!(checked[todayKey()]?.[id]) }
 

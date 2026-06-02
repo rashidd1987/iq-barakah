@@ -1,6 +1,6 @@
 import './style.css'
 import { initI18n } from './i18n.js'
-import { initTg } from './utils/tg.js'
+import { initTg, cloudGet, cloudSet } from './utils/tg.js'
 import { initHome, U } from './screens/home.js'
 import { setCurrentWeek } from './screens/lessons.js'
 import { renderTracker } from './screens/tracker.js'
@@ -8,6 +8,7 @@ import { initNav, rerenderCurrentScreen } from './app.js'
 import { initDiagnostic, openDiag } from './components/diagnostic.js'
 import { initReviewSheet, openReviewSheet } from './components/sheets.js'
 import { WEEKS } from './data/weeks.js'
+import { lsGet, lsSet } from './utils/storage.js'
 
 initTg()
 initI18n()
@@ -19,8 +20,27 @@ setCurrentWeek(U.currentWeek)
 // Nav
 initNav()
 
-// Initial tracker render (for badge dot)
-renderTracker()
+// Sync habits from CloudStorage → merge with localStorage → then render
+function _mergeAndRender() {
+  cloudGet('iq_checked', (err, value) => {
+    if (!err && value) {
+      try {
+        const cloud = JSON.parse(value)
+        const local = lsGet('checked', {})
+        // Union merge: if either device checked an item, it stays checked
+        const merged = { ...cloud }
+        for (const [day, items] of Object.entries(local)) {
+          if (!merged[day]) merged[day] = {}
+          Object.assign(merged[day], items)
+        }
+        lsSet('checked', merged)
+        cloudSet('iq_checked', JSON.stringify(merged))
+      } catch(e) {}
+    }
+    renderTracker()
+  })
+}
+_mergeAndRender()
 
 // Diagnostic
 initDiagnostic(() => {
