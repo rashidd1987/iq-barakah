@@ -622,6 +622,19 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Report to curator button ───────────────────────────────────────── */
+.report-btn {
+  width: 100%; margin: 16px 0 8px;
+  padding: 14px; border-radius: var(--r);
+  background: linear-gradient(135deg, var(--g1), var(--g2));
+  color: #fff; font-size: 15px; font-weight: 700;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(26,61,27,.3);
+  transition: opacity .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.report-btn:active { opacity: .85; transform: scale(.98); }
+
 /* ── Program Tasks Card (Tracker) ───────────────────────────────────── */
 .ptasks-card {
   background: linear-gradient(135deg, #1a3d1b 0%, #2c5f2d 100%);

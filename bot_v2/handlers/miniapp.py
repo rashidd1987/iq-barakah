@@ -37,6 +37,8 @@ async def handle_webapp_data(message: Message, session: AsyncSession, bot=None, 
         await _check_task(session, uid, payload, bot, config)
     elif action == "open_lesson":
         await _send_full_lesson(session, uid, payload, message)
+    elif action == "curator_report":
+        await _send_curator_report(session, uid, payload, message, bot, config)
     else:
         logger.debug("Unknown WebApp action: %s", action)
 
@@ -122,6 +124,52 @@ async def _notify_all_tasks_done(session: AsyncSession, user_id: int, level: str
             await bot.send_message(chat_id=cid, text=text, parse_mode="Markdown")
         except Exception as e:
             logger.warning("Cannot notify curator %s: %s", cid, e)
+
+
+async def _send_curator_report(session: AsyncSession, user_id: int, payload: dict, message: Message, bot, config):
+    """Участник отправляет отчёт куратору из Mini App."""
+    user = await session.get(User, user_id)
+    name = (user.name if user else None) or "Участник"
+    username = f"@{user.username}" if user and user.username else f"id:{user_id}"
+
+    level = payload.get("level", "")
+    week = payload.get("week", 0)
+    habits_done = payload.get("habitsDone", 0)
+    habits_total = payload.get("habitsTotal", 0)
+    tasks_done = payload.get("tasksDone", 0)
+    tasks_total = payload.get("tasksTotal", 0)
+    streak = payload.get("streak", 0)
+    user_message = payload.get("message", "").strip()
+
+    level_name = LEVEL_NAMES.get(level, level) if level else "—"
+
+    habits_bar = "🟩" * habits_done + "⬜" * max(0, habits_total - habits_done)
+    tasks_bar = "✅" * tasks_done + "⬜" * max(0, tasks_total - tasks_done)
+
+    text = (
+        f"📊 *Отчёт участника*\n\n"
+        f"👤 {name} ({username})\n"
+        f"📍 {level_name} · Неделя {week}\n"
+        f"🔥 Стрик: {streak} дн.\n\n"
+        f"*Привычки сегодня:* {habits_done}/{habits_total}\n{habits_bar}\n\n"
+        f"*Задания недели:* {tasks_done}/{tasks_total}\n{tasks_bar}"
+    )
+    if user_message:
+        text += f"\n\n💬 *Сообщение:* {user_message}"
+
+    # Notify curators
+    if bot and config:
+        for cid in (config.curator_ids or []):
+            try:
+                await bot.send_message(chat_id=cid, text=text, parse_mode="Markdown")
+            except Exception as e:
+                logger.warning("Cannot send curator report to %s: %s", cid, e)
+
+    # Confirm to user
+    await message.answer(
+        "✅ Отчёт отправлен куратору! Альхамдулиллях 🌿\n\nПродолжай в том же духе — ты молодец.",
+        parse_mode="Markdown"
+    )
 
 
 async def _send_full_lesson(session: AsyncSession, user_id: int, payload: dict, message: Message):
