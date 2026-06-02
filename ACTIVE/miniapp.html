@@ -630,6 +630,55 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Month Calendar ─────────────────────────────────────────────────── */
+.month-cal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+.mcal-nav {
+  background: none; border: none; font-size: 22px; color: var(--g2);
+  cursor: pointer; padding: 0 8px; line-height: 1; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+}
+.mcal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 8px;
+}
+.mcal-dow {
+  text-align: center; font-size: 10px; font-weight: 700;
+  color: var(--muted); padding: 2px 0;
+}
+.mcal-cell {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 3px 0; border-radius: 8px; min-height: 36px;
+  justify-content: center; position: relative;
+}
+.mcal-cell.today { background: var(--gpale); }
+.mcal-cell.full { background: rgba(45,95,45,.08); }
+.mcal-cell.partial { background: rgba(201,168,76,.08); }
+.mcal-cell.empty {}
+.mcal-cell.future { opacity: .3; }
+.mcal-day { font-size: 12px; font-weight: 600; color: var(--text); }
+.mcal-cell.today .mcal-day { color: var(--g2); font-weight: 800; }
+.mcal-dot {
+  width: 6px; height: 6px; border-radius: 50%; margin-top: 2px; flex-shrink: 0;
+}
+.mcal-dot.full { background: var(--g2); }
+.mcal-dot.partial { background: var(--gold); }
+.mcal-legend {
+  display: flex; gap: 12px; justify-content: center;
+  font-size: 11px; color: var(--muted); align-items: center; margin-top: 4px;
+}
+.mcal-legend span { display: flex; align-items: center; gap: 4px; }
+
+/* Calendar button in lesson sheet */
+.btn-cal {
+  width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+  background: #f0f7ff; color: #1a5276;
+  font-size: 14px; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .15s;
+}
+.btn-cal:active { opacity: .7; }
+
 /* ── Report to curator button ───────────────────────────────────────── */
 .report-btn {
   width: 100%; margin: 16px 0 8px;
@@ -988,7 +1037,13 @@ textarea:focus { border-color: var(--g2); }
   </div>
   <div class="c">
     <div class="card"><div class="cb" style="padding-bottom:12px;">
-      <div class="ct" data-i18n="thisWeek">Эта неделя</div>
+      <div class="month-cal-header">
+        <button class="mcal-nav" id="mcal-prev">‹</button>
+        <div class="ct" id="mcal-title">Июнь 2026</div>
+        <button class="mcal-nav" id="mcal-next">›</button>
+      </div>
+      <div class="month-cal" id="month-cal"></div>
+      <div class="ct" style="margin-top:12px;" data-i18n="thisWeek">Эта неделя</div>
       <div class="date-strip" id="week-strip"></div>
     </div></div>
     <div class="card"><div class="cb">
@@ -3368,6 +3423,7 @@ function renderTracker() {
     })
   } catch(e) { console.error('[tracker] date error:', e.message) }
 
+  renderMonthCal()
   renderWeekStrip()
   renderProgramTasks()
   renderNamaz()
@@ -3375,6 +3431,70 @@ function renderTracker() {
   renderWeeklyList()
   renderOnetimeList()
   updateProgress()
+}
+
+// ── Month Calendar ────────────────────────────────────────────────────────────
+let _calYear = new Date().getFullYear()
+let _calMonth = new Date().getMonth()
+
+function _getDayStatus(dateStr) {
+  const dayData = checked[dateStr]
+  if (!dayData) return 'empty'
+  const count = Object.keys(dayData).length
+  if (count === 0) return 'empty'
+  if (count >= 5) return 'full'
+  return 'partial'
+}
+
+function renderMonthCal() {
+  const cal = document.getElementById('month-cal')
+  const title = document.getElementById('mcal-title')
+  if (!cal) return
+
+  const today = new Date()
+  const y = _calYear, m = _calMonth
+  const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+  if (title) title.textContent = `${monthNames[m]} ${y}`
+
+  const firstDay = new Date(y, m, 1)
+  const lastDay = new Date(y, m + 1, 0)
+  const startDow = (firstDay.getDay() + 6) % 7 // Mon=0
+
+  let html = '<div class="mcal-grid">'
+  // Day headers
+  const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+  days.forEach(d => { html += `<div class="mcal-dow">${d}</div>` })
+  // Empty cells before first day
+  for (let i = 0; i < startDow; i++) html += '<div class="mcal-cell empty"></div>'
+  // Days
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const d = new Date(y, m, day)
+    const dk = d.toISOString().split('T')[0]
+    const isToday = dk === today.toISOString().split('T')[0]
+    const status = _getDayStatus(dk)
+    const isFuture = d > today
+    html += `<div class="mcal-cell ${status}${isToday ? ' today' : ''}${isFuture ? ' future' : ''}">
+      <span class="mcal-day">${day}</span>
+      ${!isFuture && status !== 'empty' ? `<span class="mcal-dot ${status}"></span>` : ''}
+    </div>`
+  }
+  html += '</div>'
+  // Legend
+  html += `<div class="mcal-legend">
+    <span><span class="mcal-dot full"></span> Активный день</span>
+    <span><span class="mcal-dot partial"></span> Частично</span>
+  </div>`
+  cal.innerHTML = html
+
+  // Nav buttons
+  document.getElementById('mcal-prev')?.addEventListener('click', () => {
+    _calMonth--; if (_calMonth < 0) { _calMonth = 11; _calYear-- }
+    renderMonthCal()
+  })
+  document.getElementById('mcal-next')?.addEventListener('click', () => {
+    _calMonth++; if (_calMonth > 11) { _calMonth = 0; _calYear++ }
+    renderMonthCal()
+  })
 }
 
 function getProgramTasks() {
@@ -3714,11 +3834,16 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
   } else {
     btns.innerHTML = `
       <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
+      <button class="btn btn-cal" id="sl-calendar">📅 Добавить в календарь</button>
       ${!done ? `<button class="btn btn-p2" id="sl-review">${t('submitMuhasaba')}</button>` : ''}
       <button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-fullbot').onclick = () => {
       sendData({ action: 'open_lesson', level: U.level, week: weekToLevelIndex(globalWeekIndex).levelWeekIndex })
     }
+    document.getElementById('sl-calendar')?.addEventListener('click', () => {
+      haptic()
+      _openCalendar(w, globalWeekIndex)
+    })
     document.getElementById('sl-review')?.addEventListener('click', () => {
       closeSheetById('lesson')
       openSheet('review')
@@ -3794,6 +3919,32 @@ function _showAllDoneBanner(container) {
       <div class="all-done-sub">Ты молодец — продолжай в том же духе 💚</div>
     </div>`
   container.appendChild(banner)
+}
+
+function _openCalendar(w, globalWeekIndex) {
+  // Calculate Monday of current week for this lesson
+  const today = new Date()
+  // Find Monday of the week containing today (if current week), or nearest future Monday
+  const dow = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((dow + 6) % 7))
+  monday.setHours(9, 0, 0, 0)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 0, 0)
+
+  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+
+  const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+  const tasks = getWeekTasks(U.level, levelWeekIndex)
+  const taskList = tasks.slice(0, 5).map((t, i) => `${i+1}. ${t.replace(/<[^>]+>/g, '').substring(0, 80)}`).join('%0A')
+
+  const title = encodeURIComponent(`IQ Barakah · ${w.num} · ${w.title}`)
+  const details = encodeURIComponent(`${w.sub}\n\nЗадания недели:\n`) + taskList
+
+  // Google Calendar URL
+  const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(monday)}/${fmt(sunday)}&details=${details}&sf=true&output=xml`
+  openLink(gcal)
 }
 
 function closeSheetById(id) {

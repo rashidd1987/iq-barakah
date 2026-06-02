@@ -622,6 +622,55 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Month Calendar ─────────────────────────────────────────────────── */
+.month-cal-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+}
+.mcal-nav {
+  background: none; border: none; font-size: 22px; color: var(--g2);
+  cursor: pointer; padding: 0 8px; line-height: 1; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+}
+.mcal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 8px;
+}
+.mcal-dow {
+  text-align: center; font-size: 10px; font-weight: 700;
+  color: var(--muted); padding: 2px 0;
+}
+.mcal-cell {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 3px 0; border-radius: 8px; min-height: 36px;
+  justify-content: center; position: relative;
+}
+.mcal-cell.today { background: var(--gpale); }
+.mcal-cell.full { background: rgba(45,95,45,.08); }
+.mcal-cell.partial { background: rgba(201,168,76,.08); }
+.mcal-cell.empty {}
+.mcal-cell.future { opacity: .3; }
+.mcal-day { font-size: 12px; font-weight: 600; color: var(--text); }
+.mcal-cell.today .mcal-day { color: var(--g2); font-weight: 800; }
+.mcal-dot {
+  width: 6px; height: 6px; border-radius: 50%; margin-top: 2px; flex-shrink: 0;
+}
+.mcal-dot.full { background: var(--g2); }
+.mcal-dot.partial { background: var(--gold); }
+.mcal-legend {
+  display: flex; gap: 12px; justify-content: center;
+  font-size: 11px; color: var(--muted); align-items: center; margin-top: 4px;
+}
+.mcal-legend span { display: flex; align-items: center; gap: 4px; }
+
+/* Calendar button in lesson sheet */
+.btn-cal {
+  width: 100%; padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+  background: #f0f7ff; color: #1a5276;
+  font-size: 14px; font-weight: 700;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .15s;
+}
+.btn-cal:active { opacity: .7; }
+
 /* ── Report to curator button ───────────────────────────────────────── */
 .report-btn {
   width: 100%; margin: 16px 0 8px;

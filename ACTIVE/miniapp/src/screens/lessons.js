@@ -1,7 +1,7 @@
 import { WEEKS, PHASE_LABELS } from '../data/weeks.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
 import { PROGRAM_CONTENT } from '../data/content.js'
-import { haptic, sendData, cloudGet, cloudSet } from '../utils/tg.js'
+import { haptic, sendData, cloudGet, cloudSet, openLink } from '../utils/tg.js'
 import { openSheet } from '../components/sheets.js'
 import { t } from '../i18n.js'
 import { U } from './home.js'
@@ -148,11 +148,16 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
   } else {
     btns.innerHTML = `
       <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
+      <button class="btn btn-cal" id="sl-calendar">📅 Добавить в календарь</button>
       ${!done ? `<button class="btn btn-p2" id="sl-review">${t('submitMuhasaba')}</button>` : ''}
       <button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-fullbot').onclick = () => {
       sendData({ action: 'open_lesson', level: U.level, week: weekToLevelIndex(globalWeekIndex).levelWeekIndex })
     }
+    document.getElementById('sl-calendar')?.addEventListener('click', () => {
+      haptic()
+      _openCalendar(w, globalWeekIndex)
+    })
     document.getElementById('sl-review')?.addEventListener('click', () => {
       closeSheetById('lesson')
       openSheet('review')
@@ -228,6 +233,32 @@ function _showAllDoneBanner(container) {
       <div class="all-done-sub">Ты молодец — продолжай в том же духе 💚</div>
     </div>`
   container.appendChild(banner)
+}
+
+function _openCalendar(w, globalWeekIndex) {
+  // Calculate Monday of current week for this lesson
+  const today = new Date()
+  // Find Monday of the week containing today (if current week), or nearest future Monday
+  const dow = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((dow + 6) % 7))
+  monday.setHours(9, 0, 0, 0)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 0, 0)
+
+  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+
+  const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+  const tasks = getWeekTasks(U.level, levelWeekIndex)
+  const taskList = tasks.slice(0, 5).map((t, i) => `${i+1}. ${t.replace(/<[^>]+>/g, '').substring(0, 80)}`).join('%0A')
+
+  const title = encodeURIComponent(`IQ Barakah · ${w.num} · ${w.title}`)
+  const details = encodeURIComponent(`${w.sub}\n\nЗадания недели:\n`) + taskList
+
+  // Google Calendar URL
+  const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(monday)}/${fmt(sunday)}&details=${details}&sf=true&output=xml`
+  openLink(gcal)
 }
 
 function closeSheetById(id) {

@@ -52,6 +52,7 @@ export function renderTracker() {
     })
   } catch(e) { console.error('[tracker] date error:', e.message) }
 
+  renderMonthCal()
   renderWeekStrip()
   renderProgramTasks()
   renderNamaz()
@@ -59,6 +60,70 @@ export function renderTracker() {
   renderWeeklyList()
   renderOnetimeList()
   updateProgress()
+}
+
+// ── Month Calendar ────────────────────────────────────────────────────────────
+let _calYear = new Date().getFullYear()
+let _calMonth = new Date().getMonth()
+
+function _getDayStatus(dateStr) {
+  const dayData = checked[dateStr]
+  if (!dayData) return 'empty'
+  const count = Object.keys(dayData).length
+  if (count === 0) return 'empty'
+  if (count >= 5) return 'full'
+  return 'partial'
+}
+
+function renderMonthCal() {
+  const cal = document.getElementById('month-cal')
+  const title = document.getElementById('mcal-title')
+  if (!cal) return
+
+  const today = new Date()
+  const y = _calYear, m = _calMonth
+  const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь']
+  if (title) title.textContent = `${monthNames[m]} ${y}`
+
+  const firstDay = new Date(y, m, 1)
+  const lastDay = new Date(y, m + 1, 0)
+  const startDow = (firstDay.getDay() + 6) % 7 // Mon=0
+
+  let html = '<div class="mcal-grid">'
+  // Day headers
+  const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс']
+  days.forEach(d => { html += `<div class="mcal-dow">${d}</div>` })
+  // Empty cells before first day
+  for (let i = 0; i < startDow; i++) html += '<div class="mcal-cell empty"></div>'
+  // Days
+  for (let day = 1; day <= lastDay.getDate(); day++) {
+    const d = new Date(y, m, day)
+    const dk = d.toISOString().split('T')[0]
+    const isToday = dk === today.toISOString().split('T')[0]
+    const status = _getDayStatus(dk)
+    const isFuture = d > today
+    html += `<div class="mcal-cell ${status}${isToday ? ' today' : ''}${isFuture ? ' future' : ''}">
+      <span class="mcal-day">${day}</span>
+      ${!isFuture && status !== 'empty' ? `<span class="mcal-dot ${status}"></span>` : ''}
+    </div>`
+  }
+  html += '</div>'
+  // Legend
+  html += `<div class="mcal-legend">
+    <span><span class="mcal-dot full"></span> Активный день</span>
+    <span><span class="mcal-dot partial"></span> Частично</span>
+  </div>`
+  cal.innerHTML = html
+
+  // Nav buttons
+  document.getElementById('mcal-prev')?.addEventListener('click', () => {
+    _calMonth--; if (_calMonth < 0) { _calMonth = 11; _calYear-- }
+    renderMonthCal()
+  })
+  document.getElementById('mcal-next')?.addEventListener('click', () => {
+    _calMonth++; if (_calMonth > 11) { _calMonth = 0; _calYear++ }
+    renderMonthCal()
+  })
 }
 
 function getProgramTasks() {
