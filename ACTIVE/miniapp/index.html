@@ -155,12 +155,17 @@
   </div>
   <div class="c">
     <div class="card"><div class="cb" style="padding-bottom:12px;">
-      <div class="month-cal-header">
+      <div class="month-cal-header" id="mcal-header" style="cursor:pointer;">
         <button class="mcal-nav" id="mcal-prev">‹</button>
         <div class="ct" id="mcal-title">Июнь 2026</div>
-        <button class="mcal-nav" id="mcal-next">›</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="mcal-toggle" id="mcal-toggle">▲</span>
+          <button class="mcal-nav" id="mcal-next">›</button>
+        </div>
       </div>
-      <div class="month-cal" id="month-cal"></div>
+      <div id="mcal-body">
+        <div class="month-cal" id="month-cal"></div>
+      </div>
       <div class="ct" style="margin-top:12px;" data-i18n="thisWeek">Эта неделя</div>
       <div class="date-strip" id="week-strip"></div>
     </div></div>

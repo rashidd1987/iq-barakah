@@ -236,35 +236,52 @@ function _showAllDoneBanner(container) {
 }
 
 function _openCalendar(w, globalWeekIndex) {
-  // Monday of the current week at 9:00 AM
+  const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+  const tasks = getWeekTasks(U.level, levelWeekIndex)
+
+  // Monday of the current week
   const today = new Date()
   const dow = today.getDay()
   const monday = new Date(today)
   monday.setDate(today.getDate() - ((dow + 6) % 7))
-  monday.setHours(9, 0, 0, 0)
-  const mondayEnd = new Date(monday)
-  mondayEnd.setHours(9, 30, 0, 0)
 
-  // Format: YYYYMMDDTHHmmss (local time, no Z so Google Calendar uses user's timezone)
-  const fmt = (d) => {
-    const pad = n => String(n).padStart(2, '0')
-    return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+  const pad = n => String(n).padStart(2, '0')
+  const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+
+  // Clean task text for ICS
+  const taskDesc = tasks.map((t, i) =>
+    `${i+1}. ${t.replace(/[^ -~Ѐ-ӿ\s.,!?—·🕐📿📖🌙⏰🌤]/g, '').substring(0, 120).trim()}`
+  ).join('\\n')
+
+  const summary = `IQ Barakah · ${w.num} · ${w.title}`
+  const desc = `${w.sub}\\n\\nЗадания на каждый день недели:\\n${taskDesc}\\n\\nОтмечай выполненное в Трекере ✅`
+
+  // Generate 7 separate VEVENT entries (Mon–Sun, 9:00–9:30)
+  const CRLF = '\r\n'
+  let vevents = ''
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    d.setHours(9, 0, 0, 0)
+    const dEnd = new Date(d)
+    dEnd.setHours(9, 30, 0, 0)
+    const uid = `iqb-${w.num}-day${i+1}-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}@iq-barakah`
+    vevents += `BEGIN:VEVENT${CRLF}UID:${uid}${CRLF}DTSTART:${fmt(d)}${CRLF}DTEND:${fmt(dEnd)}${CRLF}SUMMARY:${summary}${CRLF}DESCRIPTION:${desc}${CRLF}END:VEVENT${CRLF}`
   }
 
-  const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
-  const tasks = getWeekTasks(U.level, levelWeekIndex)
-  // Build task list for description
-  const taskLines = tasks.slice(0, 5).map((t, i) =>
-    `${i+1}. ${t.replace(/[🕐📿📖🌙⏰🌤🤲📵⚓🤝📝🌅🤫✨📿💼]/g, '').substring(0, 100).trim()}`
-  ).join('\n')
+  const ics = `BEGIN:VCALENDAR${CRLF}VERSION:2.0${CRLF}PRODID:-//IQ Barakah//RU${CRLF}${vevents}END:VCALENDAR`
 
-  const title = encodeURIComponent(`IQ Barakah · ${w.num} · ${w.title}`)
-  const details = encodeURIComponent(`${w.sub}\n\nЗадания на каждый день этой недели:\n${taskLines}\n\nОтмечай выполненное в Трекере`)
-  // Daily recurring event, 7 days
-  const recur = encodeURIComponent('RRULE:FREQ=DAILY;COUNT=7')
-
-  const gcal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(monday)}/${fmt(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`
-  openLink(gcal)
+  try {
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    openLink(url)
+  } catch(e) {
+    // Fallback: Google Calendar with RRULE
+    const t = encodeURIComponent(summary)
+    const dt = fmt(monday.setHours(9,0,0,0))
+    const dte = fmt(new Date(monday).setHours && (() => { monday.setHours(9,30,0,0); return monday })())
+    openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${t}&dates=${dt}/${dte}&recur=RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7&details=${encodeURIComponent(desc)}&sf=true&output=xml`)
+  }
 }
 
 function closeSheetById(id) {

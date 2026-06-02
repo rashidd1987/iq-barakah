@@ -53,6 +53,7 @@ export function renderTracker() {
   } catch(e) { console.error('[tracker] date error:', e.message) }
 
   renderMonthCal()
+  _initCalToggle()
   renderWeekStrip()
   renderProgramTasks()
   renderNamaz()
@@ -65,6 +66,7 @@ export function renderTracker() {
 // ── Month Calendar ────────────────────────────────────────────────────────────
 let _calYear = new Date().getFullYear()
 let _calMonth = new Date().getMonth()
+let _calOpen = lsGet('mcal_open', true)
 
 function _getDayStatus(dateStr) {
   const dayData = checked[dateStr]
@@ -73,6 +75,33 @@ function _getDayStatus(dateStr) {
   if (count === 0) return 'empty'
   if (count >= 5) return 'full'
   return 'partial'
+}
+
+function _initCalToggle() {
+  const body = document.getElementById('mcal-body')
+  const toggle = document.getElementById('mcal-toggle')
+  const prev = document.getElementById('mcal-prev')
+  const next = document.getElementById('mcal-next')
+  if (!body || !toggle) return
+
+  const apply = () => {
+    body.style.display = _calOpen ? 'block' : 'none'
+    toggle.textContent = _calOpen ? '▲' : '▼'
+  }
+  apply()
+
+  // Toggle on title click (not nav buttons)
+  const header = document.getElementById('mcal-title')
+  header?.addEventListener('click', () => {
+    _calOpen = !_calOpen
+    lsSet('mcal_open', _calOpen)
+    apply()
+  })
+  toggle?.addEventListener('click', () => {
+    _calOpen = !_calOpen
+    lsSet('mcal_open', _calOpen)
+    apply()
+  })
 }
 
 function renderMonthCal() {
