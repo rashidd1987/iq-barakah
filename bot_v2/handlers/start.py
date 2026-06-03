@@ -68,8 +68,58 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     )
 
     lang = db_user.language_code or normalize_lang(user.language_code)
-
     participant = await _get_participant(session, db_user.id)
+
+    # Парсим deep link payload: /start quiz_a_22
+    payload = ""
+    parts = message.text.split() if message.text else []
+    if len(parts) > 1:
+        payload = parts[1]
+
+    # Пришёл с сайта после диагностики
+    if payload.startswith("quiz_"):
+        payload_parts = payload.split("_")
+        site_level = payload_parts[1] if len(payload_parts) > 1 else "a"
+        try:
+            site_pct = int(payload_parts[2]) if len(payload_parts) > 2 else None
+        except ValueError:
+            site_pct = None
+
+        level_words = {"a": "Начало пути", "b": "Пробуждение", "c": "Рост", "d": "Глубина"}
+        level_label = level_words.get(site_level, "")
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+
+        pct_text = f"*{site_pct}% потенциала*" if site_pct else "твой потенциал"
+        level_text = f" — уровень «{level_label}»" if level_label else ""
+
+        await message.answer(
+            t(lang, "menu.updated", version=config.version),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+            parse_mode=None,
+        )
+
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        greeting = (
+            f"🌿 Ас-саляму алейкум{',' if name_first else '!'}"
+            f"{' *' + name_first + '*!' if name_first else ''}\n\n"
+            f"Я — *Джарвас*, AI-наставник IQ Barakah.\n\n"
+            f"Ты только что прошёл диагностику на сайте. "
+            f"Я вижу твой результат — {pct_text}{level_text}. "
+            f"Это честная точка старта.\n\n"
+            f"Я обещал тебе подарок — и готов его отдать.\n\n"
+            f"Давай я задам несколько коротких вопросов. "
+            f"Не тест и не экзамен — просто хочу понять твою ситуацию глубже. "
+            f"А потом дам конкретную рекомендацию: с чего начать именно тебе. 🌱"
+        )
+        await message.answer(
+            greeting,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Готов — задавай вопросы", callback_data="korablik_start")],
+                [InlineKeyboardButton(text="⏭ Сразу к программам", callback_data="show_tariffs")],
+            ])
+        )
+        return
 
     await message.answer(
         t(lang, "menu.updated", version=config.version),
