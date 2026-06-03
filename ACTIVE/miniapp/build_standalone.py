@@ -17,6 +17,7 @@ MODULES = [
     "data/tasks.js",
     "data/content.js",
     "data/summaries.js",
+    "data/glossary.js",
     "i18n.js",
     "components/sheets.js",
     "components/diagnostic.js",

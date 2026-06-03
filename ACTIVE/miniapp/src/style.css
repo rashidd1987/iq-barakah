@@ -622,6 +622,42 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Glossary term info icon & popup ────────────────────────────────── */
+.gterm-info {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--gsoft); color: var(--g2);
+  font-size: 10px; font-weight: 800; font-style: normal;
+  cursor: pointer; margin-left: 5px; vertical-align: middle;
+  flex-shrink: 0; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.gterm-info:active { opacity: .6; }
+
+.glossary-popup {
+  position: fixed; bottom: -200px; left: 16px; right: 16px;
+  background: var(--card); border-radius: 18px 18px 0 0;
+  padding: 20px 20px 32px;
+  box-shadow: 0 -4px 40px rgba(0,0,0,.18);
+  z-index: 300; transition: bottom .3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.glossary-popup.show { bottom: 0; }
+.gp-term {
+  font-size: 18px; font-weight: 800; color: var(--g1); margin-bottom: 6px;
+}
+.gp-ar {
+  font-size: 16px; color: var(--gold); font-weight: 700; margin-left: 8px;
+  font-family: 'Amiri', 'Arabic Typesetting', serif; direction: rtl;
+}
+.gp-text {
+  font-size: 14px; line-height: 1.65; color: var(--sub); margin-bottom: 14px;
+}
+.gp-close {
+  text-align: center; font-size: 13px; color: var(--muted);
+  font-weight: 600; cursor: pointer; padding-top: 4px;
+}
+
 /* ── Calendar button inside ptasks card ─────────────────────────────── */
 .ptasks-cal-btn {
   width: 100%; margin-top: 12px;

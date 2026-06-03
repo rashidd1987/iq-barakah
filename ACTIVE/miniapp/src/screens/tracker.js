@@ -1,6 +1,7 @@
 import { NAMAZ, DAILY, WEEKLY, ONETIME } from '../data/habits.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
 import { haptic, sendData, cloudSet, openLink } from '../utils/tg.js'
+import { showGlossaryTip } from '../components/sheets.js'
 import { lsGet, lsSet, todayKey } from '../utils/storage.js'
 import { t, tf } from '../i18n.js'
 import { U } from './home.js'
@@ -387,11 +388,20 @@ function renderDaily() {
     const done = isChecked(h.id)
     const s = getHabitStreak(h.id)
     el.className = `habit-item${done ? ' checked' : ''}`
+    const hasInfo = (typeof GLOSSARY !== 'undefined') && GLOSSARY[h.label]
     el.innerHTML = `
       <div class="hcheck">${done ? '<span style="color:white;font-size:14px;">✓</span>' : ''}</div>
       <div class="act-ic gr" style="width:38px;height:38px;border-radius:10px;font-size:18px;">${h.icon}</div>
-      <div class="habit-info"><div class="t">${h.label}</div><div class="s">${h.sub}</div></div>
+      <div class="habit-info">
+        <div class="t">${h.label}${hasInfo ? '<span class="gterm-info">ℹ</span>' : ''}</div>
+        <div class="s">${h.sub}</div>
+      </div>
       ${s >= 1 ? `<div class="habit-streak ${s >= 7 ? 'hot' : s >= 3 ? 'warm' : ''}">🔥${s}</div>` : '<div class="habit-streak muted">○</div>'}`
+    el.querySelector('.gterm-info')?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      haptic()
+      showGlossaryTip(h.label)
+    })
     el.onclick = () => {
       haptic()
       toggle(h.id)

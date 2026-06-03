@@ -1,6 +1,7 @@
 import './style.css'
 import { initI18n } from './i18n.js'
 import { initTg, cloudGet, cloudSet, haptic, sendData } from './utils/tg.js'
+import { showGlossaryTip } from './components/sheets.js'
 import { initHome, U } from './screens/home.js'
 import { setCurrentWeek } from './screens/lessons.js'
 import { renderTracker } from './screens/tracker.js'
@@ -15,6 +16,8 @@ import { PROGRAM_TASKS } from './data/tasks.js'
 
 initTg()
 initI18n()
+// Make glossary tip available globally (for inline HTML onclick)
+window.showGlossaryTip = showGlossaryTip
 initHome()
 
 // Sync currentWeek from user state into lessons module

@@ -630,6 +630,42 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Glossary term info icon & popup ────────────────────────────────── */
+.gterm-info {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--gsoft); color: var(--g2);
+  font-size: 10px; font-weight: 800; font-style: normal;
+  cursor: pointer; margin-left: 5px; vertical-align: middle;
+  flex-shrink: 0; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.gterm-info:active { opacity: .6; }
+
+.glossary-popup {
+  position: fixed; bottom: -200px; left: 16px; right: 16px;
+  background: var(--card); border-radius: 18px 18px 0 0;
+  padding: 20px 20px 32px;
+  box-shadow: 0 -4px 40px rgba(0,0,0,.18);
+  z-index: 300; transition: bottom .3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.glossary-popup.show { bottom: 0; }
+.gp-term {
+  font-size: 18px; font-weight: 800; color: var(--g1); margin-bottom: 6px;
+}
+.gp-ar {
+  font-size: 16px; color: var(--gold); font-weight: 700; margin-left: 8px;
+  font-family: 'Amiri', 'Arabic Typesetting', serif; direction: rtl;
+}
+.gp-text {
+  font-size: 14px; line-height: 1.65; color: var(--sub); margin-bottom: 14px;
+}
+.gp-close {
+  text-align: center; font-size: 13px; color: var(--muted);
+  font-weight: 600; cursor: pointer; padding-top: 4px;
+}
+
 /* ── Calendar button inside ptasks card ─────────────────────────────── */
 .ptasks-cal-btn {
   width: 100%; margin-top: 12px;
@@ -1107,7 +1143,7 @@ textarea:focus { border-color: var(--g2); }
         <div id="program-tasks"></div>
       </div>
     </div>
-    <div class="habit-section-label" data-i18n="namazTitle">🕌 Намаз (5 раз в день)</div>
+    <div class="habit-section-label">🕌 Намаз (5 раз в день) <span class="gterm-info" onclick="(function(){if(typeof showGlossaryTip!=='undefined')showGlossaryTip('Намаз')})()">ℹ</span></div>
     <div class="card"><div class="cb" style="padding:14px;"><div class="namaz-grid" id="namaz-grid"></div></div></div>
     <div class="habit-section-label" data-i18n="dailyPractices">☀️ Ежедневные практики</div>
     <div style="display:flex;flex-direction:column;gap:8px;" id="daily-habits"></div>
@@ -2516,6 +2552,41 @@ const LESSON_SUMMARIES = {
 };
 
 
+// --- data/glossary.js ---
+// Islamic terms glossary for Mini App tooltips
+const GLOSSARY = {
+  'Намаз':       { ar: 'صلاة', text: '5 обязательных молитв в день: Фаджр (рассвет), Зухр (полдень), Аср (послеполудень), Магриб (закат), Иша (ночь). Второй столп ислама.' },
+  'Фаджр':       { ar: 'فجر', text: 'Утренний намаз. Совершается от рассвета до восхода солнца. Самый благодатный намаз дня.' },
+  'Зухр':        { ar: 'ظهر', text: 'Полуденный намаз. Совершается после того, как солнце миновало зенит.' },
+  'Аср':         { ar: 'عصر', text: 'Послеполуденный намаз. Совершается в середине второй половины дня.' },
+  'Магриб':      { ar: 'مغرب', text: 'Закатный намаз. Совершается сразу после захода солнца.' },
+  'Иша':         { ar: 'عشاء', text: 'Ночной намаз. Совершается после исчезновения вечерней зари.' },
+  'Азкар':       { ar: 'أذكار', text: 'Слова поминания Аллаха. Утренние и вечерние азкары — щит и свет дня. «Помните Аллаха постоянно» (Коран 3:41).' },
+  'Мухасаба':    { ar: 'محاسبة', text: 'Отчёт перед самим собой. Умар (р.а.) говорил: «Считайте себя, прежде чем вас посчитают». Вечерний разбор дня.' },
+  'Ният':        { ar: 'نية', text: 'Намерение. «Дела оцениваются только по намерениям» (Бухари №1). Тихий разворот сердца перед каждым делом.' },
+  'Тауба':       { ar: 'توبة', text: 'Покаяние, возвращение к Аллаху. Не самобичевание, а искренний поворот. Аллах любит кающихся (Коран 2:222).' },
+  'Сабр':        { ar: 'صبر', text: 'Терпение и стойкость. «Аллах с терпеливыми» (Коран 2:153). Три вида: терпение в поклонении, при испытаниях и от грехов.' },
+  'Зикр':        { ar: 'ذكر', text: 'Поминание Аллаха. «В поминании Аллаха успокаиваются сердца» (Коран 13:28). СубханАллах, АльхамдулиЛлях, АллахуАкбар.' },
+  'Истикама':    { ar: 'استقامة', text: 'Стойкость и прямота на пути. «Будь прямым, как тебе велено» (Коран 11:112). Постоянство важнее яркости.' },
+  'Тазкия':      { ar: 'تزكية', text: 'Очищение души. «Преуспел тот, кто очистил её» (Коран 91:9). Работа не с поведением, а с тем, что под ним.' },
+  'Ихляс':       { ar: 'إخلاص', text: 'Искренность — делать только ради Аллаха. «У искренности есть тихий вор» — намёк на показуху опустошает дело.' },
+  'Нафс':        { ar: 'نفس', text: 'Душа/эго. Три состояния: повелевающий злом, упрекающий себя и умиротворённый. Путь тазкии — к третьему.' },
+  'Ахляк':       { ar: 'أخلاق', text: 'Благой нрав, нравственность. «На Весах нет ничего тяжелее благого нрава» (Абу Дауд). Пророк ﷺ послан для его совершенства.' },
+  'Фитра':       { ar: 'فطرة', text: 'Природная чистая суть человека. Аллах создал каждого с устремлением к добру. Изменение — это не борьба, а возвращение.' },
+  'Баракат':     { ar: 'بركة', text: 'Благодать, умножение блага. Баракат приходит через благодарность, ният, халяльный заработок и садака.' },
+  'Дуа':         { ar: 'دعاء', text: 'Обращение к Аллаху, личная молитва. «Взывайте ко Мне, и Я отвечу вам» (Коран 40:60). Самое ценное поклонение.' },
+  'Садака':      { ar: 'صدقة', text: 'Добровольное пожертвование. «Садака не уменьшает имущество» (Муслим). В Судный день — тень над жертвующим.' },
+  'Тавакккуль':  { ar: 'توكل', text: 'Упование на Аллаха. «Привяжи верблюда и уповай» — сделай своё, а результат отдай Аллаху.' },
+  'Тарбия':      { ar: 'تربية', text: 'Воспитание детей. «Праведный ребёнок — один из трёх вечных источников награды» (Муслим). Главное — пример, не слова.' },
+  'Сакина':      { ar: 'سكينة', text: 'Покой, умиротворение дома. Дом — не второй фронт, а арена религии. «Лучший из вас — лучший к своей семье» (Тирмизи).' },
+  'Закят':       { ar: 'زكاة', text: 'Обязательное очищение имущества (2.5% в год). От корня "рост" — очищает оставшееся и взращивает его с баракатом.' },
+  'Вирд':        { ar: 'ورد', text: 'Ежедневный личный порядок поклонения. Стержень дня — утренние азкары, Коран, намазы. Малое и постоянное — лучше большого и временного.' },
+  'Ихсан':       { ar: 'إحسان', text: 'Высшая ступень веры: поклоняться Аллаху так, как будто видишь Его. Джибриль: «Это когда ты видишь Его; если не видишь — Он видит тебя».' },
+  'Мурокаба':    { ar: 'مراقبة', text: 'Постоянное осознание присутствия Аллаха. Жить как под Взором — это и есть ихсан в практике.' },
+  'Силат ар-рахим': { ar: 'صلة الرحم', text: 'Поддержание родственных связей. «Кто желает расширения удела — пусть держит связи с роднёй» (Бухари). Рахим — от ар-Рахман.' },
+}
+
+
 // --- i18n.js ---
 const SUPPORTED = ['ru']
 
@@ -3029,6 +3100,27 @@ function openSheet(id) {
 function closeSheet(id) {
   document.getElementById(`ov-${id}`)?.classList.remove('open')
   document.getElementById(`sh-${id}`)?.classList.remove('open')
+}
+
+// ── Glossary popup ──────────────────────────────────────────────────────────
+function showGlossaryTip(term) {
+  const entry = (typeof GLOSSARY !== 'undefined') ? GLOSSARY[term] : null
+  if (!entry) return
+
+  let popup = document.getElementById('glossary-popup')
+  if (!popup) {
+    popup = document.createElement('div')
+    popup.id = 'glossary-popup'
+    popup.className = 'glossary-popup'
+    popup.onclick = () => popup.classList.remove('show')
+    document.body.appendChild(popup)
+  }
+
+  popup.innerHTML = `
+    <div class="gp-term">${term} <span class="gp-ar">${entry.ar}</span></div>
+    <div class="gp-text">${entry.text}</div>
+    <div class="gp-close">✕ закрыть</div>`
+  popup.classList.add('show')
 }
 
 function showToast(msg) {
@@ -3796,11 +3888,20 @@ function renderDaily() {
     const done = isChecked(h.id)
     const s = getHabitStreak(h.id)
     el.className = `habit-item${done ? ' checked' : ''}`
+    const hasInfo = (typeof GLOSSARY !== 'undefined') && GLOSSARY[h.label]
     el.innerHTML = `
       <div class="hcheck">${done ? '<span style="color:white;font-size:14px;">✓</span>' : ''}</div>
       <div class="act-ic gr" style="width:38px;height:38px;border-radius:10px;font-size:18px;">${h.icon}</div>
-      <div class="habit-info"><div class="t">${h.label}</div><div class="s">${h.sub}</div></div>
+      <div class="habit-info">
+        <div class="t">${h.label}${hasInfo ? '<span class="gterm-info">ℹ</span>' : ''}</div>
+        <div class="s">${h.sub}</div>
+      </div>
       ${s >= 1 ? `<div class="habit-streak ${s >= 7 ? 'hot' : s >= 3 ? 'warm' : ''}">🔥${s}</div>` : '<div class="habit-streak muted">○</div>'}`
+    el.querySelector('.gterm-info')?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      haptic()
+      showGlossaryTip(h.label)
+    })
     el.onclick = () => {
       haptic()
       toggle(h.id)
@@ -4335,6 +4436,8 @@ function initNav() {
 
 initTg()
 initI18n()
+// Make glossary tip available globally (for inline HTML onclick)
+window.showGlossaryTip = showGlossaryTip
 initHome()
 
 // Sync currentWeek from user state into lessons module
