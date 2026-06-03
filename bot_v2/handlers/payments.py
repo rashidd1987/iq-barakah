@@ -139,7 +139,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
 
     name = user.name if user else "участник"
     price_str = f"{price:,}".replace(",", " ")
-    discount_line = f"🎁 Специальная цена за прохождение диагностики — действует 24 часа!\n\n" if discount_active else ""
+    discount_line = f"🎁 Специальная цена за прохождение диагностики — действует 3 часа!\n\n" if discount_active else ""
     old_price_line = f"~~1 500 ₽~~ → " if discount_active else ""
     text = (
         f"💳 {tariff_view['name']}\n\n"

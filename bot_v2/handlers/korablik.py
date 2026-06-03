@@ -274,7 +274,7 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
         import time as _time
         from bot_v2.db.repositories import SettingsRepo
         repo = SettingsRepo(session)
-        await repo.set(f"korablik_offer:{uid}", str(int(_time.time()) + 86400))
+        await repo.set(f"korablik_offer:{uid}", str(int(_time.time()) + 10800))  # 3 часа
 
         # Отправляем подарок — первый урок ВАКТ + скидка 24 часа
         await asyncio.sleep(1.5)
@@ -282,7 +282,7 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
             uid,
             "🎁 *Вот твой подарок — первая неделя ВАКТ прямо сейчас.*\n\n"
             "Это бесплатно. Никакой оплаты — просто начни.\n\n"
-            "И ещё одно: следующие *24 часа* ВАКТ доступен за *999 ₽* вместо 1 500 ₽.\n"
+            "И ещё одно: следующие *3 часа* ВАКТ доступен за *999 ₽* вместо 1 500 ₽.\n"
             "Это только для тебя — за то, что прошёл диагностику честно. 🌿",
             parse_mode="Markdown",
             reply_markup=_kb(
