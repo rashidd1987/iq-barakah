@@ -1088,10 +1088,10 @@ textarea:focus { border-color: var(--g2); }
     </div></div>
     <div data-i18n="goTo" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:0 2px;">Перейти</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, азкар, мухасаба</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, поминание Всевышнего, самоотчёт</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" data-screen="lessons"><div class="act-ic gr">📚</div><div class="act-tx"><div class="t" data-i18n="currentLesson">Текущий урок</div><div class="s" id="act-cur-week" data-i18n="openLessonsMap">Открыть карту уроков</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" data-screen="wheel"><div class="act-ic gd">🎯</div><div class="act-tx"><div class="t" data-i18n="lifeWheel">Колесо баланса</div><div class="s" data-i18n="lifeWheelSub">8 сфер жизни</div></div><span style="color:var(--muted)">›</span></div>
-      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t" data-i18n="eveningMuhasaba">Мухасаба вечера</div><div class="s" data-i18n="eveningMuhasabaSub">Три вопроса — займёт 2 минуты</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t" data-i18n="eveningMuhasaba">Вечерний самоотчёт <span class="gterm-info" onclick="window.showGlossaryTip&&showGlossaryTip('Мухасаба')">ℹ</span></div><div class="s" data-i18n="eveningMuhasabaSub">Мухасаба — три вопроса · 2 минуты</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" id="btn-open-diag"><div class="act-ic pu">🎯</div><div class="act-tx"><div class="t" data-i18n="levelDiagnostic">Диагностика уровня</div><div class="s" data-i18n="levelDiagnosticSub">Пройти заново или сменить уровень</div></div><span style="color:var(--muted)">›</span></div>
     </div>
   </div>
@@ -1273,7 +1273,7 @@ textarea:focus { border-color: var(--g2); }
 <div class="sheet" id="sh-review">
   <div class="sh"></div>
   <div class="s-icon">✍️</div>
-  <div class="s-title">Мухасаба вечера</div>
+  <div class="s-title">Вечерний самоотчёт <span style="font-size:13px;color:var(--muted)">(мухасаба)</span></div>
   <div class="s-sub" id="rv-week-lbl">Три вопроса честности перед собой</div>
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
@@ -1498,10 +1498,10 @@ const NAMAZ = [
 ]
 
 const DAILY = [
-  { id: 'azkar_m', icon: '📿', label: 'Утренний азкар',  sub: '06:00 · Азкары + Фаджр',          streak: 0 },
-  { id: 'dhuhr',   icon: '🕛', label: 'Обеденный намаз', sub: '13:30 · Зухр + азкары после',      streak: 0 },
-  { id: 'azkar_e', icon: '🌇', label: 'Вечерний азкар',  sub: '20:00 · Азкары + Магриб/Иша',     streak: 0 },
-  { id: 'muhasaba',icon: '🌙', label: 'Мухасаба',        sub: '22:00 · 3 вопроса перед сном',     streak: 0 },
+  { id: 'azkar_m', icon: '📿', label: 'Утреннее поминание',  sub: '06:00 · Азкары (зикр) + Фаджр',    streak: 0 },
+  { id: 'dhuhr',   icon: '🕛', label: 'Обеденный намаз',    sub: '13:30 · Зухр + поминание после',   streak: 0 },
+  { id: 'azkar_e', icon: '🌇', label: 'Вечернее поминание', sub: '20:00 · Азкары + Магриб/Иша',     streak: 0 },
+  { id: 'muhasaba',icon: '🌙', label: 'Самоотчёт вечера',   sub: '22:00 · Мухасаба · 3 вопроса',    streak: 0 },
   { id: 'quran',   icon: '📖', label: 'Коран',           sub: '1 страница в день',                streak: 0 },
   { id: 'deed',    icon: '🤲', label: 'Доброе дело',     sub: 'Любое благо — запишите',           streak: 0 },
 ]
