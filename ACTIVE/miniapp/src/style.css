@@ -622,6 +622,18 @@ textarea:focus { border-color: var(--g2); }
 .ship-step { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--sub); line-height: 1.5; }
 .ship-step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--gpale); color: var(--g2); font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 
+/* ── Calendar button inside ptasks card ─────────────────────────────── */
+.ptasks-cal-btn {
+  width: 100%; margin-top: 12px;
+  padding: 10px; border-radius: 10px;
+  background: rgba(255,255,255,.12); color: rgba(255,255,255,.9);
+  border: 1px solid rgba(255,255,255,.2);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .15s;
+}
+.ptasks-cal-btn:active { opacity: .7; }
+
 /* ── Individual habit streaks ───────────────────────────────────────── */
 .habit-streak { font-size: 12px; font-weight: 700; color: #e67e22; min-width: 28px; text-align: right; }
 .habit-streak.hot { color: #e74c3c; animation: pulse .8s ease-in-out infinite alternate; }

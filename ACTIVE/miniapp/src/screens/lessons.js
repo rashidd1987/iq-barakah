@@ -271,17 +271,9 @@ function _openCalendar(w, globalWeekIndex) {
 
   const ics = `BEGIN:VCALENDAR${CRLF}VERSION:2.0${CRLF}PRODID:-//IQ Barakah//RU${CRLF}${vevents}END:VCALENDAR`
 
-  try {
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    openLink(url)
-  } catch(e) {
-    // Fallback: Google Calendar with RRULE
-    const t = encodeURIComponent(summary)
-    const dt = fmt(monday.setHours(9,0,0,0))
-    const dte = fmt(new Date(monday).setHours && (() => { monday.setHours(9,30,0,0); return monday })())
-    openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${t}&dates=${dt}/${dte}&recur=RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7&details=${encodeURIComponent(desc)}&sf=true&output=xml`)
-  }
+  // data: URI — works on iOS/Apple Calendar, Android, Google Calendar, Outlook
+  const encoded = encodeURIComponent(ics)
+  openLink(`data:text/calendar;charset=utf-8,${encoded}`)
 }
 
 function closeSheetById(id) {

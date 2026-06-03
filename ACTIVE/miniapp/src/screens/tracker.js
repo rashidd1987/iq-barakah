@@ -1,6 +1,6 @@
 import { NAMAZ, DAILY, WEEKLY, ONETIME } from '../data/habits.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
-import { haptic, sendData, cloudSet } from '../utils/tg.js'
+import { haptic, sendData, cloudSet, openLink } from '../utils/tg.js'
 import { lsGet, lsSet, todayKey } from '../utils/storage.js'
 import { t, tf } from '../i18n.js'
 import { U } from './home.js'
@@ -249,6 +249,55 @@ function renderProgramTasks() {
   })
 
   _updatePtasksHeader()
+
+  // Calendar button
+  const existing = container.parentElement.querySelector('.ptasks-cal-btn')
+  if (!existing) {
+    const calBtn = document.createElement('button')
+    calBtn.className = 'ptasks-cal-btn'
+    calBtn.innerHTML = '📅 Добавить в календарь (все 7 дней)'
+    calBtn.onclick = () => { haptic(); _addWeekToCalendar(level, weekInLevel, tasks) }
+    container.parentElement.appendChild(calBtn)
+  }
+}
+
+// ── Calendar export (ICS) ─────────────────────────────────────────────────────
+function _addWeekToCalendar(level, weekInLevel, tasks) {
+  const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
+  const globalWeek = (LEVEL_OFFSET[level] ?? 0) + weekInLevel
+
+  const today = new Date()
+  const dow = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((dow + 6) % 7))
+
+  const pad = n => String(n).padStart(2, '0')
+  const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+
+  const taskLines = tasks.map((t, i) =>
+    `${i+1}. ${t.replace(/[\r\n,;]/g, ' ').substring(0, 120)}`
+  ).join('\\n')
+
+  const summary = `IQ Barakah · Неделя ${globalWeek} · Уровень ${level}`
+  const desc = `Задания на каждый день:\\n${taskLines}\\n\\nОтмечай выполненное в Трекере`
+
+  const CRLF = '\r\n'
+  let vevents = ''
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    d.setHours(9, 0, 0, 0)
+    const dEnd = new Date(d)
+    dEnd.setHours(9, 30, 0, 0)
+    const uid = `iqb-w${globalWeek}-d${i+1}-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}@iqbarakah`
+    vevents += `BEGIN:VEVENT${CRLF}UID:${uid}${CRLF}DTSTART:${fmt(d)}${CRLF}DTEND:${fmt(dEnd)}${CRLF}SUMMARY:${summary}${CRLF}DESCRIPTION:${desc}${CRLF}END:VEVENT${CRLF}`
+  }
+
+  const ics = `BEGIN:VCALENDAR${CRLF}VERSION:2.0${CRLF}PRODID:-//IQ Barakah//RU${CRLF}CALSCALE:GREGORIAN${CRLF}${vevents}END:VCALENDAR`
+
+  // data: URI works on iOS Safari/Chrome + Apple Calendar, Android, Outlook
+  const encoded = encodeURIComponent(ics)
+  openLink(`data:text/calendar;charset=utf-8,${encoded}`)
 }
 
 // ── Individual habit streak ───────────────────────────────────────────────────
