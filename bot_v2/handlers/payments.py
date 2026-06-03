@@ -94,10 +94,25 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
     user = await UserRepo(session).get(user_id)
     tariff_view = get_tariff_view(tariff_id, lang) or tariff
 
+    # Проверяем скидку 999₽ после Кораблика (24 часа)
+    import time as _time
+    from bot_v2.db.repositories import SettingsRepo
+    price = tariff["price"]
+    discount_active = False
+    if tariff_id == "vakt":
+        offer_val = await SettingsRepo(session).get(f"korablik_offer:{user_id}")
+        if offer_val:
+            try:
+                if int(offer_val) > int(_time.time()):
+                    price = 999
+                    discount_active = True
+            except ValueError:
+                pass
+
     payment = await create_payment(
         shop_id=config.yookassa_shop_id,
         secret_key=config.yookassa_secret_key,
-        amount=tariff["price"],
+        amount=price,
         description=f"{tariff_view['name']} — IQ Barakah",
         return_url="https://t.me/iqbaraka_bot",
         metadata={"tariff_id": tariff_id, "user_id": str(user_id)},
@@ -118,15 +133,18 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
     await PaymentRepo(session).create(
         user_id=user_id,
         tariff_id=tariff_id,
-        amount=tariff["price"],
+        amount=price,
         yoo_payment_id=payment["id"],
     )
 
     name = user.name if user else "участник"
-    price_str = f"{tariff['price']:,}".replace(",", " ")
+    price_str = f"{price:,}".replace(",", " ")
+    discount_line = f"🎁 Специальная цена за прохождение диагностики — действует 24 часа!\n\n" if discount_active else ""
+    old_price_line = f"~~1 500 ₽~~ → " if discount_active else ""
     text = (
         f"💳 {tariff_view['name']}\n\n"
-        f"💰 Сумма: {price_str} ₽\n\n"
+        f"{discount_line}"
+        f"💰 Сумма: {old_price_line}{price_str} ₽\n\n"
         f"Нажми кнопку ниже — оплати на сайте ЮKassa.\n"
         f"После оплаты нажми «✅ Я оплатил» — урок придёт сразу 🌱"
     )

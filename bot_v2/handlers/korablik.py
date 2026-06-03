@@ -266,17 +266,41 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
         text, markup, level, total = _build_result(scores)
         await call.message.answer(text, parse_mode="Markdown", reply_markup=markup)
 
-        # Уведомляем куратора
         user = await UserRepo(session).get(call.from_user.id)
         name = user.name if user else call.from_user.full_name
+        uid = call.from_user.id
+
+        # Сохраняем время завершения кораблика для скидки 24 часа
+        import time as _time
+        from bot_v2.db.repositories import SettingsRepo
+        repo = SettingsRepo(session)
+        await repo.set(f"korablik_offer:{uid}", str(int(_time.time()) + 86400))
+
+        # Отправляем подарок — первый урок ВАКТ + скидка 24 часа
+        await asyncio.sleep(1.5)
+        await call.bot.send_message(
+            uid,
+            "🎁 *Вот твой подарок — первая неделя ВАКТ прямо сейчас.*\n\n"
+            "Это бесплатно. Никакой оплаты — просто начни.\n\n"
+            "И ещё одно: следующие *24 часа* ВАКТ доступен за *999 ₽* вместо 1 500 ₽.\n"
+            "Это только для тебя — за то, что прошёл диагностику честно. 🌿",
+            parse_mode="Markdown",
+            reply_markup=_kb(
+                ("🌱 Получить первый урок бесплатно", "kb_free_lesson"),
+                ("💳 Купить ВАКТ за 999 ₽", "pay:vakt"),
+            )
+        )
+
+        # Уведомляем куратора
         for curator_id in config.curator_ids:
             try:
                 await call.bot.send_message(
                     chat_id=curator_id,
                     text=(
                         f"🚢 *Кораблик завершён*\n\n"
-                        f"👤 {name} (`{call.from_user.id}`)\n"
-                        f"📊 Уровень: *{level.upper()}* ({total}/21)"
+                        f"👤 {name} (`{uid}`)\n"
+                        f"📊 Уровень: *{level.upper()}* ({total}/21)\n"
+                        f"🎁 Отправлен подарок: урок + скидка 999₽"
                     ),
                     parse_mode="Markdown",
                 )
@@ -284,7 +308,7 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
                 pass
 
         # Follow-up через 24 часа
-        asyncio.create_task(_followup(call.bot, call.from_user.id))
+        asyncio.create_task(_followup(call.bot, uid))
 
 
 # ── Follow-up ────────────────────────────────────────────
@@ -309,6 +333,29 @@ async def _followup(bot, user_id: int):
 
 
 # ── Кнопки результата ────────────────────────────────────
+
+@router.callback_query(F.data == "kb_free_lesson")
+async def cb_free_lesson(call: CallbackQuery, session: AsyncSession, config: Config):
+    """Подарок — первая неделя ВАКТ бесплатно."""
+    await call.answer()
+    from bot_v2.db.repositories import ParticipantRepo
+    from bot_v2.handlers.program import send_weekly_lesson
+    uid = call.from_user.id
+    p_repo = ParticipantRepo(session)
+    participant = await p_repo.get(uid)
+    if not participant or not participant.is_active:
+        participant = await p_repo.activate(uid, level="А", week=1)
+        await session.flush()
+    await call.message.answer(
+        "🌱 *Отлично! Вот твоя первая неделя ВАКТ.*\n\n"
+        "Неделя 1 — Ният (намерение). Читай, делай шаг, возвращайся. 🌿",
+        parse_mode="Markdown",
+    )
+    try:
+        await send_weekly_lesson(call.bot, uid, participant, session, config)
+    except Exception as e:
+        logger.warning("free lesson send failed: %s", e)
+
 
 @router.callback_query(F.data == "kb_want_vakt")
 async def cb_want_vakt(call: CallbackQuery):
