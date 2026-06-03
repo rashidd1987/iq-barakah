@@ -3486,11 +3486,10 @@ function _getDayStatus(dateStr) {
   return 'partial'
 }
 
+let _calToggleInited = false
 function _initCalToggle() {
   const body = document.getElementById('mcal-body')
   const toggle = document.getElementById('mcal-toggle')
-  const prev = document.getElementById('mcal-prev')
-  const next = document.getElementById('mcal-next')
   if (!body || !toggle) return
 
   const apply = () => {
@@ -3499,18 +3498,19 @@ function _initCalToggle() {
   }
   apply()
 
-  // Toggle on title click (not nav buttons)
+  if (_calToggleInited) return  // Add listeners only once!
+  _calToggleInited = true
+
   const header = document.getElementById('mcal-title')
-  header?.addEventListener('click', () => {
+  const toggleEl = document.getElementById('mcal-toggle')
+
+  const onToggle = () => {
     _calOpen = !_calOpen
     lsSet('mcal_open', _calOpen)
     apply()
-  })
-  toggle?.addEventListener('click', () => {
-    _calOpen = !_calOpen
-    lsSet('mcal_open', _calOpen)
-    apply()
-  })
+  }
+  header?.addEventListener('click', onToggle)
+  toggleEl?.addEventListener('click', onToggle)
 }
 
 function renderMonthCal() {
@@ -3702,11 +3702,14 @@ function _addWeekToCalendar(level, weekInLevel, tasks) {
     vevents += `BEGIN:VEVENT${CRLF}UID:${uid}${CRLF}DTSTART:${fmt(d)}${CRLF}DTEND:${fmt(dEnd)}${CRLF}SUMMARY:${summary}${CRLF}DESCRIPTION:${desc}${CRLF}END:VEVENT${CRLF}`
   }
 
-  const ics = `BEGIN:VCALENDAR${CRLF}VERSION:2.0${CRLF}PRODID:-//IQ Barakah//RU${CRLF}CALSCALE:GREGORIAN${CRLF}${vevents}END:VCALENDAR`
-
-  // data: URI works on iOS Safari/Chrome + Apple Calendar, Android, Outlook
-  const encoded = encodeURIComponent(ics)
-  openLink(`data:text/calendar;charset=utf-8,${encoded}`)
+  // Google Calendar URL (HTTPS — works in Telegram WebApp on all platforms)
+  monday.setHours(9, 0, 0, 0)
+  const mondayEnd = new Date(monday); mondayEnd.setHours(9, 30, 0, 0)
+  const title = encodeURIComponent(`IQ Barakah · Неделя ${globalWeek} · Уровень ${level}`)
+  const details = encodeURIComponent(`Задания на каждый день недели:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
+  const recur = 'RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7'
+  const fmtG = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+  openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(monday)}/${fmtG(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`)
 }
 
 // ── Individual habit streak ───────────────────────────────────────────────────
