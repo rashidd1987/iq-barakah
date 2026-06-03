@@ -96,7 +96,7 @@ SECTION_BREAKDOWN = {
         0: ("🔴", "Ты живёшь скорее по инерции, чем по намерению.\nЭто не слабость — просто никто не показал как иначе.", "Начать день с одного осознанного намерения"),
         1: ("🟡", "Намерение иногда есть — но держится недолго.\nВажно создать якорь, который будет возвращать.", "Записывать ният каждое утро — одним предложением"),
         2: ("🟢", "Есть внутренняя опора. Теперь важно углубить её и сделать ежедневной практикой.", "Углубить через программу"),
-        3: ("✨", "МашаАллах — ты живёшь осознанно. Это основа всего.", None),
+        3: ("✨", "МашаАллах (хвала Аллаху) — ты живёшь осознанно. Это основа всего.", None),
     },
     "Время и утро": {
         0: ("🔴", "Утро уходит в телефон — и день уже потерян.\nОдин якорь с утра меняет всё.", "Одно действие до телефона — каждое утро"),
@@ -162,7 +162,7 @@ def _build_breakdown(scores: list) -> str:
         title = q["title"]
         icon, desc, step = SECTION_BREAKDOWN[title][score]
         if score == 3:
-            lines.append(f"{icon} *{title}* — МашаАллах, здесь уже всё хорошо.")
+            lines.append(f"{icon} *{title}* — МашаАллах (хвала Аллаху), здесь уже всё хорошо.")
         else:
             lines.append(f"{icon} *{title}*")
             lines.append(desc)
@@ -228,7 +228,7 @@ def _build_result(scores: list) -> tuple:
             ("🔁 Пройти снова", "kb_restart"),
         )
 
-    text = f"Джазакаллаху хайран за честность 🙏\n\nВот твоя картина:\n\n{breakdown}{footer}"
+    text = f"Джазакаллаху хайран (да воздаст тебе Аллах благом) за честность 🙏\n\nВот твоя картина:\n\n{breakdown}{footer}"
     return text, markup, level, total
 
 
@@ -337,7 +337,7 @@ async def cb_about_vakt(call: CallbackQuery):
 async def cb_want_iq(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
-        "МашаАллах! 🌟\n\nIQ Barakah — 3 сезона глубокой работы.\nВыбери тариф в меню:",
+        "МашаАллах (хвала Аллаху)! 🌟\n\nIQ Barakah — 3 сезона глубокой работы.\nВыбери тариф в меню:",
         reply_markup=_kb(("🏆 Все тарифы", "show_tariffs")),
     )
 
@@ -446,6 +446,6 @@ async def handle_objection(message: Message, state: FSMContext, session: AsyncSe
 async def cb_fu_paid(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
-        "Баракаллаху фик! 🌟\n\n"
+        "Баракаллаху фик (да благословит тебя Аллах)! 🌟\n\n"
         "Рад слышать. Добро пожаловать в путь 🌿"
     )
