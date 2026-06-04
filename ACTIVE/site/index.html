@@ -396,21 +396,23 @@ ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:tr
   <div class="wrap nav">
     <a class="logo" href="index.html">IQ BARAKAH</a>
     <div class="nav-links">
-      <a href="index.html">ВАКТ</a>
+      <a href="index.html" class="active">ГЛАВНАЯ</a>
+      <a href="vakt.html">ВАКТ</a>
       <a href="iq-barakah.html">IQ BARAKAH</a>
       <a href="jamat.html">ДЖАМААТ</a>
       <a href="premium.html">ЛИДЕР УММЫ</a>
       <a href="ecosystem.html">ЭКОСИСТЕМА</a>
     </div>
     <div class="burger" onclick="toggleMenu()">☰</div>
-    <a class="nav-cta" href="#quiz" onclick="ymGoal('nav_cta_click')">Проверить потенциал</a>
+    <a class="nav-cta" href="https://t.me/iqbaraka_bot" target="_blank" onclick="ymGoal('nav_cta_click')">Начать ВАКТ</a>
   </div>
   <div class="mobile-menu" id="mmenu">
-    <a href="index.html">ВАКТ</a>
-    <a href="iq-barakah.html">IQ BARAKAH</a>
-    <a href="jamat.html">ДЖАМААТ</a>
-    <a href="premium.html">ЛИДЕР УММЫ</a>
-    <a href="ecosystem.html">ЭКОСИСТЕМА</a>
+    <a href="index.html">Главная</a>
+    <a href="vakt.html">ВАКТ</a>
+    <a href="iq-barakah.html">IQ Barakah</a>
+    <a href="jamat.html">Джамаат</a>
+    <a href="premium.html">Лидер Уммы</a>
+    <a href="ecosystem.html">Экосистема</a>
   </div>
 </nav>
 
@@ -555,34 +557,6 @@ ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:tr
 </section>
 
 <!-- ══════════════════════════════
-     КАК ЭТО РАБОТАЕТ
-══════════════════════════════ -->
-<section class="how">
-  <div class="wrap">
-    <div class="eyebrow">Три шага</div>
-    <h2 class="sec-title">Один путь. <em>Простая система.</em></h2>
-    <p class="sec-sub">Не нужно менять всё сразу. Достаточно сделать первый шаг — и удержать его.</p>
-    <div class="steps-grid">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>Диагностика</h3>
-        <p>Ты видишь честную картину своей жизни прямо сейчас — без стыда и давления. Понимаешь, с чего начать.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>ВАКТ — система дня</h3>
-        <p>Утро с намерением, молитва как якорь, вечерний разбор. 6 недель — и ты живёшь день, а не тонешь в нём.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>Система жизни</h3>
-        <p>После фундамента открывается глубина — сезоны, группа поддержки, наставничество. Ты строишь жизнь, а не тушишь пожары.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════
      ВАКТ + ЦЕНА
 ══════════════════════════════ -->
 <section class="vakt-section" id="vakt">
@@ -633,113 +607,6 @@ ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:tr
 
 
 <!-- ══════════════════════════════
-     МЕТОДОЛОГИЯ ВАКТ
-══════════════════════════════ -->
-<section style="background:var(--dark2);padding:80px 0">
-  <div class="wrap" style="max-width:920px">
-    <div class="eyebrow" style="color:var(--gold)">Методология ВАКТ</div>
-    <h2 class="sec-title" style="color:#fff">ВАКТ — <em>не просто тайм-менеджмент</em></h2>
-    <p class="sec-sub" style="color:rgba(255,255,255,.5)">ВАКТ переводит человека из состояния "день управляет мной" в состояние "я веду день — с намерением, ритмом и честным итогом вечером".</p>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:32px">
-
-      <!-- Левая тёмная карточка -->
-      <div style="padding:32px;border-radius:22px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);display:flex;flex-direction:column;justify-content:space-between">
-        <div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:clamp(26px,3.5vw,36px);font-weight:700;color:var(--gold2);line-height:1.15;margin-bottom:18px">ВАКТ — это система возвращения ритма.</div>
-          <p style="font-size:14px;line-height:1.8;color:rgba(255,255,255,.55)">Утро становится якорем дня, намерение — компасом, а вечерний отчёт — зеркалом. Исламская традиция даёт этому имена, но работает это для каждого.</p>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:24px;flex-wrap:wrap">
-          <div style="padding:10px 14px;border-radius:12px;background:rgba(201,168,76,.15);text-align:center;flex:1;min-width:60px">
-            <div style="font-size:22px;font-weight:900;color:var(--gold2);font-family:'Cormorant Garamond',serif">В</div>
-            <div style="font-size:9px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:3px">Время</div>
-          </div>
-          <div style="padding:10px 14px;border-radius:12px;background:rgba(201,168,76,.15);text-align:center;flex:1;min-width:60px">
-            <div style="font-size:22px;font-weight:900;color:var(--gold2);font-family:'Cormorant Garamond',serif">А</div>
-            <div style="font-size:9px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:3px">Аманат</div>
-          </div>
-          <div style="padding:10px 14px;border-radius:12px;background:rgba(201,168,76,.15);text-align:center;flex:1;min-width:60px">
-            <div style="font-size:22px;font-weight:900;color:var(--gold2);font-family:'Cormorant Garamond',serif">К</div>
-            <div style="font-size:9px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:3px">Контроль</div>
-          </div>
-          <div style="padding:10px 14px;border-radius:12px;background:rgba(201,168,76,.15);text-align:center;flex:1;min-width:60px">
-            <div style="font-size:22px;font-weight:900;color:var(--gold2);font-family:'Cormorant Garamond',serif">Т</div>
-            <div style="font-size:9px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:3px">Тауба</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Правая — 6 недель -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Неделя 1</div>
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:6px">Намерение</div>
-          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.45)">Вернуть ният и понять, куда уходит день.</div>
-        </div>
-        <div style="padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Неделя 2</div>
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:6px">Утро</div>
-          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.45)">Сделать утро главным якорем ритма.</div>
-        </div>
-        <div style="padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Неделя 3</div>
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:6px">Ритм</div>
-          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.45)">Планировать день вокруг ритма, а не хаоса задач.</div>
-        </div>
-        <div style="padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Неделя 4</div>
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:6px">Внимание</div>
-          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.45)">Ослабить власть телефона и рассеивания.</div>
-        </div>
-        <div style="padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Неделя 5</div>
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:6px">Вечерний отчёт</div>
-          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.45)">Благодарность, пробоина, следующий шаг.</div>
-        </div>
-        <div style="padding:18px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">
-          <div style="font-size:9px;font-weight:800;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:8px">Неделя 6</div>
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:6px">Постоянство</div>
-          <div style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.45)">Закрепить систему и выбрать следующий уровень.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Инструменты -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-      <div style="padding:16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-align:center">
-        <div style="font-size:13px;font-weight:800;color:var(--gold2);margin-bottom:5px">Утренний лист</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5">план дня вокруг молитвы</div>
-      </div>
-      <div style="padding:16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-align:center">
-        <div style="font-size:13px;font-weight:800;color:var(--gold2);margin-bottom:5px">Практики</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5">утро и вечер без перегруза</div>
-      </div>
-      <div style="padding:16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-align:center">
-        <div style="font-size:13px;font-weight:800;color:var(--gold2);margin-bottom:5px">Вечерний разбор</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5">3 вопроса перед сном</div>
-      </div>
-      <div style="padding:16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-align:center">
-        <div style="font-size:13px;font-weight:800;color:var(--gold2);margin-bottom:5px">Якорный брат</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5">поддержка и ответственность</div>
-      </div>
-      <div style="padding:16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);text-align:center">
-        <div style="font-size:13px;font-weight:800;color:var(--gold2);margin-bottom:5px">Джарвас</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);line-height:1.5">бот, который возвращает в путь</div>
-      </div>
-    </div>
-
-    <div style="text-align:center;margin-top:36px">
-      <a class="btn-main" href="https://t.me/iqbaraka_bot" target="_blank"
-         style="min-width:0;max-width:360px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#060B04"
-         onclick="ymGoal('meth_cta_click')">
-        Начать ВАКТ за 1 500 ₽ →
-      </a>
-      <p style="margin-top:10px;font-size:12px;color:rgba(255,255,255,.3)">Оплата и старт прямо в боте @iqbaraka_bot</p>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════
      ДЖАРВАС
 ══════════════════════════════ -->
 <section class="jarwas">
@@ -747,36 +614,11 @@ ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:tr
     <div class="eyebrow">AI-спутник</div>
     <h2 class="sec-title">Джарвас — <em>ты не идёшь один</em></h2>
     <p class="sec-sub">Не просто бот. Спутник внутри программы: напомнит, поддержит, вернёт в путь и даст один следующий шаг.</p>
-    <div class="jarwas-grid">
-      <div class="jarwas-card">
-        <div class="jscene"><b>"Я сорвался"</b><span>Ты вернулся — это уже больше, чем у многих.</span></div>
-        <div class="jscene"><b>"Я устал, всё бессмысленно"</b><span>Система проверяется именно в трудный день. Один шаг — не план на неделю.</span></div>
-        <div class="jscene"><b>"Пропустил две недели"</b><span>Возвращение — не провал. Продолжай с того места, где остановился.</span></div>
-      </div>
-      <div class="jarwas-card jchat">
+    <div class="jarwas-grid" style="grid-template-columns:1fr">
+      <div class="jarwas-card jchat" style="max-width:560px;margin:0 auto;width:100%">
         <div class="bubble user">Я опять не сделал вечерний разбор...</div>
         <div class="bubble ai">Не догоняй всё сразу. Сделай один короткий отчёт прямо сейчас: за что ты благодарен сегодня, где потерял внимание, и один шаг на завтра утром.</div>
         <p style="font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);margin-top:6px">Джарвас работает внутри методологии IQ Barakah и направляет к куратору, если вопрос выходит за рамки программы.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══════════════════════════════
-     ВМЕСТЕ ЛЕГЧЕ
-══════════════════════════════ -->
-<section class="together">
-  <div class="wrap">
-    <div class="together-box">
-      <div class="together-dark">
-        <h3>В одиночку сложно держать курс.</h3>
-        <p>В Джамаате рядом люди, которые идут одним путём — держат слово, поддерживают и напоминают тебе, кем ты хочешь стать.</p>
-      </div>
-      <div class="mini-list">
-        <div class="mini"><b>Среда удержания:</b> тебя видят, слышат и мягко возвращают — без осуждения.</div>
-        <div class="mini"><b>Ответственность:</b> короткие отчёты, пары, куратор и группа поддержки.</div>
-        <div class="mini"><b>IQ Barakah:</b> после ВАКТ — 3 сезона глубокой работы над собой, семьёй и делом.</div>
-        <div class="mini"><b>Джамаат:</b> малая группа людей которые идут одним путём и держат друг друга в курсе.</div>
       </div>
     </div>
   </div>
@@ -792,7 +634,12 @@ ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:tr
     <p class="sec-sub">Пройди диагностику — узнай свой потенциал и получи персональный первый шаг. Бесплатно.</p>
     <div class="cta-row">
       <a class="btn-main" href="#quiz" onclick="ymGoal('final_cta_click')">Проверить потенциал</a>
-      <a class="btn-ghost" href="ecosystem.html">Вся экосистема</a>
+    </div>
+    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <a class="btn-ghost" href="index.html">ВАКТ</a>
+      <a class="btn-ghost" href="iq-barakah.html">IQ Barakah</a>
+      <a class="btn-ghost" href="ecosystem.html">Экосистема</a>
+      <a class="btn-ghost" href="jamat.html">Джамаат</a>
       <a class="btn-ghost" href="premium.html">Лидер Уммы</a>
     </div>
   </div>
@@ -1110,7 +957,7 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <script src="journey-content-i18n.js?v=20260526-translate-fix"></script>
-<script src="journey-text-i18n.js?v=20260528"></script>
+
 <script src="journey-lang.js?v=20260526-translate-fix"></script>
 </body>
 </html>
