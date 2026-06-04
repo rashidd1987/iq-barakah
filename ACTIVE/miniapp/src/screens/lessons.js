@@ -152,7 +152,6 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     btns.innerHTML = `
       <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
       <button class="btn btn-cal" id="sl-calendar">📅 Добавить в календарь</button>
-      ${!done ? `<button class="btn btn-p2" id="sl-review">${t('submitMuhasaba')}</button>` : ''}
       <button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-fullbot').onclick = () => {
       sendData({ action: 'open_lesson', level: U.level, week: weekToLevelIndex(globalWeekIndex).levelWeekIndex })
