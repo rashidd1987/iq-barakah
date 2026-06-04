@@ -460,130 +460,142 @@ textarea:focus { border-color: var(--g2); }
 .pop { animation: pop .3s ease; }
 
 /* ── DIAGNOSTIC OVERLAY ── */
+/* ── NEW DIAGNOSTIC ─────────────────────────────────────────────────── */
 #diag-overlay {
   position: fixed; inset: 0; z-index: 300;
-  background: linear-gradient(160deg, var(--g1) 0%, var(--g2) 60%, var(--g3) 100%);
-  display: flex; flex-direction: column;
+  background: #060B04;
+  display: flex; flex-direction: column; align-items: stretch;
   overflow-y: auto; overscroll-behavior: contain;
 }
 #diag-overlay.hidden { display: none; }
 
-.diag-logo {
-  padding: 28px 24px 0;
-  font-size: 20px; font-weight: 800; color: white; letter-spacing: -.2px;
-}
-.diag-logo em { color: var(--gold2); font-style: normal; }
-
 .diag-panel {
-  flex: 1; background: var(--bg);
-  border-radius: 24px 24px 0 0;
-  margin-top: 20px;
-  overflow-y: auto; padding: 24px 20px 40px;
-  display: flex; flex-direction: column; gap: 14px;
+  flex: 1; padding: 24px 20px 48px;
+  display: flex; flex-direction: column;
 }
-
-.diag-step { display: none; flex-direction: column; gap: 14px; }
+.diag-step { display: none; flex-direction: column; gap: 16px; flex: 1; }
 .diag-step.active { display: flex; }
 
-.diag-headline { font-size: 22px; font-weight: 800; line-height: 1.2; }
-.diag-sub { font-size: 14px; color: var(--sub); line-height: 1.5; }
-
-/* Choice cards */
-.choice-card {
-  background: var(--card); border-radius: var(--r);
-  box-shadow: var(--shadow); padding: 18px;
-  cursor: pointer; border: 2px solid transparent;
-  transition: all .18s; display: flex; align-items: center; gap: 14px;
+/* ── Quiz header */
+.dq-header { margin-bottom: 4px; }
+.dq-prog-wrap {}
+.dq-prog-top {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
 }
-.choice-card:active { transform: scale(.98); }
-.choice-card.selected { border-color: var(--g2); background: var(--gpale); }
-.choice-icon { font-size: 32px; flex-shrink: 0; }
-.choice-text .t { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
-.choice-text .s { font-size: 13px; color: var(--muted); }
-
-/* Quick level buttons */
-.level-cards { display: flex; flex-direction: column; gap: 10px; }
-.lcard {
-  background: var(--card); border-radius: var(--r);
-  box-shadow: var(--shadow); padding: 16px;
-  cursor: pointer; border: 2px solid transparent;
-  transition: all .18s;
-}
-.lcard:active { transform: scale(.98); }
-.lcard.selected { border-color: var(--g2); background: var(--gpale); }
-.lcard-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.lcard-letter {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: var(--g2); color: white;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px; font-weight: 800; flex-shrink: 0;
-}
-.lcard-name { font-size: 14px; font-weight: 700; }
-.lcard-who { font-size: 12px; color: var(--muted); line-height: 1.4; }
-
-/* Quiz */
-.quiz-prog { display: flex; gap: 5px; margin-bottom: 4px; }
-.qpd { flex: 1; height: 4px; border-radius: 2px; background: var(--border); transition: background .2s; }
-.qpd.done { background: var(--g2); }
-.qpd.cur { background: var(--gold); }
-
-.q-num { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
-.q-text { font-size: 18px; font-weight: 800; line-height: 1.3; }
-
-.q-opts { display: flex; flex-direction: column; gap: 9px; }
-.q-opt {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--card); border-radius: 14px;
-  box-shadow: var(--shadow); padding: 13px 16px;
-  cursor: pointer; border: 2px solid transparent;
-  transition: all .15s; font-family: inherit;
-  text-align: left; width: 100%;
-}
-.q-opt:active { transform: scale(.98); }
-.q-opt.sel { border-color: var(--g2); background: var(--gpale); }
-.q-opt .oi { font-size: 20px; flex-shrink: 0; }
-.q-opt .ol { font-size: 14px; font-weight: 600; color: var(--text); }
-.q-opt.sel .ol { color: var(--g2); }
-
-.quiz-nav { display: flex; gap: 10px; margin-top: 4px; }
-.qbk {
-  padding: 12px 18px; border-radius: 12px;
-  border: 1.5px solid var(--border); background: var(--card);
-  font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--sub);
-  transition: all .15s;
-}
-.qbk:active { opacity: .7; }
-
-/* Result */
-.res-header {
-  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
-  padding: 20px; text-align: center;
-}
-.res-pct-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 64px; height: 64px; border-radius: 50%;
-  font-size: 20px; font-weight: 800; color: white;
-  margin-bottom: 10px;
-}
-.res-level { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
-.res-intro { font-size: 13px; color: var(--sub); line-height: 1.5; }
-
-.wheel-block {
-  background: var(--card); border-radius: var(--r); box-shadow: var(--shadow);
-  padding: 16px;
-}
-.wheel-block-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; text-align: center; }
-.wheel-block svg { display: block; margin: 0 auto; }
-
-.pains-list { display: flex; flex-direction: column; gap: 8px; }
-.pain-item {
-  background: var(--card); border-radius: 12px; box-shadow: var(--shadow);
-  padding: 12px 14px; font-size: 13px; color: var(--sub); line-height: 1.4;
+.dq-prog-label { font-size: 10px; font-weight: 800; letter-spacing: 3px; color: #C9A84C; text-transform: uppercase; }
+.dq-frac { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.3); }
+.dq-prog-track { height: 3px; background: rgba(255,255,255,.08); border-radius: 99px; overflow: hidden; }
+.dq-prog-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #C9A84C, #E8C97A);
+  transition: width .4s cubic-bezier(.22,1,.36,1);
+  box-shadow: 0 0 8px rgba(201,168,76,.5);
 }
 
-.res-path {
-  background: var(--gpale); border-radius: 12px; padding: 14px;
-  font-size: 13px; color: var(--g2); font-weight: 600; line-height: 1.5;
+/* ── Question */
+.dq-question {
+  font-size: clamp(20px, 5vw, 28px); font-weight: 700; line-height: 1.25;
+  color: #fff; text-align: center; min-height: 72px;
+  margin: 12px 0;
+}
+
+/* ── Options */
+.dq-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; }
+.dq-opt {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start;
+  gap: 6px; padding: 14px 36px 14px 14px;
+  border-radius: 16px; border: 1px solid rgba(201,168,76,.15);
+  background: rgba(255,255,255,.04); color: rgba(255,255,255,.75);
+  font-size: 13px; font-weight: 600; line-height: 1.4;
+  cursor: pointer; text-align: left; font-family: inherit;
+  transition: all .18s; -webkit-tap-highlight-color: transparent;
+}
+.dq-opt:active { transform: scale(.97); }
+.dq-opt.sel {
+  border-color: #C9A84C; background: rgba(201,168,76,.12); color: #E8C97A;
+}
+.dq-opt-num {
+  font-size: 10px; font-weight: 800; color: rgba(255,255,255,.25);
+  letter-spacing: 1px; margin-bottom: 2px;
+}
+.dq-opt.sel .dq-opt-num { color: rgba(201,168,76,.6); }
+.dq-opt-txt { font-size: 13px; line-height: 1.4; }
+.dq-opt-check {
+  display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px; border-radius: 50%; background: #C9A84C;
+  color: #060B04; font-size: 11px; font-weight: 800;
+  align-items: center; justify-content: center;
+}
+.dq-opt.sel .dq-opt-check { display: flex; }
+
+/* ── Nav */
+.dq-nav {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; margin-top: 8px;
+}
+.dq-back {
+  padding: 12px 18px; border-radius: 999px;
+  border: 1px solid rgba(201,168,76,.2); background: transparent;
+  color: rgba(255,255,255,.4); font-size: 13px; font-weight: 800;
+  cursor: pointer; font-family: inherit; transition: .18s;
+}
+.dq-back:hover { border-color: rgba(201,168,76,.5); color: #E8C97A; }
+.dq-next {
+  padding: 14px 28px; border-radius: 999px;
+  background: linear-gradient(135deg, #C9A84C, #E8C97A);
+  color: #060B04; border: none; font-size: 14px; font-weight: 900;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 8px 24px rgba(201,168,76,.3); transition: .18s; letter-spacing: .3px;
+}
+.dq-next:disabled { opacity: .25; cursor: not-allowed; }
+.dq-next:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(201,168,76,.45); }
+
+/* ── RESULT ── */
+.dr-top-label {
+  text-align: center; font-size: 10px; font-weight: 800;
+  letter-spacing: 3px; color: #C9A84C; text-transform: uppercase; margin-bottom: 4px;
+}
+.dr-ring-wrap {
+  position: relative; width: 170px; height: 170px; margin: 0 auto 4px;
+}
+.dr-ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.dr-pct { font-size: 46px; font-weight: 700; color: #E8C97A; line-height: 1; }
+.dr-word { font-size: 10px; font-weight: 800; letter-spacing: 2px; color: rgba(255,255,255,.4); text-transform: uppercase; margin-top: 4px; }
+
+/* ── Spheres */
+.dr-spheres { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin: 8px 0; }
+.dr-sphere { border-radius: 14px; padding: 12px 8px; text-align: center; border: 1px solid rgba(201,168,76,.12); background: rgba(255,255,255,.03); }
+.dr-sphere-icon { font-size: 18px; margin-bottom: 4px; }
+.dr-sphere-name { font-size: 10px; font-weight: 700; letter-spacing: .5px; color: rgba(255,255,255,.45); margin-bottom: 6px; }
+.dr-sphere-bar { height: 4px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+.dr-sphere-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #C9A84C, #E8C97A); width: 0; transition: width 1.2s cubic-bezier(.22,1,.36,1); }
+
+/* ── Panels */
+.dr-panels { display: flex; flex-direction: column; gap: 10px; margin: 4px 0; }
+.dr-panel { border-radius: 18px; padding: 18px; border: 1px solid rgba(201,168,76,.12); background: rgba(255,255,255,.03); }
+.dr-panel-after { border-left: 3px solid #3B7A18; }
+.dr-badge { display: inline-block; font-size: 9px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; margin-bottom: 8px; }
+.dr-badge-now { background: rgba(201,168,76,.1); color: rgba(201,168,76,.8); }
+.dr-badge-after { background: rgba(59,122,24,.2); color: #8BC96A; }
+.dr-panel-title { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; line-height: 1.25; }
+.dr-panel-text { font-size: 13px; line-height: 1.7; color: rgba(255,255,255,.55); }
+
+/* ── Start button */
+.dr-start-btn {
+  width: 100%; margin-top: 12px;
+  padding: 18px; border-radius: 999px;
+  background: linear-gradient(135deg, #C9A84C, #E8C97A, #FFF0B3);
+  color: #060B04; border: none; font-size: 16px; font-weight: 900;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 12px 40px rgba(201,168,76,.4);
+  animation: pulse-gold 2.4s ease-in-out infinite;
+}
+@keyframes pulse-gold {
+  0%,100%{box-shadow:0 12px 40px rgba(201,168,76,.4),0 0 0 0 rgba(201,168,76,.25)}
+  50%{box-shadow:0 12px 40px rgba(201,168,76,.5),0 0 0 10px rgba(201,168,76,0)}
 }
 
 /* ── SHIP SCREEN ── */
@@ -961,75 +973,71 @@ textarea:focus { border-color: var(--g2); }
 
 <!-- ══════════════ DIAGNOSTIC OVERLAY ══════════════ -->
 <div id="diag-overlay" class="hidden">
-  <div class="diag-logo">IQ <em>Barakah</em></div>
   <div class="diag-panel">
-    <div class="diag-step active" id="ds-choice">
-      <div class="diag-headline">Определим твой<br>уровень 🌱</div>
-      <div class="diag-sub">Прежде чем начать — выбери как удобнее</div>
-      <div class="choice-card" id="btn-quick">
-        <div class="choice-icon">⚡</div>
-        <div class="choice-text">
-          <div class="t">Я знаю свой уровень</div>
-          <div class="s">Выбрать I, II или III вручную — займёт 10 секунд</div>
+
+    <!-- QUIZ STEP -->
+    <div class="diag-step active" id="ds-quiz">
+      <div class="dq-header">
+        <div class="dq-prog-wrap">
+          <div class="dq-prog-top">
+            <span class="dq-prog-label">Потенциал</span>
+            <span class="dq-frac" id="dq-frac">1 / 8</span>
+          </div>
+          <div class="dq-prog-track"><div class="dq-prog-fill" id="dq-prog-fill" style="width:12.5%"></div></div>
         </div>
       </div>
-      <div class="choice-card" id="btn-quiz">
-        <div class="choice-icon">🎯</div>
-        <div class="choice-text">
-          <div class="t">Пройти диагностику</div>
-          <div class="s">8 вопросов — точный результат с колесом баланса</div>
-        </div>
-      </div>
-    </div>
-    <div class="diag-step" id="ds-quick">
-      <div class="diag-headline">Выбери свой уровень</div>
-      <div class="diag-sub">Честно — можно сменить позже</div>
-      <div class="level-cards">
-        <div class="lcard" id="lcard-a" data-key="a">
-          <div class="lcard-head"><div class="lcard-letter">I</div><div class="lcard-name">Пробуждение</div></div>
-          <div class="lcard-who">Делаю первые шаги.</div>
-        </div>
-        <div class="lcard" id="lcard-b" data-key="b">
-          <div class="lcard-head"><div class="lcard-letter" style="background:var(--gold);">II</div><div class="lcard-name">Практика</div></div>
-          <div class="lcard-who">Встраиваю в жизнь.</div>
-        </div>
-        <div class="lcard" id="lcard-c" data-key="c">
-          <div class="lcard-head"><div class="lcard-letter" style="background:#1E4D0A;">III</div><div class="lcard-name">Баракат</div></div>
-          <div class="lcard-who">Это часть меня, живу с благословением.</div>
-        </div>
-      </div>
-      <button class="btn btn-p" id="quick-confirm" disabled>Начать программу →</button>
-      <button class="btn btn-o" id="btn-back-choice">← Назад</button>
-    </div>
-    <div class="diag-step" id="ds-quiz">
-      <div class="quiz-prog" id="qprog"></div>
-      <div class="q-num" id="qnum">ВОПРОС 1 ИЗ 8</div>
-      <div class="q-text" id="qtext"></div>
-      <div class="q-opts" id="qopts"></div>
-      <div class="quiz-nav">
-        <button class="qbk" id="qback">← Назад</button>
-        <button class="btn btn-p" id="qnext" disabled style="flex:1;opacity:.5;">Далее →</button>
+      <div class="dq-question" id="dq-text"></div>
+      <div class="dq-opts" id="dq-opts"></div>
+      <div class="dq-nav">
+        <button class="dq-back" id="dq-back">← Назад</button>
+        <button class="dq-next" id="dq-next" disabled>Дальше →</button>
       </div>
     </div>
+
+    <!-- RESULT STEP -->
     <div class="diag-step" id="ds-result">
-      <div class="diag-headline">Твой результат 🎯</div>
-      <div class="res-header">
-        <div class="res-pct-badge" id="res-badge">72%</div>
-        <div class="res-level" id="res-level"></div>
-        <div class="res-intro" id="res-intro"></div>
+      <div class="dr-top-label">Твой потенциал</div>
+
+      <!-- Ring -->
+      <div class="dr-ring-wrap">
+        <svg viewBox="0 0 180 180" width="170" height="170" style="transform:rotate(-90deg)">
+          <defs>
+            <linearGradient id="drg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#C9A84C"/>
+              <stop offset="100%" stop-color="#FFF0B3"/>
+            </linearGradient>
+          </defs>
+          <circle fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10" cx="90" cy="90" r="80"/>
+          <circle id="dr-ring-fg" fill="none" stroke="url(#drg)" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="502" stroke-dashoffset="502"
+            cx="90" cy="90" r="80" style="filter:drop-shadow(0 0 8px rgba(201,168,76,.6));transition:stroke-dashoffset 1.5s cubic-bezier(.22,1,.36,1)"/>
+        </svg>
+        <div class="dr-ring-center">
+          <div class="dr-pct" id="dr-pct">0%</div>
+          <div class="dr-word" id="dr-word"></div>
+        </div>
       </div>
-      <div class="wheel-block">
-        <div class="wheel-block-title">ТВОЁ КОЛЕСО БАЛАНСА СЕЙЧАС</div>
-        <svg id="res-wheel" width="200" height="200" viewBox="0 0 156 156"></svg>
-        <div id="wheel-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;justify-content:center;"></div>
+
+      <!-- Spheres -->
+      <div class="dr-spheres" id="dr-spheres"></div>
+
+      <!-- Panels -->
+      <div class="dr-panels">
+        <div class="dr-panel dr-panel-now">
+          <span class="dr-badge dr-badge-now">Сейчас</span>
+          <div class="dr-panel-title" id="dr-now-title"></div>
+          <div class="dr-panel-text" id="dr-now-text"></div>
+        </div>
+        <div class="dr-panel dr-panel-after">
+          <span class="dr-badge dr-badge-after">После программы</span>
+          <div class="dr-panel-title" id="dr-after-title"></div>
+          <div class="dr-panel-text" id="dr-after-text"></div>
+        </div>
       </div>
-      <div class="card"><div class="cb">
-        <div class="ct">Узнаю себя</div>
-        <div class="pains-list" id="res-pains"></div>
-      </div></div>
-      <div class="res-path" id="res-path"></div>
-      <button class="btn btn-p" id="btn-finish-diag">Начать программу →</button>
+
+      <button class="dq-next dr-start-btn" id="btn-finish-diag">Начать программу →</button>
     </div>
+
   </div>
 </div>
 
@@ -3212,87 +3220,81 @@ function openReviewSheet(currentWeek, weeksData) {
 
 // --- components/diagnostic.js ---
 
-const QDATA = [
-  {q:'Встаёшь на Фаджр?',opts:[['😔','Никогда',0],['🔄','Иногда',1],['✅','Регулярно',2],['⭐','Всегда + тахаджуд',3]]},
-  {q:'Читаешь утренние азкары?',opts:[['❌','Не читаю',0],['🔄','Иногда',1],['📖','Не каждый день',2],['✅','Каждый день',3]]},
-  {q:'Планируешь свой день?',opts:[['🌊','Живу как идёт',0],['💭','В голове',1],['📝','Иногда пишу',2],['⭐','Фаджр-лист каждый день',3]]},
-  {q:'Делаешь мухасабу вечером?',opts:[['❓','Что это?',0],['💭','Иногда',1],['🔄','Пробовал — бросил',2],['✅','Каждый вечер',3]]},
-  {q:'Как у тебя с телефоном утром?',opts:[['📱','Телефон управляет мной',0],['🔄','Пытаюсь ограничить',1],['⚖️','Есть правила — срываюсь',2],['✅','Контролирую осознанно',3]]},
-  {q:'Читаешь Коран?',opts:[['❌','Не читаю',0],['🌙','По праздникам',1],['📖','Иногда в неделю',2],['✅','Каждый день',3]]},
-  {q:'Как твой бизнес или работа?',opts:[['🌀','Полный хаос',0],['⚙️','Без системы',1],['📊','Система есть — нет баракта',2],['✨','Ищу смысл',3]]},
-  {q:'Как дела в твоей семье?',opts:[['🏃','Почти не бываю дома',0],['📱','Бываю — но в телефоне',1],['❤️','Уделяю — хочу больше',2],['🏠','Семья — моя крепость',3]]},
+// ── Вопросы (новая диагностика потенциала) ──────────────────────────────────
+const QS = [
+  {q:'Как обычно начинается твой день?',
+   opts:['Поздно, сразу в телефон','Рано, но без цели','Есть ритуал','Осознанно, с намерением']},
+  {q:'Есть ли у тебя контроль над своим временем?',
+   opts:['День управляет мной','Иногда получается','В целом да','Да, я веду день']},
+  {q:'Что происходит с твоими целями?',
+   opts:['Есть, но движения нет','Стартую и сдаюсь','Нестабильно','Держу курс, даже в трудные дни']},
+  {q:'Как справляешься, когда всё идёт не так?',
+   opts:['Теряюсь и откладываю','С трудом','Возвращаюсь к плану','Есть своя система']},
+  {q:'Как проводишь вечер?',
+   opts:['В телефоне — время уходит','Смотрю что сделал','Анализирую день','Итог + план на завтра']},
+  {q:'Как у тебя с внутренним покоем?',
+   opts:['Постоянная тревога','Бывают хорошие дни','В основном спокоен','Есть ощущение опоры']},
+  {q:'Что происходит с семьёй и близкими?',
+   opts:['Хаос','Я рядом, но не здесь','Стараюсь быть лучше','Есть порядок и присутствие']},
+  {q:'Чего ты хочешь для себя?',
+   opts:['Перестать уставать','Вернуть ритм','Построить систему','Служить и оставить след']}
 ]
 
-const WHEEL_LABELS = ['Иман','Время','Привычки','Тело','Бизнес','Характер','Семья','Миссия']
-const WHEEL_COLORS = ['#2c5f2d','#c9a84c','#5b8fa8','#e07b39','#7b5ea7','#d4547a','#4a9e8c','#3d7a3e']
+// ── Результаты ────────────────────────────────────────────────────────────────
+const RS = [
+  {pct:22, word:'Начало пути', levelKey:'А', sp:[15,20,18,12],
+   nt:'Ты чувствуешь, что топчешься на месте',
+   np:'Утро начинается с телефона. Цели есть — движения нет. Дни похожи один на другой.',
+   at:'Ты получаешь первый стабильный ритм',
+   ap:'Ясное утро. Конкретный план на день. Ощущение, что жизнь под контролем. Не идеально — но твёрдо.'},
+  {pct:40, word:'Пробуждение', levelKey:'А', sp:[35,38,30,28],
+   nt:'Есть попытки, но нет системы',
+   np:'Ты стартуешь — и срываешься. Мотивация приходит волнами. Что-то важное постоянно откладывается.',
+   at:'Ты строишь первую рабочую систему',
+   ap:'Появляется якорь утра, вечерний разбор. Срывы случаются — но ты умеешь возвращаться.'},
+  {pct:58, word:'Рост', levelKey:'Б', sp:[55,60,50,52],
+   nt:'Основа есть — но чего-то важного не хватает',
+   np:'Ты дисциплинирован, но что-то ускользает. Жизнь работает — без ощущения смысла.',
+   at:'Ты соединяешь продуктивность со смыслом',
+   ap:'Время, семья, дело и внутренний мир начинают работать вместе. Каждый день — движение, а не список задач.'},
+  {pct:76, word:'Глубина', levelKey:'В', sp:[72,75,68,70],
+   nt:'Ты живёшь хорошо, но знаешь — можно больше',
+   np:'Система есть. Ты чувствуешь плато. Следующий уровень требует другой глубины и окружения.',
+   at:'Ты выходишь на уровень, где ведёшь других',
+   ap:'Более глубокая работа над характером, семьёй и служением. Ты создаёшь среду роста.'}
+]
 
-const RESULTS = {
-  a:{color:'#C0420A',level:'I — Пробуждение (делаю первые шаги)',levelKey:'А',wheel:[1,1,1,2,2,2,2,1],
-     intro:'Это честный результат. Точка силы, не слабости.',
-     pains:['😔 День управляется обстоятельствами','📱 Телефон — первое что видишь утром','🌙 Фаджр уходит мимо','🔄 Начинаешь с понедельника — срыв через 3-7 дней'],
-     path:'➤ Твой старт: ВАКТ — Тайм-менеджмент мусульманина'},
-  b:{color:'#0C3D7A',level:'II — Практика (встраиваю в жизнь)',levelKey:'Б',wheel:[3,4,3,3,4,3,3,2],
-     intro:'Ты уже на пути. Есть база — намаз бывает, Коран иногда. Но система не держится.',
-     pains:['📉 Знаешь как надо — но не делаешь стабильно','🔁 Привычки: неделя хорошо — срыв — стыд','⏰ Утро без системы','🎯 Нет ясности зачем всё это'],
-     path:'➤ Твой старт: ВАКТ → IQ Barakah Сезон 1'},
-  c:{color:'#1E4D0A',level:'III — Баракат (это часть меня, живу с благословением)',levelKey:'В',wheel:[6,6,6,6,6,6,5,4],
-     intro:'МашаАллах! Намаз, азкары, Коран — есть. Но чего-то не хватает.',
-     pains:['🔍 Намаз без присутствия','🏔️ Плато — застрял(а)','💰 Бизнес есть — нет баракта','🕊️ Хочешь передать знание — нет инструмента'],
-     path:'➤ Твой старт: IQ Barakah Сезон 1 → Сезон 2'},
-  d:{color:'#1A3D08',level:'III — Баракат (это часть меня, живу с благословением)',levelKey:'В',wheel:[8,8,8,8,8,8,8,6],
-     intro:'МашаАллах! Практика есть, система есть. Готов(а) к большему.',
-     pains:['🌍 Хочешь влиять на Умму — нет структуры','🔗 Достижения заканчиваются на тебе','👑 Ты лидер — без сообщества','🏛️ Хочешь оставить наследие — не знаешь как'],
-     path:'➤ Твой старт: Джамаат или Лидер Уммы'},
-}
+const SPHERES = [{icon:'🌅',name:'Утро'},{icon:'🎯',name:'Цели'},{icon:'❤️',name:'Семья'},{icon:'🧘',name:'Покой'}]
 
-let qCur = 0, qAnsList = new Array(8).fill(null), selectedQuickLevel = null
+let cur = 0, ans = new Array(8).fill(null)
 
+// ── Public API ────────────────────────────────────────────────────────────────
 function openDiag() {
-  qCur = 0; qAnsList = new Array(8).fill(null); selectedQuickLevel = null
-  document.getElementById('diag-overlay').classList.remove('hidden')
-  showDiagStep('choice')
+  cur = 0; ans = new Array(8).fill(null)
+  const ov = document.getElementById('diag-overlay')
+  if (ov) ov.classList.remove('hidden')
+  _showStep('quiz')
+  _renderQ()
 }
 
 function closeDiag() {
-  document.getElementById('diag-overlay').classList.add('hidden')
-}
-
-function showDiagStep(id) {
-  document.querySelectorAll('.diag-step').forEach(s => s.classList.remove('active'))
-  document.getElementById('ds-' + id).classList.add('active')
+  document.getElementById('diag-overlay')?.classList.add('hidden')
 }
 
 function initDiagnostic(onFinish) {
-  document.getElementById('btn-quick')?.addEventListener('click', () => { haptic(); showDiagStep('quick') })
-  document.getElementById('btn-quiz')?.addEventListener('click', () => {
-    haptic(); qCur = 0; qAnsList = new Array(8).fill(null); renderQuiz(); showDiagStep('quiz')
+  document.getElementById('diag-overlay')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) { haptic(); closeDiag() }
   })
-  document.getElementById('btn-back-choice')?.addEventListener('click', () => { haptic(); showDiagStep('choice') })
-  document.getElementById('quick-confirm')?.addEventListener('click', () => {
-    if (!selectedQuickLevel) return
-    haptic('success')
-    showResult(RESULTS[selectedQuickLevel], null, onFinish)
-  })
-  document.querySelectorAll('.lcard').forEach(card => {
-    card.addEventListener('click', () => {
-      haptic()
-      document.querySelectorAll('.lcard').forEach(c => c.classList.remove('selected'))
-      card.classList.add('selected')
-      selectedQuickLevel = card.dataset.key
-      const btn = document.getElementById('quick-confirm')
-      btn.disabled = false; btn.style.opacity = '1'
-    })
-  })
-  document.getElementById('qback')?.addEventListener('click', () => {
+  document.getElementById('dq-back')?.addEventListener('click', () => {
     haptic()
-    if (qCur === 0) { showDiagStep('choice'); return }
-    qCur--; renderQuiz()
+    if (cur === 0) { closeDiag(); return }
+    cur--; _renderQ()
   })
-  document.getElementById('qnext')?.addEventListener('click', () => {
+  document.getElementById('dq-next')?.addEventListener('click', () => {
     haptic()
-    if (qAnsList[qCur] === null) return
-    if (qCur === QDATA.length - 1) { calcResult(onFinish); return }
-    qCur++; renderQuiz()
+    if (ans[cur] === null) return
+    if (cur === QS.length - 1) { _calcResult(onFinish); return }
+    cur++; _renderQ()
   })
   document.getElementById('btn-finish-diag')?.addEventListener('click', () => {
     haptic('success'); closeDiag()
@@ -3300,71 +3302,129 @@ function initDiagnostic(onFinish) {
   })
 }
 
-function renderQuiz() {
-  const q = QDATA[qCur]
-  document.getElementById('qprog').innerHTML = QDATA.map((_, i) =>
-    `<div class="qpd ${i < qCur ? 'done' : i === qCur ? 'cur' : ''}"></div>`).join('')
-  document.getElementById('qnum').textContent = `ВОПРОС ${qCur + 1} ИЗ ${QDATA.length}`
-  document.getElementById('qtext').textContent = q.q
-  document.getElementById('qopts').innerHTML = q.opts.map(o =>
-    `<button class="q-opt${qAnsList[qCur] === o[2] ? ' sel' : ''}" data-score="${o[2]}">
-      <span class="oi">${o[0]}</span><span class="ol">${o[1]}</span></button>`).join('')
-  document.querySelectorAll('.q-opt').forEach(btn => {
+// ── Internal ──────────────────────────────────────────────────────────────────
+function _showStep(id) {
+  document.querySelectorAll('.diag-step').forEach(s => s.classList.remove('active'))
+  document.getElementById('ds-' + id)?.classList.add('active')
+}
+
+function _renderQ() {
+  const q = QS[cur]
+  // Progress
+  const pct = Math.round((cur + 1) / QS.length * 100)
+  const fill = document.getElementById('dq-prog-fill')
+  if (fill) fill.style.width = pct + '%'
+  const frac = document.getElementById('dq-frac')
+  if (frac) frac.textContent = (cur + 1) + ' / ' + QS.length
+
+  // Question text
+  const qt = document.getElementById('dq-text')
+  if (qt) qt.textContent = q.q
+
+  // Options
+  const og = document.getElementById('dq-opts')
+  if (!og) return
+  og.innerHTML = q.opts.map((o, i) => `
+    <button class="dq-opt${ans[cur] === i ? ' sel' : ''}" data-i="${i}">
+      <span class="dq-opt-num">${i + 1}</span>
+      <span class="dq-opt-txt">${o}</span>
+      <span class="dq-opt-check">✓</span>
+    </button>`).join('')
+
+  og.querySelectorAll('.dq-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       haptic()
-      qAnsList[qCur] = parseInt(btn.dataset.score)
-      document.querySelectorAll('.q-opt').forEach(b => b.classList.remove('sel'))
+      ans[cur] = parseInt(btn.dataset.i)
+      og.querySelectorAll('.dq-opt').forEach(b => b.classList.remove('sel'))
       btn.classList.add('sel')
-      const nx = document.getElementById('qnext')
-      nx.disabled = false; nx.style.opacity = '1'
+      const nx = document.getElementById('dq-next')
+      if (nx) { nx.disabled = false }
+      // Auto-advance after 400ms
+      setTimeout(() => {
+        if (cur === QS.length - 1) { _calcResult(null) }
+        else { cur++; _renderQ() }
+      }, 380)
     })
   })
-  const nx = document.getElementById('qnext')
-  nx.textContent = qCur === QDATA.length - 1 ? 'Узнать результат →' : 'Далее →'
-  nx.disabled = qAnsList[qCur] === null; nx.style.opacity = qAnsList[qCur] === null ? '.5' : '1'
-  document.getElementById('qback').style.opacity = qCur === 0 ? '.4' : '1'
+
+  const nx = document.getElementById('dq-next')
+  if (nx) {
+    nx.disabled = ans[cur] === null
+    nx.textContent = cur === QS.length - 1 ? 'Узнать потенциал →' : 'Дальше →'
+  }
+  const bk = document.getElementById('dq-back')
+  if (bk) bk.style.opacity = cur === 0 ? '0.3' : '1'
 }
 
-function calcResult(onFinish) {
-  const total = qAnsList.reduce((s, a) => s + (a || 0), 0)
-  const pct = Math.round(total / (QDATA.length * 3) * 100)
-  const key = pct > 75 ? 'd' : pct > 50 ? 'c' : pct > 25 ? 'b' : 'a'
-  showResult(RESULTS[key], pct, onFinish)
-}
+function _calcResult(onFinish) {
+  const total = ans.reduce((s, v, i) => s + (v !== null ? v : 0), 0)
+  const ratio = total / (QS.length * 3)
+  const ri = ratio < 0.25 ? 0 : ratio < 0.5 ? 1 : ratio < 0.75 ? 2 : 3
+  const R = RS[ri]
 
-function showResult(R, pct, onFinish) {
-  const badge = document.getElementById('res-badge')
-  badge.style.background = R.color
-  badge.textContent = pct !== null ? pct + '%' : R.levelKey
-  document.getElementById('res-level').textContent = R.level
-  document.getElementById('res-level').style.color = R.color
-  document.getElementById('res-intro').textContent = R.intro
-  drawDiagWheel(R.wheel, R.color)
-  document.getElementById('wheel-legend').innerHTML = WHEEL_LABELS.map((l, i) =>
-    `<span style="font-size:11px;font-weight:600;color:${WHEEL_COLORS[i]};background:${WHEEL_COLORS[i]}18;padding:2px 8px;border-radius:10px;">${l}</span>`).join('')
-  document.getElementById('res-pains').innerHTML = R.pains.map(p => `<div class="pain-item">${p}</div>`).join('')
-  document.getElementById('res-path').textContent = R.path
   lsSet('level', R.levelKey)
   lsSet('diag_done', '1')
-  showDiagStep('result')
+
+  _showResult(R, onFinish)
 }
 
-function drawDiagWheel(vals, color) {
-  const N = 8, R = 68, cx = 78, cy = 78
-  function pt(i, v) { const a = (i / N) * Math.PI * 2 - Math.PI / 2, r = (v / 10) * R; return [cx + r * Math.cos(a), cy + r * Math.sin(a)] }
-  function pf(i)    { const a = (i / N) * Math.PI * 2 - Math.PI / 2; return [cx + R * Math.cos(a), cy + R * Math.sin(a)] }
-  let html = ''
-  for (let g = 2; g <= 10; g += 2) {
-    const gp = Array.from({ length: N }, (_, i) => pt(i, g))
-    html += `<polygon points="${gp.map(p => p.join(',')).join(' ')}" fill="none" stroke="#eee" stroke-width="1"/>`
+function _showResult(R, onFinish) {
+  _showStep('result')
+
+  // Ring animation
+  const rfg = document.getElementById('dr-ring-fg')
+  const rpct = document.getElementById('dr-pct')
+  const rword = document.getElementById('dr-word')
+  if (rfg) {
+    const circ = 502
+    let n = 0, target = R.pct
+    const step = Math.max(1, Math.ceil(target / 50))
+    const tm = setInterval(() => {
+      n = Math.min(n + step, target)
+      if (rpct) rpct.textContent = n + '%'
+      rfg.style.strokeDashoffset = circ * (1 - n / 100)
+      if (n >= target) clearInterval(tm)
+    }, 30)
   }
-  for (let i = 0; i < N; i++) {
-    const [fx, fy] = pf(i)
-    html += `<line x1="${cx}" y1="${cy}" x2="${fx}" y2="${fy}" stroke="#ddd" stroke-width="1"/>`
+  if (rword) rword.textContent = R.word
+
+  // Spheres
+  const spheresEl = document.getElementById('dr-spheres')
+  if (spheresEl) {
+    spheresEl.innerHTML = SPHERES.map((s, i) => `
+      <div class="dr-sphere">
+        <div class="dr-sphere-icon">${s.icon}</div>
+        <div class="dr-sphere-name">${s.name}</div>
+        <div class="dr-sphere-bar"><div class="dr-sphere-fill" id="dsf${i}"></div></div>
+      </div>`).join('')
+    setTimeout(() => {
+      SPHERES.forEach((_, i) => {
+        const el = document.getElementById('dsf' + i)
+        if (el) el.style.width = R.sp[i] + '%'
+      })
+    }, 400)
   }
-  const poly = vals.map((v, i) => pt(i, v).join(',')).join(' ')
-  html += `<polygon points="${poly}" fill="${color}30" stroke="${color}" stroke-width="2"/>`
-  document.getElementById('res-wheel').innerHTML = html
+
+  // Panels
+  const ntEl = document.getElementById('dr-now-title')
+  const npEl = document.getElementById('dr-now-text')
+  const atEl = document.getElementById('dr-after-title')
+  const apEl = document.getElementById('dr-after-text')
+  if (ntEl) ntEl.textContent = R.nt
+  if (npEl) npEl.textContent = R.np
+  if (atEl) atEl.textContent = R.at
+  if (apEl) apEl.textContent = R.ap
+
+  // Finish button
+  const finBtn = document.getElementById('btn-finish-diag')
+  if (finBtn) {
+    finBtn.onclick = () => {
+      haptic('success')
+      sendData({ action: 'diag_complete', level: R.levelKey, pct: R.pct, word: R.word })
+      closeDiag()
+      if (onFinish) onFinish()
+    }
+  }
 }
 
 

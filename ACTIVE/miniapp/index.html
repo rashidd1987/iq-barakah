@@ -10,75 +10,71 @@
 
 <!-- ══════════════ DIAGNOSTIC OVERLAY ══════════════ -->
 <div id="diag-overlay" class="hidden">
-  <div class="diag-logo">IQ <em>Barakah</em></div>
   <div class="diag-panel">
-    <div class="diag-step active" id="ds-choice">
-      <div class="diag-headline">Определим твой<br>уровень 🌱</div>
-      <div class="diag-sub">Прежде чем начать — выбери как удобнее</div>
-      <div class="choice-card" id="btn-quick">
-        <div class="choice-icon">⚡</div>
-        <div class="choice-text">
-          <div class="t">Я знаю свой уровень</div>
-          <div class="s">Выбрать I, II или III вручную — займёт 10 секунд</div>
+
+    <!-- QUIZ STEP -->
+    <div class="diag-step active" id="ds-quiz">
+      <div class="dq-header">
+        <div class="dq-prog-wrap">
+          <div class="dq-prog-top">
+            <span class="dq-prog-label">Потенциал</span>
+            <span class="dq-frac" id="dq-frac">1 / 8</span>
+          </div>
+          <div class="dq-prog-track"><div class="dq-prog-fill" id="dq-prog-fill" style="width:12.5%"></div></div>
         </div>
       </div>
-      <div class="choice-card" id="btn-quiz">
-        <div class="choice-icon">🎯</div>
-        <div class="choice-text">
-          <div class="t">Пройти диагностику</div>
-          <div class="s">8 вопросов — точный результат с колесом баланса</div>
-        </div>
-      </div>
-    </div>
-    <div class="diag-step" id="ds-quick">
-      <div class="diag-headline">Выбери свой уровень</div>
-      <div class="diag-sub">Честно — можно сменить позже</div>
-      <div class="level-cards">
-        <div class="lcard" id="lcard-a" data-key="a">
-          <div class="lcard-head"><div class="lcard-letter">I</div><div class="lcard-name">Пробуждение</div></div>
-          <div class="lcard-who">Делаю первые шаги.</div>
-        </div>
-        <div class="lcard" id="lcard-b" data-key="b">
-          <div class="lcard-head"><div class="lcard-letter" style="background:var(--gold);">II</div><div class="lcard-name">Практика</div></div>
-          <div class="lcard-who">Встраиваю в жизнь.</div>
-        </div>
-        <div class="lcard" id="lcard-c" data-key="c">
-          <div class="lcard-head"><div class="lcard-letter" style="background:#1E4D0A;">III</div><div class="lcard-name">Баракат</div></div>
-          <div class="lcard-who">Это часть меня, живу с благословением.</div>
-        </div>
-      </div>
-      <button class="btn btn-p" id="quick-confirm" disabled>Начать программу →</button>
-      <button class="btn btn-o" id="btn-back-choice">← Назад</button>
-    </div>
-    <div class="diag-step" id="ds-quiz">
-      <div class="quiz-prog" id="qprog"></div>
-      <div class="q-num" id="qnum">ВОПРОС 1 ИЗ 8</div>
-      <div class="q-text" id="qtext"></div>
-      <div class="q-opts" id="qopts"></div>
-      <div class="quiz-nav">
-        <button class="qbk" id="qback">← Назад</button>
-        <button class="btn btn-p" id="qnext" disabled style="flex:1;opacity:.5;">Далее →</button>
+      <div class="dq-question" id="dq-text"></div>
+      <div class="dq-opts" id="dq-opts"></div>
+      <div class="dq-nav">
+        <button class="dq-back" id="dq-back">← Назад</button>
+        <button class="dq-next" id="dq-next" disabled>Дальше →</button>
       </div>
     </div>
+
+    <!-- RESULT STEP -->
     <div class="diag-step" id="ds-result">
-      <div class="diag-headline">Твой результат 🎯</div>
-      <div class="res-header">
-        <div class="res-pct-badge" id="res-badge">72%</div>
-        <div class="res-level" id="res-level"></div>
-        <div class="res-intro" id="res-intro"></div>
+      <div class="dr-top-label">Твой потенциал</div>
+
+      <!-- Ring -->
+      <div class="dr-ring-wrap">
+        <svg viewBox="0 0 180 180" width="170" height="170" style="transform:rotate(-90deg)">
+          <defs>
+            <linearGradient id="drg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#C9A84C"/>
+              <stop offset="100%" stop-color="#FFF0B3"/>
+            </linearGradient>
+          </defs>
+          <circle fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10" cx="90" cy="90" r="80"/>
+          <circle id="dr-ring-fg" fill="none" stroke="url(#drg)" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="502" stroke-dashoffset="502"
+            cx="90" cy="90" r="80" style="filter:drop-shadow(0 0 8px rgba(201,168,76,.6));transition:stroke-dashoffset 1.5s cubic-bezier(.22,1,.36,1)"/>
+        </svg>
+        <div class="dr-ring-center">
+          <div class="dr-pct" id="dr-pct">0%</div>
+          <div class="dr-word" id="dr-word"></div>
+        </div>
       </div>
-      <div class="wheel-block">
-        <div class="wheel-block-title">ТВОЁ КОЛЕСО БАЛАНСА СЕЙЧАС</div>
-        <svg id="res-wheel" width="200" height="200" viewBox="0 0 156 156"></svg>
-        <div id="wheel-legend" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;justify-content:center;"></div>
+
+      <!-- Spheres -->
+      <div class="dr-spheres" id="dr-spheres"></div>
+
+      <!-- Panels -->
+      <div class="dr-panels">
+        <div class="dr-panel dr-panel-now">
+          <span class="dr-badge dr-badge-now">Сейчас</span>
+          <div class="dr-panel-title" id="dr-now-title"></div>
+          <div class="dr-panel-text" id="dr-now-text"></div>
+        </div>
+        <div class="dr-panel dr-panel-after">
+          <span class="dr-badge dr-badge-after">После программы</span>
+          <div class="dr-panel-title" id="dr-after-title"></div>
+          <div class="dr-panel-text" id="dr-after-text"></div>
+        </div>
       </div>
-      <div class="card"><div class="cb">
-        <div class="ct">Узнаю себя</div>
-        <div class="pains-list" id="res-pains"></div>
-      </div></div>
-      <div class="res-path" id="res-path"></div>
-      <button class="btn btn-p" id="btn-finish-diag">Начать программу →</button>
+
+      <button class="dq-next dr-start-btn" id="btn-finish-diag">Начать программу →</button>
     </div>
+
   </div>
 </div>
 
