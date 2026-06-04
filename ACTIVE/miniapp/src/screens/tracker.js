@@ -188,7 +188,8 @@ function renderProgramTasks() {
   const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
   const weekInLevel = U.currentWeek - (LEVEL_OFFSET[level] ?? 0)
 
-  const storageKey = `ptasks_${level}_w${weekInLevel}_${U.skill}`
+  const today = new Date().toISOString().split('T')[0]
+  const storageKey = `ptasks_${level}_w${weekInLevel}_${U.skill}_${today}`
   const done = lsGet(storageKey, {})
 
   function _updatePtasksHeader() {

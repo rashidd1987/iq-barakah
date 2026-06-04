@@ -12,7 +12,10 @@ export let currentWeek = 0
 export function setCurrentWeek(w) { currentWeek = w }
 
 // ── Storage helpers ──────────────────────────────────────────────────────────
-function taskKey(level, week) { return `tasks_${level}_${week}` }
+function taskKey(level, week) {
+  const today = new Date().toISOString().split('T')[0]
+  return `ptasks_${level}_w${week}_${(typeof U !== 'undefined' ? U.skill : 'I') || 'I'}_${today}`
+}
 
 function loadChecked(level, week) {
   // Try localStorage first (fast, synchronous)
