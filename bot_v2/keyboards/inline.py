@@ -13,14 +13,16 @@ from bot_v2.services.program import TARIFFS, get_tariff_view
 from bot_v2.services.i18n import normalize_lang, t
 
 
-BTN_DIAG = "🎯 Диагностика"
-BTN_MINIAPP = "📱 Личный кабинет"
-BTN_PROGRAM = "📚 Программа"
+BTN_DIAG = "🔍 Диагностика"
+BTN_MINIAPP = "🗂 Личный кабинет"
+BTN_PROGRAM = "📖 Мой путь"
 BTN_PAYMENT = "💳 Оплата"
 BTN_REMINDERS = "🔔 Напоминания"
 BTN_CURATOR = "💬 Связаться с куратором"
-BTN_MUHASABA = "🌙 Мухасаба"
+BTN_MUHASABA = "🌙 Вечерний разбор"
 BTN_SITE = "🌐 Сайт"
+BTN_JARWAS = "🤖 Джарвас"
+BTN_HELP = "🙋 Нужна помощь"
 
 
 def _miniapp_url_with_params(base_url: str, lang: str, participant=None) -> str:
@@ -56,14 +58,10 @@ def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> Repl
     lang = normalize_lang(lang)
     return ReplyKeyboardMarkup(
         keyboard=[
-            [
-                KeyboardButton(text=t(lang, "bottom.diag")),
-                KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant))),
-            ],
-            [KeyboardButton(text=t(lang, "bottom.program")), KeyboardButton(text=t(lang, "bottom.payment"))],
-            [KeyboardButton(text=t(lang, "bottom.reminders")), KeyboardButton(text=t(lang, "bottom.curator"))],
-            [KeyboardButton(text=t(lang, "bottom.muhasaba")), KeyboardButton(text=t(lang, "bottom.site"))],
-            [KeyboardButton(text=t(lang, "bottom.jarwas"))],
+            [KeyboardButton(text=t(lang, "bottom.diag")),    KeyboardButton(text=t(lang, "bottom.program"))],
+            [KeyboardButton(text=t(lang, "bottom.muhasaba")), KeyboardButton(text=t(lang, "bottom.jarwas"))],
+            [KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant))), KeyboardButton(text=t(lang, "bottom.payment"))],
+            [KeyboardButton(text=t(lang, "bottom.help"))],
         ],
         resize_keyboard=True,
         input_field_placeholder=t(lang, "bottom.placeholder"),

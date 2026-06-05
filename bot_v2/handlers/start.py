@@ -17,6 +17,7 @@ from bot_v2.keyboards import (
     BTN_PROGRAM,
     BTN_REMINDERS,
     BTN_SITE,
+    BTN_HELP,
     kb_bottom_menu,
     kb_main_menu,
     kb_onboarding_gender,
@@ -44,7 +45,14 @@ BOTTOM_TEXTS = {
     "muhasaba": {BTN_MUHASABA, t("ru", "bottom.muhasaba")},
     "site": {BTN_SITE, t("ru", "bottom.site")},
     "jarwas": {t("ru", "bottom.jarwas")},
+    "help": {BTN_HELP, t("ru", "bottom.help")},
 }
+
+
+class EveningStates(StatesGroup):
+    q1 = State()  # благодарность
+    q2 = State()  # где потерял внимание
+    q3 = State()  # шаг на завтра
 
 
 class OnboardingStates(StatesGroup):
@@ -310,14 +318,55 @@ async def msg_diag_button(message: Message, state: FSMContext, session: AsyncSes
 
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["program"]))
 async def msg_program(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    """📖 Мой путь — прогресс и текущее состояние."""
     await state.clear()
-    user = await UserRepo(session).get(message.from_user.id)
+    from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    uid = message.from_user.id
+    user = await UserRepo(session).get(uid)
     lang = user.language_code if user else normalize_lang(message.from_user.language_code)
-    latest_diag = await _latest_diag(session, message.from_user.id)
-    if not latest_diag:
-        await _send_program_overview(message, lang)
+    participant = await _get_participant(session, uid)
+
+    # Стрик
+    streak_val = await SettingsRepo(session).get(f"streak:{uid}", "0")
+    try:
+        streak = int(streak_val)
+    except ValueError:
+        streak = 0
+
+    if not participant or not participant.is_active:
+        await message.answer(
+            "Ты ещё не начал программу.\n\n"
+            "Давай начнём — пройди диагностику и первый урок придёт бесплатно.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔍 Пройти диагностику", callback_data="korablik_start")],
+                [InlineKeyboardButton(text="🎓 Посмотреть программы", callback_data="show_tariffs")],
+            ])
+        )
         return
-    await _send_program_after_diag(message, lang, latest_diag)
+
+    from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
+    level_name = LEVEL_NAMES.get(participant.level, participant.level)
+    max_weeks = LEVEL_WEEKS.get(participant.level, 6)
+    streak_fire = f"🔥 {streak} дней подряд" if streak > 0 else "Начни вечерний разбор сегодня"
+
+    await message.answer(
+        f"📖 *Твой путь*\n\n"
+        f"📍 {level_name}\n"
+        f"📅 Неделя *{participant.week}* из {max_weeks}\n"
+        f"{streak_fire}\n\n"
+        f"━━━━━━━━━━━━━━━\n\n"
+        f"Что делать сегодня:\n"
+        f"🌅 Утро с намерением\n"
+        f"📚 Урок недели\n"
+        f"🌙 Вечерний разбор\n\n"
+        f"Нажми вечером чтобы подвести итог дня.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌙 Вечерний разбор", callback_data="start_evening")],
+            [InlineKeyboardButton(text="📚 Получить урок", callback_data="week_lesson")],
+        ])
+    )
 
 
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["reminders"]))
@@ -335,10 +384,27 @@ async def msg_curator(message: Message, state: FSMContext, session: AsyncSession
 
 
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["muhasaba"]))
-async def msg_muhasaba(message: Message, state: FSMContext, session: AsyncSession):
-    await state.clear()
-    lang = await _message_lang(session, message)
-    await message.answer(t(lang, "muhasaba.locked"))
+@router.callback_query(F.data == "start_evening")
+async def msg_muhasaba(update, state: FSMContext, session: AsyncSession):
+    """🌙 Вечерний разбор — 3 вопроса FSM."""
+    from aiogram.types import ReplyKeyboardRemove
+    if isinstance(update, Message):
+        message = update
+        await state.clear()
+    else:
+        await update.answer()
+        message = update.message
+
+    await state.set_state(EveningStates.q1)
+    await message.answer(
+        "🌙 *Вечерний разбор*\n\n"
+        "Три вопроса — и день прожит честно.\n\n"
+        "*Вопрос 1 из 3*\n\n"
+        "За что ты благодарен сегодня?\n\n"
+        "_Одна вещь — большая или маленькая. Напиши своими словами._",
+        parse_mode="Markdown",
+        reply_markup=ReplyKeyboardRemove(),
+    )
 
 
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["site"]))
@@ -353,11 +419,228 @@ async def msg_jarwas(message: Message, state: FSMContext, session: AsyncSession,
     await state.clear()
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     lang = await _message_lang(session, message)
-    from bot_v2.services.i18n import t as _t
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🤖 Открыть AI-наставника", callback_data="jarwas_start")],
+        [InlineKeyboardButton(text="😔 Я сорвался", callback_data="j_relapse")],
+        [InlineKeyboardButton(text="😴 Устал и нет сил", callback_data="j_tired")],
+        [InlineKeyboardButton(text="❓ Вопрос по программе", callback_data="jarwas_start")],
+        [InlineKeyboardButton(text="💬 Просто поговорить", callback_data="jarwas_start")],
     ])
-    await message.answer(_t(lang, "jarwas.start"), parse_mode="Markdown", reply_markup=kb)
+    await message.answer(
+        "Ас-саляму алейкум.\nЯ здесь.\n\nЧто происходит?",
+        reply_markup=kb,
+    )
+
+
+@router.callback_query(F.data == "j_relapse")
+async def cb_j_relapse(call: CallbackQuery):
+    await call.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await call.message.answer(
+        "Ты вернулся — это уже больше, чем у многих.\n\nСколько дней прошло?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="1–2 дня", callback_data="rl_12"),
+             InlineKeyboardButton(text="3–7 дней", callback_data="rl_37")],
+            [InlineKeyboardButton(text="Больше недели", callback_data="rl_more")],
+        ])
+    )
+
+
+@router.callback_query(F.data == "rl_12")
+async def cb_rl_12(call: CallbackQuery):
+    await call.answer()
+    await call.message.answer(
+        "Это не срыв — это пауза.\n\n"
+        "Сделай одно действие прямо сейчас:\n"
+        "→ Открой вечерний разбор и ответь на три вопроса.\n\n"
+        "Не наверстывай всё. Один шаг — и ты снова в ритме.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌙 Вечерний разбор", callback_data="start_evening")]
+        ])
+    )
+
+
+@router.callback_query(F.data == "rl_37")
+async def cb_rl_37(call: CallbackQuery):
+    await call.answer()
+    await call.message.answer(
+        "Неделя — это нормально.\n\n"
+        "Система не ломается от паузы — она ждёт.\n\n"
+        "Начнём не сначала, а оттуда где остановился.\n"
+        "Сделай вечерний разбор сегодня — и завтра утро станет якорем.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌙 Вечерний разбор", callback_data="start_evening")]
+        ])
+    )
+
+
+@router.callback_query(F.data == "rl_more")
+async def cb_rl_more(call: CallbackQuery):
+    await call.answer()
+    await call.message.answer(
+        "Хорошо, что ты вернулся.\nНеважно сколько прошло — ты здесь.\n\n"
+        "Один вопрос: что чаще всего выбивало из ритма?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📱 Телефон", callback_data="miss_phone"),
+             InlineKeyboardButton(text="😤 Работа/стресс", callback_data="miss_work")],
+            [InlineKeyboardButton(text="🤷 Не знаю", callback_data="miss_dunno")],
+        ])
+    )
+
+
+@router.callback_query(F.data.in_({"miss_phone", "miss_work", "miss_dunno"}))
+async def cb_miss(call: CallbackQuery):
+    await call.answer()
+    tips = {
+        "miss_phone": "Телефон — главный конкурент системы.\n\nОдно правило: первые 15 минут после пробуждения — без телефона. Только намерение и одно действие.",
+        "miss_work":  "Стресс на работе — сигнал что система нужна именно тебе.\n\nОдно действие: один тихий момент для себя в середине дня.",
+        "miss_dunno": "Иногда мы сами не знаем почему срываемся.\n\nОдин вечерний разбор сегодня — и картина прояснится.",
+    }
+    await call.message.answer(
+        tips[call.data] + "\n\nНачнём с одного шага?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌙 Вечерний разбор", callback_data="start_evening")],
+        ])
+    )
+
+
+@router.callback_query(F.data == "j_tired")
+async def cb_j_tired(call: CallbackQuery):
+    await call.answer()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await call.message.answer(
+        "Слышу тебя.\n\nЧто сейчас больше всего забирает энергию?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="😤 Работа / дела", callback_data="tired_work")],
+            [InlineKeyboardButton(text="👨‍👩‍👧 Семья", callback_data="tired_family")],
+            [InlineKeyboardButton(text="📱 Телефон / соцсети", callback_data="tired_phone")],
+            [InlineKeyboardButton(text="🤷 Не знаю", callback_data="tired_dunno")],
+        ])
+    )
+
+
+@router.callback_query(F.data.startswith("tired_"))
+async def cb_tired(call: CallbackQuery):
+    await call.answer()
+    tips = {
+        "tired_work":   "Работа забирает — значит нет восстановления.\n\nОдно действие: 5 минут тишины в середине дня — без телефона, без задач.",
+        "tired_family": "Семья + усталость = ты рядом, но не здесь.\n\nОдно действие: 10 минут с близкими без телефона. Просто рядом.",
+        "tired_phone":  "Телефон забирает энергию незаметно.\n\nОдно действие: убери телефон на час. Просто попробуй.",
+        "tired_dunno":  "Иногда тело устало от хаоса в голове, не от дел.\n\nОдно действие: вечерний разбор сегодня. Три вопроса — и станет яснее.",
+    }
+    await call.message.answer(
+        tips.get(call.data, "Слышу тебя. Один шаг — не план на неделю."),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌙 Вечерний разбор", callback_data="start_evening")],
+        ])
+    )
+
+
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["help"]))
+async def msg_help_btn(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    """🙋 Нужна помощь."""
+    await state.clear()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await message.answer(
+        "Я здесь. Чем помочь?",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❓ Вопрос по программе", callback_data="help_program")],
+            [InlineKeyboardButton(text="💸 Вопрос по оплате", callback_data="help_pay")],
+            [InlineKeyboardButton(text="💬 Написать Рашиду", callback_data="help_rashid")],
+            [InlineKeyboardButton(text="🔧 Техническая проблема", callback_data="help_tech")],
+        ])
+    )
+
+
+@router.callback_query(F.data.in_({"help_program", "help_pay", "help_tech"}))
+async def cb_help_curator(call: CallbackQuery):
+    await call.answer()
+    await call.message.answer("Напиши куратору — ответим в течение часа:\n@iqbarakah")
+
+
+@router.callback_query(F.data == "help_rashid")
+async def cb_help_rashid(call: CallbackQuery):
+    await call.answer()
+    await call.message.answer("Напиши Рашиду лично:\n@rasid_iqbarakah")
+
+
+# ── Вечерний разбор FSM ──────────────────────────────────
+
+@router.message(EveningStates.q1)
+async def evening_q1(message: Message, state: FSMContext):
+    await state.update_data(ev_thanks=message.text)
+    await state.set_state(EveningStates.q2)
+    await message.answer(
+        "*Вопрос 2 из 3*\n\n"
+        "Где ты потерял внимание сегодня?\n\n"
+        "_Не для самобичевания — просто честно посмотреть._",
+        parse_mode="Markdown",
+    )
+
+
+@router.message(EveningStates.q2)
+async def evening_q2(message: Message, state: FSMContext):
+    await state.update_data(ev_miss=message.text)
+    await state.set_state(EveningStates.q3)
+    await message.answer(
+        "*Вопрос 3 из 3*\n\n"
+        "Один шаг на завтра утром.\n\n"
+        "_Не список — один конкретный шаг до телефона._",
+        parse_mode="Markdown",
+    )
+
+
+@router.message(EveningStates.q3)
+async def evening_q3(message: Message, state: FSMContext, session: AsyncSession, config: Config):
+    from bot_v2.db.repositories import SettingsRepo
+    data = await state.get_data()
+    thanks = data.get("ev_thanks", "")
+    uid = message.from_user.id
+
+    # Обновляем стрик
+    repo = SettingsRepo(session)
+    streak_val = await repo.get(f"streak:{uid}", "0")
+    try:
+        streak = int(streak_val) + 1
+    except ValueError:
+        streak = 1
+    await repo.set(f"streak:{uid}", str(streak))
+    await state.clear()
+
+    user = await UserRepo(session).get(uid)
+    participant = await _get_participant(session, uid)
+    lang = user.language_code if user else "ru"
+
+    await message.answer(
+        f"Баракаллаху фик (да благословит тебя Аллах) 🌿\n\n"
+        f"Ты завершил день честно.\n\n"
+        f"_{thanks}_\n\n"
+        f"Спокойной ночи 🌙",
+        parse_mode="Markdown",
+        reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+    )
+
+    streak_msgs = {
+        7:  "МашаАллах (хвала Аллаху)! Неделя подряд 🔥\nТы держишь систему 7 дней.",
+        14: "Две недели подряд 💪\nСистема начинает работать на тебя, а не ты на неё.",
+        30: "30 дней 🌟\nЭто уже не попытка — это привычка. Ты изменился.",
+        40: "40 дней 🤲\nВ нашей традиции 40 дней — точка трансформации. Ты прошёл её.",
+    }
+    if streak in streak_msgs:
+        await message.answer(streak_msgs[streak])
+
+
+@router.callback_query(F.data == "week_lesson")
+async def cb_week_lesson(call: CallbackQuery, session: AsyncSession, config: Config):
+    await call.answer()
+    from bot_v2.handlers.program import send_weekly_lesson
+    participant = await _get_participant(session, call.from_user.id)
+    if not participant or not participant.is_active:
+        await call.message.answer("Сначала нужно активировать программу. Нажми «Оплата».")
+        return
+    try:
+        await send_weekly_lesson(call.bot, call.from_user.id, participant, session, config)
+    except Exception:
+        await call.message.answer("Не удалось загрузить урок. Попробуй позже.")
 
 
 @router.message(Command("resetme"))
