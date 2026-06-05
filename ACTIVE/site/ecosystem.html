@@ -1723,6 +1723,78 @@ input[type=range].egsldr::-webkit-slider-thumb{-webkit-appearance:none;width:28p
   </div>
 </section>
 
+<!-- LEVELS -->
+<section class="levels-section" id="levels">
+  <div class="wrap">
+    <div class="section-eyebrow reveal"><span class="eyebrow-text">СИСТЕМА УРОВНЕЙ</span></div>
+    <h2 class="section-title reveal">Начни <em>там где ты есть</em></h2>
+    <p class="section-sub reveal">Без стыда и давления. Каждый начинает со своей точки роста. Программа адаптируется.</p>
+    <div class="levels-row">
+      <div class="level-card reveal">
+        <div class="level-head" style="background:var(--redli)"><div class="level-letter" style="color:var(--red)">I</div><div class="level-name" style="color:var(--red)">ПРОБУЖДЕНИЕ</div><div class="level-who" style="color:#A83010">Делаю первые шаги</div></div>
+        <div class="level-body">
+          <ul class="level-items"><li>Первый порядок в утре и телефоне</li><li>Мягкий вход без стыда и давления</li><li>Простые действия: азкар, Фаджр, мухасаба</li><li>Цель — проснуться и начать путь</li></ul>
+        </div>
+      </div>
+      <div class="level-card reveal">
+        <div class="level-head" style="background:var(--blue2)"><div class="level-letter" style="color:var(--blue)">II</div><div class="level-name" style="color:var(--blue)">ПРАКТИКА</div><div class="level-who" style="color:var(--blue)">Встраиваю в жизнь</div></div>
+        <div class="level-body">
+          <ul class="level-items"><li>Утренние азкары и Фаджр-лист</li><li>Намаз, Коран и план дня входят в ритм</li><li>Семья, работа и время собираются в систему</li><li>Цель — постоянство и истикама</li></ul>
+        </div>
+      </div>
+      <div class="level-card reveal">
+        <div class="level-head" style="background:var(--green4)"><div class="level-letter" style="color:var(--green2)">III</div><div class="level-name" style="color:var(--green2)">БАРАКАТ</div><div class="level-who" style="color:var(--green2)">Это часть меня, живу с благословением</div></div>
+        <div class="level-body">
+          <ul class="level-items"><li>Практика становится частью личности</li><li>Баракат виден во времени, семье и делах</li><li>Передача пользы другим</li><li>Цель — жить с благословением и служением</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ДИАГНОСТИКА -->
+<section class="eco-quiz-section" id="diagnosis">
+  <canvas id="eco-stars-c"></canvas>
+  <div class="wrap">
+    <div class="section-eyebrow" style="text-align:center;margin-bottom:14px"><span class="eyebrow-text">БЕСПЛАТНО · 2 МИНУТЫ</span></div>
+    <h2 class="section-title" style="text-align:center;color:#fff;margin-bottom:10px">Не знаешь с чего начать? <em>Проверь потенциал</em></h2>
+    <p class="section-sub">8 вопросов — и ты увидишь где ты сейчас, и куда можешь прийти. Система сама предложит твой следующий шаг.</p>
+    <div class="eqcard" id="eqcard">
+      <canvas id="epcanvas"></canvas>
+      <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="erg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#C9A84C"/><stop offset="100%" stop-color="#FFF0B3"/></linearGradient></defs></svg>
+      <div id="eqview">
+        <div class="eqprog-wrap"><div class="eqprog-top"><span class="eqprog-lbl" id="eqlbl">Вопрос 1</span><span class="eqprog-frac" id="eqfrac">1 / 8</span></div><div class="eqprog-track"><div class="eqprog-fill" id="eqpfill"></div></div></div>
+        <div class="eqtext vis" id="eqtext"></div>
+        <div class="eqopts" id="eqopts"></div>
+        <div class="eqnav"><button class="eqbtn-back" id="eqbback" disabled onclick="eqBack()">← Назад</button><button class="eqbtn-next" id="eqbnext" disabled onclick="eqNext()">Дальше →</button></div>
+      </div>
+      <div class="eqresult" id="eqresult">
+        <div style="font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:6px">Твой потенциал</div>
+        <div class="ering-wrap"><svg viewBox="0 0 180 180" width="200" height="200" style="transform:rotate(-90deg)"><circle class="ering-bg" cx="90" cy="90" r="80"/><circle class="ering-fg" id="erfg" cx="90" cy="90" r="80"/></svg><div class="ering-center"><div class="ering-pct" id="erpct">0%</div><div class="ering-word" id="erword"></div></div></div>
+        <div class="espheres" id="eqspheres"></div>
+        <div class="esldr-hint"><span>Потяни</span><span class="esldr-arrow">→</span><span>и увидишь свой потенциал</span></div>
+        <div class="esldr-lbls"><span>0%</span><span id="esval">0%</span><span>100%</span></div>
+        <input type="range" class="egsldr" id="egsldr" min="0" max="100" value="0" step="1">
+        <div id="emmsg" style="min-height:60px;margin:20px auto 4px;max-width:560px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3.5vw,32px);font-weight:600;color:var(--gold2);line-height:1.3;opacity:0;transition:opacity .4s,transform .4s;transform:translateY(6px)"></div>
+        <div class="eqpanels">
+          <div class="eqpanel epnow" id="eqpnow"><span class="eqpbadge ebnow">Сейчас</span><h3 id="entitle"></h3><p id="entext"></p></div>
+          <div class="eqpanel epafter" id="eqpafter"><span class="eqpbadge ebafter">После программы</span><h3 id="eatitle"></h3><p id="eatext"></p></div>
+        </div>
+        <div class="egift-block">
+          <span style="font-size:46px;margin-bottom:12px;display:block">🎁</span>
+          <div class="egift-title">Мы приготовили тебе подарок</div>
+          <p class="egift-sub">Там тебя уже ждут.<br>Поговорим честно — где ты остановился и куда можешь прийти.<br><strong>Бесплатно.</strong> Без давления. Просто честный разговор.</p>
+          <a class="ebtn-gift" id="egift-link" href="https://t.me/iqbaraka_bot" target="_blank">Нажми и получи подарок <span style="font-size:18px">→</span></a>
+          <p class="ebtn-gift-note">Открывает Telegram · @iqbaraka_bot</p>
+        </div>
+        <button class="ebtn-retry" onclick="eqRetry()">Пройти снова</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <div class="divider"></div>
 
 <!-- КОРАБЛЬ БАРАКАТА · РАННИЙ ВХОД -->
@@ -1839,120 +1911,6 @@ input[type=range].egsldr::-webkit-slider-thumb{-webkit-appearance:none;width:28p
 </section>
 
 <div class="divider"></div>
-
-<!-- LEVELS -->
-<section class="levels-section" id="levels">
-  <div class="wrap">
-    <div class="section-eyebrow reveal"><span class="eyebrow-text">СИСТЕМА УРОВНЕЙ</span></div>
-    <h2 class="section-title reveal">Начни <em>там где ты есть</em></h2>
-    <p class="section-sub reveal">Без стыда и давления. Каждый начинает со своей точки роста. Программа адаптируется.</p>
-    <div class="levels-row">
-      <div class="level-card reveal">
-        <div class="level-head" style="background:var(--redli)"><div class="level-letter" style="color:var(--red)">I</div><div class="level-name" style="color:var(--red)">ПРОБУЖДЕНИЕ</div><div class="level-who" style="color:#A83010">Делаю первые шаги</div></div>
-        <div class="level-body">
-          <ul class="level-items"><li>Первый порядок в утре и телефоне</li><li>Мягкий вход без стыда и давления</li><li>Простые действия: азкар, Фаджр, мухасаба</li><li>Цель — проснуться и начать путь</li></ul>
-        </div>
-      </div>
-      <div class="level-card reveal">
-        <div class="level-head" style="background:var(--blue2)"><div class="level-letter" style="color:var(--blue)">II</div><div class="level-name" style="color:var(--blue)">ПРАКТИКА</div><div class="level-who" style="color:var(--blue)">Встраиваю в жизнь</div></div>
-        <div class="level-body">
-          <ul class="level-items"><li>Утренние азкары и Фаджр-лист</li><li>Намаз, Коран и план дня входят в ритм</li><li>Семья, работа и время собираются в систему</li><li>Цель — постоянство и истикама</li></ul>
-        </div>
-      </div>
-      <div class="level-card reveal">
-        <div class="level-head" style="background:var(--green4)"><div class="level-letter" style="color:var(--green2)">III</div><div class="level-name" style="color:var(--green2)">БАРАКАТ</div><div class="level-who" style="color:var(--green2)">Это часть меня, живу с благословением</div></div>
-        <div class="level-body">
-          <ul class="level-items"><li>Практика становится частью личности</li><li>Баракат виден во времени, семье и делах</li><li>Передача пользы другим</li><li>Цель — жить с благословением и служением</li></ul>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="divider"></div>
-
-<!-- ЦЕЛОСТНОСТЬ -->
-
-<!-- ДИАГНОСТИКА -->
-<section class="eco-quiz-section" id="diagnosis">
-  <canvas id="eco-stars-c"></canvas>
-  <div class="wrap">
-    <div class="section-eyebrow" style="text-align:center;margin-bottom:14px"><span class="eyebrow-text">БЕСПЛАТНО · 2 МИНУТЫ</span></div>
-    <h2 class="section-title" style="text-align:center;color:#fff;margin-bottom:10px">Не знаешь с чего начать? <em>Проверь потенциал</em></h2>
-    <p class="section-sub">8 вопросов — и ты увидишь где ты сейчас, и куда можешь прийти. Система сама предложит твой следующий шаг.</p>
-
-    <div class="eqcard" id="eqcard">
-      <canvas id="epcanvas"></canvas>
-      <svg width="0" height="0" style="position:absolute">
-        <defs>
-          <linearGradient id="erg" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#C9A84C"/>
-            <stop offset="100%" stop-color="#FFF0B3"/>
-          </linearGradient>
-        </defs>
-      </svg>
-
-      <!-- ВОПРОСЫ -->
-      <div id="eqview">
-        <div class="eqprog-wrap">
-          <div class="eqprog-top">
-            <span class="eqprog-lbl" id="eqlbl">Вопрос 1</span>
-            <span class="eqprog-frac" id="eqfrac">1 / 8</span>
-          </div>
-          <div class="eqprog-track"><div class="eqprog-fill" id="eqpfill"></div></div>
-        </div>
-        <div class="eqtext vis" id="eqtext"></div>
-        <div class="eqopts" id="eqopts"></div>
-        <div class="eqnav">
-          <button class="eqbtn-back" id="eqbback" disabled onclick="eqBack()">← Назад</button>
-          <button class="eqbtn-next" id="eqbnext" disabled onclick="eqNext()">Дальше →</button>
-        </div>
-      </div>
-
-      <!-- РЕЗУЛЬТАТ -->
-      <div class="eqresult" id="eqresult">
-        <div style="font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:6px">Твой потенциал</div>
-        <div class="ering-wrap">
-          <svg viewBox="0 0 180 180" width="200" height="200" style="transform:rotate(-90deg)">
-            <circle class="ering-bg" cx="90" cy="90" r="80"/>
-            <circle class="ering-fg" id="erfg" cx="90" cy="90" r="80"/>
-          </svg>
-          <div class="ering-center">
-            <div class="ering-pct" id="erpct">0%</div>
-            <div class="ering-word" id="erword"></div>
-          </div>
-        </div>
-        <div class="espheres" id="eqspheres"></div>
-        <div class="esldr-hint">
-          <span>Потяни</span><span class="esldr-arrow">→</span><span>и увидишь свой потенциал</span>
-        </div>
-        <div class="esldr-lbls"><span>0%</span><span id="esval">0%</span><span>100%</span></div>
-        <input type="range" class="egsldr" id="egsldr" min="0" max="100" value="0" step="1">
-        <div id="emmsg" style="min-height:60px;margin:20px auto 4px;max-width:560px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3.5vw,32px);font-weight:600;color:var(--gold2);line-height:1.3;opacity:0;transition:opacity .4s,transform .4s;transform:translateY(6px)"></div>
-        <div class="eqpanels">
-          <div class="eqpanel epnow" id="eqpnow">
-            <span class="eqpbadge ebnow">Сейчас</span>
-            <h3 id="entitle"></h3><p id="entext"></p>
-          </div>
-          <div class="eqpanel epafter" id="eqpafter">
-            <span class="eqpbadge ebafter">После программы</span>
-            <h3 id="eatitle"></h3><p id="eatext"></p>
-          </div>
-        </div>
-        <div class="egift-block">
-          <span style="font-size:46px;margin-bottom:12px;display:block">🎁</span>
-          <div class="egift-title">Мы приготовили тебе подарок</div>
-          <p class="egift-sub">Там тебя уже ждут.<br>Поговорим честно — где ты остановился и куда можешь прийти.<br><strong>Бесплатно.</strong> Без давления. Просто честный разговор.</p>
-          <a class="ebtn-gift" id="egift-link" href="https://t.me/iqbaraka_bot" target="_blank">
-            Нажми и получи подарок <span style="font-size:18px">→</span>
-          </a>
-          <p class="ebtn-gift-note">Открывает Telegram · @iqbaraka_bot</p>
-        </div>
-        <button class="ebtn-retry" onclick="eqRetry()">Пройти снова</button>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- МОМЕНТ ОСТАНОВКИ -->
 <section style="background:var(--dark);padding:72px 0;text-align:center;position:relative;overflow:hidden">
