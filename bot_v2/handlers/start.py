@@ -545,7 +545,6 @@ async def msg_help_btn(message: Message, state: FSMContext, session: AsyncSessio
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❓ Вопрос по программе", callback_data="help_program")],
             [InlineKeyboardButton(text="💸 Вопрос по оплате", callback_data="help_pay")],
-            [InlineKeyboardButton(text="💬 Написать Рашиду", callback_data="help_rashid")],
             [InlineKeyboardButton(text="🔧 Техническая проблема", callback_data="help_tech")],
         ])
     )
