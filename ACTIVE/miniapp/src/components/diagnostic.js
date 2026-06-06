@@ -143,7 +143,8 @@ function _calcResult(onFinish) {
   const ri = ratio < 0.25 ? 0 : ratio < 0.5 ? 1 : ratio < 0.75 ? 2 : 3
   const R = RS[ri]
 
-  lsSet('level', R.levelKey)
+  // Don't overwrite program level — only save diagnostic result separately
+  lsSet('diag_result', R.levelKey)
   lsSet('diag_done', '1')
 
   _showResult(R, onFinish)

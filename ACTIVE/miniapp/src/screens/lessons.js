@@ -66,13 +66,12 @@ export function renderLessons(phase = 'all') {
     // Task completion progress for this week
     const level = U.level
     let taskPct = 0
-    if (!locked && level) {
-      // Figure out week index within the program level
-      const { levelWeekIndex } = weekToLevelIndex(wi)
+    if (!locked) {
+      const { level: wLevel, levelWeekIndex } = weekToLevelIndex(wi)
       if (levelWeekIndex > 0) {
-        const tasks = getWeekTasks(level, levelWeekIndex)
+        const tasks = getWeekTasks(wLevel, levelWeekIndex)
         if (tasks.length > 0) {
-          const checked = loadChecked(level, levelWeekIndex)
+          const checked = loadChecked(wLevel, levelWeekIndex)
           const doneCount = Object.values(checked).filter(Boolean).length
           taskPct = Math.round(doneCount / tasks.length * 100)
         }
@@ -107,15 +106,16 @@ export function renderLessons(phase = 'all') {
 
 // ── Convert global week index → level + local week ────────────────────────────
 function weekToLevelIndex(globalWeekIndex) {
-  // LEVEL_OFFSET is in weeks.js: {А: 0, Б: 6, В: 14, Г: 22}
-  // But we work with 1-based globalWeekIndex
-  const level = U.level
-  if (!level) return { levelWeekIndex: 0 }
+  // Determine level from the global week number (not from U.level)
+  // ВАКТ: 1-6 → А, Сезон1: 7-14 → Б, Сезон2: 15-22 → В, Сезон3: 23-30 → Г
+  let level, offset
+  if (globalWeekIndex <= 6)       { level = 'А'; offset = 0 }
+  else if (globalWeekIndex <= 14) { level = 'Б'; offset = 6 }
+  else if (globalWeekIndex <= 22) { level = 'В'; offset = 14 }
+  else                            { level = 'Г'; offset = 22 }
 
-  const offsets = { А: 0, Б: 6, В: 14, Г: 22 }
-  const offset = offsets[level] ?? 0
   const levelWeekIndex = globalWeekIndex - offset
-  return { levelWeekIndex }
+  return { level, levelWeekIndex }
 }
 
 // ── Open lesson detail sheet ──────────────────────────────────────────────────
@@ -136,8 +136,8 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
         </div>
       </div>`
   } else {
-    const level = U.level
-    const { levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+    const { level, levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+    const skill = U.skill || 'I'
     const tasks = getWeekTasks(level, levelWeekIndex)
     const content = _getLessonContent(level, levelWeekIndex)
 
