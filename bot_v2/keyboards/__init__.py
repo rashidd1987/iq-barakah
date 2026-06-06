@@ -7,7 +7,7 @@ from bot_v2.keyboards.inline import (
     kb_onboarding_gender, kb_onboarding_occupation, kb_onboarding_source,
     kb_onboard_step1, kb_onboard_step2, kb_onboard_step3,
     BTN_DIAG, BTN_MINIAPP, BTN_PROGRAM, BTN_PAYMENT, BTN_REMINDERS,
-    BTN_CURATOR, BTN_MUHASABA, BTN_SITE,
+    BTN_CURATOR, BTN_MUHASABA, BTN_SITE, BTN_JARWAS, BTN_HELP,
 )
 
 __all__ = [
@@ -19,5 +19,5 @@ __all__ = [
     "kb_onboarding_gender", "kb_onboarding_occupation", "kb_onboarding_source",
     "kb_onboard_step1", "kb_onboard_step2", "kb_onboard_step3",
     "BTN_DIAG", "BTN_MINIAPP", "BTN_PROGRAM", "BTN_PAYMENT", "BTN_REMINDERS",
-    "BTN_CURATOR", "BTN_MUHASABA", "BTN_SITE",
+    "BTN_CURATOR", "BTN_MUHASABA", "BTN_SITE", "BTN_JARWAS", "BTN_HELP",
 ]
