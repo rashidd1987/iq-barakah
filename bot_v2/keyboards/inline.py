@@ -145,7 +145,7 @@ def kb_onboard_step2(lang: str = "ru") -> InlineKeyboardMarkup:
 
 def kb_onboard_step3(miniapp_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text=t(lang, "onboard.step3_diag_btn"), web_app=WebAppInfo(url=miniapp_url))
+    b.button(text="🚢 Пройти диагностику Кораблика", callback_data="korablik_start")
     b.button(text=t(lang, "onboard.step3_skip_btn"), callback_data="onboard_to_fio")
     b.adjust(1)
     return b.as_markup()
