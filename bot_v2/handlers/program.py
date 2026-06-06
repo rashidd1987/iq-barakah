@@ -221,7 +221,11 @@ async def _send_vakt_graduation_upsell(bot, user_id: int, is_female: bool = Fals
 
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
-            text="📗 Перейти в Сезон 1 — 10 000 ₽",
+            text="📗 Сезон 1 — 5 000 ₽/мес",
+            callback_data="tariff:s1_month",
+        )],
+        [InlineKeyboardButton(
+            text="📗 Сезон 1 полный — 10 000 ₽",
             callback_data="tariff:s1_full",
         )],
         [InlineKeyboardButton(
