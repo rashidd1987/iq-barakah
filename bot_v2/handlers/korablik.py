@@ -307,29 +307,14 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
             except Exception:
                 pass
 
-        # Follow-up через 24 часа
-        asyncio.create_task(_followup(call.bot, uid))
-
-
-# ── Follow-up ────────────────────────────────────────────
-
-async def _followup(bot, user_id: int):
-    await asyncio.sleep(86400)
-    try:
-        await bot.send_message(
-            user_id,
-            "Ас-саляму алейкум 🌙\n\n"
-            "Вчера ты прошёл диагностику.\n\n"
-            "Один честный вопрос — что тебя остановило?",
-            reply_markup=_kb(
-                ("💸 Цена", "kb_fu_price"),
-                ("⏰ Нет времени сейчас", "kb_fu_time"),
-                ("🤔 Не уверен, что поможет", "kb_fu_unsure"),
-                ("✅ Уже оплатил — спасибо!", "kb_fu_paid"),
-            ),
+        # Сохраняем время для follow-up (job_check_followups проверяет каждые 30 мин)
+        from bot_v2.db.repositories import SettingsRepo as _SR
+        import time as _time
+        _fu_repo = _SR(session)
+        await _fu_repo.set(
+            f"followup_at:{uid}",
+            str(int(_time.time()) + 82800)  # 23 часа
         )
-    except Exception as e:
-        logger.warning("Follow-up failed for %s: %s", user_id, e)
 
 
 # ── Кнопки результата ────────────────────────────────────

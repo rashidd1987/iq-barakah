@@ -355,3 +355,59 @@ async def job_check_payments(bot, config):
                         db_pay = await session.get(Payment, payment.id)
                         if db_pay:
                             db_pay.status = "failed"
+
+
+async def job_check_followups(bot):
+    """Каждые 30 минут — отправляем follow-up тем, у кого наступило время."""
+    import time as _time
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.repositories import SettingsRepo
+
+    now = int(_time.time())
+
+    async with get_session_factory()() as session:
+        async with session.begin():
+            repo = SettingsRepo(session)
+            # Ищем все ключи followup_at:*
+            from sqlalchemy import select, text
+            result = await session.execute(
+                text("SELECT key, value FROM settings WHERE key LIKE 'followup_at:%'")
+            )
+            rows = result.fetchall()
+
+    for key, value in rows:
+        try:
+            fire_at = int(value)
+        except ValueError:
+            continue
+        if now < fire_at:
+            continue
+
+        uid = int(key.split(":")[1])
+
+        # Удаляем запись и отправляем сообщение
+        async with get_session_factory()() as session:
+            async with session.begin():
+                repo = SettingsRepo(session)
+                await repo.set(key, "sent")  # помечаем чтобы не слать повторно
+
+        if value == "sent":
+            continue
+
+        try:
+            from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+            await bot.send_message(
+                uid,
+                "Ас-саляму алейкум 🌙\n\n"
+                "Вчера ты прошёл диагностику.\n\n"
+                "Один честный вопрос — что тебя остановило?",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💸 Цена", callback_data="kb_fu_price")],
+                    [InlineKeyboardButton(text="⏰ Нет времени сейчас", callback_data="kb_fu_time")],
+                    [InlineKeyboardButton(text="🤔 Не уверен, что поможет", callback_data="kb_fu_unsure")],
+                    [InlineKeyboardButton(text="✅ Уже оплатил — спасибо!", callback_data="kb_fu_paid")],
+                ]),
+            )
+            logger.info("Follow-up sent to %s", uid)
+        except Exception as e:
+            logger.warning("Follow-up failed for %s: %s", uid, e)

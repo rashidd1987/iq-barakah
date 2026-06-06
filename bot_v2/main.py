@@ -24,6 +24,7 @@ from bot_v2.services.jobs import (
     job_silence_check,
     job_progress_mirror,
     job_check_payments,
+    job_check_followups,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -120,8 +121,13 @@ async def main():
         args=[bot, config], id="check_payments",
     )
 
+    scheduler.add_job(
+        job_check_followups, "interval", minutes=30,
+        args=[bot], id="check_followups",
+    )
+
     scheduler.start()
-    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson, check_payments")
+    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson, check_payments, check_followups")
 
     # ── Команды бота ──────────────────────────────────────────────
     await _setup_commands(bot, config)
