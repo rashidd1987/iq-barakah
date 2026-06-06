@@ -697,3 +697,56 @@ async def cmd_curators(message: Message, session: AsyncSession, config: Config):
         return
     lines = [f"`{uid}`" for uid in config.curator_ids]
     await message.answer(f"👥 *Кураторы:*\n" + "\n".join(lines), parse_mode="Markdown")
+
+
+@router.message(Command("preview_all"))
+async def cmd_preview_all(message: Message, session: AsyncSession, config: Config):
+    """/preview_all <уровень> — прислать все уроки уровня сразу (для куратора)
+    Пример: /preview_all А  или  /preview_all Б"""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    args = message.text.split()[1:]
+    level = args[0].upper() if args else "А"
+
+    # Нормализация: a→А, b→Б и т.д.
+    latin_map = {"A": "А", "B": "Б", "C": "В", "D": "Г"}
+    level = latin_map.get(level, level)
+
+    if level not in LEVEL_WEEKS:
+        await message.answer(
+            f"❌ Неизвестный уровень. Доступные: А, Б, В, Г\n\nПример: `/preview_all А`",
+            parse_mode="Markdown"
+        )
+        return
+
+    max_weeks = LEVEL_WEEKS[level]
+    await message.answer(
+        f"📚 Отправляю все {max_weeks} уроков уровня *{level}* ({LEVEL_NAMES.get(level, level)})...\n\n"
+        f"Подожди — это займёт несколько секунд.",
+        parse_mode="Markdown"
+    )
+
+    from bot_v2.db.repositories import ParticipantRepo
+    from bot_v2.handlers.program import send_weekly_lesson
+    import asyncio as _asyncio
+
+    p_repo = ParticipantRepo(session)
+    uid = message.from_user.id
+
+    for week in range(1, max_weeks + 1):
+        # Ставим нужную неделю
+        participant = await p_repo.activate(uid, level=level, week=week)
+        await session.flush()
+        try:
+            await message.answer(f"━━━━━━━━━━━━━━━\n📅 *Неделя {week} из {max_weeks}*", parse_mode="Markdown")
+            await send_weekly_lesson(message.bot, uid, participant, session, config)
+        except Exception as e:
+            await message.answer(f"⚠️ Неделя {week}: {e}")
+        await _asyncio.sleep(0.5)
+
+    await message.answer(
+        f"✅ Все {max_weeks} уроков уровня *{level}* отправлены!\n\n"
+        f"Чтобы сбросить: `/resetme`",
+        parse_mode="Markdown"
+    )
