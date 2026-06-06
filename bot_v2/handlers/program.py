@@ -1,4 +1,5 @@
-"""Уроки программы, подтверждение недели, прогресс."""
+"""Уроки программы, подтверждение недели, прогресс, апсейл после ВАКТ."""
+import asyncio
 import logging
 from urllib.parse import urlencode
 
@@ -59,7 +60,6 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config
     stmt = stmt.on_conflict_do_nothing(constraint="uq_week_ack")
     await session.execute(stmt)
 
-    # Просто фиксируем выполнение недели — неделя переключится в понедельник по расписанию
     await call.message.answer(
         t(lang, "week.acked", week=current_week),
         parse_mode="Markdown"
@@ -67,7 +67,7 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):
-    """Отправить урок недели участнику. BOT = LEARNING — полный текст урока."""
+    """Отправить урок недели участнику."""
     from bot_v2.db.repositories import LessonMediaRepo
 
     level = participant.level
@@ -82,20 +82,19 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     if week > max_weeks:
         return
 
-    # Первый урок — отправляем введение в программу
+    # Первый урок — введение в программу
     if week == 1:
         intro = (
             "📖 *Прежде чем начать — прочитай это*\n\n"
             "Эта программа — не экзамен и не суд. Здесь никто не скажет тебе, что ты «плохой» или «недостаточный» мусульманин/мусульманка. Таких слов здесь не будет вообще.\n\n"
             "Может быть, ты молишься пять раз в день. Может быть — иногда, когда получается. А может быть — пока совсем нет, но что-то внутри тебя тянется ближе, и поэтому ты сейчас читаешь эти строки.\n\n"
-            "Где бы ты ни был — этого достаточно, чтобы начать. Ты мусульманин/мусульманка, и ты здесь. Дверь открыта ровно там, где ты стоишь сегодня — не там, где «надо было бы стоять».\n\n"
-            "Каждая неделя даётся в трёх уровнях. Ты сам/сама выбираешь свой — честно, без давления. Начни с того, что тебе по силам именно сейчас. Маленький честный шаг лучше большого рывка, после которого опускаются руки.\n\n"
-            "И ещё. Эта программа — про время. Про то, как перестать терять дни, которые утекают сквозь пальцы, и начать ими жить. А время — это не мелочь: Аллах клянётся им в Коране.\n\n"
+            "Где бы ты ни был — этого достаточно, чтобы начать. Ты мусульманин/мусульманка, и ты здесь. Дверь открыта ровно там, где ты стоишь сегодня.\n\n"
+            "Каждая неделя даётся в трёх уровнях. Ты сам/сама выбираешь свой — честно, без давления. Начни с того, что тебе по силам именно сейчас.\n\n"
             "_Идём спокойно, шаг за шагом._ 🌿"
         )
         await bot.send_message(chat_id=user_id, text=intro, parse_mode="Markdown")
 
-    # Получаем контент урока
+    # Контент урока
     lessons = PROGRAM.get(level, [])
     week_idx = week - 1
     if week_idx >= len(lessons):
@@ -103,18 +102,14 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
 
     lesson = lessons[week_idx]
     title = lesson["title"]
-
-    # Уровень навыка участника (I / II / III) — общий для всех программ
     skill_level = participant.vakt_level or "I"
 
-    # Текст урока по уровню навыка
     raw_text = lesson["text"]
     if isinstance(raw_text, dict):
         text_body = raw_text.get(skill_level, raw_text.get("I", ""))
     else:
         text_body = raw_text.replace("{name}", name)
 
-    # Задания по уровню навыка
     raw_tasks = lesson["tasks"]
     if isinstance(raw_tasks, dict):
         level_tasks = raw_tasks.get(skill_level, raw_tasks.get("I", []))
@@ -140,7 +135,6 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     video = await media_repo.get(level, week, "video")
     audio = await media_repo.get(level, week, "audio")
 
-    # Кнопка подтверждения
     if level == "А":
         ack_label = "✅ Выполнил задания — открыть следующую неделю"
     else:
@@ -178,7 +172,6 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
         except Exception:
             pass
 
-    # Максимальная длина caption Telegram — 4096 символов
     if len(lesson_text) > 4096:
         lesson_text = lesson_text[:4090] + "…"
 
@@ -191,13 +184,65 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
         )
     except Exception as md_err:
         logger.warning("send_message Markdown failed (%s), retrying plain text", md_err)
-        # Убираем markdown-символы и шлём plain text
         plain = lesson_text.replace("*", "").replace("_", "")
         await bot.send_message(
             chat_id=user_id,
             text=plain,
             reply_markup=reply_markup,
         )
+
+    # ── АПСЕЙЛ: последняя неделя ВАКТ → Сезон 1 ──────────────────────────
+    if level == "А" and week == max_weeks:
+        asyncio.create_task(
+            _send_vakt_graduation_upsell(bot, user_id, is_female)
+        )
+
+
+async def _send_vakt_graduation_upsell(bot, user_id: int, is_female: bool = False):
+    """Поздравление + оффер Сезон 1 после 6-й недели ВАКТ. Отправляется через 4 секунды."""
+    await asyncio.sleep(4)
+
+    brat = "сестра" if is_female else "брат"
+
+    text = (
+        f"🎓 *Баракаллаху фик (да благословит тебя Аллах), {brat}!*\n\n"
+        f"Ты завершил *ВАКТ* — 6 недель системы дня.\n\n"
+        f"Это не просто курс. Ты выстроил якорь утра, научился возвращаться к намерению "
+        f"и прожил 6 недель осознанно. Аллах видит каждый шаг.\n\n"
+        f"━━━━━━━━━━━━━━━\n\n"
+        f"*Что дальше?*\n\n"
+        f"ВАКТ — это фундамент. Теперь можно строить.\n\n"
+        f"📗 *IQ Barakah · Сезон 1 · Основание*\n"
+        f"8 недель: кто ты есть, как живёшь, зачем всё это.\n"
+        f"Семья, дело, здоровье, смысл — в одной системе.\n\n"
+        f"_Те кто прошёл ВАКТ идут в Сезон 1 с готовым ритмом. "
+        f"Это лучший момент для следующего шага._ 🌿"
+    )
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="📗 Перейти в Сезон 1 — 10 000 ₽",
+            callback_data="tariff:s1_full",
+        )],
+        [InlineKeyboardButton(
+            text="🏆 Все 3 сезона — 27 000 ₽",
+            callback_data="tariff:s3_full",
+        )],
+        [InlineKeyboardButton(
+            text="💬 Поговорить с куратором",
+            callback_data="contact_curator",
+        )],
+    ])
+
+    try:
+        await bot.send_message(
+            chat_id=user_id,
+            text=text,
+            parse_mode="Markdown",
+            reply_markup=markup,
+        )
+    except Exception as e:
+        logger.warning("vakt_graduation_upsell failed for %s: %s", user_id, e)
 
 
 async def _user_lang(session: AsyncSession, user_id: int) -> str:
