@@ -49,12 +49,6 @@ BOTTOM_TEXTS = {
 }
 
 
-class EveningStates(StatesGroup):
-    q1 = State()  # благодарность
-    q2 = State()  # где потерял внимание
-    q3 = State()  # шаг на завтра
-
-
 class OnboardingStates(StatesGroup):
     fio = State()
     gender = State()
@@ -386,25 +380,20 @@ async def msg_curator(message: Message, state: FSMContext, session: AsyncSession
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["muhasaba"]))
 @router.callback_query(F.data == "start_evening")
 async def msg_muhasaba(update, state: FSMContext, session: AsyncSession):
-    """🌙 Вечерний разбор — 3 вопроса FSM."""
+    """🌙 Вечерний самоотчёт (мухасаба) — передаём в muhasaba.py."""
+    from bot_v2.handlers.muhasaba import MuhasabaStates, INTRO, MUH_QUESTIONS, cb_start_muhasaba
     from aiogram.types import ReplyKeyboardRemove
     if isinstance(update, Message):
-        message = update
         await state.clear()
+        await state.set_state(MuhasabaStates.q1)
+        await state.update_data(answers=[])
+        await update.answer(
+            INTRO + MUH_QUESTIONS[0],
+            parse_mode="Markdown",
+            reply_markup=ReplyKeyboardRemove(),
+        )
     else:
-        await update.answer()
-        message = update.message
-
-    await state.set_state(EveningStates.q1)
-    await message.answer(
-        "🌙 *Вечерний разбор*\n\n"
-        "Три вопроса — и день прожит честно.\n\n"
-        "*Вопрос 1 из 3*\n\n"
-        "За что ты благодарен сегодня?\n\n"
-        "_Одна вещь — большая или маленькая. Напиши своими словами._",
-        parse_mode="Markdown",
-        reply_markup=ReplyKeyboardRemove(),
-    )
+        await cb_start_muhasaba(update, state)
 
 
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["site"]))
@@ -562,70 +551,7 @@ async def cb_help_rashid(call: CallbackQuery):
     await call.message.answer("Напиши Рашиду лично:\n@rasid_iqbarakah")
 
 
-# ── Вечерний разбор FSM ──────────────────────────────────
-
-@router.message(EveningStates.q1)
-async def evening_q1(message: Message, state: FSMContext):
-    await state.update_data(ev_thanks=message.text)
-    await state.set_state(EveningStates.q2)
-    await message.answer(
-        "*Вопрос 2 из 3*\n\n"
-        "Где ты потерял внимание сегодня?\n\n"
-        "_Не для самобичевания — просто честно посмотреть._",
-        parse_mode="Markdown",
-    )
-
-
-@router.message(EveningStates.q2)
-async def evening_q2(message: Message, state: FSMContext):
-    await state.update_data(ev_miss=message.text)
-    await state.set_state(EveningStates.q3)
-    await message.answer(
-        "*Вопрос 3 из 3*\n\n"
-        "Один шаг на завтра утром.\n\n"
-        "_Не список — один конкретный шаг до телефона._",
-        parse_mode="Markdown",
-    )
-
-
-@router.message(EveningStates.q3)
-async def evening_q3(message: Message, state: FSMContext, session: AsyncSession, config: Config):
-    from bot_v2.db.repositories import SettingsRepo
-    data = await state.get_data()
-    thanks = data.get("ev_thanks", "")
-    uid = message.from_user.id
-
-    # Обновляем стрик
-    repo = SettingsRepo(session)
-    streak_val = await repo.get(f"streak:{uid}", "0")
-    try:
-        streak = int(streak_val) + 1
-    except ValueError:
-        streak = 1
-    await repo.set(f"streak:{uid}", str(streak))
-    await state.clear()
-
-    user = await UserRepo(session).get(uid)
-    participant = await _get_participant(session, uid)
-    lang = user.language_code if user else "ru"
-
-    await message.answer(
-        f"Баракаллаху фик (да благословит тебя Аллах) 🌿\n\n"
-        f"Ты завершил день честно.\n\n"
-        f"_{thanks}_\n\n"
-        f"Спокойной ночи 🌙",
-        parse_mode="Markdown",
-        reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
-    )
-
-    streak_msgs = {
-        7:  "МашаАллах (хвала Аллаху)! Неделя подряд 🔥\nТы держишь систему 7 дней.",
-        14: "Две недели подряд 💪\nСистема начинает работать на тебя, а не ты на неё.",
-        30: "30 дней 🌟\nЭто уже не попытка — это привычка. Ты изменился.",
-        40: "40 дней 🤲\nВ нашей традиции 40 дней — точка трансформации. Ты прошёл её.",
-    }
-    if streak in streak_msgs:
-        await message.answer(streak_msgs[streak])
+# ── Вечерний самоотчёт FSM теперь полностью в muhasaba.py ──────────────────
 
 
 @router.callback_query(F.data == "week_lesson")
