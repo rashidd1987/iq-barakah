@@ -380,9 +380,8 @@ async def msg_curator(message: Message, state: FSMContext, session: AsyncSession
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["muhasaba"]))
 @router.callback_query(F.data == "start_evening")
 async def msg_muhasaba(update, state: FSMContext, session: AsyncSession):
-    """🌙 Вечерний самоотчёт (мухасаба) — передаём в muhasaba.py."""
-    from bot_v2.handlers.muhasaba import MuhasabaStates, INTRO, MUH_QUESTIONS, cb_start_muhasaba
     from aiogram.types import ReplyKeyboardRemove
+    from bot_v2.handlers.muhasaba import INTRO, MUH_QUESTIONS, MuhasabaStates
     if isinstance(update, Message):
         await state.clear()
         await state.set_state(MuhasabaStates.q1)
@@ -393,6 +392,8 @@ async def msg_muhasaba(update, state: FSMContext, session: AsyncSession):
             reply_markup=ReplyKeyboardRemove(),
         )
     else:
+        await update.answer()
+        from bot_v2.handlers.muhasaba import cb_start_muhasaba
         await cb_start_muhasaba(update, state)
 
 
