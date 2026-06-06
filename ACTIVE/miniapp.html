@@ -1057,6 +1057,9 @@ textarea:focus { border-color: var(--g2); }
     <div class="hdr-title" id="greet">Ас-саляму алейкум 👋</div>
     <div class="hdr-sub" id="uname-sub">Загружаем данные...</div>
   </div>
+  <div id="preview-banner" style="display:none;background:#1a3d1b;color:#fff;padding:10px 16px;align-items:center;gap:8px;font-size:13px;font-weight:700;">
+    👁 Режим просмотра куратора · Все уроки открыты
+  </div>
   <div class="c">
     <div class="current-week" id="cw-banner">
       <div class="cw-icon" id="cw-icon">📖</div>
@@ -3451,6 +3454,12 @@ function initHome() {
     if (ava) ava.textContent = (tgUser.first_name || 'У')[0].toUpperCase()
   }
 
+  // Curator preview banner
+  const previewBanner = document.getElementById('preview-banner')
+  if (previewBanner) {
+    previewBanner.style.display = U.previewMode ? 'flex' : 'none'
+  }
+
   // Greeting
   const h = new Date().getHours()
   const greets = ['Ас-саляму алейкум', t('goodMorning'), t('goodDay'), t('goodEvening'), t('goodNight')]
@@ -3543,6 +3552,16 @@ function readUrlParams() {
   const lvl   = p.get('lvl') || ''
   const wk    = parseInt(p.get('wk') || '0', 10)
   const skill = p.get('skill') || 'I'
+  const preview = p.get('preview') === '1'
+
+  // Curator preview mode: unlock all lessons without saving to localStorage
+  if (preview) {
+    U.level = lvl || lsGet('level', 'А') || 'А'
+    U.currentWeek = 31  // > 30 = all unlocked
+    U.skill = skill
+    U.previewMode = true
+    return
+  }
 
   if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
     U.level = lvl

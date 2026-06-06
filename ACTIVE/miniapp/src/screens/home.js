@@ -24,6 +24,12 @@ export function initHome() {
     if (ava) ava.textContent = (tgUser.first_name || 'У')[0].toUpperCase()
   }
 
+  // Curator preview banner
+  const previewBanner = document.getElementById('preview-banner')
+  if (previewBanner) {
+    previewBanner.style.display = U.previewMode ? 'flex' : 'none'
+  }
+
   // Greeting
   const h = new Date().getHours()
   const greets = ['Ас-саляму алейкум', t('goodMorning'), t('goodDay'), t('goodEvening'), t('goodNight')]
@@ -116,6 +122,16 @@ function readUrlParams() {
   const lvl   = p.get('lvl') || ''
   const wk    = parseInt(p.get('wk') || '0', 10)
   const skill = p.get('skill') || 'I'
+  const preview = p.get('preview') === '1'
+
+  // Curator preview mode: unlock all lessons without saving to localStorage
+  if (preview) {
+    U.level = lvl || lsGet('level', 'А') || 'А'
+    U.currentWeek = 31  // > 30 = all unlocked
+    U.skill = skill
+    U.previewMode = true
+    return
+  }
 
   if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
     U.level = lvl
