@@ -577,13 +577,12 @@ async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext
     from bot_v2.db.models import User, WeekAck
     from sqlalchemy import delete
     uid = message.from_user.id
-    # Сбрасываем профиль
+    # Сбрасываем профиль (User.id = Telegram ID)
     await session.execute(
         update(User)
-        .where(User.user_id == uid)
+        .where(User.id == uid)
         .values(name=message.from_user.first_name or "Участник",
-                is_female=None, age=None, occupation=None, source=None,
-                referral_code=None)
+                is_female=None, age=None, occupation=None, source=None)
     )
     # Удаляем participant (прогресс)
     await session.execute(delete(Participant).where(Participant.user_id == uid))
