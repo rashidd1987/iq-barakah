@@ -81,15 +81,41 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     # Пришёл с сайта после диагностики
     if payload.startswith("quiz_"):
         payload_parts = payload.split("_")
-        site_level = payload_parts[1] if len(payload_parts) > 1 else "a"
-        try:
-            site_pct = int(payload_parts[2]) if len(payload_parts) > 2 else None
-        except ValueError:
-            site_pct = None
+
+        # Форматы:
+        #   новый: quiz_rashid_b_68  (имя + уровень + процент)
+        #   anon:  quiz_anon_b_68    (без имени)
+        #   старый: quiz_b_68        (обратная совместимость)
+        if len(payload_parts) >= 4:
+            site_name_raw = payload_parts[1]
+            site_level = payload_parts[2]
+            try:
+                site_pct = int(payload_parts[3])
+            except ValueError:
+                site_pct = None
+        else:
+            site_name_raw = ""
+            site_level = payload_parts[1] if len(payload_parts) > 1 else "a"
+            try:
+                site_pct = int(payload_parts[2]) if len(payload_parts) > 2 else None
+            except ValueError:
+                site_pct = None
+
+        # Имя из квиза — приоритет над именем Telegram
+        quiz_name = ""
+        if site_name_raw and site_name_raw != "anon":
+            quiz_name = site_name_raw.replace("_", " ").capitalize()
+        name_first = quiz_name or (db_user.name or "").split()[0]
+
+        # Если пришло имя с квиза — обновляем в БД
+        if quiz_name:
+            try:
+                await UserRepo(session).update_name(db_user.id, quiz_name)
+            except Exception:
+                pass
 
         level_words = {"a": "Начало пути", "b": "Пробуждение", "c": "Рост", "d": "Глубина"}
         level_label = level_words.get(site_level, "")
-        name_first = (db_user.name or "").split()[0] if db_user.name else ""
 
         pct_text = f"*{site_pct}% потенциала*" if site_pct else "твой потенциал"
         level_text = f" — уровень «{level_label}»" if level_label else ""
@@ -102,15 +128,14 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
 
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         greeting = (
-            f"🌿 Ас-саляму алейкум{',' if name_first else '!'}"
-            f"{' *' + name_first + '*!' if name_first else ''}\n\n"
+            f"🌿 Ас-саляму алейкум, *{name_first}*!\n\n"
             f"Я — *Джарвас*, AI-наставник IQ Barakah.\n\n"
-            f"Ты только что прошёл диагностику на сайте. "
-            f"Я вижу твой результат — {pct_text}{level_text}. "
+            f"Ты только что прошёл диагностику на сайте.\n"
+            f"Я вижу твой результат — {pct_text}{level_text}.\n"
             f"Это честная точка старта.\n\n"
             f"Я обещал тебе подарок — и готов его отдать.\n\n"
-            f"Давай я задам несколько коротких вопросов. "
-            f"Не тест и не экзамен — просто хочу понять твою ситуацию глубже. "
+            f"Давай я задам несколько коротких вопросов — "
+            f"не тест и не экзамен, просто хочу понять глубже.\n"
             f"А потом дам конкретную рекомендацию: с чего начать именно тебе. 🌱"
         )
         await message.answer(

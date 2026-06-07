@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Финальный экран — IQ Barakah</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Mulish:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:#E8C97A;--gold3:#FFF0B3;
+  --green:#1A3D08;--green2:#2A5C10;--green3:#3B7A18;
+  --green4:#EDF5E5;--dark:#060B04;--text:#1A2810;
+  --mid:#4A6030;--mid2:#7A8E6A;--cream:#FAFDF6;
+  --white:#fff;--border:#D8EAC8;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Mulish',sans-serif;background:var(--dark);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.18),transparent 55%),
+             radial-gradient(ellipse at 80% 80%,rgba(42,92,16,.22),transparent 50%),
+             radial-gradient(ellipse at 20% 60%,rgba(201,168,76,.08),transparent 40%)}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.6}
+
+.outer{position:relative;z-index:1;width:100%;max-width:820px}
+
+/* ── КАРТОЧКА ── */
+.card{
+  position:relative;border-radius:32px;padding:52px 48px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(201,168,76,.18);
+  overflow:hidden;backdrop-filter:blur(12px);
+}
+.card::before{content:"";position:absolute;inset:0;border-radius:32px;pointer-events:none;
+  background:radial-gradient(ellipse at 50% -20%,rgba(201,168,76,.10),transparent 60%)}
+.card::after{content:"";position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.6),transparent)}
+#pcanvas{position:absolute;inset:0;pointer-events:none;border-radius:32px}
+
+/* ── ПРОГРЕСС ── */
+.prog-wrap{margin-bottom:36px}
+.prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.prog-label{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.prog-frac{font-size:10px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.3)}
+.prog-track{width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+.prog-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold2));
+  transition:width .5s cubic-bezier(.22,1,.36,1);box-shadow:0 0 10px rgba(201,168,76,.5);width:0%}
+
+/* ── ВОПРОС ── */
+.q-text{font-family:'Cormorant Garamond',serif;font-size:clamp(26px,4vw,40px);font-weight:600;
+  line-height:1.18;color:#fff;margin-bottom:32px;text-align:center;min-height:80px;
+  transition:opacity .22s,transform .22s}
+.q-text.exit{opacity:0;transform:translateY(-12px)}
+.q-text.enter{opacity:0;transform:translateY(12px)}
+.q-text.visible{opacity:1;transform:translateY(0)}
+
+/* ── ВАРИАНТЫ ── */
+.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+.opt{position:relative;overflow:hidden;padding:18px 44px 18px 18px;border-radius:18px;
+  border:1px solid rgba(201,168,76,.14);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.75);font-family:'Mulish',sans-serif;font-size:14px;font-weight:600;
+  text-align:left;cursor:pointer;line-height:1.45;transition:border-color .2s,background .2s,color .2s,transform .15s}
+.opt:hover{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07);color:var(--gold2);transform:translateY(-2px)}
+.opt.selected{border-color:var(--gold);background:rgba(201,168,76,.13);color:var(--gold2)}
+.opt .ripple{position:absolute;border-radius:50%;background:rgba(201,168,76,.35);
+  transform:scale(0);animation:rpl .55s ease-out forwards;pointer-events:none}
+@keyframes rpl{to{transform:scale(4);opacity:0}}
+@keyframes cflash{0%{box-shadow:0 0 0 rgba(201,168,76,0)}30%{box-shadow:0 0 60px rgba(201,168,76,.25),inset 0 0 40px rgba(201,168,76,.06)}100%{box-shadow:0 0 0 rgba(201,168,76,0)}}
+.card.flash{animation:cflash .6s ease-out}
+.opt-check{display:none;position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;border-radius:50%;background:var(--gold);
+  align-items:center;justify-content:center;flex-shrink:0}
+.opt-check svg{width:11px;height:11px;stroke:#000;stroke-width:2.5;fill:none}
+.opt.selected .opt-check{display:flex}
+
+/* ── НАВ-КНОПКИ ── */
+.nav-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.btn-back{padding:13px 22px;border-radius:999px;border:1px solid rgba(201,168,76,.2);
+  background:transparent;color:rgba(255,255,255,.4);font-family:'Mulish',sans-serif;
+  font-size:13px;font-weight:800;cursor:pointer;transition:.2s}
+.btn-back:hover{border-color:rgba(201,168,76,.5);color:var(--gold2)}
+.btn-back:disabled{opacity:.15;cursor:not-allowed}
+.btn-next{padding:14px 30px;border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#060B04;border:none;font-family:'Mulish',sans-serif;
+  font-size:14px;font-weight:900;cursor:pointer;
+  box-shadow:0 8px 28px rgba(201,168,76,.3);transition:.2s;letter-spacing:.3px}
+.btn-next:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 36px rgba(201,168,76,.45)}
+.btn-next:disabled{opacity:.25;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* ══════════════════════
+   РЕЗУЛЬТАТ
+══════════════════════ */
+.result-view{display:none;text-align:center}
+
+/* кольцо */
+.ring-wrap{position:relative;width:200px;height:200px;margin:0 auto 20px;display:block}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:10}
+.ring-fg{fill:none;stroke:url(#rg);stroke-width:10;stroke-linecap:round;
+  stroke-dasharray:502;stroke-dashoffset:502;
+  transition:stroke-dashoffset 1.6s cubic-bezier(.22,1,.36,1);
+  filter:drop-shadow(0 0 8px rgba(201,168,76,.6))}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:700;color:var(--gold2);line-height:1}
+.ring-word{font-size:11px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:4px}
+
+/* ползунок */
+.slider-hint{text-align:center;font-size:13px;font-weight:700;color:rgba(255,255,255,.4);
+  margin:20px auto 12px;max-width:600px;display:flex;align-items:center;justify-content:center;gap:8px}
+.arrow{animation:nudge 1.4s ease-in-out infinite;color:var(--gold);font-size:16px;display:inline-block}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+.slider-labels{display:flex;justify-content:space-between;font-size:11px;font-weight:800;
+  letter-spacing:1px;color:rgba(255,255,255,.25);margin:0 auto 10px;max-width:600px}
+input[type=range].gs{width:100%;max-width:600px;display:block;margin:0 auto;-webkit-appearance:none;height:6px;border-radius:999px;outline:none;cursor:pointer;
+  background:rgba(255,255,255,.1)}
+input[type=range].gs::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle,var(--gold2),var(--gold));
+  box-shadow:0 0 16px rgba(201,168,76,.7),0 0 4px rgba(201,168,76,1);
+  border:2px solid rgba(255,255,255,.3);transition:.1s}
+input[type=range].gs::-webkit-slider-thumb:hover{transform:scale(1.15)}
+
+/* панели */
+.panels{display:grid;gap:16px;margin:24px auto;max-width:700px;text-align:left}
+.panel{border-radius:20px;padding:28px 30px;border:1px solid rgba(201,168,76,.14);
+  background:rgba(255,255,255,.03);transition:all .4s cubic-bezier(.22,1,.36,1)}
+.panel.pnow{border-left:3px solid rgba(201,168,76,.5)}
+.panel.pafter{border-left:3px solid var(--green3);opacity:0;transform:translateY(10px);pointer-events:none}
+.panel.pafter.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.pbadge{display:inline-block;font-size:9px;font-weight:900;letter-spacing:2.5px;
+  text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:10px}
+.bnow{background:rgba(201,168,76,.12);color:rgba(201,168,76,.8)}
+.bafter{background:rgba(59,122,24,.2);color:#8BC96A}
+.panel h3{font-family:'Cormorant Garamond',serif;font-size:clamp(22px,3vw,30px);font-weight:700;
+  color:#fff;margin-bottom:10px;line-height:1.2}
+.panel p{font-size:15px;line-height:1.85;color:rgba(255,255,255,.58);margin-top:2px}
+
+/* ══ 4 СФЕРЫ ══ */
+.spheres{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:24px auto;max-width:600px}
+.sphere{border-radius:16px;padding:16px 12px;text-align:center;
+  border:1px solid rgba(201,168,76,.14);background:rgba(255,255,255,.03)}
+.sphere-icon{font-size:22px;margin-bottom:8px}
+.sphere-name{font-size:11px;font-weight:800;letter-spacing:.8px;color:rgba(255,255,255,.5);margin-bottom:6px}
+.sphere-bar{height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.sphere-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold2));width:0%;
+  transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+
+/* ══ БЛОК ПОДАРКА ══ */
+.gift-block{
+  position:relative;border-radius:24px;overflow:hidden;
+  background:rgba(201,168,76,.06);
+  border:1px solid rgba(201,168,76,.3);
+  padding:36px 32px;margin:28px 0;text-align:center;
+}
+.gift-block::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.12),transparent 60%);pointer-events:none}
+.gift-shine{
+  position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:conic-gradient(from 0deg,transparent 340deg,rgba(201,168,76,.08) 355deg,transparent 360deg);
+  animation:spin 6s linear infinite;pointer-events:none;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gift-icon{font-size:48px;margin-bottom:14px;display:block;
+  animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.gift-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4vw,42px);font-weight:700;
+  color:var(--gold2);line-height:1.1;margin-bottom:10px}
+.gift-sub{font-size:15px;color:rgba(255,255,255,.55);line-height:1.7;max-width:480px;margin:0 auto 28px}
+.gift-sub strong{color:var(--gold2);font-weight:800}
+
+/* БОЛЬШАЯ КНОПКА */
+.btn-gift{
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;max-width:480px;
+  padding:22px 32px;border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2),var(--gold3));
+  color:#060B04;border:none;font-family:'Mulish',sans-serif;
+  font-size:17px;font-weight:900;cursor:pointer;
+  box-shadow:0 16px 48px rgba(201,168,76,.45),0 0 0 0 rgba(201,168,76,.3);
+  transition:.2s;letter-spacing:.3px;text-decoration:none;
+  animation:pulse-btn 2.4s ease-in-out infinite;
+}
+@keyframes pulse-btn{
+  0%,100%{box-shadow:0 16px 48px rgba(201,168,76,.45),0 0 0 0 rgba(201,168,76,.3)}
+  50%{box-shadow:0 16px 48px rgba(201,168,76,.55),0 0 0 12px rgba(201,168,76,0)}
+}
+.btn-gift:hover{transform:translateY(-3px);background:linear-gradient(135deg,var(--gold2),var(--gold3),var(--gold2))}
+.btn-gift-arrow{font-size:20px;transition:.2s}
+.btn-gift:hover .btn-gift-arrow{transform:translateX(4px)}
+.btn-gift-note{font-size:12px;font-weight:600;color:rgba(255,255,255,.3);margin-top:12px;text-align:center}
+
+/* кнопка retry */
+.btn-retry{display:block;margin:20px auto 0;padding:13px 22px;border-radius:999px;
+  border:1px solid rgba(201,168,76,.2);background:transparent;
+  color:rgba(255,255,255,.35);font-family:'Mulish',sans-serif;font-size:13px;font-weight:800;
+  cursor:pointer;transition:.2s}
+.btn-retry:hover{border-color:var(--gold);color:var(--gold2)}
+
+.divider{width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:24px auto}
+
+/* скрытие */
+.quiz-view,.result-view{transition:opacity .3s,transform .3s}
+.quiz-view.hide{opacity:0;transform:scale(.97);pointer-events:none}
+
+/* ── БЛОК ИМЕНИ ── */
+.name-block{
+  margin:0 0 28px;padding:28px 32px;border-radius:24px;
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(201,168,76,.18);
+  text-align:center;
+}
+.name-block-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(20px,3vw,28px);font-weight:600;
+  color:#fff;margin-bottom:6px;line-height:1.25;
+}
+.name-block-sub{
+  font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px;line-height:1.6;
+}
+.name-row{display:flex;gap:10px;max-width:440px;margin:0 auto}
+.name-input{
+  flex:1;padding:14px 18px;border-radius:999px;
+  border:1px solid rgba(201,168,76,.25);
+  background:rgba(255,255,255,.06);
+  color:#fff;font-family:'Mulish',sans-serif;font-size:15px;font-weight:600;
+  outline:none;transition:.2s;
+}
+.name-input::placeholder{color:rgba(255,255,255,.25)}
+.name-input:focus{border-color:var(--gold);background:rgba(201,168,76,.06)}
+.name-skip{
+  font-size:12px;color:rgba(255,255,255,.25);margin-top:10px;
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;
+  transition:.2s;
+}
+.name-skip:hover{color:rgba(255,255,255,.45)}
+
+@media(max-width:600px){
+  .card{padding:30px 20px}
+  .opts-grid{grid-template-columns:1fr}
+  .spheres{grid-template-columns:repeat(2,1fr)}
+  .ring-wrap{width:160px;height:160px}
+  .ring-pct{font-size:40px}
+  .gift-block{padding:28px 20px}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div class="outer">
+<div class="card" id="card">
+  <canvas id="pcanvas"></canvas>
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#C9A84C"/>
+        <stop offset="100%" stop-color="#FFF0B3"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <!-- КВИЗ -->
+  <div class="quiz-view" id="qview">
+    <div class="prog-wrap">
+      <div class="prog-top">
+        <span class="prog-label" id="plabel">Вопрос 1</span>
+        <span class="prog-frac" id="pfrac">1 / 8</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="pfill"></div></div>
+    </div>
+    <div class="q-text visible" id="qtext"></div>
+    <div class="opts-grid" id="ogrid"></div>
+    <div class="nav-row">
+      <button class="btn-back" id="bbk" disabled onclick="goBack()">← Назад</button>
+      <button class="btn-next" id="bnx" disabled onclick="nextQ()">Дальше →</button>
+    </div>
+  </div>
+
+  <!-- РЕЗУЛЬТАТ -->
+  <div class="result-view" id="rview">
+
+    <div style="text-align:center;margin-bottom:6px">
+      <span style="font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase">Твой потенциал</span>
+    </div>
+
+    <div class="ring-wrap">
+      <svg viewBox="0 0 180 180" width="200" height="200" style="transform:rotate(-90deg)">
+        <circle class="ring-bg" cx="90" cy="90" r="80"/>
+        <circle class="ring-fg" id="rfg" cx="90" cy="90" r="80"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-pct" id="rpct">0%</div>
+        <div class="ring-word" id="rword"></div>
+      </div>
+    </div>
+
+    <!-- 4 сферы -->
+    <div class="spheres" id="spheres"></div>
+
+    <div class="slider-hint">
+      <span>Потяни</span>
+      <span class="arrow">→</span>
+      <span>и увидишь свой потенциал</span>
+    </div>
+    <div class="slider-labels"><span>0%</span><span id="sval">0%</span><span>100%</span></div>
+    <input type="range" class="gs" id="gslider" min="0" max="100" value="0" step="1">
+    <div id="milestone-msg" style="min-height:48px;margin:16px auto 0;max-width:540px;text-align:center;font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--gold2);line-height:1.35;opacity:0;transition:opacity .4s,transform .4s;transform:translateY(6px)"></div>
+
+    <div class="panels">
+      <div class="panel pnow" id="pnow">
+        <span class="pbadge bnow">Сейчас</span>
+        <h3 id="ntitle"></h3>
+        <p id="ntext"></p>
+      </div>
+      <div class="panel pafter" id="pafter">
+        <span class="pbadge bafter">После программы</span>
+        <h3 id="atitle"></h3>
+        <p id="atext"></p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- БЛОК ИМЕНИ -->
+    <div class="name-block" id="name-block">
+      <div class="name-block-title">Хочешь чтобы Джарвас обратился к тебе лично? 🌿</div>
+      <div class="name-block-sub">Необязательно — но с именем разговор становится другим.</div>
+      <div class="name-row">
+        <input class="name-input" id="name-input" type="text" placeholder="Твоё имя" maxlength="40" autocomplete="off">
+      </div>
+      <div class="name-skip" id="name-skip" onclick="openBot()">Открыть без имени →</div>
+    </div>
+
+    <!-- БЛОК ПОДАРКА -->
+    <div class="gift-block">
+      <div class="gift-shine"></div>
+      <span class="gift-icon">🎁</span>
+      <div class="gift-title">Мы приготовили тебе подарок</div>
+      <p class="gift-sub">
+        Поговорим честно — где ты остановился и куда можешь прийти.<br>
+        <strong>Бесплатно.</strong> Без давления. Просто честный разговор.
+      </p>
+      <a class="btn-gift" id="gift-link" href="https://t.me/iqbaraka_bot" target="_blank" onclick="handleGiftClick(event)">
+        Нажми и получи подарок
+        <span class="btn-gift-arrow">→</span>
+      </a>
+      <p class="btn-gift-note">Открывает Telegram · @iqbaraka_bot</p>
+    </div>
+
+    <button class="btn-retry" onclick="retryQ()">Пройти снова</button>
+
+  </div>
+</div>
+</div>
+
+<script>
+/* ЗВЁЗДЫ */
+(function(){
+  var c=document.getElementById('stars'),ctx=c.getContext('2d'),s=[];
+  function rs(){c.width=innerWidth;c.height=innerHeight}rs();addEventListener('resize',rs);
+  for(var i=0;i<160;i++)s.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+    r:Math.random()*1.2+.2,a:Math.random(),da:(Math.random()-.5)*.008,g:Math.random()<.25});
+  (function d(){ctx.clearRect(0,0,c.width,c.height);
+    s.forEach(function(p){p.a+=p.da;if(p.a<0||p.a>1)p.da*=-1;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.g?'rgba(201,168,76,'+p.a+')':'rgba(255,255,255,'+(p.a*.7)+')';ctx.fill()});
+    requestAnimationFrame(d)})();
+})();
+
+/* ЧАСТИЦЫ */
+var pc=document.getElementById('pcanvas'),px=pc.getContext('2d'),pts=[];
+function rp(){var cd=document.getElementById('card');pc.width=cd.offsetWidth;pc.height=cd.offsetHeight}
+addEventListener('resize',rp);setTimeout(rp,80);
+function burst(x,y,n){n=n||18;for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=Math.random()*3.5+1;
+  pts.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,l:1,s:Math.random()*2+0.5,g:Math.random()<.6})}}
+(function ap(){px.clearRect(0,0,pc.width,pc.height);pts=pts.filter(function(p){return p.l>0});
+  pts.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.l-=.025;
+    var pr=Math.max(0.01,p.s*p.l);px.beginPath();px.arc(p.x,p.y,pr,0,Math.PI*2);
+    px.fillStyle=(p.g?'rgba(201,168,76,':'rgba(255,240,180,')+p.l+')';px.fill()});
+  requestAnimationFrame(ap)})();
+
+/* ДАННЫЕ */
+var QS=[
+  {q:'Как обычно начинается твой день?',
+   opts:['Поздно, сразу в телефон','Рано, но без цели','Есть ритуал','Осознанно, с намерением']},
+  {q:'Есть ли у тебя контроль над своим временем?',
+   opts:['День управляет мной','Иногда получается','В целом да','Да, я веду день']},
+  {q:'Что происходит с твоими целями?',
+   opts:['Есть, но движения нет','Стартую и сдаюсь','Нестабильно','Держу курс, даже в трудные дни']},
+  {q:'Как справляешься, когда всё идёт не так?',
+   opts:['Теряюсь и откладываю','С трудом','Возвращаюсь к плану','Есть своя система']},
+  {q:'Как проводишь вечер?',
+   opts:['В телефоне — время уходит','Смотрю что сделал','Анализирую день','Итог + план на завтра']},
+  {q:'Как у тебя с внутренним покоем?',
+   opts:['Постоянная тревога','Бывают хорошие дни','В основном спокоен','Есть ощущение опоры']},
+  {q:'Что происходит с семьёй и близкими?',
+   opts:['Хаос','Я рядом, но не здесь','Стараюсь быть лучше','Есть порядок и присутствие']},
+  {q:'Чего ты хочешь для себя?',
+   opts:['Перестать уставать','Вернуть ритм','Построить систему','Служить и оставить след']}
+];
+
+var SPHRS=[
+  {icon:'🌅',name:'Утро'},
+  {icon:'🎯',name:'Цели'},
+  {icon:'❤️',name:'Семья'},
+  {icon:'🧘',name:'Покой'}
+];
+
+var RS=[
+  {pct:22,word:'Начало пути',sp:[15,20,18,12],
+   nt:'Ты чувствуешь, что топчешься на месте',
+   np:'Утро начинается с телефона. Цели есть — движения нет. Дни похожи один на другой, и непонятно, с чего начать.',
+   at:'Ты получаешь первый стабильный ритм',
+   ap:'Ясное утро. Конкретный план на день. Ощущение, что жизнь под контролем. Не идеально, но твёрдо.'},
+  {pct:40,word:'Пробуждение',sp:[35,38,30,28],
+   nt:'Есть попытки, но нет системы',
+   np:'Ты стартуешь — и срываешься. Мотивация приходит волнами. Что-то важное постоянно откладывается.',
+   at:'Ты строишь первую рабочую систему',
+   ap:'Появляется якорь утра, вечерний разбор и точка опоры. Срывы случаются — но ты умеешь возвращаться.'},
+  {pct:58,word:'Рост',sp:[55,60,50,52],
+   nt:'Основа есть — но чего-то важного не хватает',
+   np:'Ты дисциплинирован, но что-то ускользает. Жизнь работает, но без ощущения смысла и полноты.',
+   at:'Ты соединяешь продуктивность со смыслом',
+   ap:'Время, семья, дело и внутренний мир начинают работать вместе. Каждый день — движение, а не список задач.'},
+  {pct:76,word:'Глубина',sp:[72,75,68,70],
+   nt:'Ты живёшь хорошо, но знаешь — можно больше',
+   np:'Система есть. Но ты чувствуешь плато. Следующий уровень требует другой глубины и окружения.',
+   at:'Ты выходишь на уровень, где ведёшь других',
+   ap:'Более глубокая работа над характером, семьёй и служением. Ты становишься тем, кто создаёт среду роста.'}
+];
+
+var ans=new Array(8).fill(null),cur=0;
+
+function render(){
+  var q=QS[cur];
+  document.getElementById('plabel').textContent='Вопрос '+(cur+1);
+  document.getElementById('pfrac').textContent=(cur+1)+' / '+QS.length;
+  document.getElementById('pfill').style.width=((cur+1)/QS.length*100)+'%';
+  var el=document.getElementById('qtext');
+  el.classList.remove('visible');el.classList.add('exit');
+  setTimeout(function(){
+    el.textContent=q.q;el.classList.remove('exit');el.classList.add('enter');
+    requestAnimationFrame(function(){requestAnimationFrame(function(){
+      el.classList.remove('enter');el.classList.add('visible');
+    })});
+  },200);
+  var html='';
+  q.opts.forEach(function(o,i){
+    var s=ans[cur]===i?' selected':'';
+    html+='<button class="opt'+s+'" onclick="pick('+i+',event)">'+o
+      +'<span class="opt-check"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg></span></button>';
+  });
+  document.getElementById('ogrid').innerHTML=html;
+  document.getElementById('bnx').disabled=ans[cur]===null;
+  document.getElementById('bnx').textContent=cur===QS.length-1?'Узнать потенциал →':'Дальше →';
+  document.getElementById('bbk').disabled=cur===0;
+}
+
+function pick(idx,e){
+  ans[cur]=idx;
+  var btn=e.currentTarget;
+  var rp=document.createElement('span');rp.className='ripple';
+  var rc=btn.getBoundingClientRect();
+  var sz=Math.max(rc.width,rc.height)*2;
+  rp.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+(e.clientX-rc.left-sz/2)+'px;top:'+(e.clientY-rc.top-sz/2)+'px';
+  btn.appendChild(rp);setTimeout(function(){rp.remove()},600);
+  rp2();var cr=document.getElementById('card').getBoundingClientRect();
+  burst(e.clientX-cr.left,e.clientY-cr.top);
+  var cd=document.getElementById('card');cd.classList.remove('flash');void cd.offsetWidth;cd.classList.add('flash');
+  setTimeout(function(){cd.classList.remove('flash')},650);
+  document.querySelectorAll('.opt').forEach(function(b,i){b.classList.toggle('selected',i===idx)});
+  document.getElementById('bnx').disabled=false;
+}
+
+function rp2(){} /* placeholder */
+
+function goBack(){if(cur>0){cur--;render();}}
+
+function nextQ(){
+  if(ans[cur]===null)return;
+  if(cur<QS.length-1){cur++;render();}
+  else showResult();
+}
+
+function showResult(){
+  var total=ans.reduce(function(s,v){return s+(v||0);},0);
+  var ratio=total/(QS.length*3);
+  var ri=ratio<.25?0:ratio<.5?1:ratio<.75?2:3;
+  var R=RS[ri];
+  var qv=document.getElementById('qview');
+  qv.classList.add('hide');
+  setTimeout(function(){
+    qv.style.display='none';
+    document.getElementById('rword').textContent=R.word;
+    document.getElementById('ntitle').textContent=R.nt;
+    document.getElementById('ntext').textContent=R.np;
+    document.getElementById('atitle').textContent=R.at;
+    document.getElementById('atext').textContent=R.ap;
+
+    /* сферы */
+    var sh='';
+    SPHRS.forEach(function(s,i){
+      sh+='<div class="sphere"><div class="sphere-icon">'+s.icon+'</div>'
+        +'<div class="sphere-name">'+s.name+'</div>'
+        +'<div class="sphere-bar"><div class="sphere-fill" id="sf'+i+'"></div></div></div>';
+    });
+    document.getElementById('spheres').innerHTML=sh;
+
+    var rv=document.getElementById('rview');rv.style.display='block';
+
+    /* анимации */
+    setTimeout(function(){
+      SPHRS.forEach(function(_,i){
+        document.getElementById('sf'+i).style.width=R.sp[i]+'%';
+      });
+    },300);
+
+    var target=R.pct,circumference=502;
+    var rfg=document.getElementById('rfg'),rpct=document.getElementById('rpct');
+    var sl=document.getElementById('gslider');sl.value=0;
+    document.getElementById('sval').textContent='0%';
+    sl.style.background='rgba(255,255,255,.1)';
+
+    /* взрыв */
+    rp2=function(){};
+    rp();var cx=pc.width/2,cy=220;
+    for(var b=0;b<4;b++)setTimeout(function(){burst(cx,cy,24)},b*100);
+
+    /* счётчик */
+    var n=0,step=Math.max(1,Math.ceil(target/60));
+    var tm=setInterval(function(){
+      n=Math.min(n+step,target);rpct.textContent=n+'%';
+      rfg.style.strokeDashoffset=circumference*(1-n/100);
+      sl.style.background='linear-gradient(90deg,rgba(201,168,76,.6) '+n+'%,rgba(255,255,255,.1) '+n+'%)';
+      if(n>=target)clearInterval(tm);
+    },28);
+
+    /* milestone messages */
+    var MILESTONES = {
+      20:  {txt:'Первый шаг сделан — это уже больше, чем у многих', col:'#E8C97A'},
+      40:  {txt:'Ты видишь путь — осталось по нему пойти', col:'#E8C97A'},
+      60:  {txt:'Больше половины потенциала уже в тебе', col:'#C9A84C'},
+      75:  {txt:'Ты близко к тому, кем хочешь быть', col:'#FFF0B3'},
+      100: {txt:'Это ты — после программы. Начнём?', col:'#FFF0B3'}
+    };
+    var lastMilestone = 0;
+
+    function showMilestone(v) {
+      var keys = [20,40,60,75,100];
+      var hit = null;
+      for (var k=0; k<keys.length; k++) {
+        if (v >= keys[k] && keys[k] > lastMilestone) { hit = keys[k]; }
+      }
+      if (v < lastMilestone - 5) { lastMilestone = 0; }
+      var el = document.getElementById('milestone-msg');
+      if (hit) {
+        lastMilestone = hit;
+        var m = MILESTONES[hit];
+        el.textContent = m.txt;
+        el.style.color = m.col;
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+        rp(); burst(pc.width/2, 180, 16);
+      } else if (v < 15) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(6px)';
+        lastMilestone = 0;
+      }
+    }
+
+    /* Динамические состояния панелей по уровню */
+    var PANEL_STATES = [
+      { /* 0–25% */
+        from:0, to:25,
+        nowTitle: 'Ты чувствуешь, что топчешься на месте',
+        nowText: 'Утро начинается с телефона. До вечера непонятно куда ушёл день. Цели есть — но движения нет. Ты устаёшь не от работы, а от ощущения, что живёшь не свою жизнь. Каждый вечер обещаешь себе: с завтра всё по-другому. Но завтра — то же самое.',
+        afterTitle: '', afterText: '', showAfter: false
+      },
+      { /* 25–50% */
+        from:25, to:50,
+        nowTitle: 'Есть попытки — но они не держатся',
+        nowText: 'Ты стартуешь — и через неделю срываешься. Мотивация приходит волнами. Ты знаешь что делать, но что-то важное постоянно откладывается. Внутри ощущение: "я мог бы больше" — и это давит сильнее всего.',
+        afterTitle: '', afterText: '', showAfter: false
+      },
+      { /* 50–70% */
+        from:50, to:70,
+        nowTitle: 'Ты уже видишь куда идти',
+        nowText: 'Основа есть. Иногда получается хорошо. Но без системы это нестабильно — хороший день сменяется потерянным. Тебе не хватает не знаний, а ритма который держит даже в трудный день.',
+        afterTitle: 'Ты получаешь первый стабильный ритм',
+        afterText: 'Появляется якорь утра. Вечерний разбор который занимает 5 минут. Ощущение что день прожит — не зря. Срывы случаются, но ты умеешь возвращаться без самобичевания. Это не идеально — это по-настоящему.',
+        showAfter: true
+      },
+      { /* 70–90% */
+        from:70, to:90,
+        nowTitle: 'Ты на пути — и это уже чувствуется',
+        nowText: 'Что-то начало меняться. Утро стало якорем. Есть цели и движение к ним. Но ты знаешь — можно глубже. Семья, дело, смысл — всё это ещё не собрано в одно.',
+        afterTitle: 'Жизнь начинает работать как система',
+        afterText: 'Время, семья, здоровье, дело и внутренний мир соединяются. Ты перестаёшь тушить пожары и начинаешь строить. Появляется ощущение которое сложно описать словами — баракат в каждом дне. Не потому что всё идеально, а потому что ты живёшь осознанно.',
+        showAfter: true
+      },
+      { /* 90–100% */
+        from:90, to:100,
+        nowTitle: '',
+        nowText: '',
+        afterTitle: 'Это ты — после программы',
+        afterText: 'Ты просыпаешься с намерением. Ведёшь день — а не плывёшь в нём. Семья чувствует твоё присутствие. Дело растёт. Внутри — покой, который не зависит от обстоятельств. Ты стал тем, кем хотел быть. И это только начало пути.',
+        showAfter: true
+      }
+    ];
+
+    function getPanelState(v) {
+      for (var i = PANEL_STATES.length-1; i >= 0; i--) {
+        if (v >= PANEL_STATES[i].from) return PANEL_STATES[i];
+      }
+      return PANEL_STATES[0];
+    }
+
+    function updatePanels(v, animated) {
+      var state = getPanelState(v);
+      var pnEl = document.getElementById('pnow');
+      var paEl = document.getElementById('pafter');
+      var ntEl = document.getElementById('ntitle');
+      var npEl = document.getElementById('ntext');
+      var atEl = document.getElementById('atitle');
+      var apEl = document.getElementById('atext');
+
+      if (animated) {
+        pnEl.style.transition = 'opacity .35s, transform .35s';
+        paEl.style.transition = 'opacity .35s, transform .35s';
+        pnEl.style.opacity = '0'; pnEl.style.transform = 'translateY(8px)';
+        setTimeout(function(){
+          if (state.nowTitle) {
+            ntEl.textContent = state.nowTitle;
+            npEl.textContent = state.nowText;
+            pnEl.style.display = 'block';
+            pnEl.style.opacity = '1'; pnEl.style.transform = 'translateY(0)';
+          } else {
+            pnEl.style.opacity = '0';
+            setTimeout(function(){ pnEl.style.display='none'; }, 350);
+          }
+          if (state.showAfter) {
+            atEl.textContent = state.afterTitle;
+            apEl.textContent = state.afterText;
+            paEl.classList.add('show');
+            paEl.style.opacity = '1'; paEl.style.transform = 'translateY(0)';
+          } else {
+            paEl.classList.remove('show');
+          }
+        }, 200);
+      } else {
+        if (state.nowTitle) {
+          ntEl.textContent = state.nowTitle;
+          npEl.textContent = state.nowText;
+          pnEl.style.display = 'block';
+        }
+        if (state.showAfter) {
+          atEl.textContent = state.afterTitle;
+          apEl.textContent = state.afterText;
+          paEl.classList.add('show');
+        } else {
+          paEl.classList.remove('show');
+        }
+      }
+    }
+
+    /* инициализируем панели начальным состоянием */
+    updatePanels(0, false);
+
+    var lastV = 0;
+    sl.oninput=function(){
+      var v=parseInt(this.value);
+      document.getElementById('sval').textContent=v+'%';
+      var disp=Math.max(v,target);
+      rpct.textContent=disp+'%';
+      rfg.style.strokeDashoffset=circumference*(1-disp/100);
+      this.style.background='linear-gradient(90deg,rgba(201,168,76,.6) '+v+'%,rgba(255,255,255,.1) '+v+'%)';
+      if(v%10===0){rp();burst(pc.width/2,220,12);}
+      rpct.style.color = v>=70 ? '#FFF0B3' : '';
+
+      /* обновляем мини-полосы сфер */
+      var t2=v/100;
+      SPHRS.forEach(function(_,i){
+        var cur2=R.sp[i],max2=cur2+(100-cur2)*0.85;
+        var val2=Math.round(cur2+(max2-cur2)*t2);
+        var el=document.getElementById('sf'+i);
+        if(el)el.style.width=Math.min(val2,95)+'%';
+      });
+
+      /* панели меняются на новых порогах */
+      var thresholds=[25,50,70,90];
+      var crossed=false;
+      for(var t=0;t<thresholds.length;t++){
+        if((v>=thresholds[t] && lastV<thresholds[t])||(v<thresholds[t] && lastV>=thresholds[t])){
+          crossed=true;break;
+        }
+      }
+      if(crossed) updatePanels(v, true);
+      lastV=v;
+      showMilestone(v);
+    };
+
+    if(typeof ymGoal==='function'){ymGoal('potential_complete');ymGoal('potential_ri_'+ri);}
+
+    // Динамическая ссылка на бот с результатами
+    var levels=['a','b','c','d'];
+    var _quizLevel=levels[ri];
+    var _quizTarget=target;
+
+    function buildBotUrl(name){
+      var n=(name||'').trim().replace(/[^а-яёА-ЯЁa-zA-Z\s\-]/g,'').trim().slice(0,20);
+      if(n){
+        // транслитерация кириллицы для URL
+        var tr={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z',
+          'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s',
+          'т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'',
+          'ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+        var nLat=n.toLowerCase().split('').map(function(c){return tr[c]!==undefined?tr[c]:c;}).join('');
+        nLat=nLat.replace(/\s+/g,'_').replace(/[^a-z0-9_\-]/g,'');
+        if(nLat) return 'https://t.me/iqbaraka_bot?start=quiz_'+nLat+'_'+_quizLevel+'_'+_quizTarget;
+      }
+      return 'https://t.me/iqbaraka_bot?start=quiz_anon_'+_quizLevel+'_'+_quizTarget;
+    }
+
+    function openBot(){
+      var name=document.getElementById('name-input').value;
+      var url=buildBotUrl(name);
+      if(typeof ymGoal==='function'){ymGoal('bot_open');}
+      window.open(url,'_blank');
+    }
+
+    function handleGiftClick(e){
+      e.preventDefault();
+      openBot();
+    }
+
+    // Обновляем ссылку при вводе имени
+    var ni=document.getElementById('name-input');
+    if(ni){
+      ni.addEventListener('keydown',function(e){
+        if(e.key==='Enter'){openBot();}
+      });
+    }
+
+  },320);
+}
+
+function retryQ(){
+  ans=new Array(8).fill(null);cur=0;
+  document.getElementById('rview').style.display='none';
+  document.getElementById('rfg').style.strokeDashoffset=502;
+  document.getElementById('pafter').classList.remove('show');
+  var qv=document.getElementById('qview');qv.style.display='block';qv.classList.remove('hide');
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
