@@ -278,6 +278,37 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
         )
 
 
+@router.callback_query(F.data == "contact_curator")
+async def cb_contact_curator(call: CallbackQuery, session: AsyncSession, config: Config):
+    """Пользователь хочет поговорить с куратором — из апсейла или других мест."""
+    await call.answer()
+    user = await UserRepo(session).get(call.from_user.id)
+    name = user.name if user else call.from_user.full_name
+
+    await call.message.answer(
+        "💬 Напиши куратору — он ответит в течение часа:\n@iqbarakah\n\n"
+        "Или нажми кнопку ниже чтобы выбрать тариф прямо сейчас.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎓 Все тарифы", callback_data="show_tariffs")],
+        ])
+    )
+
+    # Уведомляем куратора
+    for curator_id in config.curator_ids:
+        try:
+            await call.bot.send_message(
+                chat_id=curator_id,
+                text=(
+                    f"💬 *Запрос на контакт с куратором*\n\n"
+                    f"👤 {name} (`{call.from_user.id}`)\n"
+                    f"Нажал «Поговорить с куратором» в боте."
+                ),
+                parse_mode="Markdown",
+            )
+        except Exception:
+            pass
+
+
 async def _user_lang(session: AsyncSession, user_id: int) -> str:
     user = await UserRepo(session).get(user_id)
     return user.language_code if user else "ru"
