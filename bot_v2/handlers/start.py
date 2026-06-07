@@ -574,8 +574,9 @@ async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext
     """Полный сброс профиля для тестирования — только кураторам."""
     if message.from_user.id not in config.curator_ids:
         return
-    from bot_v2.db.models import User
-    from sqlalchemy import delete
+    from bot_v2.db.models import User, Payment, WeekAck
+    from bot_v2.db.repositories import SettingsRepo
+    from sqlalchemy import delete, text
     uid = message.from_user.id
     # Сбрасываем профиль
     await session.execute(
@@ -589,9 +590,26 @@ async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext
     await session.execute(delete(Participant).where(Participant.user_id == uid))
     # Удаляем диагностики
     await session.execute(delete(DiagResult).where(DiagResult.user_id == uid))
+    # Удаляем подтверждения недель
+    await session.execute(delete(WeekAck).where(WeekAck.user_id == uid))
+    # Чистим settings: стрик, офер, follow-up, мухасаба
+    repo = SettingsRepo(session)
+    for key in [f"streak:{uid}", f"korablik_offer:{uid}", f"followup_at:{uid}"]:
+        await session.execute(text(f"DELETE FROM settings WHERE key = :k"), {"k": key})
+    # Удаляем мухасабу
+    await session.execute(text("DELETE FROM muhasaba_logs WHERE user_id = :uid"), {"uid": uid})
     await session.commit()
     await state.clear()
-    await message.answer("✅ Полный сброс выполнен — профиль, прогресс и диагностика удалены.\n\nНапиши /start — увидишь экран нового пользователя.")
+    await message.answer(
+        "✅ Полный сброс выполнен:\n\n"
+        "• Профиль — сброшен\n"
+        "• Прогресс — удалён\n"
+        "• Диагностики — удалены\n"
+        "• Стрик — обнулён\n"
+        "• Мухасаба — очищена\n"
+        "• Follow-up и скидки — сброшены\n\n"
+        "Напиши /start — увидишь экран нового пользователя."
+    )
 
 
 def _profile_complete(user) -> bool:
