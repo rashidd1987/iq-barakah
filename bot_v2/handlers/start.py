@@ -110,7 +110,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         # Если пришло имя с квиза — обновляем в БД
         if quiz_name:
             try:
-                await UserRepo(session).update_name(db_user.id, quiz_name)
+                await UserRepo(session).update(db_user.id, name=quiz_name)
             except Exception:
                 pass
 
