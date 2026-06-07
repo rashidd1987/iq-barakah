@@ -595,7 +595,7 @@ async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext
     # Чистим settings: стрик, офер, follow-up, мухасаба
     repo = SettingsRepo(session)
     for key in [f"streak:{uid}", f"korablik_offer:{uid}", f"followup_at:{uid}"]:
-        await session.execute(text(f"DELETE FROM settings WHERE key = :k"), {"k": key})
+        await session.execute(text("DELETE FROM bot_settings WHERE key = :k"), {"k": key})
     # Удаляем мухасабу
     await session.execute(text("DELETE FROM muhasaba_logs WHERE user_id = :uid"), {"uid": uid})
     await session.commit()
