@@ -42,7 +42,7 @@ TEXTS = {
         "menu.language": "🌍 Язык",
         "menu.updated": "Меню обновлено · {version}",
         "bottom.diag": "🔍 Диагностика",
-        "bottom.miniapp": "🗂 Личный кабинет",
+        "bottom.miniapp": "📱 Личный кабинет",
         "bottom.program": "📖 Мой путь",
         "bottom.payment": "💳 Оплата",
         "bottom.reminders": "🔔 Напоминания",

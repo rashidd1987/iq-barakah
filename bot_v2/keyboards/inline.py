@@ -14,7 +14,7 @@ from bot_v2.services.i18n import normalize_lang, t
 
 
 BTN_DIAG = "🔍 Диагностика"
-BTN_MINIAPP = "🗂 Личный кабинет"
+BTN_MINIAPP = "📱 Личный кабинет"
 BTN_PROGRAM = "📖 Мой путь"
 BTN_PAYMENT = "💳 Оплата"
 BTN_REMINDERS = "🔔 Напоминания"
@@ -58,9 +58,9 @@ def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> Repl
     lang = normalize_lang(lang)
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t(lang, "bottom.diag")),    KeyboardButton(text=t(lang, "bottom.program"))],
-            [KeyboardButton(text=t(lang, "bottom.muhasaba")), KeyboardButton(text=t(lang, "bottom.jarwas"))],
-            [KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant))), KeyboardButton(text=t(lang, "bottom.payment"))],
+            [KeyboardButton(text=t(lang, "bottom.diag")),     KeyboardButton(text=t(lang, "bottom.payment"))],
+            [KeyboardButton(text=t(lang, "bottom.program")),  KeyboardButton(text=t(lang, "bottom.muhasaba"))],
+            [KeyboardButton(text=t(lang, "bottom.jarwas")),   KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant)))],
             [KeyboardButton(text=t(lang, "bottom.help"))],
         ],
         resize_keyboard=True,
