@@ -78,6 +78,41 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     if len(parts) > 1:
         payload = parts[1]
 
+    # Пришёл из НамазВдом (партнёрский deep link nmv_*)
+    if payload.startswith("nmv_"):
+        # Сохраняем источник в БД
+        try:
+            await UserRepo(session).update(db_user.id, source="namazdom")
+        except Exception:
+            pass
+
+        name_first = (db_user.name or "").split()[0] or "друг"
+        await message.answer(
+            t(lang, "menu.updated", version=config.version),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+            parse_mode=None,
+        )
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        greeting = (
+            f"🌿 Ас-саляму алейкум, *{name_first}*!\n\n"
+            f"Ты здесь потому что хочешь, чтобы намаз *менял жизнь* — "
+            f"а не просто занимал место в расписании.\n\n"
+            f"Я — *Джарвас*, AI-наставник IQ Barakah.\n\n"
+            f"У нас есть 7-минутная диагностика — *Кораблик*.\n"
+            f"Она покажет, какой из 7 отсеков твоей жизни "
+            f"тянет всё остальное вниз.\n\n"
+            f"Готов узнать? 🚢"
+        )
+        await message.answer(
+            greeting,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику Кораблика", callback_data="korablik_start")],
+                [InlineKeyboardButton(text="⏭ Сразу к программам", callback_data="show_tariffs")],
+            ])
+        )
+        return
+
     # Пришёл с сайта после диагностики
     if payload.startswith("quiz_"):
         payload_parts = payload.split("_")
