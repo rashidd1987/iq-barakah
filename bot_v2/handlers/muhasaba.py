@@ -12,7 +12,9 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot_v2.config import Config
 from bot_v2.db.repositories import MuhasabaRepo, UserRepo, SettingsRepo
+from bot_v2.keyboards import kb_bottom_menu
 from bot_v2.services.jarwas import ask_jarwas_muhasaba
 
 router = Router(name="muhasaba")
@@ -101,7 +103,7 @@ async def muh_q2(message: Message, state: FSMContext):
 
 
 @router.message(MuhasabaStates.q3)
-async def muh_q3(message: Message, state: FSMContext, session: AsyncSession):
+async def muh_q3(message: Message, state: FSMContext, session: AsyncSession, config: Config = None):
     data = await state.get_data()
     answers = data.get("answers", [])
     q1 = answers[0] if len(answers) > 0 else "—"
@@ -149,11 +151,18 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession):
         f"Спокойной ночи 🌙\n\n"
         f"/mymuhasaba — перечитать свои записи"
     )
+    # Восстанавливаем bottom menu
+    from bot_v2.db.repositories import ParticipantRepo
+    participant = await ParticipantRepo(session).get(uid)
+    miniapp_url = config.miniapp_url if config else "https://iq-barakah.ru/miniapp"
+    lang = user.language_code if user else "ru"
+    bottom_kb = kb_bottom_menu(miniapp_url, lang, participant)
+
     try:
-        await message.answer(final_text, parse_mode="Markdown")
+        await message.answer(final_text, parse_mode="Markdown", reply_markup=bottom_kb)
     except Exception:
         # Fallback без Markdown если AI вернул спецсимволы
-        await message.answer(final_text, parse_mode=None)
+        await message.answer(final_text, parse_mode=None, reply_markup=bottom_kb)
 
     # Стрик-поздравление
     streak_msg = STREAK_MILESTONES.get(streak)
