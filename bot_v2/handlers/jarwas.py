@@ -109,11 +109,18 @@ async def msg_jarwas(message: Message, state: FSMContext, session: AsyncSession)
     history.append({"role": "assistant", "content": clean_text})
     await state.update_data(history=history[-6:])
 
-    await message.answer(
-        clean_text,
-        parse_mode="Markdown",
-        reply_markup=kb_jarwas_actions_i18n(btn_type, lang),
-    )
+    try:
+        await message.answer(
+            clean_text,
+            parse_mode="Markdown",
+            reply_markup=kb_jarwas_actions_i18n(btn_type, lang),
+        )
+    except Exception:
+        await message.answer(
+            clean_text,
+            parse_mode=None,
+            reply_markup=kb_jarwas_actions_i18n(btn_type, lang),
+        )
 
 
 @router.callback_query(F.data == "jarwas_end")

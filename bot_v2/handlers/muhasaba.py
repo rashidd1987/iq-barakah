@@ -130,6 +130,11 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession):
         streak = 1
     await streak_repo.set(f"streak:{uid}", str(streak))
 
+    # Получаем имя ДО commit (пока сессия активна)
+    user = await UserRepo(session).get(uid)
+    name = (user.name or "").split()[0] if user else ""
+    barat = f", {name}" if name else ""
+
     await session.commit()
 
     # AI-рефлексия от Джарваса
@@ -137,18 +142,18 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession):
     reflection = await ask_jarwas_muhasaba(q1, q2, q3)
 
     # Итоговое сообщение с благодарностью
-    user = await UserRepo(session).get(uid)
-    name = (user.name or "").split()[0] if user else ""
-    barat = f", {name}" if name else ""
-
-    await message.answer(
+    final_text = (
         f"Баракаллаху фик (да благословит тебя Аллах) 🌿\n\n"
         f"Ты завершил день честно{barat}.\n\n"
-        f"✅ *Вечерний самоотчёт записан*\n\n{reflection}\n\n"
+        f"✅ Вечерний самоотчёт записан\n\n{reflection}\n\n"
         f"Спокойной ночи 🌙\n\n"
-        f"_/mymuhasaba — перечитать свои записи_",
-        parse_mode="Markdown",
+        f"/mymuhasaba — перечитать свои записи"
     )
+    try:
+        await message.answer(final_text, parse_mode="Markdown")
+    except Exception:
+        # Fallback без Markdown если AI вернул спецсимволы
+        await message.answer(final_text, parse_mode=None)
 
     # Стрик-поздравление
     streak_msg = STREAK_MILESTONES.get(streak)
