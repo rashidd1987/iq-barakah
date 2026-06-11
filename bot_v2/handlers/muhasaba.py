@@ -132,10 +132,15 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession, con
         streak = 1
     await streak_repo.set(f"streak:{uid}", str(streak))
 
-    # Получаем имя ДО commit (пока сессия активна)
+    # Получаем данные ДО commit (пока сессия активна)
+    from bot_v2.db.repositories import ParticipantRepo
     user = await UserRepo(session).get(uid)
+    participant = await ParticipantRepo(session).get(uid)
     name = (user.name or "").split()[0] if user else ""
     barat = f", {name}" if name else ""
+    lang = user.language_code if user else "ru"
+    miniapp_url = config.miniapp_url if config else "https://iq-barakah.ru/miniapp"
+    bottom_kb = kb_bottom_menu(miniapp_url, lang, participant)
 
     await session.commit()
 
@@ -151,12 +156,6 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession, con
         f"Спокойной ночи 🌙\n\n"
         f"/mymuhasaba — перечитать свои записи"
     )
-    # Восстанавливаем bottom menu
-    from bot_v2.db.repositories import ParticipantRepo
-    participant = await ParticipantRepo(session).get(uid)
-    miniapp_url = config.miniapp_url if config else "https://iq-barakah.ru/miniapp"
-    lang = user.language_code if user else "ru"
-    bottom_kb = kb_bottom_menu(miniapp_url, lang, participant)
 
     try:
         await message.answer(final_text, parse_mode="Markdown", reply_markup=bottom_kb)
