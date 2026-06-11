@@ -237,7 +237,7 @@ def build_jarwas_system(
 import logging as _logging
 _log = _logging.getLogger(__name__)
 
-JARWAS_MODEL = "claude-sonnet-4-5"
+JARWAS_MODEL = "claude-sonnet-4-6"
 
 
 async def ask_jarwas(
@@ -299,7 +299,8 @@ async def ask_jarwas_muhasaba(q1: str, q2: str, q3: str) -> str:
             messages=[{"role": "user", "content": user_msg}],
         )
         return response.content[0].text
-    except Exception:
+    except Exception as e:
+        _log.error("ask_jarwas_muhasaba error: %s: %s", type(e).__name__, e, exc_info=True)
         return "МашаАллах! Мухасаба записана. Каждый раз когда ты останавливаешься и честно смотришь на себя — ты растёшь. 🌿"
 
 
