@@ -234,12 +234,23 @@ def _build_result(scores: list) -> tuple:
 
 # ── Старт кораблика ──────────────────────────────────────
 
-@router.callback_query(F.data == "korablik_start")
-async def cb_korablik_start(call: CallbackQuery, state: FSMContext):
+async def _launch_korablik(call: CallbackQuery, state: FSMContext):
+    """Общий запуск Кораблика — используется из нескольких callback'ов."""
     await call.answer()
     await state.update_data(k_scores=[], k_current=0)
     await state.set_state(KorablikStates.question)
     await call.message.answer(QUESTIONS[0]["text"], reply_markup=_question_kb(0))
+
+
+@router.callback_query(F.data == "korablik_start")
+async def cb_korablik_start(call: CallbackQuery, state: FSMContext):
+    await _launch_korablik(call, state)
+
+
+@router.callback_query(F.data == "start_diag")
+async def cb_start_diag_korablik(call: CallbackQuery, state: FSMContext):
+    """Перехватываем старую кнопку «Диагностика» → запускаем Кораблик."""
+    await _launch_korablik(call, state)
 
 
 # ── Ответы ───────────────────────────────────────────────

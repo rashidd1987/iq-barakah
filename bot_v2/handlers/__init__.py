@@ -5,8 +5,8 @@ from bot_v2.handlers import start, diagnostics, program, payments, jarwas, muhas
 def setup_routers() -> Router:
     root = Router()
     root.include_router(start.router)
-    root.include_router(diagnostics.router)
     root.include_router(korablik.router)
+    root.include_router(diagnostics.router)
     root.include_router(program.router)
     root.include_router(payments.router)
     root.include_router(muhasaba.router)
