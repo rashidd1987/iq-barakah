@@ -132,7 +132,7 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession, con
         streak = 1
     await streak_repo.set(f"streak:{uid}", str(streak))
 
-    # Получаем данные ДО commit (пока сессия активна)
+    # Получаем данные из БД (middleware сам закоммитит после хэндлера)
     from bot_v2.db.repositories import ParticipantRepo
     user = await UserRepo(session).get(uid)
     participant = await ParticipantRepo(session).get(uid)
@@ -142,9 +142,7 @@ async def muh_q3(message: Message, state: FSMContext, session: AsyncSession, con
     miniapp_url = config.miniapp_url if config else "https://iq-barakah.ru/miniapp"
     bottom_kb = kb_bottom_menu(miniapp_url, lang, participant)
 
-    await session.commit()
-
-    # AI-рефлексия от Джарваса
+    # AI-рефлексия от Джарваса (вызываем ДО выхода из хэндлера, сессия закрывается middleware'ом после)
     await message.bot.send_chat_action(message.chat.id, "typing")
     reflection = await ask_jarwas_muhasaba(q1, q2, q3)
 
