@@ -120,10 +120,15 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     hadith = lesson.get("hadith", "")
     hadith_block = f"\n📌 *Хадис недели:*\n{hadith}\n" if hadith else ""
 
+    preview_data = lesson.get("preview", {})
+    preview_text = preview_data.get(skill_level, preview_data.get("I", "")) if isinstance(preview_data, dict) else ""
+    preview_block = f"_{preview_text}_\n\n" if preview_text else ""
+
     lesson_text = (
         f"🌿 *{title}*\n"
         f"_{LEVEL_NAMES.get(level, level)} · Неделя {week} из {max_weeks}_\n"
         f"{hadith_block}\n"
+        f"{preview_block}"
         f"{text_body}\n\n"
         f"*Задания на эту неделю:*\n{tasks}"
     )

@@ -1,6 +1,7 @@
 import { WEEKS, PHASE_LABELS } from '../data/weeks.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
 import { PROGRAM_CONTENT } from '../data/content.js'
+import { LESSON_SUMMARIES } from '../data/vakt_summaries.js'
 import { haptic, sendData, cloudGet, cloudSet, openLink } from '../utils/tg.js'
 import { openSheet } from '../components/sheets.js'
 import { t } from '../i18n.js'
@@ -183,9 +184,7 @@ function _renderLessonContent(content, level, weekInLevel) {
   const skill = U.skill || 'I'
 
   // Use curated summary if available
-  const summary = (typeof LESSON_SUMMARIES !== 'undefined')
-    ? LESSON_SUMMARIES?.[level]?.[weekInLevel - 1]?.[skill]
-    : null
+  const summary = LESSON_SUMMARIES?.[level]?.[weekInLevel - 1]?.[skill] || null
 
   let html = ''
   if (content.hadith) {
