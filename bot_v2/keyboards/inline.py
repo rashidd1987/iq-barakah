@@ -251,7 +251,7 @@ def kb_source() -> InlineKeyboardMarkup:
 
 def kb_week_ack() -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="✅ Выполнил задания — открыть следующую неделю", callback_data="week_ack")
+    b.button(text="✅ Шаг выполнен — пройти проверку", callback_data="week_ack")
     return b.as_markup()
 
 

@@ -141,14 +141,11 @@ async def main():
 
 
 async def _job_weekly_lesson(bot: Bot, config):
-    """Понедельник 06:00 UTC = 09:00 МСК — переключаем неделю и рассылаем урок.
+    """Понедельник 06:00 UTC = 09:00 МСК — резервное авто-продвижение.
 
-    Каждый понедельник:
-    - Неделя участника сдвигается вперёд (независимо от того, нажал ли он «Сдать»)
-    - Отправляется урок новой недели
-    - Если дошёл до последней недели — выпускается из программы
-
-    «Сдать неделю» — только для рефлексии и уведомления куратора, не влияет на расписание.
+    Запускается только если участник НЕ завершил шаг сам (не нажал «Шаг выполнен»).
+    Основная логика продвижения — по действию (нажатие кнопки + тест).
+    Таймер — только страховка чтобы никто не завис.
     """
     from bot_v2.db.engine import get_session_factory
     from bot_v2.db.models import Participant, User
@@ -174,10 +171,24 @@ async def _job_weekly_lesson(bot: Bot, config):
                     if participant.week >= max_weeks:
                         repo = ParticipantRepo(session)
                         await repo.graduate(uid)
-                        logger.info("Graduated %s (%s wk%s)", uid, participant.level, participant.week)
+                        logger.info("Graduated %s (%s step%s)", uid, participant.level, participant.week)
                         continue
 
-                    # Переключаем на следующую неделю
+                    # Проверяем: участник уже завершил шаг сам (week_ack есть)?
+                    from bot_v2.db.models import WeekAck
+                    from sqlalchemy import select as sa_select
+                    ack_exists = await session.scalar(
+                        sa_select(WeekAck.id).where(
+                            WeekAck.user_id == uid,
+                            WeekAck.level == participant.level,
+                            WeekAck.week == participant.week,
+                        )
+                    )
+                    if ack_exists:
+                        # Уже завершил сам — таймер не вмешивается
+                        continue
+
+                    # Резервное авто-продвижение (шаг не завершён за неделю)
                     participant.week += 1
                     await session.flush()
 
@@ -203,8 +214,8 @@ async def _setup_commands(bot: Bot, config) -> None:
         BotCommand(command="participants", description="👥 Список участников"),
         BotCommand(command="activate",     description="✅ Активировать участника"),
         BotCommand(command="deactivate",   description="❌ Деактивировать участника"),
-        BotCommand(command="reset",        description="♻️ Сбросить на неделю 1"),
-        BotCommand(command="preview",      description="📺 Перейти на любую неделю"),
+        BotCommand(command="reset",        description="♻️ Сбросить на шаг 1"),
+        BotCommand(command="preview",      description="📺 Перейти на любой шаг"),
         BotCommand(command="tester",       description="🧪 Дать тестовый доступ"),
         BotCommand(command="send_now",     description="📤 Отправить урок прямо сейчас"),
         BotCommand(command="send_all",     description="📢 Разослать урок всем"),
