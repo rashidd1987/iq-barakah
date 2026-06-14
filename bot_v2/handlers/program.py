@@ -60,7 +60,7 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config
 
     if not questions:
         # Нет теста для этого шага — засчитываем сразу и открываем следующий
-        await _complete_step(call, session, p, lang)
+        await _complete_step(call, session, p, lang, config)
         return
 
     # Есть тест — отправляем первый вопрос
@@ -85,7 +85,7 @@ async def cb_week_ack(call: CallbackQuery, session: AsyncSession, config: Config
 
 
 @router.callback_query(F.data.startswith("test_ans:"))
-async def cb_test_answer(call: CallbackQuery, session: AsyncSession):
+async def cb_test_answer(call: CallbackQuery, session: AsyncSession, config: Config = None):
     """Обработка ответа на вопрос теста. data = test_ans:{step}:{q_idx}:{ans_idx}:{total}"""
     await call.answer()
     uid = call.from_user.id
@@ -139,10 +139,10 @@ async def cb_test_answer(call: CallbackQuery, session: AsyncSession):
                                    reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
     else:
         # Тест пройден — засчитываем шаг и открываем следующий
-        await _complete_step(call, session, p, lang)
+        await _complete_step(call, session, p, lang, config)
 
 
-async def _complete_step(call: CallbackQuery, session: AsyncSession, p, lang: str):
+async def _complete_step(call: CallbackQuery, session: AsyncSession, p, lang: str, config: Config = None):
     """Засчитать шаг, продвинуть участника на следующий."""
     from bot_v2.db.repositories import ParticipantRepo
 
@@ -181,10 +181,9 @@ async def _complete_step(call: CallbackQuery, session: AsyncSession, p, lang: st
     # Небольшая пауза — и сразу отправляем следующий шаг
     await asyncio.sleep(2)
     from bot_v2.handlers.program import send_weekly_lesson
-    from bot_v2.config import Config
     p_fresh = await repo.get(uid)
     if p_fresh:
-        await send_weekly_lesson(call.bot, uid, p_fresh, session, None)
+        await send_weekly_lesson(call.bot, uid, p_fresh, session, config)
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):
@@ -254,8 +253,9 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
         f"*Задания на эту неделю:*\n{tasks}"
     )
 
-    sep = "&" if "?" in config.miniapp_url else "?"
-    miniapp_link = f"{config.miniapp_url}{sep}{urlencode({'lvl': level, 'wk': week, 'lang': lang, 'skill': skill_level})}"
+    miniapp_url = config.miniapp_url if config else "https://iq-barakah.ru/miniapp"
+    sep = "&" if "?" in miniapp_url else "?"
+    miniapp_link = f"{miniapp_url}{sep}{urlencode({'lvl': level, 'wk': week, 'lang': lang, 'skill': skill_level})}"
 
     media_repo = LessonMediaRepo(session)
     video = await media_repo.get(level, week, "video")
