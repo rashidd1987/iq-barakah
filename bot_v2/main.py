@@ -130,8 +130,11 @@ async def main():
     logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson, check_payments, check_followups")
 
     # ── Команды бота ──────────────────────────────────────────────
-    await _setup_commands(bot, config)
-    logger.info("Bot commands registered")
+    try:
+        await _setup_commands(bot, config)
+        logger.info("Bot commands registered")
+    except Exception as e:
+        logger.warning("Bot commands registration failed (non-critical): %s", e)
 
     logger.info("Starting bot...")
     try:
