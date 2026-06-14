@@ -178,12 +178,22 @@ async def _complete_step(call: CallbackQuery, session: AsyncSession, p, lang: st
         parse_mode="Markdown"
     )
 
-    # Небольшая пауза — и сразу отправляем следующий шаг
+    # Отправляем следующий шаг через отдельную сессию (текущая уже закоммичена)
+    asyncio.create_task(_send_next_step(call.bot, uid, config))
+
+
+async def _send_next_step(bot, user_id: int, config):
+    """Открыть следующий шаг в отдельной сессии через 2 сек."""
     await asyncio.sleep(2)
-    from bot_v2.handlers.program import send_weekly_lesson
-    p_fresh = await repo.get(uid)
-    if p_fresh:
-        await send_weekly_lesson(call.bot, uid, p_fresh, session, config)
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.repositories import ParticipantRepo
+    try:
+        async with get_session_factory()() as session:
+            p = await ParticipantRepo(session).get(user_id)
+            if p:
+                await send_weekly_lesson(bot, user_id, p, session, config)
+    except Exception as e:
+        logger.warning("_send_next_step failed for %s: %s", user_id, e)
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):
