@@ -184,16 +184,19 @@ async def _complete_step(call: CallbackQuery, session: AsyncSession, p, lang: st
 
 async def _send_next_step(bot, user_id: int, config):
     """Открыть следующий шаг в отдельной сессии через 2 сек."""
+    logger.info("_send_next_step START for %s, config=%s", user_id, config is not None)
     await asyncio.sleep(2)
     from bot_v2.db.engine import get_session_factory
     from bot_v2.db.repositories import ParticipantRepo
     try:
         async with get_session_factory()() as session:
             p = await ParticipantRepo(session).get(user_id)
+            logger.info("_send_next_step participant=%s week=%s", p and p.level, p and p.week)
             if p:
                 await send_weekly_lesson(bot, user_id, p, session, config)
+                logger.info("_send_next_step lesson sent for %s", user_id)
     except Exception as e:
-        logger.warning("_send_next_step failed for %s: %s", user_id, e)
+        logger.warning("_send_next_step FAILED for %s: %s", user_id, e, exc_info=True)
 
 
 async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSession, config):
