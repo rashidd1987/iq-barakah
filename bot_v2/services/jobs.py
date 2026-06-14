@@ -365,15 +365,17 @@ async def job_check_followups(bot):
 
     now = int(_time.time())
 
-    async with get_session_factory()() as session:
-        async with session.begin():
-            repo = SettingsRepo(session)
-            # Ищем все ключи followup_at:*
-            from sqlalchemy import select, text
-            result = await session.execute(
-                text("SELECT key, value FROM settings WHERE key LIKE 'followup_at:%'")
-            )
-            rows = result.fetchall()
+    try:
+        async with get_session_factory()() as session:
+            async with session.begin():
+                from sqlalchemy import text
+                result = await session.execute(
+                    text("SELECT key, value FROM settings WHERE key LIKE 'followup_at:%'")
+                )
+                rows = result.fetchall()
+    except Exception as _e:
+        logger.warning("job_check_followups: settings table unavailable: %s", _e)
+        return
 
     for key, value in rows:
         try:
