@@ -108,13 +108,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;heigh
 .ftr{text-align:center;padding:1.5rem 1rem;font-size:11px;color:rgba(255,255,255,.18);letter-spacing:2px;text-transform:uppercase}
 
 /* ── РЕЖИМ КВИЗА ── */
-.mode-toggle{display:flex;gap:0;margin-bottom:1.1rem;border:1px solid var(--gold-dim);border-radius:8px;overflow:hidden}
-.mode-btn{flex:1;padding:.5rem .8rem;background:transparent;color:var(--text-muted);font-size:12px;font-family:'Calibri',sans-serif;letter-spacing:.5px;border:none;cursor:pointer;transition:all .2s;text-transform:uppercase}
-.mode-btn.active{background:var(--gold);color:#0D1A12;font-weight:bold}
-.quiz-panel{display:none}
-.quiz-panel.open{display:block}
-.manual-panel{display:none}
-.manual-panel.open{display:block}
+.quiz-panel{display:block}
 .qz-item{margin-bottom:1.1rem}
 .qz-q{font-size:13px;color:rgba(255,255,255,0.85);margin-bottom:.55rem;font-family:'Calibri','Arial',sans-serif;line-height:1.5;padding-left:4px}
 .qz-q span{color:var(--gold);font-size:11px;margin-right:6px;letter-spacing:1px}
@@ -157,6 +151,24 @@ window.setJourneyLang = window.setJourneyLang || function(lang){
 <div class="tab-bar">
   <button class="tab-btn active" id="tb-b" onclick="setTab('business')">⚓ Бизнес</button>
   <button class="tab-btn" id="tb-p" onclick="setTab('personal')">🌙 Личная жизнь</button>
+</div>
+
+<div style="max-width:700px;margin:.8rem auto;padding:1rem 1.5rem;background:rgba(197,162,74,0.06);border:1px solid rgba(197,162,74,0.2);border-radius:12px;font-family:'Calibri','Arial',sans-serif">
+  <div style="font-size:10px;letter-spacing:3px;color:rgba(197,162,74,0.7);text-transform:uppercase;margin-bottom:10px">Как пользоваться</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+    <div style="text-align:center;padding:8px">
+      <div style="font-size:22px;margin-bottom:5px">1️⃣</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5">Выбери тип: <b style="color:#C5A24A">Бизнес</b> или <b style="color:#C5A24A">Личная жизнь</b></div>
+    </div>
+    <div style="text-align:center;padding:8px">
+      <div style="font-size:22px;margin-bottom:5px">2️⃣</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5">Нажми на <b style="color:#C5A24A">любой отсек</b> корабля и ответь на 4 вопроса</div>
+    </div>
+    <div style="text-align:center;padding:8px">
+      <div style="font-size:22px;margin-bottom:5px">3️⃣</div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5">После всех отсеков нажми <b style="color:#C5A24A">«Получить разбор»</b> — Джарвас покажет пробоины</div>
+    </div>
+  </div>
 </div>
 
 <div class="legend-bar">
@@ -221,24 +233,10 @@ window.setJourneyLang = window.setJourneyLang || function(lang){
   <div class="detail-title" id="d-title"></div>
   <div class="detail-desc" id="d-desc"></div>
 
-  <div class="mode-toggle">
-    <button class="mode-btn active" id="btn-quiz" onclick="setDetailMode('quiz')">📝 Ответить на вопросы</button>
-    <button class="mode-btn" id="btn-manual" onclick="setDetailMode('manual')">🎯 Оценить вручную</button>
-  </div>
-
-  <div class="quiz-panel open" id="quiz-panel">
+  <div class="quiz-panel" id="quiz-panel">
     <div class="qz-progress" id="qz-progress"></div>
     <div id="qz-questions"></div>
     <div class="qz-auto-score" id="qz-auto-score"></div>
-  </div>
-
-  <div class="manual-panel" id="manual-panel">
-    <ul class="detail-qs" id="d-qs"></ul>
-    <div class="slider-row">
-      <label>Оценка</label>
-      <input type="range" id="d-slider" min="0" max="100" step="1" value="70" oninput="fromSlider(+this.value)">
-      <span class="sval" id="d-sval">70</span>
-    </div>
   </div>
 </div>
 
@@ -570,7 +568,6 @@ personal:[
 
 const N=15,W=1420,WL=202,MAX_D=330,ML=28,MR=28;
 let quizAnswers={business:Array(N).fill(null).map(()=>[null,null,null,null]),personal:Array(N).fill(null).map(()=>[null,null,null,null])};
-let detailMode='quiz';
 
 // Проверка оплаты: URL ?paid=1, localStorage, CloudStorage
 function isPaid(){
@@ -673,27 +670,15 @@ function drawCompartments(){
 
 function pick(i){sel=sel===i?-1:i;drawCompartments();showDetail();updateSummary()}
 
-function setDetailMode(m){
-  detailMode=m;
-  document.getElementById('btn-quiz').className='mode-btn'+(m==='quiz'?' active':'');
-  document.getElementById('btn-manual').className='mode-btn'+(m==='manual'?' active':'');
-  document.getElementById('quiz-panel').className='quiz-panel'+(m==='quiz'?' open':'');
-  document.getElementById('manual-panel').className='manual-panel'+(m==='manual'?' open':'');
-}
-
 function showDetail(){
   const p=document.getElementById('detail-panel');
   if(sel<0){p.classList.remove('open');return}
-  const s=SEC[tab][sel],v=scores[tab][sel];
+  const s=SEC[tab][sel];
   p.classList.add('open');
   document.getElementById('d-num').textContent=`${shipUi('compartment')} ${sel+1} / ${N} · ${tab==='business'?shipUi('sectionBusiness'):shipUi('sectionPersonal')}`;
   document.getElementById('d-title').textContent=s.full;
   document.getElementById('d-desc').textContent=s.desc;
-  document.getElementById('d-qs').innerHTML=s.qs.map(q=>`<li>${q}</li>`).join('');
-  document.getElementById('d-slider').value=v;
-  document.getElementById('d-sval').textContent=v;
   renderQuiz();
-  setDetailMode(detailMode);
 }
 
 function renderQuiz(){
@@ -730,19 +715,11 @@ function selectOpt(qi,score){
   if(answered===4){
     const avg=Math.round(ans.reduce((a,b)=>a+b,0)/4);
     scores[tab][sel]=avg;
-    document.getElementById('d-slider').value=avg;
-    document.getElementById('d-sval').textContent=avg;
     drawCompartments();updateSummary();
   }
   renderQuiz();
 }
 
-function fromSlider(v){
-  if(sel<0)return;
-  scores[tab][sel]=v;
-  document.getElementById('d-sval').textContent=v;
-  drawCompartments();updateSummary();
-}
 
 function updateSummary(){
   const sc=scores[tab];
