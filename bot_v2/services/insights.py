@@ -70,7 +70,7 @@ async def analyze_participant(
         f"Проанализируй участника программы IQ Barakah и дай куратору рекомендацию.\n\n"
         f"ДАННЫЕ УЧАСТНИКА:\n"
         f"Имя: {name}\n"
-        f"Уровень: {level}, Неделя: {week}\n"
+        f"Уровень: {level}, Шаг: {week}\n"
         f"Деятельность: {occupation or 'не указана'}\n"
         f"Возраст: {age or 'не указан'}\n"
         f"Молчание в боте: {silence_days} дней\n\n"
@@ -120,7 +120,7 @@ async def generate_week_tip(
     prompt = (
         f"Создай персональный фокус недели для участника.\n\n"
         f"Имя: {name} ({brat})\n"
-        f"Уровень: {level}, Неделя: {week}\n"
+        f"Уровень: {level}, Шаг: {week}\n"
         f"Деятельность: {occupation or 'не указана'}\n\n"
         f"Верни JSON: focus (тема недели, 3-5 слов), "
         f"tip (совет 2-3 предложения через призму программы), "

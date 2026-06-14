@@ -115,7 +115,7 @@ async def _notify_all_tasks_done(session: AsyncSession, user_id: int, level: str
     text = (
         f"✅ *Все задания выполнены*\n\n"
         f"👤 {name} ({username})\n"
-        f"📍 {level_name} · Неделя {week}\n\n"
+        f"📍 {level_name} · Шаг {week}\n\n"
         f"Участник выполнил все задания текущей недели в Mini App."
     )
 
@@ -149,7 +149,7 @@ async def _send_curator_report(session: AsyncSession, user_id: int, payload: dic
     text = (
         f"📊 *Отчёт участника*\n\n"
         f"👤 {name} ({username})\n"
-        f"📍 {level_name} · Неделя {week}\n"
+        f"📍 {level_name} · Шаг {week}\n"
         f"🔥 Стрик: {streak} дн.\n\n"
         f"*Привычки сегодня:* {habits_done}/{habits_total}\n{habits_bar}\n\n"
         f"*Задания недели:* {tasks_done}/{tasks_total}\n{tasks_bar}"
@@ -192,7 +192,7 @@ async def _send_full_lesson(session: AsyncSession, user_id: int, payload: dict, 
     skill_level = (participant.vakt_level or "I") if participant else "I"
 
     lesson = lessons[week_idx]
-    title = lesson.get("title", f"Неделя {week}")
+    title = lesson.get("title", f"Шаг {week}")
     hadith = lesson.get("hadith", "")
 
     raw_text = lesson.get("text", "")

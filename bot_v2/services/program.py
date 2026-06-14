@@ -4,7 +4,7 @@
 """
 
 LEVEL_NAMES = {
-    "А": "🌱 ВАКТ · Тайм-менеджмент мусульманина",
+    "А": "🌱 IQ Barakah Старт",
     "Б": "📗 IQ Barakah · Сезон 1 · Основание",
     "В": "📘 IQ Barakah · Сезон 2 · Строительство",
     "Г": "📙 IQ Barakah · Сезон 3 · Наследие",
@@ -135,4 +135,4 @@ def week_progress_text(level: str, week: int) -> str:
     max_w = LEVEL_WEEKS.get(level, 8)
     done = week - 1
     pct = round(done / max_w * 100)
-    return f"📅 Неделя {week}/{max_w} · {pct}% пройдено"
+    return f"📅 Шаг {week}/{max_w} · {pct}% пройдено"

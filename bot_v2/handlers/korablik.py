@@ -291,7 +291,7 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
         await asyncio.sleep(1.5)
         await call.bot.send_message(
             uid,
-            "🎁 *Вот твой подарок — первая неделя ВАКТ прямо сейчас.*\n\n"
+            "🎁 *Вот твой подарок — первый шаг IQ Barakah Старт прямо сейчас.*\n\n"
             "Это бесплатно. Никакой оплаты — просто начни.\n\n"
             "И ещё одно: следующие *3 часа* ВАКТ доступен за *999 ₽* вместо 1 500 ₽.\n"
             "Это только для тебя — за то, что прошёл диагностику честно. 🌿",
@@ -332,7 +332,7 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
 
 @router.callback_query(F.data == "kb_free_lesson")
 async def cb_free_lesson(call: CallbackQuery, session: AsyncSession, config: Config):
-    """Подарок — первая неделя ВАКТ бесплатно."""
+    """Подарок — первый шаг IQ Barakah Старт бесплатно."""
     await call.answer()
     from bot_v2.db.repositories import ParticipantRepo
     from bot_v2.handlers.program import send_weekly_lesson
@@ -343,8 +343,8 @@ async def cb_free_lesson(call: CallbackQuery, session: AsyncSession, config: Con
         participant = await p_repo.activate(uid, level="А", week=1)
         await session.flush()
     await call.message.answer(
-        "🌱 *Отлично! Вот твоя первая неделя ВАКТ.*\n\n"
-        "Неделя 1 — Ният (намерение). Читай, делай шаг, возвращайся. 🌿",
+        "🌱 *Отлично! Вот твой первый шаг IQ Barakah Старт.*\n\n"
+        "Шаг 1 — Ният (намерение). Читай, делай шаг, возвращайся. 🌿",
         parse_mode="Markdown",
     )
     try:

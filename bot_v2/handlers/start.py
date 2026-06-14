@@ -407,7 +407,7 @@ async def msg_program(message: Message, state: FSMContext, session: AsyncSession
     await message.answer(
         f"📖 *Твой путь*\n\n"
         f"📍 {level_name}\n"
-        f"📅 Неделя *{participant.week}* из {max_weeks}\n"
+        f"📅 Шаг *{participant.week}* из {max_weeks}\n"
         f"{streak_fire}\n\n"
         f"━━━━━━━━━━━━━━━\n\n"
         f"Что делать сегодня:\n"
@@ -513,7 +513,7 @@ async def cb_rl_12(call: CallbackQuery):
 async def cb_rl_37(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
-        "Неделя — это нормально.\n\n"
+        "Пауза — это нормально.\n\n"
         "Система не ломается от паузы — она ждёт.\n\n"
         "Начнём не сначала, а оттуда где остановился.\n"
         "Сделай вечерний разбор сегодня — и завтра утро станет якорем.",

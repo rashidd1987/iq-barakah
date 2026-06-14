@@ -215,7 +215,7 @@ async def cmd_activate(message: Message, session: AsyncSession, config: Config):
         f"✅ *Активировано*\n\n"
         f"👤 ID: `{target_id}`\n"
         f"📍 Уровень: *{level}* — {LEVEL_NAMES.get(level, '')}\n"
-        f"📅 Неделя: *{week}*\n"
+        f"📅 Шаг: *{week}*\n"
         f"{pair_status}",
         parse_mode="Markdown"
     )
@@ -421,7 +421,7 @@ async def cmd_send_now(message: Message, session: AsyncSession, config: Config):
         await send_weekly_lesson(message.bot, target_uid, participant, session, config)
         await message.answer(
             f"✅ Урок отправлен участнику {target_uid}\n"
-            f"Уровень {participant.level} · Неделя {participant.week}"
+            f"Уровень {participant.level} · Шаг {participant.week}"
         )
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
@@ -498,7 +498,7 @@ async def cmd_reset(message: Message, session: AsyncSession, config: Config):
         f"♻️ *Полный сброс выполнен*\n\n"
         f"👤 `{target_id}`\n"
         f"📍 Уровень: {level_name}\n"
-        f"📅 Неделя → *1 из {LEVEL_WEEKS.get(p.level, 8)}*\n"
+        f"📅 Шаг → *1 из {LEVEL_WEEKS.get(p.level, 8)}*\n"
         f"🗑 WeekAck удалены — все уроки разблокированы\n\n"
         f"Отправить первый урок: `/send_now {target_id}`",
         parse_mode="Markdown",
@@ -520,8 +520,8 @@ async def cmd_preview(message: Message, session: AsyncSession, config: Config):
         await message.answer(
             "📺 *Режим предпросмотра*\n\n"
             "Использование:\n"
-            "`/preview <неделя>` — переставить себя\n"
-            "`/preview <uid> <неделя>` — переставить участника\n\n"
+            "`/preview <шаг>` — переставить себя\n"
+            "`/preview <uid> <шаг>` — переставить участника\n\n"
             "Например: `/preview 3` или `/preview 123456789 5`",
             parse_mode="Markdown",
         )
@@ -535,11 +535,11 @@ async def cmd_preview(message: Message, session: AsyncSession, config: Config):
             target_id = int(args[0])
             week = int(args[1])
     except ValueError:
-        await message.answer("❌ Формат: `/preview <неделя>` или `/preview <uid> <неделя>`", parse_mode="Markdown")
+        await message.answer("❌ Формат: `/preview <шаг>` или `/preview <uid> <шаг>`", parse_mode="Markdown")
         return
 
     if week < 1:
-        await message.answer("❌ Неделя должна быть ≥ 1")
+        await message.answer("❌ Шаг должен быть ≥ 1")
         return
 
     repo = ParticipantRepo(session)
@@ -551,7 +551,7 @@ async def cmd_preview(message: Message, session: AsyncSession, config: Config):
     max_w = LEVEL_WEEKS.get(p.level, 8)
     await message.answer(
         f"📺 *Предпросмотр установлен*\n\n"
-        f"👤 `{target_id}` → неделя *{week}* из {max_w}\n"
+        f"👤 `{target_id}` → шаг *{week}* из {max_w}\n"
         f"📍 {LEVEL_NAMES.get(p.level, p.level)}\n\n"
         "Открой Мини Апп или нажми «Открыть карту пути» — увидишь нужный урок.\n"
         "Чтобы получить урок текстом: `/send_now {target_id}`",
@@ -576,7 +576,7 @@ async def cmd_tester(message: Message, session: AsyncSession, config: Config):
             "Использование: `/tester <uid> [уровень]`\n"
             "Уровни: А, Б, В, Г (по умолчанию А)\n\n"
             "Пример: `/tester 123456789 Б`\n\n"
-            "После активации используй `/preview <uid> <неделя>` для перехода на нужный урок.",
+            "После активации используй `/preview <uid> <шаг>` для перехода на нужный шаг.",
             parse_mode="Markdown",
         )
         return
@@ -609,7 +609,7 @@ async def cmd_tester(message: Message, session: AsyncSession, config: Config):
         f"🧪 *Тестер активирован*\n\n"
         f"👤 `{target_id}` — {user.name}\n"
         f"📍 {LEVEL_NAMES.get(level, level)} | Уровень навыка: I\n"
-        f"📅 Неделя 1 из {max_w}\n\n"
+        f"📅 Шаг 1 из {max_w}\n\n"
         "Используй `/preview` для перехода на нужную неделю.\n"
         "Сбросить обратно: `/reset`",
         parse_mode="Markdown",
@@ -630,7 +630,7 @@ async def _notify_activation(bot, user_id: int, participant: Participant, sessio
                 f"🌿 *Бисмиллях, {name}!*\n\n"
                 f"Ты {activated} в программе *IQ Barakah*.\n\n"
                 f"📍 Маршрут: *{level_name}*\n"
-                f"📅 Старт: неделя *{participant.week}* из *{LEVEL_WEEKS.get(participant.level, 8)}*\n\n"
+                f"📅 Старт: шаг *{participant.week}* из *{LEVEL_WEEKS.get(participant.level, 8)}*\n\n"
                 "Ниже отправляю первый урок и ссылку на личный кабинет."
             ),
             parse_mode="Markdown",
@@ -739,10 +739,10 @@ async def cmd_preview_all(message: Message, session: AsyncSession, config: Confi
         participant = await p_repo.activate(uid, level=level, week=week)
         await session.flush()
         try:
-            await message.answer(f"━━━━━━━━━━━━━━━\n📅 *Неделя {week} из {max_weeks}*", parse_mode="Markdown")
+            await message.answer(f"━━━━━━━━━━━━━━━\n📅 *Шаг {week} из {max_weeks}*", parse_mode="Markdown")
             await send_weekly_lesson(message.bot, uid, participant, session, config)
         except Exception as e:
-            await message.answer(f"⚠️ Неделя {week}: {e}")
+            await message.answer(f"⚠️ Шаг {week}: {e}")
         await _asyncio.sleep(0.5)
 
     await message.answer(

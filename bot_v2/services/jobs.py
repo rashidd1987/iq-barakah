@@ -183,7 +183,7 @@ async def job_silence_check(bot: Bot, curator_ids: list[int]):
                             text=(
                                 f"⚠️ *Молчание 7 дней*\n\n"
                                 f"👤 {user.name} ({uname})\n"
-                                f"📊 Уровень {participant.level} · Неделя {participant.week}\n\n"
+                                f"📊 Уровень {participant.level} · Шаг {participant.week}\n\n"
                                 "Напиши ему лично — бот уже отправлял мягкое напоминание на 3-й день."
                             ),
                         )
@@ -237,7 +237,7 @@ async def job_progress_mirror(bot: Bot, miniapp_url: str):
                     text=(
                         f"📊 *Зеркало прогресса — {first}*\n\n"
                         f"{days_str}"
-                        f"📈 *Прогресс:* Неделя {week} из {total} ({pct}%)\n"
+                        f"📈 *Прогресс:* Шаг {week} из {total} ({pct}%)\n"
                         f"🎯 *Программа:* {LEVEL_NAMES.get(level, level)}\n\n"
                         "Продолжай — каждый шаг считается. 🌱\n"
                         "_БаракАллах фикум!_"
