@@ -5,7 +5,7 @@ meta:
     version: "3.11"
 
 build:
-  requirementsPath: bot_v2/requirements.txt
+  requirementsPath: requirements.txt
   useCache: false
 
 run:
