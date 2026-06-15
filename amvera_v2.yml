@@ -9,4 +9,4 @@ build:
   useCache: false
 
 run:
-  command: python -m bot_v2.main
+  command: cd /tmp && python -m bot_v2.main
