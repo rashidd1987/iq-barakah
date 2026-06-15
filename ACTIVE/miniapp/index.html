@@ -316,6 +316,34 @@
   <div class="s-btns" id="sl-btns"></div>
 </div>
 
+<!-- STEP TEST SHEET -->
+<div class="overlay" id="ov-steptest"></div>
+<div class="sheet" id="sh-steptest">
+  <div class="sh"></div>
+  <div class="s-icon" id="st-icon">📝</div>
+  <div class="s-title" id="st-title">Тест шага</div>
+  <div class="s-sub" id="st-sub">3 вопроса · Открывает следующий шаг</div>
+  <!-- Quiz step -->
+  <div id="st-quiz" class="st-step">
+    <div class="dq-prog-track" style="margin:8px 0 16px"><div class="dq-prog-fill" id="st-prog-fill" style="width:33%"></div></div>
+    <div class="st-frac" id="st-frac">1 / 3</div>
+    <div class="st-qtext" id="st-qtext"></div>
+    <div class="st-opts" id="st-opts"></div>
+  </div>
+  <!-- Result step -->
+  <div id="st-result" class="st-step" style="display:none">
+    <div style="text-align:center;padding:24px 0 8px">
+      <div style="font-size:48px">🎉</div>
+      <div style="font-size:20px;font-weight:700;margin:8px 0 4px" id="st-res-title">Шаг пройден!</div>
+      <div style="color:var(--muted);font-size:14px" id="st-res-sub">Следующий шаг открыт</div>
+    </div>
+    <div class="s-btns">
+      <button class="btn btn-p" id="st-next-btn">→ К следующему шагу</button>
+      <button class="btn btn-o" id="st-close-btn">Закрыть</button>
+    </div>
+  </div>
+</div>
+
 <!-- REVIEW SHEET -->
 <div class="overlay" id="ov-review"></div>
 <div class="sheet" id="sh-review">

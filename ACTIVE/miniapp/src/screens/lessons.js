@@ -3,12 +3,100 @@ import { PROGRAM_TASKS } from '../data/tasks.js'
 import { PROGRAM_CONTENT } from '../data/content.js'
 import { LESSON_SUMMARIES } from '../data/vakt_summaries.js'
 import { haptic, sendData, cloudGet, cloudSet, openLink } from '../utils/tg.js'
-import { openSheet } from '../components/sheets.js'
+import { openSheet, closeSheet } from '../components/sheets.js'
 import { t } from '../i18n.js'
 import { U } from './home.js'
-import { lsGet } from '../utils/storage.js'
+import { lsGet, lsSet } from '../utils/storage.js'
 
 export let currentWeek = 0
+
+// ── Step test questions ───────────────────────────────────────────────────────
+const STEP_TEST_QS = [
+  { q: 'Сколько дней ты практиковал задания этого шага?',
+    opts: ['Меньше 2 дней', '2–3 дня', '4–5 дней', 'Каждый день'] },
+  { q: 'Что изменилось после этого шага?',
+    opts: ['Пока ничего особенного', 'Заметил небольшие изменения', 'Есть конкретные сдвиги', 'Серьёзный прорыв'] },
+  { q: 'Готов ли ты двигаться к следующему шагу?',
+    opts: ['Нужно ещё время', 'Да, готов идти вперёд'] },
+]
+let _stCur = 0, _stAns = []
+
+export function openStepTest(globalWeekIndex, weekTitle) {
+  _stCur = 0
+  _stAns = new Array(STEP_TEST_QS.length).fill(null)
+
+  const icon = WEEKS[globalWeekIndex - 1]?.icon || '📝'
+  document.getElementById('st-icon').textContent = icon
+  document.getElementById('st-title').textContent = 'Тест шага: ' + weekTitle
+  document.getElementById('st-sub').textContent = '3 вопроса · Подтверждает завершение'
+
+  document.getElementById('st-quiz').style.display = ''
+  document.getElementById('st-result').style.display = 'none'
+
+  _renderStepQ()
+  openSheet('steptest')
+
+  document.getElementById('ov-steptest')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeSheet('steptest')
+  }, { once: true })
+
+  document.getElementById('st-close-btn')?.addEventListener('click', () => closeSheet('steptest'), { once: true })
+  document.getElementById('st-next-btn')?.addEventListener('click', () => {
+    closeSheet('steptest')
+    _unlockNextStep(globalWeekIndex)
+  }, { once: true })
+}
+
+function _renderStepQ() {
+  const q = STEP_TEST_QS[_stCur]
+  const pct = Math.round((_stCur + 1) / STEP_TEST_QS.length * 100)
+  document.getElementById('st-prog-fill').style.width = pct + '%'
+  document.getElementById('st-frac').textContent = (_stCur + 1) + ' / ' + STEP_TEST_QS.length
+  document.getElementById('st-qtext').textContent = q.q
+
+  const og = document.getElementById('st-opts')
+  og.innerHTML = q.opts.map((o, i) => `
+    <button class="st-opt${_stAns[_stCur] === i ? ' sel' : ''}" data-i="${i}">
+      <span class="st-opt-num">${i + 1}</span>
+      <span>${o}</span>
+    </button>`).join('')
+
+  og.querySelectorAll('.st-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      haptic()
+      _stAns[_stCur] = parseInt(btn.dataset.i)
+      setTimeout(() => {
+        if (_stCur < STEP_TEST_QS.length - 1) {
+          _stCur++
+          _renderStepQ()
+        } else {
+          _showStepResult()
+        }
+      }, 350)
+    })
+  })
+}
+
+function _showStepResult() {
+  document.getElementById('st-quiz').style.display = 'none'
+  document.getElementById('st-result').style.display = ''
+}
+
+function _unlockNextStep(globalWeekIndex) {
+  if (globalWeekIndex >= currentWeek) {
+    currentWeek = globalWeekIndex + 1
+    U.currentWeek = currentWeek
+    lsSet('currentWeek', currentWeek)
+    cloudSet('currentWeek', String(currentWeek))
+  }
+  renderLessons()
+  // Update home ring/stats
+  const pct = Math.round(Math.max(0, currentWeek - 1) / 30 * 100)
+  document.getElementById('rpct').textContent = pct + '%'
+  const circ = 2 * Math.PI * 62
+  document.getElementById('ring')?.setAttribute('stroke-dashoffset', (circ * (1 - pct / 100)).toFixed(1))
+  document.getElementById('sv-weeks').textContent = Math.max(0, currentWeek - 1)
+}
 
 export function setCurrentWeek(w) { currentWeek = w }
 
@@ -150,20 +238,26 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     btns.innerHTML = `<button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   } else {
+    // Show test button only for current step (not already-done ones)
+    const testBtn = isCur
+      ? `<button class="btn btn-g" id="sl-test">✅ Пройти тест шага</button>`
+      : ''
     btns.innerHTML = `
       <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
+      ${testBtn}
       <button class="btn btn-cal" id="sl-calendar">📅 Добавить в календарь</button>
       <button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-fullbot').onclick = () => {
       sendData({ action: 'open_lesson', level: U.level, week: weekToLevelIndex(globalWeekIndex).levelWeekIndex })
     }
+    document.getElementById('sl-test')?.addEventListener('click', () => {
+      haptic()
+      closeSheetById('lesson')
+      setTimeout(() => openStepTest(globalWeekIndex, w.title), 200)
+    })
     document.getElementById('sl-calendar')?.addEventListener('click', () => {
       haptic()
       _openCalendar(w, globalWeekIndex)
-    })
-    document.getElementById('sl-review')?.addEventListener('click', () => {
-      closeSheetById('lesson')
-      openSheet('review')
     })
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   }

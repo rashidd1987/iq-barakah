@@ -958,3 +958,25 @@ textarea:focus { border-color: var(--g2); }
   margin-top: 10px; font-size: 12px; color: var(--muted);
   text-align: center; font-style: italic;
 }
+
+/* ── Step Test ─────────────────────────────────────────────────── */
+.st-step { padding: 4px 0 8px; }
+.st-frac { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; }
+.st-qtext { font-size: 17px; font-weight: 700; line-height: 1.4; margin-bottom: 18px; }
+.st-opts { display: flex; flex-direction: column; gap: 10px; }
+.st-opt {
+  width: 100%; text-align: left; padding: 12px 16px;
+  border: 1.5px solid var(--border); border-radius: 14px;
+  background: var(--card); color: var(--text);
+  font-size: 14px; cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 10px;
+}
+.st-opt:active { transform: scale(.98); }
+.st-opt.sel { border-color: var(--g2); background: var(--gpale); }
+.st-opt-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,.08); color: var(--muted);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.st-opt.sel .st-opt-num { background: var(--g2); color: #000; }
