@@ -265,10 +265,23 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     btns.innerHTML = `<button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   } else {
-    // Show test button only for current step (not already-done ones)
-    const testBtn = isCur
-      ? `<button class="btn btn-g" id="sl-test">✅ Пройти тест шага</button>`
-      : ''
+    const { level, levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+    const tasks = getWeekTasks(level, levelWeekIndex)
+    const checked = loadChecked(level, levelWeekIndex)
+    const doneCount = Object.values(checked).filter(Boolean).length
+    const allDone = tasks.length > 0 && doneCount >= tasks.length
+
+    // Test button only for current step AND all tasks completed today
+    let testBtn = ''
+    if (isCur) {
+      if (allDone) {
+        testBtn = `<button class="btn btn-g" id="sl-test">✅ Пройти тест шага</button>`
+      } else {
+        const left = tasks.length - doneCount
+        testBtn = `<div class="sl-tasks-hint">📋 Выполни все задания шага (осталось ${left}) — тест откроется</div>`
+      }
+    }
+
     btns.innerHTML = `
       <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
       ${testBtn}
