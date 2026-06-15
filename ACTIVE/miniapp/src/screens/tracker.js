@@ -200,7 +200,7 @@ function renderProgramTasks() {
     const badgeEl = document.getElementById('program-tasks-badge')
     const pbarEl = document.getElementById('program-tasks-pbar')
     const labelEl = document.getElementById('program-tasks-label')
-    if (labelEl) labelEl.textContent = `Задания · Уровень ${level} · Неделя ${weekInLevel}`
+    if (labelEl) labelEl.textContent = `Задания · Уровень ${level} · Шаг ${weekInLevel}`
     if (subEl) subEl.textContent = `${doneCount} из ${total} выполнено`
     if (badgeEl) badgeEl.textContent = `${pct}%`
     if (pbarEl) pbarEl.style.width = `${pct}%`
@@ -280,7 +280,7 @@ function _addWeekToCalendar(level, weekInLevel, tasks) {
     `${i+1}. ${t.replace(/[\r\n,;]/g, ' ').substring(0, 120)}`
   ).join('\\n')
 
-  const summary = `IQ Barakah · Неделя ${globalWeek} · Уровень ${level}`
+  const summary = `IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`
   const desc = `Задания на каждый день:\\n${taskLines}\\n\\nОтмечай выполненное в Трекере`
 
   const CRLF = '\r\n'
@@ -298,8 +298,8 @@ function _addWeekToCalendar(level, weekInLevel, tasks) {
   // Google Calendar URL (HTTPS — works in Telegram WebApp on all platforms)
   monday.setHours(9, 0, 0, 0)
   const mondayEnd = new Date(monday); mondayEnd.setHours(9, 30, 0, 0)
-  const title = encodeURIComponent(`IQ Barakah · Неделя ${globalWeek} · Уровень ${level}`)
-  const details = encodeURIComponent(`Задания на каждый день недели:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
+  const title = encodeURIComponent(`IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`)
+  const details = encodeURIComponent(`Задания на каждый день шага:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
   const recur = 'RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7'
   const fmtG = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
   openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(monday)}/${fmtG(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`)

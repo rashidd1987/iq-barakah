@@ -1144,7 +1144,7 @@ textarea:focus { border-color: var(--g2); }
           <div class="ptasks-header-left">
             <div class="ptasks-icon">📋</div>
             <div>
-              <div class="ptasks-title" id="program-tasks-label">Задания недели</div>
+              <div class="ptasks-title" id="program-tasks-label">Задания шага</div>
               <div class="ptasks-sub" id="program-tasks-sub">0 из 0 выполнено</div>
             </div>
           </div>
@@ -1175,13 +1175,13 @@ textarea:focus { border-color: var(--g2); }
   <div class="hdr">
     <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge bg" data-i18n="program">Программа</div></div>
     <div class="hdr-title" data-i18n="pathMap">Карта пути</div>
-    <div class="hdr-sub" data-i18n="pathMapSub">ВАКТ 6 нед + IQ Barakah 24 нед · 3 сезона</div>
+    <div class="hdr-sub" data-i18n="pathMapSub">IQ Barakah Старт 6 шагов + IQ Barakah 24 шага · 3 сезона</div>
     <div class="pbar" style="margin-top:12px;"><div class="pfill" id="lessons-pbar" style="width:0%"></div></div>
   </div>
   <div class="c">
     <div class="chips">
       <button class="chip on" data-phase="all" data-i18n="all">Все</button>
-      <button class="chip off" data-phase="vakt">ВАКТ</button>
+      <button class="chip off" data-phase="vakt">IQ Barakah Старт</button>
       <button class="chip off" data-phase="s1" data-i18n="season1">Сезон 1</button>
       <button class="chip off" data-phase="s2" data-i18n="season2">Сезон 2</button>
       <button class="chip off" data-phase="s3" data-i18n="season3">Сезон 3</button>
@@ -1289,12 +1289,12 @@ textarea:focus { border-color: var(--g2); }
   <div class="ok-state" id="rv-ok">
     <div class="ok-icon">🌿</div>
     <div class="ok-t">БаракаЛлаху фик!</div>
-    <div class="ok-s">Отзыв принят. Куратор откроет следующую неделю.</div>
+    <div class="ok-s">Отзыв принят. Куратор откроет следующий шаг.</div>
     <button class="btn btn-p" id="rv-ok-btn" style="margin-top:8px;">К карте пути</button>
   </div>
   <div id="rv-form" class="rv-form">
     <div class="card"><div class="cb">
-      <div class="ct">Как прошла неделя?</div>
+      <div class="ct">Как прошёл шаг?</div>
       <div class="emoji-row" id="emoji-row">
         <button class="em-btn" data-emoji="😔">😔</button>
         <button class="em-btn" data-emoji="😐">😐</button>
@@ -1311,7 +1311,7 @@ textarea:focus { border-color: var(--g2); }
     <div class="card"><div class="cb">
       <div class="ct">Напишите</div>
       <div class="fl"><label>Что получилось? Что было сложно?</label><textarea id="rv-text" rows="3" placeholder="Куратор обязательно ответит..."></textarea></div>
-      <div class="fl" style="margin-top:10px;"><label>Главный инсайт недели</label><textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea></div>
+      <div class="fl" style="margin-top:10px;"><label>Главный инсайт шага</label><textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea></div>
     </div></div>
     <button class="btn btn-p" id="rv-btn">Отправить отзыв</button>
   </div>
@@ -1454,37 +1454,37 @@ const WEEKS = [
   {id:'v4', phase:'vakt', num:'В4', title:'Внимание',        sub:'Ослабить власть телефона и рассеивания', icon:'⏱'},
   {id:'v5', phase:'vakt', num:'В5', title:'Вечерний отчёт',  sub:'Благодарность, пробоина, следующий шаг', icon:'🌙'},
   {id:'v6', phase:'vakt', num:'В6', title:'Постоянство',     sub:'Закрепить систему и выбрать следующий уровень', icon:'🏆'},
-  {id:'s1_1',phase:'s1', num:'С1.1',title:'Тайный разговор',                   sub:'Сезон 1 · Неделя 1',icon:'🌱'},
-  {id:'s1_2',phase:'s1', num:'С1.2',title:'Возвращение домой',                 sub:'Сезон 1 · Неделя 2',icon:'🏠'},
-  {id:'s1_3',phase:'s1', num:'С1.3',title:'Священное пространство',            sub:'Сезон 1 · Неделя 3',icon:'✨'},
-  {id:'s1_4',phase:'s1', num:'С1.4',title:'Время как свидетель',               sub:'Сезон 1 · Неделя 4',icon:'⏱'},
-  {id:'s1_5',phase:'s1', num:'С1.5',title:'Кто твой Господь?',                 sub:'Сезон 1 · Неделя 5',icon:'📱'},
-  {id:'s1_6',phase:'s1', num:'С1.6',title:'Нулевой километр',                  sub:'Сезон 1 · Неделя 6',icon:'🧹'},
-  {id:'s1_7',phase:'s1', num:'С1.7',title:'Ты — не мозг в банке',              sub:'Сезон 1 · Неделя 7',icon:'💪'},
-  {id:'s1_8',phase:'s1', num:'С1.8',title:'Генеральная уборка души',           sub:'Сезон 1 · Неделя 8',icon:'🌿'},
-  {id:'s2_1',phase:'s2', num:'С2.1',title:'Как шайтан взламывает мозг',        sub:'Сезон 2 · Неделя 1',icon:'🧠'},
-  {id:'s2_2',phase:'s2', num:'С2.2',title:'Строительство крепости',            sub:'Сезон 2 · Неделя 2',icon:'🏗'},
-  {id:'s2_3',phase:'s2', num:'С2.3',title:'Сжигание кораблей',                 sub:'Сезон 2 · Неделя 3',icon:'🔥'},
-  {id:'s2_4',phase:'s2', num:'С2.4',title:'Что тяжелее всего на весах?',       sub:'Сезон 2 · Неделя 4',icon:'⚖️'},
-  {id:'s2_5',phase:'s2', num:'С2.5',title:'Дай плату, пока не высох пот',      sub:'Сезон 2 · Неделя 5',icon:'💼'},
-  {id:'s2_6',phase:'s2', num:'С2.6',title:'Самый длинный аят',                 sub:'Сезон 2 · Неделя 6',icon:'📜'},
-  {id:'s2_7',phase:'s2', num:'С2.7',title:'Партнёрство с Аллахом',             sub:'Сезон 2 · Неделя 7',icon:'🤝'},
-  {id:'s2_8',phase:'s2', num:'С2.8',title:'Синдром Атланта',                   sub:'Сезон 2 · Неделя 8',icon:'🌍'},
-  {id:'s3_1',phase:'s3', num:'С3.1',title:'У подножия их ног',                 sub:'Сезон 3 · Неделя 1',icon:'👣'},
-  {id:'s3_2',phase:'s3', num:'С3.2',title:'Оставь войну за порогом',           sub:'Сезон 3 · Неделя 2',icon:'🏠'},
-  {id:'s3_3',phase:'s3', num:'С3.3',title:'Зеркальные нейроны',                sub:'Сезон 3 · Неделя 3',icon:'👶'},
-  {id:'s3_4',phase:'s3', num:'С3.4',title:'Кузнец и парфюмер',                 sub:'Сезон 3 · Неделя 4',icon:'🌹'},
-  {id:'s3_5',phase:'s3', num:'С3.5',title:'Король без короны',                 sub:'Сезон 3 · Неделя 5',icon:'👑'},
-  {id:'s3_6',phase:'s3', num:'С3.6',title:'Река и болото',                     sub:'Сезон 3 · Неделя 6',icon:'🌊'},
-  {id:'s3_7',phase:'s3', num:'С3.7',title:'Открытый счёт',                     sub:'Сезон 3 · Неделя 7',icon:'📊'},
-  {id:'s3_8',phase:'s3', num:'С3.8',title:'Точка невозврата',                  sub:'Сезон 3 · Неделя 8',icon:'🏛️'},
+  {id:'s1_1',phase:'s1', num:'С1.1',title:'Тайный разговор',                   sub:'Сезон 1 · Шаг 1',icon:'🌱'},
+  {id:'s1_2',phase:'s1', num:'С1.2',title:'Возвращение домой',                 sub:'Сезон 1 · Шаг 2',icon:'🏠'},
+  {id:'s1_3',phase:'s1', num:'С1.3',title:'Священное пространство',            sub:'Сезон 1 · Шаг 3',icon:'✨'},
+  {id:'s1_4',phase:'s1', num:'С1.4',title:'Время как свидетель',               sub:'Сезон 1 · Шаг 4',icon:'⏱'},
+  {id:'s1_5',phase:'s1', num:'С1.5',title:'Кто твой Господь?',                 sub:'Сезон 1 · Шаг 5',icon:'📱'},
+  {id:'s1_6',phase:'s1', num:'С1.6',title:'Нулевой километр',                  sub:'Сезон 1 · Шаг 6',icon:'🧹'},
+  {id:'s1_7',phase:'s1', num:'С1.7',title:'Ты — не мозг в банке',              sub:'Сезон 1 · Шаг 7',icon:'💪'},
+  {id:'s1_8',phase:'s1', num:'С1.8',title:'Генеральная уборка души',           sub:'Сезон 1 · Шаг 8',icon:'🌿'},
+  {id:'s2_1',phase:'s2', num:'С2.1',title:'Как шайтан взламывает мозг',        sub:'Сезон 2 · Шаг 1',icon:'🧠'},
+  {id:'s2_2',phase:'s2', num:'С2.2',title:'Строительство крепости',            sub:'Сезон 2 · Шаг 2',icon:'🏗'},
+  {id:'s2_3',phase:'s2', num:'С2.3',title:'Сжигание кораблей',                 sub:'Сезон 2 · Шаг 3',icon:'🔥'},
+  {id:'s2_4',phase:'s2', num:'С2.4',title:'Что тяжелее всего на весах?',       sub:'Сезон 2 · Шаг 4',icon:'⚖️'},
+  {id:'s2_5',phase:'s2', num:'С2.5',title:'Дай плату, пока не высох пот',      sub:'Сезон 2 · Шаг 5',icon:'💼'},
+  {id:'s2_6',phase:'s2', num:'С2.6',title:'Самый длинный аят',                 sub:'Сезон 2 · Шаг 6',icon:'📜'},
+  {id:'s2_7',phase:'s2', num:'С2.7',title:'Партнёрство с Аллахом',             sub:'Сезон 2 · Шаг 7',icon:'🤝'},
+  {id:'s2_8',phase:'s2', num:'С2.8',title:'Синдром Атланта',                   sub:'Сезон 2 · Шаг 8',icon:'🌍'},
+  {id:'s3_1',phase:'s3', num:'С3.1',title:'У подножия их ног',                 sub:'Сезон 3 · Шаг 1',icon:'👣'},
+  {id:'s3_2',phase:'s3', num:'С3.2',title:'Оставь войну за порогом',           sub:'Сезон 3 · Шаг 2',icon:'🏠'},
+  {id:'s3_3',phase:'s3', num:'С3.3',title:'Зеркальные нейроны',                sub:'Сезон 3 · Шаг 3',icon:'👶'},
+  {id:'s3_4',phase:'s3', num:'С3.4',title:'Кузнец и парфюмер',                 sub:'Сезон 3 · Шаг 4',icon:'🌹'},
+  {id:'s3_5',phase:'s3', num:'С3.5',title:'Король без короны',                 sub:'Сезон 3 · Шаг 5',icon:'👑'},
+  {id:'s3_6',phase:'s3', num:'С3.6',title:'Река и болото',                     sub:'Сезон 3 · Шаг 6',icon:'🌊'},
+  {id:'s3_7',phase:'s3', num:'С3.7',title:'Открытый счёт',                     sub:'Сезон 3 · Шаг 7',icon:'📊'},
+  {id:'s3_8',phase:'s3', num:'С3.8',title:'Точка невозврата',                  sub:'Сезон 3 · Шаг 8',icon:'🏛️'},
 ]
 
 const PHASE_LABELS = {
-  vakt: '🌱 ВАКТ · Тайм-менеджмент мусульманина (6 недель)',
-  s1:   '📗 Сезон 1 · Основание · КТО ты есть (8 недель)',
-  s2:   '📘 Сезон 2 · Строительство · КАК ты живёшь (8 недель)',
-  s3:   '📙 Сезон 3 · Наследие · ЗАЧЕМ ты живёшь (8 недель)',
+  vakt: '🌱 IQ Barakah Старт · Тайм-менеджмент мусульманина (6 шагов)',
+  s1:   '📗 Сезон 1 · Основание · КТО ты есть (8 шагов)',
+  s2:   '📘 Сезон 2 · Строительство · КАК ты живёшь (8 шагов)',
+  s3:   '📙 Сезон 3 · Наследие · ЗАЧЕМ ты живёшь (8 шагов)',
 }
 
 const WEEK_CONTENT = {
@@ -1496,7 +1496,7 @@ const WEEK_CONTENT = {
 
 const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
 const LEVEL_ICONS  = { А: '🌱', Б: '📗', В: '📘', Г: '📙' }
-const LEVEL_LABELS = { А: 'ВАКТ', Б: 'Сезон 1', В: 'Сезон 2', Г: 'Сезон 3' }
+const LEVEL_LABELS = { А: 'IQ Barakah Старт', Б: 'Сезон 1', В: 'Сезон 2', Г: 'Сезон 3' }
 
 
 // --- data/habits.js ---
@@ -2613,7 +2613,7 @@ const TEXT = {
     totalProgress: 'Общий прогресс',
     completed: 'пройдено',
     streakDays: 'дней подряд',
-    weeksDone: 'недель сдано',
+    weeksDone: 'шагов пройдено',
     goodDeeds: 'добрых дел',
     barakahPoints: 'баракат-баллов',
     goTo: 'Перейти',
@@ -2629,16 +2629,16 @@ const TEXT = {
     levelDiagnosticSub: 'Пройти заново или сменить уровень',
     today: 'Сегодня',
     markDone: 'Отмечайте выполненное',
-    thisWeek: 'Эта неделя',
+    thisWeek: 'Этот шаг',
     dayProgress: 'Прогресс дня',
     doneOf: '{done} из {total} выполнено',
     namazTitle: '🕌 Намаз (5 раз в день)',
     dailyPractices: '☀️ Ежедневные практики',
-    weeklyPractices: '📅 На этой неделе',
+    weeklyPractices: '📅 На этом шаге',
     oneTime: '🌱 Один раз',
     program: 'Программа',
     pathMap: 'Карта пути',
-    pathMapSub: 'ВАКТ 6 нед + IQ Barakah 24 нед · 3 сезона',
+    pathMapSub: 'IQ Barakah Старт 6 шагов + IQ Barakah 24 шага · 3 сезона',
     all: 'Все',
     season1: 'Сезон 1',
     season2: 'Сезон 2',
@@ -2669,8 +2669,8 @@ const TEXT = {
     completedLesson: '✅ Завершена',
     current: '📖 Текущая',
     howToOpen: 'Как открыть',
-    unlockHint: 'Сдайте самоотчёт (мухасабу) за текущую неделю — куратор откроет следующую',
-    weeklyAzkar: 'Азкар недели',
+    unlockHint: 'Сдайте самоотчёт (мухасабу) за текущий шаг — куратор откроет следующий',
+    weeklyAzkar: 'Азкар шага',
     quran: 'Коран',
     goodDeed: 'Доброе дело',
     close: 'Закрыть',
@@ -2694,7 +2694,7 @@ const TEXT = {
     totalProgress: 'Total progress',
     completed: 'complete',
     streakDays: 'day streak',
-    weeksDone: 'weeks done',
+    weeksDone: 'steps done',
     goodDeeds: 'good deeds',
     barakahPoints: 'barakah points',
     goTo: 'Go to',
@@ -2719,7 +2719,7 @@ const TEXT = {
     oneTime: '🌱 One time',
     program: 'Program',
     pathMap: 'Path map',
-    pathMapSub: 'VAKT 6 weeks + IQ Barakah 24 weeks · 3 seasons',
+    pathMapSub: 'IQ Barakah Start 6 steps + IQ Barakah 24 steps · 3 seasons',
     all: 'All',
     season1: 'Season 1',
     season2: 'Season 2',
@@ -2750,8 +2750,8 @@ const TEXT = {
     completedLesson: '✅ Completed',
     current: '📖 Current',
     howToOpen: 'How to unlock',
-    unlockHint: 'Submit muhasabah for the current week — the curator will unlock the next one',
-    weeklyAzkar: 'Weekly adhkar',
+    unlockHint: 'Submit muhasabah for the current step — the curator will unlock the next one',
+    weeklyAzkar: 'Step adhkar',
     quran: 'Qur’an',
     goodDeed: 'Good deed',
     close: 'Close',
@@ -3780,7 +3780,7 @@ function renderProgramTasks() {
     const badgeEl = document.getElementById('program-tasks-badge')
     const pbarEl = document.getElementById('program-tasks-pbar')
     const labelEl = document.getElementById('program-tasks-label')
-    if (labelEl) labelEl.textContent = `Задания · Уровень ${level} · Неделя ${weekInLevel}`
+    if (labelEl) labelEl.textContent = `Задания · Уровень ${level} · Шаг ${weekInLevel}`
     if (subEl) subEl.textContent = `${doneCount} из ${total} выполнено`
     if (badgeEl) badgeEl.textContent = `${pct}%`
     if (pbarEl) pbarEl.style.width = `${pct}%`
@@ -3860,7 +3860,7 @@ function _addWeekToCalendar(level, weekInLevel, tasks) {
     `${i+1}. ${t.replace(/[\r\n,;]/g, ' ').substring(0, 120)}`
   ).join('\\n')
 
-  const summary = `IQ Barakah · Неделя ${globalWeek} · Уровень ${level}`
+  const summary = `IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`
   const desc = `Задания на каждый день:\\n${taskLines}\\n\\nОтмечай выполненное в Трекере`
 
   const CRLF = '\r\n'
@@ -3878,8 +3878,8 @@ function _addWeekToCalendar(level, weekInLevel, tasks) {
   // Google Calendar URL (HTTPS — works in Telegram WebApp on all platforms)
   monday.setHours(9, 0, 0, 0)
   const mondayEnd = new Date(monday); mondayEnd.setHours(9, 30, 0, 0)
-  const title = encodeURIComponent(`IQ Barakah · Неделя ${globalWeek} · Уровень ${level}`)
-  const details = encodeURIComponent(`Задания на каждый день недели:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
+  const title = encodeURIComponent(`IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`)
+  const details = encodeURIComponent(`Задания на каждый день шага:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
   const recur = 'RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7'
   const fmtG = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
   openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(monday)}/${fmtG(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`)
@@ -4217,9 +4217,7 @@ function _renderLessonContent(content, level, weekInLevel) {
   const skill = U.skill || 'I'
 
   // Use curated summary if available
-  const summary = (typeof LESSON_SUMMARIES !== 'undefined')
-    ? LESSON_SUMMARIES?.[level]?.[weekInLevel - 1]?.[skill]
-    : null
+  const summary = LESSON_SUMMARIES?.[level]?.[weekInLevel - 1]?.[skill] || null
 
   let html = ''
   if (content.hadith) {
@@ -4248,7 +4246,7 @@ function _renderLessonContent(content, level, weekInLevel) {
 function _renderTasksHtml(tasks) {
   if (!tasks || tasks.length === 0) return ''
 
-  let html = `<div class="lesson-tasks-list"><div class="lesson-tasks-title">📋 Задания недели</div>`
+  let html = `<div class="lesson-tasks-list"><div class="lesson-tasks-title">📋 Задания шага</div>`
   tasks.forEach((task, i) => {
     html += `<div class="lesson-task-row"><span class="lesson-task-num">${i + 1}</span><span class="lesson-task-text">${task}</span></div>`
   })
@@ -4290,7 +4288,7 @@ function _openCalendar(w, globalWeekIndex) {
   ).join('\\n')
 
   const summary = `IQ Barakah · ${w.num} · ${w.title}`
-  const desc = `${w.sub}\\n\\nЗадания на каждый день недели:\\n${taskDesc}\\n\\nОтмечай выполненное в Трекере ✅`
+  const desc = `${w.sub}\\n\\nЗадания на каждый день шага:\\n${taskDesc}\\n\\nОтмечай выполненное в Трекере ✅`
 
   // Generate 7 separate VEVENT entries (Mon–Sun, 9:00–9:30)
   const CRLF = '\r\n'

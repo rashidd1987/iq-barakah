@@ -213,7 +213,7 @@ function _renderLessonContent(content, level, weekInLevel) {
 function _renderTasksHtml(tasks) {
   if (!tasks || tasks.length === 0) return ''
 
-  let html = `<div class="lesson-tasks-list"><div class="lesson-tasks-title">📋 Задания недели</div>`
+  let html = `<div class="lesson-tasks-list"><div class="lesson-tasks-title">📋 Задания шага</div>`
   tasks.forEach((task, i) => {
     html += `<div class="lesson-task-row"><span class="lesson-task-num">${i + 1}</span><span class="lesson-task-text">${task}</span></div>`
   })
@@ -255,7 +255,7 @@ function _openCalendar(w, globalWeekIndex) {
   ).join('\\n')
 
   const summary = `IQ Barakah · ${w.num} · ${w.title}`
-  const desc = `${w.sub}\\n\\nЗадания на каждый день недели:\\n${taskDesc}\\n\\nОтмечай выполненное в Трекере ✅`
+  const desc = `${w.sub}\\n\\nЗадания на каждый день шага:\\n${taskDesc}\\n\\nОтмечай выполненное в Трекере ✅`
 
   // Generate 7 separate VEVENT entries (Mon–Sun, 9:00–9:30)
   const CRLF = '\r\n'
