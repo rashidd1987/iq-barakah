@@ -16,6 +16,8 @@ class Config:
     yookassa_shop_id: str = ""
     yookassa_secret_key: str = ""
     payments_provider_token: str = ""
+    mizan_payment_webhook_url: str = ""
+    mizan_payment_webhook_secret: str = ""
 
     anthropic_api_key: str = ""
 
@@ -40,6 +42,8 @@ def load_config() -> Config:
         yookassa_shop_id=os.environ.get("YOOKASSA_SHOP_ID", ""),
         yookassa_secret_key=os.environ.get("YOOKASSA_SECRET_KEY", ""),
         payments_provider_token=os.environ.get("PAYMENTS_TOKEN", ""),
+        mizan_payment_webhook_url=os.environ.get("MIZAN_PAYMENT_WEBHOOK_URL", ""),
+        mizan_payment_webhook_secret=os.environ.get("MIZAN_PAYMENT_WEBHOOK_SECRET", ""),
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
     )
 

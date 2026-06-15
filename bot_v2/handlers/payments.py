@@ -12,6 +12,7 @@ from bot_v2.config import Config
 from bot_v2.db.repositories import PaymentRepo, ParticipantRepo, UserRepo
 from bot_v2.keyboards import kb_tariffs, kb_tariff_detail, kb_curator_notify
 from bot_v2.services.i18n import t
+from bot_v2.services.mizan_os import notify_mizan_payment
 from bot_v2.services.program import get_tariff, get_tariff_view
 from bot_v2.services.yookassa_svc import create_payment
 
@@ -210,8 +211,27 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
         # Проверяем — не активировали ли уже
         pay_repo = PaymentRepo(session)
         db_pay = await pay_repo.get_by_yoo_id(payment_id)
+        tariff = get_tariff(tariff_id)
+        tariff_view = get_tariff_view(tariff_id, lang) or tariff
+        tariff_name = tariff_view["name"] if tariff_view else tariff_id
+        level = TARIFF_LEVEL_MAP.get(tariff_id)
 
         if db_pay and db_pay.status == "paid":
+            user = await UserRepo(session).get(call.from_user.id)
+            name = user.name if user else str(call.from_user.id)
+            username = user.username if user and user.username else call.from_user.username or ""
+            await notify_mizan_payment(
+                config,
+                payment_id=payment_id,
+                telegram_user_id=call.from_user.id,
+                amount=db_pay.amount,
+                tariff_id=tariff_id,
+                product_name=tariff_name,
+                customer_name=name,
+                telegram_username=username,
+                participant_activated=bool(level),
+                paid_at=db_pay.paid_at,
+            )
             await call.answer("✅ Оплата уже подтверждена! Проверьте сообщения выше.", show_alert=True)
             return
 
@@ -221,11 +241,6 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
             db_pay.paid_at = _dt.datetime.now(timezone.utc)
             await session.flush()
 
-        tariff = get_tariff(tariff_id)
-        tariff_view = get_tariff_view(tariff_id, lang) or tariff
-        tariff_name = tariff_view["name"] if tariff_view else tariff_id
-
-        level = TARIFF_LEVEL_MAP.get(tariff_id)
         if level:
             p_repo = ParticipantRepo(session)
             participant = await p_repo.activate(call.from_user.id, level=level, week=1)
@@ -248,6 +263,19 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
         # Уведомляем кураторов
         user = await UserRepo(session).get(call.from_user.id)
         name = user.name if user else str(call.from_user.id)
+        username = user.username if user and user.username else call.from_user.username or ""
+        await notify_mizan_payment(
+            config,
+            payment_id=payment_id,
+            telegram_user_id=call.from_user.id,
+            amount=db_pay.amount if db_pay else (tariff["price"] if tariff else 0),
+            tariff_id=tariff_id,
+            product_name=tariff_name,
+            customer_name=name,
+            telegram_username=username,
+            participant_activated=bool(level),
+            paid_at=db_pay.paid_at if db_pay else None,
+        )
         for curator_id in config.curator_ids:
             try:
                 await call.bot.send_message(

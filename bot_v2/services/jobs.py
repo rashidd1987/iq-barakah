@@ -261,6 +261,7 @@ async def job_check_payments(bot, config):
     from bot_v2.db.repositories.participant import ParticipantRepo
     from bot_v2.handlers.payments import TARIFF_LEVEL_MAP
     from bot_v2.services.yookassa_svc import get_payment_status
+    from bot_v2.services.mizan_os import notify_mizan_payment
     from bot_v2.services.i18n import t
     from bot_v2.services.program import get_tariff_view
     from sqlalchemy import select
@@ -276,14 +277,16 @@ async def job_check_payments(bot, config):
             result = await session.execute(
                 select(Payment).where(
                     Payment.status == "pending",
-                    Payment.tg_charge_id.isnot(None),
+                    Payment.yoo_payment_id.isnot(None),
                     Payment.created_at >= cutoff,
                 )
             )
             pending = result.scalars().all()
 
         for payment in pending:
-            yoo_id = payment.tg_charge_id  # мы храним yookassa payment id в tg_charge_id
+            yoo_id = payment.yoo_payment_id
+            if not yoo_id:
+                continue
             status = await get_payment_status(
                 config.yookassa_shop_id, config.yookassa_secret_key, yoo_id
             )
@@ -333,6 +336,19 @@ async def job_check_payments(bot, config):
 
                             # Уведомляем кураторов
                             name = user.name if user else str(payment.user_id)
+                            username = user.username if user and user.username else ""
+                            await notify_mizan_payment(
+                                config,
+                                payment_id=yoo_id,
+                                telegram_user_id=payment.user_id,
+                                amount=payment.amount,
+                                tariff_id=payment.tariff_id,
+                                product_name=tariff_name,
+                                customer_name=name,
+                                telegram_username=username,
+                                participant_activated=True,
+                                paid_at=db_pay.paid_at,
+                            )
                             for cid in (config.curator_ids or []):
                                 try:
                                     await bot.send_message(
