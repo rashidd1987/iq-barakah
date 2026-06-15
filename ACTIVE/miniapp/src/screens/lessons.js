@@ -265,36 +265,13 @@ function openLessonSheet(w, done, isCur, locked, globalWeekIndex) {
     btns.innerHTML = `<button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-close').onclick = () => closeSheetById('lesson')
   } else {
-    const { level, levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
-    const tasks = getWeekTasks(level, levelWeekIndex)
-    const checked = loadChecked(level, levelWeekIndex)
-    const doneCount = Object.values(checked).filter(Boolean).length
-    const allDone = tasks.length > 0 && doneCount >= tasks.length
-
-    // Test button only for current step AND all tasks completed today
-    let testBtn = ''
-    if (isCur) {
-      if (allDone) {
-        testBtn = `<button class="btn btn-g" id="sl-test">✅ Пройти тест шага</button>`
-      } else {
-        const left = tasks.length - doneCount
-        testBtn = `<div class="sl-tasks-hint">📋 Выполни все задания шага (осталось ${left}) — тест откроется</div>`
-      }
-    }
-
     btns.innerHTML = `
       <button class="btn btn-p" id="sl-fullbot">📖 Полный урок в боте</button>
-      ${testBtn}
       <button class="btn btn-cal" id="sl-calendar">📅 Добавить в календарь</button>
       <button class="btn btn-o" id="sl-close">${t('close')}</button>`
     document.getElementById('sl-fullbot').onclick = () => {
       sendData({ action: 'open_lesson', level: U.level, week: weekToLevelIndex(globalWeekIndex).levelWeekIndex })
     }
-    document.getElementById('sl-test')?.addEventListener('click', () => {
-      haptic()
-      closeSheetById('lesson')
-      setTimeout(() => openStepTest(globalWeekIndex, w.title), 200)
-    })
     document.getElementById('sl-calendar')?.addEventListener('click', () => {
       haptic()
       _openCalendar(w, globalWeekIndex)

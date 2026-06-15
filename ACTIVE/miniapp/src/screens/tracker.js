@@ -1,10 +1,12 @@
 import { NAMAZ, DAILY, WEEKLY, ONETIME } from '../data/habits.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
+import { WEEKS } from '../data/weeks.js'
 import { haptic, sendData, cloudSet, openLink } from '../utils/tg.js'
 import { showGlossaryTip } from '../components/sheets.js'
 import { lsGet, lsSet, todayKey } from '../utils/storage.js'
 import { t, tf } from '../i18n.js'
 import { U } from './home.js'
+import { openStepTest } from './lessons.js'
 
 let checked = lsGet('checked', {})
 
@@ -205,9 +207,11 @@ function renderProgramTasks() {
     if (badgeEl) badgeEl.textContent = `${pct}%`
     if (pbarEl) pbarEl.style.width = `${pct}%`
 
+    const allDone = doneCount === total && total > 0
+
     // Celebration banner when all done
     const existing = container.querySelector('.ptasks-all-done')
-    if (doneCount === total && total > 0 && !existing) {
+    if (allDone && !existing) {
       haptic('success')
       const banner = document.createElement('div')
       banner.className = 'ptasks-all-done'
@@ -218,8 +222,24 @@ function renderProgramTasks() {
           <div class="ptasks-done-sub">Ты молодец — продолжай в том же духе 💚</div>
         </div>`
       container.appendChild(banner)
-    } else if (doneCount < total && existing) {
+    } else if (!allDone && existing) {
       existing.remove()
+    }
+
+    // Test button — appears only when all tasks done
+    const existingTestBtn = container.querySelector('.ptasks-test-btn')
+    if (allDone && !existingTestBtn) {
+      const testBtn = document.createElement('button')
+      testBtn.className = 'btn btn-g ptasks-test-btn'
+      testBtn.innerHTML = '📝 Пройти тест шага'
+      testBtn.onclick = () => {
+        haptic()
+        const w = WEEKS[U.currentWeek - 1]
+        openStepTest(U.currentWeek, w?.title || '')
+      }
+      container.appendChild(testBtn)
+    } else if (!allDone && existingTestBtn) {
+      existingTestBtn.remove()
     }
   }
 
