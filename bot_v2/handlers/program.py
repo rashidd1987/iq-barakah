@@ -386,3 +386,4 @@ async def _send_vakt_graduation_upsell(bot, user_id: int, is_female: bool = Fals
 async def _user_lang(session: AsyncSession, user_id: int) -> str:
     user = await UserRepo(session).get(user_id)
     return user.language_code if user else "ru"
+# force rebuild Mon Jun 15 04:49:05 MSK 2026
