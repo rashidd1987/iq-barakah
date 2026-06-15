@@ -2,6 +2,7 @@ import { WEEKS, PHASE_LABELS } from '../data/weeks.js'
 import { PROGRAM_TASKS } from '../data/tasks.js'
 import { PROGRAM_CONTENT } from '../data/content.js'
 import { LESSON_SUMMARIES } from '../data/vakt_summaries.js'
+import { getStepTest } from '../data/step_tests.js'
 import { haptic, sendData, cloudGet, cloudSet, openLink } from '../utils/tg.js'
 import { openSheet, closeSheet } from '../components/sheets.js'
 import { t } from '../i18n.js'
@@ -10,76 +11,103 @@ import { lsGet, lsSet } from '../utils/storage.js'
 
 export let currentWeek = 0
 
-// ── Step test questions ───────────────────────────────────────────────────────
-const STEP_TEST_QS = [
-  { q: 'Сколько дней ты практиковал задания этого шага?',
-    opts: ['Меньше 2 дней', '2–3 дня', '4–5 дней', 'Каждый день'] },
-  { q: 'Что изменилось после этого шага?',
-    opts: ['Пока ничего особенного', 'Заметил небольшие изменения', 'Есть конкретные сдвиги', 'Серьёзный прорыв'] },
-  { q: 'Готов ли ты двигаться к следующему шагу?',
-    opts: ['Нужно ещё время', 'Да, готов идти вперёд'] },
-]
-let _stCur = 0, _stAns = []
+// ── Step test ─────────────────────────────────────────────────────────────────
+let _stCur = 0, _stAns = [], _stQs = [], _stScore = 0
 
 export function openStepTest(globalWeekIndex, weekTitle) {
+  const { level, levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+  _stQs = getStepTest(level, levelWeekIndex, U.skill || 'I')
+
+  if (_stQs.length === 0) {
+    // No test for this step — unlock immediately
+    _unlockNextStep(globalWeekIndex)
+    return
+  }
+
   _stCur = 0
-  _stAns = new Array(STEP_TEST_QS.length).fill(null)
+  _stScore = 0
+  _stAns = new Array(_stQs.length).fill(null)
 
   const icon = WEEKS[globalWeekIndex - 1]?.icon || '📝'
   document.getElementById('st-icon').textContent = icon
   document.getElementById('st-title').textContent = 'Тест шага: ' + weekTitle
-  document.getElementById('st-sub').textContent = '3 вопроса · Подтверждает завершение'
+  document.getElementById('st-sub').textContent = _stQs.length + ' вопросов · 2 из 3 правильно = шаг открыт'
 
   document.getElementById('st-quiz').style.display = ''
   document.getElementById('st-result').style.display = 'none'
 
-  _renderStepQ()
+  _renderStepQ(globalWeekIndex)
   openSheet('steptest')
 
   document.getElementById('ov-steptest')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) closeSheet('steptest')
   }, { once: true })
-
-  document.getElementById('st-close-btn')?.addEventListener('click', () => closeSheet('steptest'), { once: true })
-  document.getElementById('st-next-btn')?.addEventListener('click', () => {
-    closeSheet('steptest')
-    _unlockNextStep(globalWeekIndex)
-  }, { once: true })
 }
 
-function _renderStepQ() {
-  const q = STEP_TEST_QS[_stCur]
-  const pct = Math.round((_stCur + 1) / STEP_TEST_QS.length * 100)
+function _renderStepQ(globalWeekIndex) {
+  const q = _stQs[_stCur]
+  const pct = Math.round((_stCur + 1) / _stQs.length * 100)
   document.getElementById('st-prog-fill').style.width = pct + '%'
-  document.getElementById('st-frac').textContent = (_stCur + 1) + ' / ' + STEP_TEST_QS.length
+  document.getElementById('st-frac').textContent = (_stCur + 1) + ' / ' + _stQs.length
   document.getElementById('st-qtext').textContent = q.q
 
   const og = document.getElementById('st-opts')
   og.innerHTML = q.opts.map((o, i) => `
-    <button class="st-opt${_stAns[_stCur] === i ? ' sel' : ''}" data-i="${i}">
-      <span class="st-opt-num">${i + 1}</span>
+    <button class="st-opt" data-i="${i}">
+      <span class="st-opt-num">${String.fromCharCode(65 + i)}</span>
       <span>${o}</span>
     </button>`).join('')
 
   og.querySelectorAll('.st-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       haptic()
-      _stAns[_stCur] = parseInt(btn.dataset.i)
+      const chosen = parseInt(btn.dataset.i)
+      const correct = q.correct
+      const isCorrect = chosen === correct
+
+      // Show correct/wrong feedback
+      og.querySelectorAll('.st-opt').forEach(b => {
+        const bi = parseInt(b.dataset.i)
+        if (bi === correct) b.classList.add('st-correct')
+        else if (bi === chosen && !isCorrect) b.classList.add('st-wrong')
+        b.disabled = true
+      })
+
+      if (isCorrect) _stScore++
+
       setTimeout(() => {
-        if (_stCur < STEP_TEST_QS.length - 1) {
+        if (_stCur < _stQs.length - 1) {
           _stCur++
-          _renderStepQ()
+          _renderStepQ(globalWeekIndex)
         } else {
-          _showStepResult()
+          _showStepResult(globalWeekIndex)
         }
-      }, 350)
+      }, 700)
     })
   })
 }
 
-function _showStepResult() {
+function _showStepResult(globalWeekIndex) {
   document.getElementById('st-quiz').style.display = 'none'
-  document.getElementById('st-result').style.display = ''
+  const passed = _stScore >= Math.ceil(_stQs.length * 2 / 3)
+  const resEl = document.getElementById('st-result')
+  resEl.style.display = ''
+
+  document.getElementById('st-res-title').textContent = passed
+    ? `✅ Отлично! ${_stScore} из ${_stQs.length} верно`
+    : `📚 ${_stScore} из ${_stQs.length} верно`
+  document.getElementById('st-res-sub').textContent = passed
+    ? 'Шаг завершён — следующий открыт!'
+    : 'Повтори урок и попробуй снова'
+
+  const nextBtn = document.getElementById('st-next-btn')
+  const closeBtn = document.getElementById('st-close-btn')
+
+  nextBtn.style.display = passed ? '' : 'none'
+  closeBtn.textContent = passed ? 'Закрыть' : '← Назад к уроку'
+
+  nextBtn.onclick = () => { closeSheet('steptest'); _unlockNextStep(globalWeekIndex) }
+  closeBtn.onclick = () => closeSheet('steptest')
 }
 
 function _unlockNextStep(globalWeekIndex) {
@@ -90,7 +118,6 @@ function _unlockNextStep(globalWeekIndex) {
     cloudSet('currentWeek', String(currentWeek))
   }
   renderLessons()
-  // Update home ring/stats
   const pct = Math.round(Math.max(0, currentWeek - 1) / 30 * 100)
   document.getElementById('rpct').textContent = pct + '%'
   const circ = 2 * Math.PI * 62

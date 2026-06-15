@@ -980,3 +980,8 @@ textarea:focus { border-color: var(--g2); }
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .st-opt.sel .st-opt-num { background: var(--g2); color: #000; }
+.st-opt.st-correct { border-color: #2c5f2d; background: #e8f5e9; }
+.st-opt.st-correct .st-opt-num { background: #2c5f2d; color: white; }
+.st-opt.st-wrong { border-color: #dc2626; background: #fef2f2; }
+.st-opt.st-wrong .st-opt-num { background: #dc2626; color: white; }
+.st-opt:disabled { cursor: default; }
