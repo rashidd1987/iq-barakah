@@ -169,7 +169,7 @@ def kb_program_overview(
         "vakt": "🌱 IQ Barakah Старт",
         "s1_full": "📗 IQ Barakah · Сезон 1",
         "s3_full": "🏆 IQ Barakah · 3 сезона",
-        "jamaat": "👥 Джамаат",
+        "jamaat": "👥 Поток",
         "leader": "👑 Лидер Уммы",
     }
     name = names.get(recommended["id"], recommended["name"])

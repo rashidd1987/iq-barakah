@@ -769,7 +769,7 @@ def _program_tariff_name(lang: str, tariff_id: str) -> str:
         "vakt": "🌱 IQ Barakah Старт",
         "s1_full": "📗 IQ Barakah · Сезон 1",
         "s3_full": "🏆 IQ Barakah · 3 сезона",
-        "jamaat": "👥 Джамаат",
+        "jamaat": "👥 Поток",
         "leader": "👑 Лидер Уммы",
     }
     return names.get(tariff_id, TARIFFS[0]["name"])
