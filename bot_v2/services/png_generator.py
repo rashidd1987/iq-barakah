@@ -143,17 +143,19 @@ def generate_ticket(name: str, ticket_no: str) -> bytes:
 
     _text_center(draw, y, "27 июня · Шатёр", f_event, GREEN_BRIGHT)
     y += 46
-    _text_center(draw, y, "Москва · начало в 13:00", f_date, GREEN_DIM)
-    y += 50
+    _text_center(draw, y, "Хасавюрт · начало в 11:00", f_date, GREEN_DIM)
+    y += 36
+    _text_center(draw, y, "пр. Имама Шамиля, 172", f_date, GREEN_FAINT)
+    y += 36
 
     draw.line([(pad, y), (W - pad, y)], fill=(255, 255, 255, 26), width=1)
     y += 30
 
     # Что включено
     includes = [
-        "✓  Вход на форум",
-        "✓  IQ Barakah Старт · 6 шагов",
-        "✓  Обед в Шатёр после форума",
+        "•  Вход на форум",
+        "•  IQ Barakah Старт · 6 шагов",
+        "•  Обед в Шатёр после форума",
     ]
     for item in includes:
         draw.text((pad + 40, y), item, font=f_includes, fill=GREEN_MID)
