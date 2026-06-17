@@ -391,6 +391,9 @@ async def cb_curator_activate(call: CallbackQuery, session: AsyncSession, config
     )
     await _notify_activation(call.bot, user_id, participant, session, config)
 
+    if tariff_id == "forum_27_06":
+        await _send_forum_materials(call.bot, user_id, session)
+
 
 @router.message(Command("send_now"))
 async def cmd_send_now(message: Message, session: AsyncSession, config: Config):
@@ -640,6 +643,36 @@ async def _notify_activation(bot, user_id: int, participant: Participant, sessio
         await send_weekly_lesson(bot, user_id, participant, session, config)
     except Exception:
         logger.exception("Failed to notify activated participant %s", user_id)
+
+
+async def _send_forum_materials(bot, user_id: int, session: AsyncSession):
+    from bot_v2.db.repositories import UserRepo
+    from bot_v2.services.png_generator import generate_checklist, generate_ticket
+    from aiogram.types import BufferedInputFile
+    import datetime
+
+    user = await UserRepo(session).get(user_id)
+    name = (user.name or "Гость").split()[0] if user else "Гость"
+    ticket_no = f"F{datetime.date.today().strftime('%m%d')}-{user_id % 9000 + 1000}"
+
+    try:
+        checklist_bytes = generate_checklist()
+        await bot.send_document(
+            chat_id=user_id,
+            document=BufferedInputFile(checklist_bytes, filename="5_pravil_dnya.png"),
+            caption="🌿 *5 правил дня с барака*\n\nСохрани — пригодится до форума.",
+            parse_mode="Markdown",
+        )
+
+        ticket_bytes = generate_ticket(name, ticket_no)
+        await bot.send_document(
+            chat_id=user_id,
+            document=BufferedInputFile(ticket_bytes, filename="bilet_forum_27_06.png"),
+            caption=f"🎟 *Твой билет на форум 27 июня*\n\nПокажи на входе — и до встречи в Шатёр!",
+            parse_mode="Markdown",
+        )
+    except Exception:
+        logger.exception("Failed to send forum materials to %s", user_id)
 
 
 def _md_escape(value: str) -> str:
