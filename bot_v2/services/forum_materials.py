@@ -38,7 +38,7 @@ async def send_forum_materials(bot: Bot, user_id: int, session: AsyncSession):
         await bot.send_document(
             chat_id=user_id,
             document=BufferedInputFile(tk_bytes, filename="bilet_forum_27_06.png"),
-            caption="🎟 *Твой билет на Форум IQ Barakah · 27 июня*\n\nПокажи на входе — и до встречи в Шатёр!",
+            caption="🎟 *Твой билет на Форум IQ Barakah · 27 июня*\n\nПокажи на входе — и до встречи в Ресторане Шатёр!",
             parse_mode="Markdown",
         )
     except Exception:

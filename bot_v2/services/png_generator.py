@@ -141,7 +141,7 @@ def generate_ticket(name: str, ticket_no: str) -> bytes:
     draw.line([(pad, y), (W - pad, y)], fill=(255, 255, 255, 26), width=1)
     y += 28
 
-    _text_center(draw, y, "27 июня · Шатёр", f_event, GREEN_BRIGHT)
+    _text_center(draw, y, "27 июня · Ресторан Шатёр", f_event, GREEN_BRIGHT)
     y += 46
     _text_center(draw, y, "Хасавюрт · начало в 11:00", f_date, GREEN_DIM)
     y += 36
