@@ -261,29 +261,8 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
                 logger.warning("send_weekly_lesson after check_pay: %s", e)
 
         if tariff_id == "forum_27_06":
-            from bot_v2.services.png_generator import generate_checklist, generate_ticket
-            from aiogram.types import BufferedInputFile
-            import datetime as _dt2
-            user_id_ = call.from_user.id
-            _name = (user.name or "Гость").split()[0] if user else "Гость"
-            _ticket_no = f"F{_dt2.date.today().strftime('%m%d')}-{user_id_ % 9000 + 1000}"
-            try:
-                cl_bytes = generate_checklist()
-                await call.bot.send_document(
-                    chat_id=user_id_,
-                    document=BufferedInputFile(cl_bytes, filename="5_pravil_dnya.png"),
-                    caption="🌿 *5 правил дня с барака*\n\nСохрани — пригодится до форума.",
-                    parse_mode="Markdown",
-                )
-                tk_bytes = generate_ticket(_name, _ticket_no)
-                await call.bot.send_document(
-                    chat_id=user_id_,
-                    document=BufferedInputFile(tk_bytes, filename="bilet_forum_27_06.png"),
-                    caption="🎟 *Твой билет на форум 27 июня*\n\nПокажи на входе — и до встречи в Шатёр!",
-                    parse_mode="Markdown",
-                )
-            except Exception as e:
-                logger.warning("forum PNG send error: %s", e)
+            from bot_v2.services.forum_materials import send_forum_materials
+            await send_forum_materials(call.bot, call.from_user.id, session)
 
         # Уведомляем кураторов
         user = await UserRepo(session).get(call.from_user.id)
