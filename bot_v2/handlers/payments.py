@@ -246,23 +246,28 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
             participant = await p_repo.activate(call.from_user.id, level=level, week=1)
             await session.flush()
 
-        await call.message.edit_text(
-            f"✅ *Оплата подтверждена!*\n\n"
-            f"📦 {tariff_name}\n\n"
-            f"🌿 _Баракат в каждом шаге_\n\n"
-            f"Сейчас пришлю первый урок...",
-            parse_mode="Markdown",
-        )
-
-        if level:
-            try:
-                await send_weekly_lesson(call.bot, call.from_user.id, participant, session, config)
-            except Exception as e:
-                logger.warning("send_weekly_lesson after check_pay: %s", e)
-
         if tariff_id == "forum_27_06":
+            await call.message.edit_text(
+                f"✅ *Оплата подтверждена!*\n\n"
+                f"📦 {tariff_name}\n\n"
+                f"🌿 Отправляю билет...",
+                parse_mode="Markdown",
+            )
             from bot_v2.services.forum_materials import send_forum_materials
             await send_forum_materials(call.bot, call.from_user.id, session)
+        else:
+            await call.message.edit_text(
+                f"✅ *Оплата подтверждена!*\n\n"
+                f"📦 {tariff_name}\n\n"
+                f"🌿 _Баракат в каждом шаге_\n\n"
+                f"Сейчас пришлю первый урок...",
+                parse_mode="Markdown",
+            )
+            if level:
+                try:
+                    await send_weekly_lesson(call.bot, call.from_user.id, participant, session, config)
+                except Exception as e:
+                    logger.warning("send_weekly_lesson after check_pay: %s", e)
 
         # Уведомляем кураторов
         user = await UserRepo(session).get(call.from_user.id)

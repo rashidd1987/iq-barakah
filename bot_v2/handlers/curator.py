@@ -389,11 +389,12 @@ async def cb_curator_activate(call: CallbackQuery, session: AsyncSession, config
     await call.message.edit_text(
         call.message.text + f"\n\n✅ Активирован на уровень {level}"
     )
-    await _notify_activation(call.bot, user_id, participant, session, config)
 
     if tariff_id == "forum_27_06":
         from bot_v2.services.forum_materials import send_forum_materials
         await send_forum_materials(call.bot, user_id, session)
+    else:
+        await _notify_activation(call.bot, user_id, participant, session, config)
 
 
 @router.message(Command("send_now"))
