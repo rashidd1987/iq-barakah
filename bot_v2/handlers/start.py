@@ -183,6 +183,37 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         )
         return
 
+    if payload == "forum":
+        await message.answer(
+            t(lang, "menu.updated", version=config.version),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+            parse_mode=None,
+        )
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting_name = f", {name_first}" if name_first else ""
+        forum_text = (
+            f"🌿 Ас-саляму алейкум{greeting_name}!\n\n"
+            f"*27 июня · Шатёр*\n\n"
+            f"«Я не забыл Аллаха. Я просто потерял систему.»\n\n"
+            f"Покажу всю архитектуру IQ Barakah — не мотивацию, а систему изменений.\n\n"
+            f"━━━━━━━━━━━━━━━\n\n"
+            f"*Билет 1 500 ₽:*\n"
+            f"✅ Вход на форум\n"
+            f"✅ IQ Barakah Старт · 6 шагов (обычно отдельно) — откроется ровно в 13:00\n"
+            f"✅ Обед в Шатёр после форума\n\n"
+            f"🎟 Места ограничены."
+        )
+        await message.answer(
+            forum_text,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🎟 Записаться — 1500₽", callback_data="tariff:forum_27_06")],
+                [InlineKeyboardButton(text="💬 Есть вопрос", callback_data="contact_curator")],
+            ])
+        )
+        return
+
     await message.answer(
         t(lang, "menu.updated", version=config.version),
         reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
