@@ -190,7 +190,7 @@ def _build_result(scores: list) -> tuple:
         footer = (
             "━━━━━━━━━━━━━━━\n\n"
             "*Что я рекомендую:*\n\n"
-            "Начни с ВАКТ — 6 недель.\n"
+            "Начни с IQ Barakah Старт — 6 недель.\n"
             "Это конструктор дня: утро, намерение, ритм.\n\n"
             "Первый сдвиг — уже в первую неделю.\n"
             "Без перегруза. Без давления на себя."
@@ -204,7 +204,7 @@ def _build_result(scores: list) -> tuple:
         footer = (
             "━━━━━━━━━━━━━━━\n\n"
             "*Что я рекомендую:*\n\n"
-            "Шаг 1 — ВАКТ, чтобы закрыть пробоины в ритме дня.\n"
+            "Шаг 1 — IQ Barakah Старт, чтобы закрыть пробоины в ритме дня.\n"
             "Шаг 2 — IQ Barakah (3 сезона), чтобы собрать всё в систему.\n\n"
             "Тебе нужна не мотивация — а среда и постоянство."
         )
@@ -287,18 +287,18 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
         repo = SettingsRepo(session)
         await repo.set(f"korablik_offer:{uid}", str(int(_time.time()) + 10800))  # 3 часа
 
-        # Отправляем подарок — первый урок ВАКТ + скидка 24 часа
+        # Отправляем подарок — первый урок IQ Barakah Старт + скидка 24 часа
         await asyncio.sleep(1.5)
         await call.bot.send_message(
             uid,
             "🎁 *Вот твой подарок — первый шаг IQ Barakah Старт прямо сейчас.*\n\n"
             "Это бесплатно. Никакой оплаты — просто начни.\n\n"
-            "И ещё одно: следующие *3 часа* ВАКТ доступен за *999 ₽* вместо 1 500 ₽.\n"
+            "И ещё одно: следующие *3 часа* IQ Barakah Старт доступен за *999 ₽* вместо 1 500 ₽.\n"
             "Это только для тебя — за то, что прошёл диагностику честно. 🌿",
             parse_mode="Markdown",
             reply_markup=_kb(
                 ("🌱 Получить первый урок бесплатно", "kb_free_lesson"),
-                ("💳 Купить ВАКТ за 999 ₽", "pay:vakt"),
+                ("💳 Купить IQ Barakah Старт за 999 ₽", "pay:vakt"),
             )
         )
 
@@ -357,7 +357,7 @@ async def cb_free_lesson(call: CallbackQuery, session: AsyncSession, config: Con
 async def cb_want_vakt(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
-        "Отлично! 🚀\n\nНажми «Оплата» в меню — там выбери ВАКТ.",
+        "Отлично! 🚀\n\nНажми «Оплата» в меню — там выбери IQ Barakah Старт.",
         reply_markup=_kb(("💳 Перейти к оплате", "show_tariffs")),
     )
 
@@ -365,7 +365,7 @@ async def cb_want_vakt(call: CallbackQuery):
 async def cb_about_vakt(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
-        "*ВАКТ* — это не курс мотивации.\n\n"
+        "*IQ Barakah Старт* — это не курс мотивации.\n\n"
         "Это 6-недельная система возвращения ритма:\n\n"
         "• Утро: якорь дня, намерение, намаз\n"
         "• День: план вокруг намазов\n"
@@ -373,7 +373,7 @@ async def cb_about_vakt(call: CallbackQuery):
         "• Поддержка: Telegram-группа + якорный брат/сестра\n\n"
         "Первый сдвиг — уже в первую неделю.",
         parse_mode="Markdown",
-        reply_markup=_kb(("🌱 Начать ВАКТ", "show_tariffs")),
+        reply_markup=_kb(("🌱 Начать IQ Barakah Старт", "show_tariffs")),
     )
 
 @router.callback_query(F.data == "kb_want_iq")
@@ -433,23 +433,23 @@ async def cb_fu_price(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
         "Понимаю.\n\n"
-        "ВАКТ — это меньше одного похода в кафе.\n"
+        "IQ Barakah Старт — это меньше одного похода в кафе.\n"
         "А система, которая работает каждый день.\n\n"
         "Если в первую неделю не почувствуешь сдвиг —\n"
         "напиши куратору, разберёмся.",
-        reply_markup=_kb(("🌱 Попробовать ВАКТ", "show_tariffs")),
+        reply_markup=_kb(("🌱 Попробовать IQ Barakah Старт", "show_tariffs")),
     )
 
 @router.callback_query(F.data == "kb_fu_time")
 async def cb_fu_time(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
-        "Именно поэтому тебе и нужен ВАКТ 😊\n\n"
+        "Именно поэтому тебе и нужен IQ Barakah Старт 😊\n\n"
         "Не нужно выделять час в день.\n"
         "15 минут утром + 5 минут вечером.\n\n"
-        "ВАКТ не добавляет задачи —\n"
+        "IQ Barakah Старт не добавляет задачи —\n"
         "он наводит порядок в тех, что уже есть.",
-        reply_markup=_kb(("🌱 Начать ВАКТ", "show_tariffs")),
+        reply_markup=_kb(("🌱 Начать IQ Barakah Старт", "show_tariffs")),
     )
 
 @router.callback_query(F.data == "kb_fu_unsure")

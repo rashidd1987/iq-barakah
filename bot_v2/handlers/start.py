@@ -766,7 +766,7 @@ def _program_overview_text(lang: str, diag: DiagResult | None = None) -> str:
 
 def _program_tariff_name(lang: str, tariff_id: str) -> str:
     names = {
-        "vakt": "🌱 ВАКТ",
+        "vakt": "🌱 IQ Barakah Старт",
         "s1_full": "📗 IQ Barakah · Сезон 1",
         "s3_full": "🏆 IQ Barakah · 3 сезона",
         "jamaat": "👥 Джамаат",
@@ -794,7 +794,7 @@ def _program_texts() -> dict[str, dict[str, str]]:
                 "✅ Поведение (привычки и дела)\n\n"
                 "Курс поможет сделать так, чтобы работа, семья и духовная жизнь не мешали, а поддерживали друг друга.\n\n"
                 "━━━━━━━━━━━━━━━━\n"
-                "🌱 *ВАКТ · Тайм-менеджмент мусульманина* · 6 недель · 1 500 ₽\n\n"
+                "🌱 *IQ Barakah Старт · Тайм-менеджмент мусульманина* · 6 недель · 1 500 ₽\n\n"
                 "B1 🌿 Ният (намерение) — тайный разговор\n"
                 "B2 🏁 Фаджр — якорь дня\n"
                 "B3 🕊 Тауба (покаяние) — чистый лист\n"

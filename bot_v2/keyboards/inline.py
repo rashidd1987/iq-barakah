@@ -166,7 +166,7 @@ def kb_program_overview(
     b = InlineKeyboardBuilder()
     recommended = next((tariff for tariff in TARIFFS if tariff["id"] == recommended_tariff_id), TARIFFS[0])
     names = {
-        "vakt": "🌱 ВАКТ",
+        "vakt": "🌱 IQ Barakah Старт",
         "s1_full": "📗 IQ Barakah · Сезон 1",
         "s3_full": "🏆 IQ Barakah · 3 сезона",
         "jamaat": "👥 Джамаат",
