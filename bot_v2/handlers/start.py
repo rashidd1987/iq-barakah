@@ -149,7 +149,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             except Exception:
                 pass
 
-        level_words = {"a": "Начало пути", "b": "Пробуждение", "c": "Рост", "d": "Глубина"}
+        level_words = {"a": "Пробуждение", "b": "Пробуждение", "c": "Практика", "d": "Баракат"}
         level_label = level_words.get(site_level, "")
 
         pct_text = f"*{site_pct}% потенциала*" if site_pct else "твой потенциал"
