@@ -46,7 +46,7 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru", participant=
     b = InlineKeyboardBuilder()
     ship_sep = "&" if "?" in ship_url else "?"
     b.button(text=t(lang, "menu.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant)))
-    b.button(text=t(lang, "menu.ship"), web_app=WebAppInfo(url=f"{ship_url}{ship_sep}lang={lang}"))
+    b.button(text=t(lang, "menu.ship"), url=f"{ship_url}{ship_sep}lang={lang}")
     b.button(text="🚢 Кораблик — диагностика жизни", callback_data="korablik_start")
     b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
     b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
