@@ -17,7 +17,7 @@ TARIFFS = [
         "id": "vakt",
         "name": "🌱 IQ Barakah Старт",
         "desc": "Тайм-менеджмент мусульманина · 6 недель",
-        "price": 1_500,
+        "price": 1,
     },
     {
         "id": "s1_month",
