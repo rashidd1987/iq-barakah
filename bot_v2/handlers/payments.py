@@ -56,8 +56,11 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
     await call.answer()
     lang = await _user_lang(session, call.from_user.id)
     tariff_id = call.data.split(":")[1]
+    logger.info("cb_pay: user=%s tariff=%s", call.from_user.id, tariff_id)
+
     tariff = get_tariff(tariff_id)
     if not tariff:
+        logger.warning("cb_pay: tariff not found: %s", tariff_id)
         await call.message.answer(t(lang, "tariffs.not_found"))
         return
 
@@ -72,6 +75,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         )
     )
     if existing:
+        logger.info("cb_pay: duplicate paid tariff %s for user %s", tariff_id, call.from_user.id)
         await call.answer("✅ Ты уже оплатил этот тариф!", show_alert=True)
         return
 
@@ -101,7 +105,9 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         )
         return
 
+    logger.info("cb_pay: shop_id=%s secret_set=%s", config.yookassa_shop_id, bool(config.yookassa_secret_key))
     if not config.yookassa_shop_id or not config.yookassa_secret_key:
+        logger.error("cb_pay: YooKassa credentials missing!")
         await call.message.answer("⚠️ Оплата временно недоступна. Напишите куратору: @iqbarakah")
         return
 
@@ -124,6 +130,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
             except ValueError:
                 pass
 
+    logger.info("cb_pay: creating payment tariff=%s price=%s user=%s", tariff_id, price, user_id)
     payment = await create_payment(
         shop_id=config.yookassa_shop_id,
         secret_key=config.yookassa_secret_key,
@@ -132,6 +139,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         return_url="https://t.me/iqbaraka_bot",
         metadata={"tariff_id": tariff_id, "user_id": str(user_id)},
     )
+    logger.info("cb_pay: payment result=%s", payment)
 
     if not payment or payment.get("error"):
         err_detail = payment.get("detail", {}) if payment else {}
