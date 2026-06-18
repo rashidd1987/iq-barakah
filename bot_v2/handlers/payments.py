@@ -61,6 +61,20 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         await call.message.answer(t(lang, "tariffs.not_found"))
         return
 
+    # Защита от дублей — проверяем есть ли уже paid платёж по этому тарифу
+    from sqlalchemy import select as _sa_select
+    from bot_v2.db.models import Payment as _Payment
+    existing = await session.scalar(
+        _sa_select(_Payment).where(
+            _Payment.user_id == call.from_user.id,
+            _Payment.tariff_id == tariff_id,
+            _Payment.status == "paid",
+        )
+    )
+    if existing:
+        await call.answer("✅ Ты уже оплатил этот тариф!", show_alert=True)
+        return
+
     if tariff_id in ("jamaat", "leader"):
         tariff_view = get_tariff_view(tariff_id, lang) or tariff
         user = await UserRepo(session).get(call.from_user.id)
