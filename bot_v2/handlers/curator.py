@@ -471,16 +471,25 @@ async def cmd_forum_start(message: Message, session: AsyncSession, config: Confi
     from bot_v2.db.models import Payment
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+    from sqlalchemy import or_
     result = await session.execute(
         sa_select(Payment).where(
             Payment.tariff_id == "forum_27_06",
-            Payment.status == "paid",
+            or_(Payment.status == "paid", Payment.status == "pending"),
         )
     )
     payments = result.scalars().all()
+    # дедупликация по user_id
+    seen = set()
+    unique_payments = []
+    for p in payments:
+        if p.user_id not in seen:
+            seen.add(p.user_id)
+            unique_payments.append(p)
+    payments = unique_payments
 
     if not payments:
-        await message.answer("❌ Нет оплаченных билетов на форум.")
+        await message.answer("❌ Нет билетов на форум в базе.")
         return
 
     await message.answer(f"📤 Отправляю диагностику {len(payments)} участникам форума...")
