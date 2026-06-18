@@ -281,6 +281,37 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
         name = user.name if user else call.from_user.full_name
         uid = call.from_user.id
 
+        # Если участник форума — активируем сразу без кнопки
+        from sqlalchemy import select as _sa_select
+        from bot_v2.db.models import Payment
+        forum_pay = await session.scalar(
+            _sa_select(Payment).where(
+                Payment.user_id == uid,
+                Payment.tariff_id == "forum_27_06",
+                Payment.status == "paid",
+            )
+        )
+        if forum_pay:
+            from bot_v2.db.repositories import ParticipantRepo as _PR
+            from bot_v2.handlers.program import send_weekly_lesson
+            p_repo = _PR(session)
+            participant = await p_repo.get(uid)
+            if not participant or not participant.is_active:
+                participant = await p_repo.activate(uid, level="А", week=1)
+                await session.flush()
+            await asyncio.sleep(1.5)
+            await call.bot.send_message(
+                uid,
+                "🌱 *Диагностика завершена! Открываю первый урок IQ Barakah Старт.*\n\n"
+                "Шаг 1 — Ният (намерение). Читай, делай, возвращайся. 🌿",
+                parse_mode="Markdown",
+            )
+            try:
+                await send_weekly_lesson(call.bot, uid, participant, session, config)
+            except Exception as e:
+                logger.warning("forum korablik lesson: %s", e)
+            return
+
         # Сохраняем время завершения кораблика для скидки 24 часа
         import time as _time
         from bot_v2.db.repositories import SettingsRepo

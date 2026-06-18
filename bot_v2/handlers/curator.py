@@ -461,6 +461,60 @@ async def cmd_send_all(message: Message, session: AsyncSession, config: Config):
     )
 
 
+@router.message(Command("forum_start"))
+async def cmd_forum_start(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /forum_start — разослать диагностику всем оплатившим форум 27 июня."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    from sqlalchemy import select as sa_select
+    from bot_v2.db.models import Payment
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    result = await session.execute(
+        sa_select(Payment).where(
+            Payment.tariff_id == "forum_27_06",
+            Payment.status == "paid",
+        )
+    )
+    payments = result.scalars().all()
+
+    if not payments:
+        await message.answer("❌ Нет оплаченных билетов на форум.")
+        return
+
+    await message.answer(f"📤 Отправляю диагностику {len(payments)} участникам форума...")
+
+    ok = 0
+    fail = 0
+    for pay in payments:
+        try:
+            user = await UserRepo(session).get(pay.user_id)
+            name = (user.name or "").split()[0] if user else ""
+            greeting = f", {name}" if name else ""
+            await message.bot.send_message(
+                chat_id=pay.user_id,
+                text=(
+                    f"🌿 Ас-саляму алейкум{greeting}!\n\n"
+                    f"Форум IQ Barakah начинается.\n\n"
+                    f"Прежде чем открыть тебе *6 шагов IQ Barakah Старт* — "
+                    f"пройди короткую диагностику потенциала.\n\n"
+                    f"Это 7 вопросов · 2 минуты · определит твой уровень.\n\n"
+                    f"По результату сразу откроется первый урок — именно для тебя. 🌱"
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+                ])
+            )
+            ok += 1
+        except Exception as e:
+            logger.warning("forum_start → %s: %s", pay.user_id, e)
+            fail += 1
+
+    await message.answer(f"✅ Готово!\n\nОтправлено: {ok}\nОшибок: {fail}")
+
+
 @router.message(Command("reset"))
 async def cmd_reset(message: Message, session: AsyncSession, config: Config):
     """
