@@ -524,6 +524,41 @@ async def cmd_forum_start(message: Message, session: AsyncSession, config: Confi
     await message.answer(f"✅ Готово!\n\nОтправлено: {ok}\nОшибок: {fail}")
 
 
+@router.message(Command("forum_add"))
+async def cmd_forum_add(message: Message, session: AsyncSession, config: Config):
+    """/forum_add <user_id> — добавить тестовую запись билета форума."""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer("Использование: `/forum_add <user_id>`", parse_mode="Markdown")
+        return
+    try:
+        user_id = int(args[0])
+    except ValueError:
+        await message.answer("❌ user_id должен быть числом.")
+        return
+
+    from bot_v2.db.repositories import PaymentRepo
+    await PaymentRepo(session).create(
+        user_id=user_id,
+        tariff_id="forum_27_06",
+        amount=1500,
+        yoo_payment_id=f"test_forum_{user_id}",
+    )
+    # Помечаем сразу как paid
+    from bot_v2.db.models import Payment
+    from sqlalchemy import select as sa_select
+    pay = await session.scalar(
+        sa_select(Payment).where(Payment.yoo_payment_id == f"test_forum_{user_id}")
+    )
+    if pay:
+        pay.status = "paid"
+        await session.flush()
+
+    await message.answer(f"✅ Билет форума добавлен для `{user_id}`", parse_mode="Markdown")
+
+
 @router.message(Command("reset"))
 async def cmd_reset(message: Message, session: AsyncSession, config: Config):
     """
