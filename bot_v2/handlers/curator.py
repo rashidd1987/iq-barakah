@@ -562,6 +562,16 @@ async def cmd_forum_list(message: Message, session: AsyncSession, config: Config
     await message.answer("\n".join(lines), parse_mode="Markdown")
 
 
+@router.message(Command("forum_reset_counter"))
+async def cmd_forum_reset_counter(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /forum_reset_counter — сбросить счётчик билетов на 0."""
+    if not is_curator(message.from_user.id, config):
+        return
+    from bot_v2.db.repositories import SettingsRepo
+    await SettingsRepo(session).set("forum_27_06:ticket_counter", "0")
+    await message.answer("✅ Счётчик билетов сброшен. Следующий билет будет № 1.")
+
+
 @router.message(Command("forum_add"))
 async def cmd_forum_add(message: Message, session: AsyncSession, config: Config):
     """/forum_add <user_id> — добавить тестовую запись билета форума."""
