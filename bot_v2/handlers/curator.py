@@ -524,6 +524,44 @@ async def cmd_forum_start(message: Message, session: AsyncSession, config: Confi
     await message.answer(f"✅ Готово!\n\nОтправлено: {ok}\nОшибок: {fail}")
 
 
+@router.message(Command("forum_list"))
+async def cmd_forum_list(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /forum_list — список всех купивших билет на форум."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    from sqlalchemy import select as sa_select, or_
+    from bot_v2.db.models import Payment
+
+    result = await session.execute(
+        sa_select(Payment).where(
+            Payment.tariff_id == "forum_27_06",
+            or_(Payment.status == "paid", Payment.status == "pending"),
+        )
+    )
+    payments = result.scalars().all()
+
+    seen = set()
+    unique = []
+    for p in payments:
+        if p.user_id not in seen:
+            seen.add(p.user_id)
+            unique.append(p)
+
+    if not unique:
+        await message.answer("Билетов на форум пока нет.")
+        return
+
+    lines = [f"🎟 *Участники форума — {len(unique)} чел.*\n"]
+    for i, p in enumerate(unique, 1):
+        user = await UserRepo(session).get(p.user_id)
+        name = user.name if user else "—"
+        status = "✅" if p.status == "paid" else "⏳"
+        lines.append(f"{i}. {status} {name} (`{p.user_id}`)")
+
+    await message.answer("\n".join(lines), parse_mode="Markdown")
+
+
 @router.message(Command("forum_add"))
 async def cmd_forum_add(message: Message, session: AsyncSession, config: Config):
     """/forum_add <user_id> — добавить тестовую запись билета форума."""
