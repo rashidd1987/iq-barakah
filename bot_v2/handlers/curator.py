@@ -607,6 +607,57 @@ async def cmd_forum_add(message: Message, session: AsyncSession, config: Config)
     await message.answer(f"✅ Билет форума добавлен для `{user_id}`", parse_mode="Markdown")
 
 
+@router.message(Command("gift"))
+async def cmd_gift(message: Message, session: AsyncSession, config: Config):
+    """/gift <user_id> — бесплатный доступ к IQ Barakah Старт."""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer(
+            "Использование: `/gift <user_id>`\n\n"
+            "Или скинь ссылку: `t.me/iqbaraka_bot?start=gift`",
+            parse_mode="Markdown",
+        )
+        return
+    try:
+        uid = int(args[0])
+    except ValueError:
+        await message.answer("❌ user_id должен быть числом.")
+        return
+
+    existing = await ParticipantRepo(session).get(uid)
+    if existing:
+        level_name = LEVEL_NAMES.get(existing.level, existing.level)
+        await message.answer(
+            f"⚠️ Пользователь `{uid}` уже активирован: {level_name}, шаг {existing.week}.",
+            parse_mode="Markdown",
+        )
+        return
+
+    user = await UserRepo(session).get(uid)
+    if not user:
+        await message.answer(f"❌ Пользователь `{uid}` не найден.", parse_mode="Markdown")
+        return
+
+    participant = await ParticipantRepo(session).activate(uid, level="А", week=1)
+    await session.flush()
+
+    name = user.name or str(uid)
+    await message.answer(
+        f"✅ Бесплатный доступ активирован для *{name}* (`{uid}`).\n\n"
+        f"Отправляю первый шаг...",
+        parse_mode="Markdown",
+    )
+
+    from bot_v2.handlers.program import send_weekly_lesson
+    try:
+        await send_weekly_lesson(message.bot, uid, participant, session, config)
+    except Exception as e:
+        logger.warning("gift: send_weekly_lesson failed for %s: %s", uid, e)
+        await message.answer(f"⚠️ Активирован, но первый урок не удалось отправить: {e}")
+
+
 @router.message(Command("user_info"))
 async def cmd_user_info(message: Message, session: AsyncSession, config: Config):
     """/user_info <user_id> — подробная информация об участнике."""

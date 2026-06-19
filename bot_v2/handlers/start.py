@@ -183,6 +183,60 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         )
         return
 
+    if payload == "gift":
+        # Бесплатный доступ к IQ Barakah Старт (6 шагов) — для персонала и знакомых
+        from bot_v2.db.repositories import ParticipantRepo, PaymentRepo
+        from bot_v2.handlers.program import send_weekly_lesson
+
+        p_repo = ParticipantRepo(session)
+        existing = await p_repo.get(message.from_user.id)
+
+        if existing:
+            await message.answer(
+                "🌱 У тебя уже открыт доступ к программе.\n\n"
+                "Нажми *Мой путь* чтобы продолжить.",
+                parse_mode="Markdown",
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            return
+
+        # Активируем бесплатно на уровень А
+        participant = await p_repo.activate(message.from_user.id, level="А", week=1)
+        await session.flush()
+
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting = f", {name_first}" if name_first else ""
+
+        await message.answer(
+            f"🌿 Ас-саляму алейкум{greeting}!\n\n"
+            f"Тебе открыт *IQ Barakah Старт* — 6 шагов тайм-менеджмента мусульманина.\n\n"
+            f"Шаги открываются последовательно — один за другим.\n"
+            f"Сейчас пришлю первый. 🌱",
+            parse_mode="Markdown",
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+        )
+
+        # Уведомляем куратора
+        for curator_id in config.curator_ids:
+            try:
+                await message.bot.send_message(
+                    chat_id=curator_id,
+                    text=(
+                        f"🎁 *Бесплатный доступ активирован*\n\n"
+                        f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
+                        f"📦 IQ Barakah Старт · gift link"
+                    ),
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                pass
+
+        try:
+            await send_weekly_lesson(message.bot, message.from_user.id, participant, session, config)
+        except Exception:
+            pass
+        return
+
     if payload == "forum":
         await message.answer(
             t(lang, "menu.updated", version=config.version),
