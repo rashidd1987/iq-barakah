@@ -607,6 +607,76 @@ async def cmd_forum_add(message: Message, session: AsyncSession, config: Config)
     await message.answer(f"✅ Билет форума добавлен для `{user_id}`", parse_mode="Markdown")
 
 
+@router.message(Command("user_info"))
+async def cmd_user_info(message: Message, session: AsyncSession, config: Config):
+    """/user_info <user_id> — подробная информация об участнике."""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer("Использование: `/user_info <user_id>`", parse_mode="Markdown")
+        return
+    try:
+        uid = int(args[0])
+    except ValueError:
+        await message.answer("❌ user_id должен быть числом.")
+        return
+
+    from sqlalchemy import select as sa_select
+    from bot_v2.db.models import Payment
+
+    user = await UserRepo(session).get(uid)
+    if not user:
+        await message.answer(f"❌ Пользователь `{uid}` не найден в базе.", parse_mode="Markdown")
+        return
+
+    participant = await ParticipantRepo(session).get(uid)
+
+    # Все платежи
+    payments_result = await session.execute(
+        sa_select(Payment).where(Payment.user_id == uid).order_by(Payment.created_at.desc())
+    )
+    payments = payments_result.scalars().all()
+
+    # Строим ответ
+    name = user.name or "—"
+    username = f"@{user.username}" if user.username else "—"
+    lang = user.language_code or "—"
+    created = user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—"
+
+    lines = [
+        f"👤 *{name}* (`{uid}`)",
+        f"├ TG: {username}",
+        f"├ Язык: {lang}",
+        f"└ В боте с: {created}",
+        "",
+    ]
+
+    if participant:
+        level_name = LEVEL_NAMES.get(participant.level, participant.level)
+        max_week = LEVEL_WEEKS.get(participant.level, 8)
+        lines += [
+            f"📊 *Прогресс:*",
+            f"├ Уровень: {level_name}",
+            f"├ Шаг: {participant.week}/{max_week}",
+            f"└ Активирован: {participant.activated_at.strftime('%d.%m.%Y') if participant.activated_at else '—'}",
+            "",
+        ]
+    else:
+        lines += ["📊 *Прогресс:* не активирован\n"]
+
+    if payments:
+        lines.append("💳 *Платежи:*")
+        for p in payments:
+            date = p.created_at.strftime("%d.%m.%Y") if p.created_at else "—"
+            status_icon = "✅" if p.status == "paid" else ("❌" if p.status == "canceled" else "⏳")
+            lines.append(f"{status_icon} {p.tariff_id} · {p.amount} ₽ · {date}")
+    else:
+        lines.append("💳 *Платежи:* нет")
+
+    await message.answer("\n".join(lines), parse_mode="Markdown")
+
+
 @router.message(Command("reset"))
 async def cmd_reset(message: Message, session: AsyncSession, config: Config):
     """
