@@ -689,7 +689,6 @@ async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext
             await _repo.set(key, "")
         except Exception:
             pass
-    await session.commit()
     await state.clear()
     await message.answer(
         "✅ Полный сброс выполнен:\n\n"

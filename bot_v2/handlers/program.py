@@ -169,16 +169,15 @@ async def _complete_step(call: CallbackQuery, session: AsyncSession, p, lang: st
         return
 
     # Открываем следующий шаг сразу
-    repo = ParticipantRepo(session)
     p.week = current_step + 1
-    await session.commit()
+    await session.flush()  # middleware закоммитит после return; sleep(2) в задаче даст время
 
     await call.message.answer(
         t(lang, "week.acked", week=current_step),
         parse_mode="Markdown"
     )
 
-    # Отправляем следующий шаг через отдельную сессию (текущая уже закоммичена)
+    # Отправляем следующий шаг через отдельную сессию
     asyncio.create_task(_send_next_step(call.bot, uid, config))
 
 
