@@ -312,6 +312,32 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
                 logger.warning("forum korablik lesson: %s", e)
             return
 
+        # Бесплатный gift доступ — активируем сразу после диагностики
+        from bot_v2.db.repositories import SettingsRepo as _SR2
+        _gift_repo = _SR2(session)
+        gift_flag = await _gift_repo.get(f"gift_pending:{uid}")
+        if gift_flag == "1":
+            await _gift_repo.set(f"gift_pending:{uid}", "")  # сбрасываем флаг
+            from bot_v2.db.repositories import ParticipantRepo as _PR2
+            from bot_v2.handlers.program import send_weekly_lesson
+            p_repo2 = _PR2(session)
+            participant = await p_repo2.get(uid)
+            if not participant or not participant.is_active:
+                participant = await p_repo2.activate(uid, level="А", week=1)
+                await session.flush()
+            await asyncio.sleep(1.5)
+            await call.bot.send_message(
+                uid,
+                "🌱 *Диагностика завершена! Открываю первый шаг IQ Barakah Старт.*\n\n"
+                "Шаг 1 — Ният (намерение). Читай, делай, возвращайся. 🌿",
+                parse_mode="Markdown",
+            )
+            try:
+                await send_weekly_lesson(call.bot, uid, participant, session, config)
+            except Exception as e:
+                logger.warning("gift korablik lesson: %s", e)
+            return
+
         # Сохраняем время завершения кораблика для скидки 24 часа
         import time as _time
         from bot_v2.db.repositories import SettingsRepo

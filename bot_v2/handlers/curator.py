@@ -640,22 +640,33 @@ async def cmd_gift(message: Message, session: AsyncSession, config: Config):
         await message.answer(f"❌ Пользователь `{uid}` не найден.", parse_mode="Markdown")
         return
 
-    participant = await ParticipantRepo(session).activate(uid, level="А", week=1)
-    await session.flush()
+    # Ставим флаг gift_pending — после Кораблика откроется урок
+    from bot_v2.db.repositories import SettingsRepo
+    await SettingsRepo(session).set(f"gift_pending:{uid}", "1")
 
     name = user.name or str(uid)
     await message.answer(
-        f"✅ Бесплатный доступ активирован для *{name}* (`{uid}`).\n\n"
-        f"Отправляю первый шаг...",
+        f"✅ Бесплатный доступ выдан *{name}* (`{uid}`).\n\n"
+        f"Отправляю им приглашение пройти диагностику — после неё откроется Шаг 1.",
         parse_mode="Markdown",
     )
 
-    from bot_v2.handlers.program import send_weekly_lesson
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     try:
-        await send_weekly_lesson(message.bot, uid, participant, session, config)
+        await message.bot.send_message(
+            uid,
+            "🌿 *Тебе открыт IQ Barakah Старт — 6 шагов тайм-менеджмента мусульманина.*\n\n"
+            "Прежде чем начать — пройди короткую диагностику.\n"
+            "7 вопросов · 2 минуты · определит твой уровень.\n\n"
+            "По результату сразу откроется первый шаг. 🌱",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+            ]),
+        )
     except Exception as e:
-        logger.warning("gift: send_weekly_lesson failed for %s: %s", uid, e)
-        await message.answer(f"⚠️ Активирован, но первый урок не удалось отправить: {e}")
+        logger.warning("gift cmd: send to %s failed: %s", uid, e)
+        await message.answer(f"⚠️ Флаг поставлен, но сообщение не доставлено: {e}")
 
 
 @router.message(Command("user_info"))

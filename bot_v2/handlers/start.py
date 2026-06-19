@@ -184,14 +184,12 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         return
 
     if payload == "gift":
-        # Бесплатный доступ к IQ Barakah Старт (6 шагов) — для персонала и знакомых
-        from bot_v2.db.repositories import ParticipantRepo, PaymentRepo
-        from bot_v2.handlers.program import send_weekly_lesson
+        # Бесплатный доступ к IQ Barakah Старт — сначала диагностика, потом урок
+        from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-        p_repo = ParticipantRepo(session)
-        existing = await p_repo.get(message.from_user.id)
-
-        if existing:
+        existing = await ParticipantRepo(session).get(message.from_user.id)
+        if existing and existing.is_active:
             await message.answer(
                 "🌱 У тебя уже открыт доступ к программе.\n\n"
                 "Нажми *Мой путь* чтобы продолжить.",
@@ -200,9 +198,8 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             )
             return
 
-        # Активируем бесплатно на уровень А
-        participant = await p_repo.activate(message.from_user.id, level="А", week=1)
-        await session.flush()
+        # Ставим флаг — после Кораблика активировать бесплатно
+        await SettingsRepo(session).set(f"gift_pending:{message.from_user.id}", "1")
 
         name_first = (db_user.name or "").split()[0] if db_user.name else ""
         greeting = f", {name_first}" if name_first else ""
@@ -210,31 +207,18 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         await message.answer(
             f"🌿 Ас-саляму алейкум{greeting}!\n\n"
             f"Тебе открыт *IQ Barakah Старт* — 6 шагов тайм-менеджмента мусульманина.\n\n"
-            f"Шаги открываются последовательно — один за другим.\n"
-            f"Сейчас пришлю первый. 🌱",
+            f"Прежде чем начать — пройди короткую диагностику потенциала.\n"
+            f"7 вопросов · 2 минуты · определит твой уровень.\n\n"
+            f"По результату сразу откроется первый шаг — именно для тебя. 🌱",
             parse_mode="Markdown",
-            reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, None),
         )
-
-        # Уведомляем куратора
-        for curator_id in config.curator_ids:
-            try:
-                await message.bot.send_message(
-                    chat_id=curator_id,
-                    text=(
-                        f"🎁 *Бесплатный доступ активирован*\n\n"
-                        f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
-                        f"📦 IQ Barakah Старт · gift link"
-                    ),
-                    parse_mode="Markdown",
-                )
-            except Exception:
-                pass
-
-        try:
-            await send_weekly_lesson(message.bot, message.from_user.id, participant, session, config)
-        except Exception:
-            pass
+        await message.answer(
+            "👇 Нажми чтобы начать:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+            ]),
+        )
         return
 
     if payload == "forum":
