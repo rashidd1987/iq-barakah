@@ -670,7 +670,10 @@ async def cmd_user_info(message: Message, session: AsyncSession, config: Config)
         for p in payments:
             date = p.created_at.strftime("%d.%m.%Y") if p.created_at else "—"
             status_icon = "✅" if p.status == "paid" else ("❌" if p.status == "canceled" else "⏳")
-            lines.append(f"{status_icon} {p.tariff_id} · {p.amount} ₽ · {date}")
+            from bot_v2.services.program import get_tariff
+            tariff_info = get_tariff(p.tariff_id)
+            tariff_label = tariff_info["name"] if tariff_info else p.tariff_id
+            lines.append(f"{status_icon} {tariff_label} · {p.amount} ₽ · {date}")
     else:
         lines.append("💳 *Платежи:* нет")
 
