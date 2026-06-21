@@ -290,7 +290,18 @@ def kb_diag_answer(options: list[tuple[str, int]], q_idx: int) -> InlineKeyboard
     return b.as_markup()
 
 
-def kb_curator_notify(user_id: int, tariff_id: str) -> InlineKeyboardMarkup:
+def kb_curator_notify(user_id: int, tariff_id: str, username: str | None = None) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     b.button(text="✅ Активировать", callback_data=f"curator_activate:{user_id}:{tariff_id}")
+    chat_url = f"https://t.me/{username}" if username else f"tg://user?id={user_id}"
+    b.button(text="✍️ Написать", url=chat_url)
+    b.adjust(2)
     return b.as_markup()
+
+
+def kb_curator_contact(user_id: int, username: str | None = None) -> InlineKeyboardMarkup:
+    """Кнопка «Написать» для уведомлений без активации."""
+    chat_url = f"https://t.me/{username}" if username else f"tg://user?id={user_id}"
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Написать", url=chat_url)],
+    ])

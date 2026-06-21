@@ -83,6 +83,8 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         tariff_view = get_tariff_view(tariff_id, lang) or tariff
         user = await UserRepo(session).get(call.from_user.id)
         name = user.name if user else str(call.from_user.id)
+        username = user.username if user and user.username else None
+        from bot_v2.keyboards.inline import kb_curator_contact
         # Уведомляем куратора
         for curator_id in config.curator_ids:
             try:
@@ -95,6 +97,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
                         f"Свяжись с участником для обсуждения условий."
                     ),
                     parse_mode="Markdown",
+                    reply_markup=kb_curator_contact(call.from_user.id, username),
                 )
             except Exception:
                 pass
@@ -196,7 +199,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
                     f"🆔 `{payment['id']}`"
                 ).replace(",", " "),
                 parse_mode="Markdown",
-                reply_markup=kb_curator_notify(user_id, tariff_id),
+                reply_markup=kb_curator_notify(user_id, tariff_id, user.username if user and user.username else None),
             )
         except Exception:
             pass
@@ -353,6 +356,12 @@ async def cb_contact_curator(call: CallbackQuery, session: AsyncSession, config:
     )
 
     # Уведомляем куратора
+    user = await UserRepo(session).get(call.from_user.id)
+    username = user.username if user and user.username else None
+    open_btn = InlineKeyboardButton(
+        text="✍️ Написать",
+        url=f"tg://user?id={call.from_user.id}" if not username else f"https://t.me/{username}",
+    )
     for curator_id in config.curator_ids:
         try:
             await call.bot.send_message(
@@ -363,6 +372,7 @@ async def cb_contact_curator(call: CallbackQuery, session: AsyncSession, config:
                     f"Нажал «Поговорить с куратором» в боте."
                 ),
                 parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[open_btn]]),
             )
         except Exception:
             pass
