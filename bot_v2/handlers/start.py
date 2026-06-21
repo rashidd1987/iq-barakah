@@ -330,6 +330,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="🎟 Записаться — 1500₽", callback_data="tariff:forum_27_06")],
+                [InlineKeyboardButton(text="🌐 Узнать об IQ Barakah", url="https://iq-barakah.ru")],
                 [InlineKeyboardButton(text="💬 Есть вопрос", callback_data="contact_curator")],
             ])
         )
