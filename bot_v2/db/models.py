@@ -74,7 +74,7 @@ class DiagResult(Base):
 
 class Payment(Base):
     """Платёж через ЮKassa или Telegram Payments."""
-    __tablename__ = "payments"
+    __tablename__ = "bot_payments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
