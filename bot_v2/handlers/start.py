@@ -829,7 +829,9 @@ def _profile_complete(user) -> bool:
 
 
 async def _get_participant(session: AsyncSession, user_id: int) -> Participant | None:
-    return await session.get(Participant, user_id)
+    from sqlalchemy import select
+    result = await session.execute(select(Participant).where(Participant.user_id == user_id))
+    return result.scalar_one_or_none()
 
 
 async def _latest_diag(session: AsyncSession, user_id: int) -> DiagResult | None:

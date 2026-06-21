@@ -188,7 +188,8 @@ async def _send_full_lesson(session: AsyncSession, user_id: int, payload: dict, 
         return
 
     # Get skill level from participant record
-    participant = await session.get(Participant, user_id)
+    result = await session.execute(select(Participant).where(Participant.user_id == user_id))
+    participant = result.scalar_one_or_none()
     skill_level = (participant.vakt_level or "I") if participant else "I"
 
     lesson = lessons[week_idx]
