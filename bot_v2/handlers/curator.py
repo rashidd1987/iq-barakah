@@ -742,6 +742,42 @@ async def cmd_user_info(message: Message, session: AsyncSession, config: Config)
     await message.answer("\n".join(lines), parse_mode="Markdown")
 
 
+@router.message(Command("db_check"))
+async def cmd_db_check(message: Message, session: AsyncSession, config: Config):
+    """/db_check — временная диагностика схемы таблицы payments."""
+    if not is_curator(message.from_user.id, config):
+        return
+    from sqlalchemy import text
+    lines = []
+
+    rows = await session.execute(text(
+        "SELECT column_name, data_type, is_nullable "
+        "FROM information_schema.columns "
+        "WHERE table_name = 'payments' ORDER BY ordinal_position"
+    ))
+    lines.append("*Колонки payments:*")
+    for r in rows:
+        lines.append(f"  `{r[0]}` {r[1]} {'NULL' if r[2]=='YES' else 'NOT NULL'}")
+
+    rows2 = await session.execute(text(
+        "SELECT constraint_name, constraint_type "
+        "FROM information_schema.table_constraints "
+        "WHERE table_name = 'payments'"
+    ))
+    lines.append("\n*Ограничения:*")
+    for r in rows2:
+        lines.append(f"  `{r[0]}` — {r[1]}")
+
+    rows3 = await session.execute(text(
+        "SELECT tariff_id, amount, status FROM payments LIMIT 3"
+    ))
+    lines.append("\n*Примеры строк:*")
+    for r in rows3:
+        lines.append(f"  {r[0]} · {r[1]}₽ · {r[2]}")
+
+    await message.answer("\n".join(lines) or "Нет данных", parse_mode="Markdown")
+
+
 @router.message(Command("reset"))
 async def cmd_reset(message: Message, session: AsyncSession, config: Config):
     """
