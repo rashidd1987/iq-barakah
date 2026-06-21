@@ -183,6 +183,71 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         )
         return
 
+    if payload.startswith("giftcode_"):
+        from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+        code = payload[len("giftcode_"):]
+        _settings = SettingsRepo(session)
+
+        # Проверяем код
+        code_status = await _settings.get(f"gift_code:{code}")
+        if code_status is None:
+            await message.answer("❌ Ссылка недействительна.")
+            return
+        if code_status == "used":
+            await message.answer("❌ Эта ссылка уже была использована.")
+            return
+
+        # Проверяем — не активирован ли уже
+        existing = await ParticipantRepo(session).get(message.from_user.id)
+        if existing and existing.is_active:
+            await message.answer(
+                "🌱 У тебя уже открыт доступ к программе.\n\n"
+                "Нажми *Мой путь* чтобы продолжить.",
+                parse_mode="Markdown",
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            return
+
+        # Помечаем код как использованный
+        await _settings.set(f"gift_code:{code}", "used")
+        await _settings.set(f"gift_pending:{message.from_user.id}", "1")
+
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting = f", {name_first}" if name_first else ""
+
+        await message.answer(
+            f"🌿 Ас-саляму алейкум{greeting}!\n\n"
+            f"Тебе открыт *IQ Barakah Старт* — 6 шагов тайм-менеджмента мусульманина.\n\n"
+            f"Прежде чем начать — пройди короткую диагностику.\n"
+            f"7 вопросов · 2 минуты · определит твой уровень. 🌱",
+            parse_mode="Markdown",
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, None),
+        )
+        await message.answer(
+            "👇 Нажми чтобы начать:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+            ]),
+        )
+        # Уведомляем куратора
+        from bot_v2.keyboards.inline import kb_curator_contact
+        _uname = db_user.username if db_user and db_user.username else None
+        for curator_id in config.curator_ids:
+            try:
+                await message.bot.send_message(
+                    curator_id,
+                    f"🎁 *Gift-код активирован*\n\n"
+                    f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
+                    f"🔑 Код: `{code}`",
+                    parse_mode="Markdown",
+                    reply_markup=kb_curator_contact(message.from_user.id, _uname),
+                )
+            except Exception:
+                pass
+        return
+
     if payload == "gift":
         # Бесплатный доступ к IQ Barakah Старт — сначала диагностика, потом урок
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo

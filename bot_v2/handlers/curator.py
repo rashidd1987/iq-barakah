@@ -742,6 +742,33 @@ async def cmd_user_info(message: Message, session: AsyncSession, config: Config)
     await message.answer("\n".join(lines), parse_mode="Markdown")
 
 
+@router.message(Command("gift_code", "gift_codes"))
+async def cmd_gift_code(message: Message, session: AsyncSession, config: Config):
+    """/gift_code — создать одноразовый код. /gift_codes N — создать N кодов."""
+    if not is_curator(message.from_user.id, config):
+        return
+    import secrets
+    args = message.text.split()[1:]
+    try:
+        count = min(int(args[0]), 20) if args else 1
+    except ValueError:
+        count = 1
+
+    repo = SettingsRepo(session)
+    lines = []
+    for _ in range(count):
+        code = secrets.token_urlsafe(6).upper()[:6]
+        await repo.set(f"gift_code:{code}", "unused")
+        lines.append(f"`https://t.me/iqbaraka_bot?start=giftcode_{code}`")
+
+    await message.answer(
+        f"🎁 *{'Одноразовая ссылка' if count == 1 else f'{count} одноразовых ссылок'}:*\n\n" +
+        "\n".join(lines) +
+        "\n\n_Каждая ссылка работает один раз._",
+        parse_mode="Markdown",
+    )
+
+
 @router.message(Command("gift_stats"))
 async def cmd_gift_stats(message: Message, session: AsyncSession, config: Config):
     """/gift_stats — сколько мест использовано по gift-ссылке."""
