@@ -742,6 +742,31 @@ async def cmd_user_info(message: Message, session: AsyncSession, config: Config)
     await message.answer("\n".join(lines), parse_mode="Markdown")
 
 
+@router.message(Command("gift_stats"))
+async def cmd_gift_stats(message: Message, session: AsyncSession, config: Config):
+    """/gift_stats — сколько мест использовано по gift-ссылке."""
+    if not is_curator(message.from_user.id, config):
+        return
+    used = int(await SettingsRepo(session).get("gift:counter", "0"))
+    limit = 50
+    await message.answer(
+        f"🎁 *Gift-доступ IQ Barakah Старт*\n\n"
+        f"Использовано: *{used} / {limit}*\n"
+        f"Осталось мест: *{limit - used}*\n\n"
+        f"Сбросить счётчик: `/gift_reset`",
+        parse_mode="Markdown",
+    )
+
+
+@router.message(Command("gift_reset"))
+async def cmd_gift_reset(message: Message, session: AsyncSession, config: Config):
+    """/gift_reset — сбросить счётчик gift-ссылки."""
+    if not is_curator(message.from_user.id, config):
+        return
+    await SettingsRepo(session).set("gift:counter", "0")
+    await message.answer("✅ Счётчик gift-ссылки сброшен. Снова доступно 50 мест.")
+
+
 @router.message(Command("db_check"))
 async def cmd_db_check(message: Message, session: AsyncSession, config: Config):
     """/db_check — временная диагностика схемы таблицы payments."""

@@ -188,6 +188,10 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+        _settings = SettingsRepo(session)
+        _GIFT_LIMIT = 50
+        _GIFT_COUNTER_KEY = "gift:counter"
+
         existing = await ParticipantRepo(session).get(message.from_user.id)
         if existing and existing.is_active:
             await message.answer(
@@ -198,8 +202,20 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             )
             return
 
+        # Проверяем лимит (не считаем тех кто уже имеет флаг gift_pending)
+        already_pending = await _settings.get(f"gift_pending:{message.from_user.id}")
+        if not already_pending:
+            used = int(await _settings.get(_GIFT_COUNTER_KEY, "0"))
+            if used >= _GIFT_LIMIT:
+                await message.answer(
+                    "🙏 К сожалению, все места по этой ссылке уже заняты.\n\n"
+                    "Напиши куратору — @iqbarakah",
+                )
+                return
+            await _settings.set(_GIFT_COUNTER_KEY, str(used + 1))
+
         # Ставим флаг — после Кораблика активировать бесплатно
-        await SettingsRepo(session).set(f"gift_pending:{message.from_user.id}", "1")
+        await _settings.set(f"gift_pending:{message.from_user.id}", "1")
 
         name_first = (db_user.name or "").split()[0] if db_user.name else ""
         greeting = f", {name_first}" if name_first else ""
