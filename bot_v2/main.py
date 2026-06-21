@@ -229,6 +229,16 @@ async def _setup_commands(bot: Bot, config) -> None:
         BotCommand(command="testjarwas",   description="🤖 Тест Jarwas API"),
         BotCommand(command="health",       description="🩺 Health check бота"),
         BotCommand(command="setcalllink",  description="🔗 Изменить ссылку на созвон"),
+        BotCommand(command="gift",         description="🎁 Дать бесплатный доступ по user_id"),
+        BotCommand(command="gift_code",    description="🔑 Создать одноразовую gift-ссылку"),
+        BotCommand(command="gift_codes",   description="🔑 Создать N одноразовых ссылок"),
+        BotCommand(command="gift_stats",   description="📊 Сколько мест использовано"),
+        BotCommand(command="gift_reset",   description="♻️ Сбросить счётчик gift-ссылки"),
+        BotCommand(command="forum_start",  description="🚀 Отправить диагностику форумщикам"),
+        BotCommand(command="forum_list",   description="🎟 Список участников форума"),
+        BotCommand(command="forum_add",    description="➕ Добавить тест-билет форума"),
+        BotCommand(command="forum_reset_counter", description="♻️ Сбросить нумерацию билетов"),
+        BotCommand(command="user_info",    description="👤 Инфо об участнике по user_id"),
     ]
 
     # Глобальные команды (для всех)
