@@ -750,30 +750,42 @@ async def cmd_db_check(message: Message, session: AsyncSession, config: Config):
     from sqlalchemy import text
     lines = []
 
-    rows = await session.execute(text(
-        "SELECT column_name, data_type, is_nullable "
-        "FROM information_schema.columns "
-        "WHERE table_name = 'payments' ORDER BY ordinal_position"
-    ))
-    lines.append("*Колонки payments:*")
-    for r in rows:
-        lines.append(f"  `{r[0]}` {r[1]} {'NULL' if r[2]=='YES' else 'NOT NULL'}")
+    try:
+        rows = await session.execute(text(
+            "SELECT column_name, data_type, is_nullable "
+            "FROM information_schema.columns "
+            "WHERE table_name = 'payments' ORDER BY ordinal_position"
+        ))
+        cols = rows.fetchall()
+        lines.append("*Колонки payments:*")
+        for r in cols:
+            lines.append(f"  `{r[0]}` {r[1]} {'NULL' if r[2]=='YES' else 'NOT NULL'}")
+        if not cols:
+            lines.append("  _(таблица не найдена или пустая)_")
+    except Exception as e:
+        lines.append(f"*Ошибка колонок:* `{e}`")
 
-    rows2 = await session.execute(text(
-        "SELECT constraint_name, constraint_type "
-        "FROM information_schema.table_constraints "
-        "WHERE table_name = 'payments'"
-    ))
-    lines.append("\n*Ограничения:*")
-    for r in rows2:
-        lines.append(f"  `{r[0]}` — {r[1]}")
+    try:
+        rows2 = await session.execute(text(
+            "SELECT constraint_name, constraint_type "
+            "FROM information_schema.table_constraints "
+            "WHERE table_name = 'payments'"
+        ))
+        lines.append("\n*Ограничения:*")
+        for r in rows2:
+            lines.append(f"  `{r[0]}` — {r[1]}")
+    except Exception as e:
+        lines.append(f"\n*Ошибка ограничений:* `{e}`")
 
-    rows3 = await session.execute(text(
-        "SELECT tariff_id, amount, status FROM payments LIMIT 3"
-    ))
-    lines.append("\n*Примеры строк:*")
-    for r in rows3:
-        lines.append(f"  {r[0]} · {r[1]}₽ · {r[2]}")
+    try:
+        col_names = [r[0] for r in cols] if cols else []
+        safe_cols = ", ".join(f'"{c}"' for c in col_names[:6]) if col_names else "1"
+        rows3 = await session.execute(text(f"SELECT {safe_cols} FROM payments LIMIT 2"))
+        lines.append("\n*Примеры строк (первые 6 колонок):*")
+        for r in rows3:
+            lines.append(f"  {list(r)}")
+    except Exception as e:
+        lines.append(f"\n*Ошибка примеров:* `{e}`")
 
     await message.answer("\n".join(lines) or "Нет данных", parse_mode="Markdown")
 
