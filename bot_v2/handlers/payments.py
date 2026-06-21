@@ -347,10 +347,14 @@ async def cb_contact_curator(call: CallbackQuery, session: AsyncSession, config:
     user = await UserRepo(session).get(call.from_user.id)
     name = user.name if user else call.from_user.full_name
 
+    curator_id = config.curator_ids[0] if config.curator_ids else None
+    write_btn = (
+        [[InlineKeyboardButton(text="✍️ Написать куратору", url=f"tg://user?id={curator_id}")]]
+        if curator_id else []
+    )
     await call.message.answer(
-        "💬 Напиши куратору — он ответит в течение часа:\n@iqbarakah\n\n"
-        "Или нажми кнопку ниже чтобы выбрать тариф прямо сейчас.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+        "💬 Напиши куратору — ответим в течение часа.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=write_btn + [
             [InlineKeyboardButton(text="🎓 Все тарифы", callback_data="show_tariffs")],
         ])
     )
