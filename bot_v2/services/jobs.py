@@ -386,7 +386,7 @@ async def job_check_followups(bot):
             async with session.begin():
                 from sqlalchemy import text
                 result = await session.execute(
-                    text("SELECT key, value FROM settings WHERE key LIKE 'followup_at:%'")
+                    text("SELECT key, value FROM bot_settings WHERE key LIKE 'followup_at:%'")
                 )
                 rows = result.fetchall()
     except Exception as _e:
