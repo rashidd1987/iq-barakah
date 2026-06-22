@@ -196,7 +196,7 @@ def _build_result(scores: list) -> tuple:
             "Без перегруза. Без давления на себя."
         )
         markup = _kb(
-            ("🌱 Хочу начать ВАКТ", "kb_want_vakt"),
+            ("🌱 Хочу начать IQ Barakah Старт", "kb_want_vakt"),
             ("📖 Расскажи подробнее", "kb_about_vakt"),
             ("🔁 Пройти снова", "kb_restart"),
         )
