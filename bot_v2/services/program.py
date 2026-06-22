@@ -23,7 +23,7 @@ TARIFFS = [
         "id": "s1_month",
         "name": "📗 Путь IQ Barakah",
         "desc": "Сезон 1 · Основание · первый месяц",
-        "price": 3_500,
+        "price": 5_000,
     },
     {
         "id": "forum_27_06",

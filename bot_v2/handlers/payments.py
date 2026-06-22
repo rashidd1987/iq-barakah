@@ -133,6 +133,20 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
             except ValueError:
                 pass
 
+    # Проверяем скидку 3500₽ после IQ Barakah Старт (48 часов, потом 5000₽)
+    if tariff_id == "s1_month":
+        s1_offer_val = await SettingsRepo(session).get(f"s1_offer_at:{user_id}")
+        if s1_offer_val:
+            try:
+                if int(s1_offer_val) > int(_time.time()):
+                    price = 3_500
+                else:
+                    price = 5_000
+            except ValueError:
+                price = 5_000
+        else:
+            price = 5_000
+
     logger.info("cb_pay: creating payment tariff=%s price=%s user=%s", tariff_id, price, user_id)
     payment = await create_payment(
         shop_id=config.yookassa_shop_id,

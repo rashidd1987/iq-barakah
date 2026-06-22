@@ -333,7 +333,16 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
 
 async def _send_vakt_graduation_upsell(bot, user_id: int, is_female: bool = False):
     """Поздравление + оффер Сезон 1 после 6-й недели IQ Barakah Старт. Отправляется через 4 секунды."""
+    import time as _time
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.repositories import SettingsRepo
+
     await asyncio.sleep(4)
+
+    # Сохраняем время оффера — 48 часов скидка 3500₽, потом 5000₽
+    deadline = int(_time.time()) + 48 * 3600
+    async with get_session_factory()() as _s:
+        await SettingsRepo(_s).set(f"s1_offer_at:{user_id}", str(deadline))
 
     brat = "сестра" if is_female else "брат"
 
@@ -346,7 +355,8 @@ async def _send_vakt_graduation_upsell(bot, user_id: int, is_female: bool = Fals
         f"*Хочешь продолжить путь IQ Barakah?*\n\n"
         f"📗 *Сезон 1 · Основание · Кто ты есть*\n"
         f"8 шагов глубже: семья, дело, здоровье, смысл — в одной системе.\n\n"
-        f"Первый месяц — *3 500 ₽*\n"
+        f"⏳ Специальная цена *3 500 ₽/мес* — только 48 часов\n"
+        f"После — цена вернётся к 5 000 ₽\n\n"
         f"_Те кто прошёл Старт идут в Сезон 1 с готовым ритмом. "
         f"Это лучший момент для следующего шага._ 🌿"
     )
@@ -354,7 +364,7 @@ async def _send_vakt_graduation_upsell(bot, user_id: int, is_female: bool = Fals
     markup = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text="📗 Войти в путь — 3 500 ₽/мес",
-            callback_data="tariff:s1_month",
+            callback_data="pay:s1_month",
         )],
         [InlineKeyboardButton(
             text="💬 Поговорить с куратором",
