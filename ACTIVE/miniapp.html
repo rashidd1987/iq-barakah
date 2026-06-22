@@ -204,6 +204,19 @@ nav {
 .act-tx .t { font-weight: 700; font-size: 14px; }
 .act-tx .s { font-size: 12px; color: var(--muted); margin-top: 1px; }
 
+/* ── MUHASABA SCREEN ── */
+.muh-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); transition: background .2s; }
+.muh-dot.active { background: var(--g2); }
+.muh-dot.done { background: var(--g3); }
+.muh-qnum { font-size: 11px; color: var(--g2); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.muh-qtext { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.4; margin-bottom: 10px; }
+.muh-hint { font-size: 13px; color: var(--sub); line-height: 1.5; font-style: italic; border-left: 3px solid var(--g3); padding-left: 10px; margin-bottom: 14px; }
+.muh-ta { width: 100%; min-height: 90px; font-size: 14px; line-height: 1.6; resize: none; border-radius: 12px; padding: 10px 12px; background: var(--bg); color: var(--text); border: 1.5px solid var(--border); font-family: inherit; margin-bottom: 4px; }
+.muh-ta:focus { outline: none; border-color: var(--g2); }
+.muh-result-q { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
+.muh-result-a { font-size: 14px; color: var(--text); line-height: 1.5; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.muh-result-a:last-child { border-bottom: none; padding-bottom: 0; }
+
 /* ── TRACKER SCREEN ── */
 .date-strip {
   display: flex; gap: 7px;
@@ -1134,9 +1147,10 @@ textarea:focus { border-color: var(--g2); }
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, поминание Всевышнего, самоотчёт</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" data-screen="lessons"><div class="act-ic gr">📚</div><div class="act-tx"><div class="t" data-i18n="currentLesson">Текущий урок</div><div class="s" id="act-cur-week" data-i18n="openLessonsMap">Открыть карту уроков</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" data-screen="muhasaba"><div class="act-ic" style="background:linear-gradient(135deg,#1a3d1b,#2c5f2d);color:white;">🌙</div><div class="act-tx"><div class="t">Вечерний разбор (Мухасаба)</div><div class="s">3 вопроса — итог дня и намерение</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" data-screen="wheel"><div class="act-ic gd">🎯</div><div class="act-tx"><div class="t" data-i18n="lifeWheel">Колесо баланса</div><div class="s" data-i18n="lifeWheelSub">8 сфер жизни</div></div><span style="color:var(--muted)">›</span></div>
-      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t" data-i18n="eveningMuhasaba">Вечерний самоотчёт <span class="gterm-info" onclick="window.showGlossaryTip&&showGlossaryTip('Мухасаба')">ℹ</span></div><div class="s" data-i18n="eveningMuhasabaSub">Мухасаба — три вопроса · 2 минуты</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" id="btn-open-diag"><div class="act-ic pu">🎯</div><div class="act-tx"><div class="t" data-i18n="levelDiagnostic">Диагностика уровня</div><div class="s" data-i18n="levelDiagnosticSub">Пройти заново или сменить уровень</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t">Оставить отзыв</div><div class="s">Поделитесь впечатлением о шаге</div></div><span style="color:var(--muted)">›</span></div>
     </div>
   </div>
 </div>
@@ -1198,7 +1212,7 @@ textarea:focus { border-color: var(--g2); }
 
     <!-- Report to curator -->
     <button class="report-btn" id="btn-curator-report">
-      📊 Отправить отчёт куратору
+      ✍️ Оставить отзыв
     </button>
   </div>
 </div>
@@ -1270,6 +1284,70 @@ textarea:focus { border-color: var(--g2); }
         <div class="ship-step"><div class="ship-step-n">3</div><span data-i18n="shipStep3">Джарвас даст рекомендации по каждой слабой зоне</span></div>
         <div class="ship-step"><div class="ship-step-n">4</div><span data-i18n="shipStep4">Результаты сохранятся — можно отслеживать прогресс раз в месяц</span></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MUHASABA -->
+<div class="screen" id="sc-muhasaba">
+  <div class="hdr">
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge" style="background:rgba(255,255,255,.15);color:white;">🌙 Мухасаба</div></div>
+    <div class="hdr-title">Вечерний разбор</div>
+    <div class="hdr-sub">Три вопроса — итог дня и намерение на завтра</div>
+  </div>
+  <div class="c">
+    <div class="card" id="muh-card" style="overflow:hidden;">
+      <div class="cb" style="padding:0;">
+        <!-- step indicator -->
+        <div style="display:flex;gap:6px;padding:16px 16px 0;" id="muh-dots">
+          <div class="muh-dot active" data-step="0"></div>
+          <div class="muh-dot" data-step="1"></div>
+          <div class="muh-dot" data-step="2"></div>
+        </div>
+        <!-- questions wrapper (slides) -->
+        <div id="muh-slides" style="position:relative;overflow:hidden;">
+          <!-- Q1 -->
+          <div class="muh-slide" id="muh-q0">
+            <div style="padding:16px 16px 0;">
+              <div class="muh-qnum">Вопрос 1 из 3</div>
+              <div class="muh-qtext">Что сегодня получилось — даже самое маленькое?</div>
+              <div class="muh-hint">Аллах видит каждое усилие, даже если его не видит никто.</div>
+              <textarea class="muh-ta" id="muh-a0" placeholder="Напишите здесь..."></textarea>
+            </div>
+          </div>
+          <!-- Q2 -->
+          <div class="muh-slide" id="muh-q1" style="display:none;">
+            <div style="padding:16px 16px 0;">
+              <div class="muh-qnum">Вопрос 2 из 3</div>
+              <div class="muh-qtext">Что далось тяжело — и почему?</div>
+              <div class="muh-hint">Честность с собой — это уже часть поклонения. Не суди себя, просто замечай.</div>
+              <textarea class="muh-ta" id="muh-a1" placeholder="Напишите здесь..."></textarea>
+            </div>
+          </div>
+          <!-- Q3 -->
+          <div class="muh-slide" id="muh-q2" style="display:none;">
+            <div style="padding:16px 16px 0;">
+              <div class="muh-qnum">Вопрос 3 из 3</div>
+              <div class="muh-qtext">Что хочу сделать иначе завтра?</div>
+              <div class="muh-hint">Одно маленькое намерение — уже шаг вперёд. БисмиЛлях.</div>
+              <textarea class="muh-ta" id="muh-a2" placeholder="Напишите здесь..."></textarea>
+            </div>
+          </div>
+        </div>
+        <!-- nav buttons -->
+        <div style="display:flex;gap:8px;padding:12px 16px 16px;" id="muh-nav">
+          <button id="muh-prev" onclick="muhPrev()" style="display:none;flex:0 0 auto;padding:0 16px;height:44px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:14px;cursor:pointer;">← Назад</button>
+          <button id="muh-next" onclick="muhNext()" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--g2);color:white;font-size:15px;font-weight:600;cursor:pointer;">Следующий →</button>
+        </div>
+      </div>
+    </div>
+    <!-- saved result card -->
+    <div id="muh-result" style="display:none;">
+      <div class="card"><div class="cb">
+        <div class="ct" style="margin-bottom:8px;">✅ Разбор сохранён</div>
+        <div id="muh-result-body" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <button onclick="muhReset()" style="margin-top:12px;width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:14px;cursor:pointer;">Написать заново</button>
+      </div></div>
     </div>
   </div>
 </div>
@@ -6878,52 +6956,29 @@ function renderProgramTasks() {
   if (!existing) {
     const calBtn = document.createElement('button')
     calBtn.className = 'ptasks-cal-btn'
-    calBtn.innerHTML = '📅 Добавить в календарь (все 7 дней)'
+    calBtn.innerHTML = '📅 Добавить в календарь'
     calBtn.onclick = () => { haptic(); _addWeekToCalendar(level, weekInLevel, tasks) }
     container.parentElement.appendChild(calBtn)
   }
 }
 
-// ── Calendar export (ICS) ─────────────────────────────────────────────────────
+// ── Calendar export — 1 event for today ──────────────────────────────────────
 function _addWeekToCalendar(level, weekInLevel, tasks) {
   const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
   const globalWeek = (LEVEL_OFFSET[level] ?? 0) + weekInLevel
 
-  const today = new Date()
-  const dow = today.getDay()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - ((dow + 6) % 7))
-
   const pad = n => String(n).padStart(2, '0')
-  const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
-
-  const taskLines = tasks.map((t, i) =>
-    `${i+1}. ${t.replace(/[\r\n,;]/g, ' ').substring(0, 120)}`
-  ).join('\\n')
-
-  const summary = `IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`
-  const desc = `Задания на каждый день:\\n${taskLines}\\n\\nОтмечай выполненное в Трекере`
-
-  const CRLF = '\r\n'
-  let vevents = ''
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    d.setHours(9, 0, 0, 0)
-    const dEnd = new Date(d)
-    dEnd.setHours(9, 30, 0, 0)
-    const uid = `iqb-w${globalWeek}-d${i+1}-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}@iqbarakah`
-    vevents += `BEGIN:VEVENT${CRLF}UID:${uid}${CRLF}DTSTART:${fmt(d)}${CRLF}DTEND:${fmt(dEnd)}${CRLF}SUMMARY:${summary}${CRLF}DESCRIPTION:${desc}${CRLF}END:VEVENT${CRLF}`
-  }
-
-  // Google Calendar URL (HTTPS — works in Telegram WebApp on all platforms)
-  monday.setHours(9, 0, 0, 0)
-  const mondayEnd = new Date(monday); mondayEnd.setHours(9, 30, 0, 0)
-  const title = encodeURIComponent(`IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`)
-  const details = encodeURIComponent(`Задания на каждый день шага:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
-  const recur = 'RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7'
   const fmtG = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
-  openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(monday)}/${fmtG(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`)
+
+  const start = new Date(); start.setHours(9, 0, 0, 0)
+  const end = new Date();   end.setHours(9, 30, 0, 0)
+
+  const title   = encodeURIComponent(`IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`)
+  const details = encodeURIComponent(
+    `Задания шага:\n${tasks.slice(0, 5).map((t, i) => `${i+1}. ${t.substring(0, 100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`
+  )
+
+  openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(start)}/${fmtG(end)}&details=${details}&sf=true&output=xml`)
 }
 
 // ── Individual habit streak ───────────────────────────────────────────────────
@@ -7559,7 +7614,7 @@ function saveWheel() {
 
 // --- screens/ship.js ---
 
-const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html'
+const SHIP_URL = 'https://iq-barakah.ru/ship_barakat_business.html'
 
 function renderShip() {
   ;['business', 'personal'].forEach(type => {
@@ -7607,7 +7662,7 @@ function initShipButtons() {
 
 // --- app.js ---
 
-const SCREENS = ['home', 'tracker', 'lessons', 'wheel', 'ship']
+const SCREENS = ['home', 'tracker', 'lessons', 'wheel', 'ship', 'muhasaba']
 let current = 'home'
 
 function switchScreen(id) {
@@ -7619,10 +7674,11 @@ function switchScreen(id) {
   document.getElementById(`nb-${id}`)?.classList.add('active')
   current = id
 
-  if (id === 'wheel')   renderWheel()
-  if (id === 'lessons') renderLessons('all')
-  if (id === 'tracker') renderTracker()
-  if (id === 'ship')    renderShip()
+  if (id === 'wheel')     renderWheel()
+  if (id === 'lessons')   renderLessons('all')
+  if (id === 'tracker')   renderTracker()
+  if (id === 'ship')      renderShip()
+  if (id === 'muhasaba')  initMuhasaba()
 }
 
 function rerenderCurrentScreen() {
@@ -7710,11 +7766,71 @@ initDiagnostic(() => {
 // Diagnostic trigger buttons
 document.getElementById('btn-open-diag')?.addEventListener('click', openDiag)
 
-// Review sheet (muhasaba)
+// Review sheet (muhasaba) — legacy sheet kept for curator report
 initReviewSheet(() => U.currentWeek, WEEKS)
-document.getElementById('btn-muhasaba')?.addEventListener('click', () =>
-  openReviewSheet(U.currentWeek, WEEKS)
-)
+
+// ── MUHASABA SCREEN ──
+let muhStep = 0
+const MUH_QUESTIONS = [
+  { q: 'Что сегодня получилось — даже самое маленькое?' },
+  { q: 'Что далось тяжело — и почему?' },
+  { q: 'Что хочу сделать иначе завтра?' },
+]
+
+function muhShowStep(step) {
+  muhStep = step
+  MUH_QUESTIONS.forEach((_, i) => {
+    document.getElementById(`muh-q${i}`).style.display = i === step ? '' : 'none'
+    const dot = document.querySelector(`.muh-dot[data-step="${i}"]`)
+    if (dot) {
+      dot.classList.toggle('active', i === step)
+      dot.classList.toggle('done', i < step)
+    }
+  })
+  document.getElementById('muh-prev').style.display = step > 0 ? '' : 'none'
+  const next = document.getElementById('muh-next')
+  next.textContent = step < 2 ? 'Следующий →' : '✅ Сохранить'
+  document.getElementById(`muh-a${step}`)?.focus()
+}
+
+function muhNext() {
+  const ta = document.getElementById(`muh-a${muhStep}`)
+  if (!ta.value.trim()) { ta.style.borderColor = '#e74c3c'; ta.focus(); setTimeout(() => ta.style.borderColor = '', 1200); return }
+  if (muhStep < 2) { muhShowStep(muhStep + 1); return }
+  // save
+  const today = new Date().toISOString().slice(0, 10)
+  const answers = MUH_QUESTIONS.map((_, i) => document.getElementById(`muh-a${i}`)?.value.trim() || '')
+  lsSet('muh_' + today, { date: today, answers })
+  muhShowResult(answers)
+}
+
+function muhPrev() { if (muhStep > 0) muhShowStep(muhStep - 1) }
+
+function muhShowResult(answers) {
+  document.getElementById('muh-card').style.display = 'none'
+  const rb = document.getElementById('muh-result-body')
+  rb.innerHTML = MUH_QUESTIONS.map((q, i) =>
+    `<div><div class="muh-result-q">${q.q}</div><div class="muh-result-a">${answers[i]}</div></div>`
+  ).join('')
+  document.getElementById('muh-result').style.display = ''
+}
+
+function muhReset() {
+  MUH_QUESTIONS.forEach((_, i) => { const ta = document.getElementById(`muh-a${i}`); if (ta) ta.value = '' })
+  document.getElementById('muh-card').style.display = ''
+  document.getElementById('muh-result').style.display = 'none'
+  muhShowStep(0)
+}
+
+function initMuhasaba() {
+  muhShowStep(0)
+  const today = new Date().toISOString().slice(0, 10)
+  const saved = lsGet('muh_' + today, null)
+  if (saved?.answers) {
+    saved.answers.forEach((a, i) => { const ta = document.getElementById(`muh-a${i}`); if (ta) ta.value = a })
+    muhShowResult(saved.answers)
+  }
+}
 
 // Curator report button
 document.getElementById('btn-curator-report')?.addEventListener('click', () => {
