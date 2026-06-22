@@ -81,7 +81,7 @@ async def analyze_participant(
 
     try:
         response = await _client.messages.parse(
-            model="claude-sonnet-4-5",
+            model="claude-sonnet-4-6",
             max_tokens=512,
             system=[{
                 "type": "text",
@@ -129,7 +129,7 @@ async def generate_week_tip(
 
     try:
         response = await _client.messages.parse(
-            model="claude-sonnet-4-5",
+            model="claude-sonnet-4-6",
             max_tokens=384,
             system=[{
                 "type": "text",
