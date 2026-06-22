@@ -274,8 +274,7 @@ async def send_weekly_lesson(bot, user_id: int, participant, session: AsyncSessi
     audio = await media_repo.get(level, week, "audio")
 
     reply_markup = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📱 Открыть Mini App", web_app=WebAppInfo(url=miniapp_link))],
-        [InlineKeyboardButton(text="✅ Шаг выполнен — пройти проверку", callback_data="week_ack")],
+        [InlineKeyboardButton(text="🏠 Открыть личный кабинет", web_app=WebAppInfo(url=miniapp_link))],
     ])
 
     if video:
