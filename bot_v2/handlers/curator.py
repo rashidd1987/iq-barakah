@@ -266,7 +266,7 @@ async def cmd_participants(message: Message, session: AsyncSession, config: Conf
     for p in all_p:
         name = p.user.name if p.user else str(p.user_id)
         max_w = LEVEL_WEEKS.get(p.level, 8)
-        lines.append(f"• `{p.user_id}` — {name} | {LEVEL_NAMES.get(p.level, p.level)} | нед {p.week}/{max_w}")
+        lines.append(f"• `{p.user_id}` — {name} | {LEVEL_NAMES.get(p.level, p.level)} | шаг {p.week}/{max_w}")
     await message.answer("\n".join(lines), parse_mode="Markdown")
 
 
@@ -361,7 +361,7 @@ async def cmd_analyze(message: Message, session: AsyncSession, config: Config):
     RISK_EMOJI = {"low": "🟢", "medium": "🟡", "high": "🔴"}
     await message.answer(
         f"🤖 *AI-анализ участника*\n\n"
-        f"👤 {user.name} · {participant.level} нед {participant.week}\n"
+        f"👤 {user.name} · {participant.level} шаг {participant.week}\n"
         f"{RISK_EMOJI.get(insight.risk, '⚪')} Риск: *{insight.risk.upper()}*\n\n"
         f"📊 {insight.summary}\n\n"
         f"⚠️ *Проблема:* {insight.issue}\n\n"
