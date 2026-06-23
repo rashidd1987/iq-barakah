@@ -61,7 +61,7 @@ def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> Repl
             [KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant)))],
             [KeyboardButton(text=t(lang, "bottom.diag")),     KeyboardButton(text=t(lang, "bottom.payment"))],
             [KeyboardButton(text=t(lang, "bottom.program")),  KeyboardButton(text=t(lang, "bottom.jarwas"))],
-            [KeyboardButton(text=t(lang, "bottom.help"))],
+            [KeyboardButton(text=t(lang, "bottom.help")), KeyboardButton(text=t(lang, "bottom.channel"), url="https://t.me/iqbaraka")],
         ],
         resize_keyboard=True,
         input_field_placeholder=t(lang, "bottom.placeholder"),
