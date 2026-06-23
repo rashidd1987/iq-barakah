@@ -828,6 +828,141 @@ def _profile_complete(user) -> bool:
     return bool(user.name and user.is_female is not None and user.age and user.occupation and user.source)
 
 
+@router.callback_query(F.data == "show_howto")
+async def cb_show_howto(call: CallbackQuery, session: AsyncSession):
+    lang = await _message_lang(call.message, session) if call.message else "ru"
+    await call.answer()
+    await call.message.answer(_build_howto_instruction(lang))
+
+
+@router.message(Command("howto"))
+async def cmd_howto(message: Message, session: AsyncSession):
+    lang = await _message_lang(message, session)
+    await message.answer(_build_howto_instruction(lang))
+
+
+def _build_howto_instruction(lang: str) -> str:
+    if lang not in ("ru", "en", "ar", "tr"):
+        lang = "ru"
+
+    instructions = {
+        "ru": (
+            "❓ *КАК ПРОХОДИТЬ ПРОГРАММУ*\n\n"
+            "Вот пошагово, как работает система IQ Barakah:\n\n"
+            "*Шаг 1️⃣ Оплата тариф*\n"
+            "Выбираешь программу (Старт, Сезон 1, и т.д.) → оплачиваешь → получаешь доступ\n\n"
+            "*Шаг 2️⃣ Урок приходит в чат*\n"
+            "Каждый день в этом чате появляется новый урок с текстом, хадисом и заданиями\n"
+            "Читаешь здесь, в боте 📱\n\n"
+            "*Шаг 3️⃣ Открываешь личный кабинет*\n"
+            "После урока нажимаешь кнопку 🏠 *Открыть личный кабинет* (она внизу каждого урока)\n"
+            "Откроется мини-апп (приложение внутри Telegram)\n\n"
+            "*Шаг 4️⃣ Выполняешь задания в приложении*\n"
+            "В мини-апп видишь задания на день:\n"
+            "• Практики (утром, днём, вечером)\n"
+            "• Эпик недели\n"
+            "• Коран\n"
+            "• Вечерний отчёт\n\n"
+            "Отмечаешь галочкой ✅ что выполнил\n\n"
+            "*Шаг 5️⃣ Проходишь тест в приложении*\n"
+            "После всех заданий появляется тест — 3 вопроса по теме урока 📝\n"
+            "Ответишь правильно → следующий урок откроется автоматически 🚀\n\n"
+            "*Шаг 6️⃣ Новый урок приходит в чат*\n"
+            "Вернись в этот чат → там уже новый урок\n"
+            "И начинаешь всё сначала 🔄\n\n"
+            "━━━━━━━━━━━━━━━━━\n"
+            "*Главное:* урок → приложение → задания → тест → новый урок\n\n"
+            "Вопросы? Пиши /help или нажми 🙋 *Нужна помощь*"
+        ),
+        "en": (
+            "❓ *HOW TO PROGRESS THROUGH THE PROGRAM*\n\n"
+            "Here's how IQ Barakah works step by step:\n\n"
+            "*Step 1️⃣ Choose & pay for a plan*\n"
+            "Select a program (Start, Season 1, etc.) → pay → get access\n\n"
+            "*Step 2️⃣ Lesson arrives in chat*\n"
+            "Each day you'll get a new lesson here with text, hadith, and tasks\n"
+            "Read it here in the bot 📱\n\n"
+            "*Step 3️⃣ Open your personal cabinet*\n"
+            "After reading, tap 🏠 *Open personal cabinet* (bottom of each lesson)\n"
+            "Your mini app will open (a small app inside Telegram)\n\n"
+            "*Step 4️⃣ Complete tasks in the app*\n"
+            "You'll see daily tasks:\n"
+            "• Practices (morning, noon, evening)\n"
+            "• Weekly epic\n"
+            "• Quran\n"
+            "• Evening reflection\n\n"
+            "Check ✅ each task you complete\n\n"
+            "*Step 5️⃣ Take the test in the app*\n"
+            "After all tasks, you'll get a test — 3 questions about the lesson 📝\n"
+            "Answer correctly → next lesson unlocks automatically 🚀\n\n"
+            "*Step 6️⃣ New lesson arrives in chat*\n"
+            "Come back here → you'll see a new lesson\n"
+            "Start all over again 🔄\n\n"
+            "━━━━━━━━━━━━━━━━━\n"
+            "*The cycle:* lesson → app → tasks → test → new lesson\n\n"
+            "Questions? Type /help or tap 🙋 *Need help*"
+        ),
+        "ar": (
+            "❓ *كيفية المتابعة في البرنامج*\n\n"
+            "إليك كيف يعمل نظام IQ Barakah خطوة بخطوة:\n\n"
+            "*الخطوة 1️⃣ اختر خطتك ودفع*\n"
+            "اختر البرنامج (البداية، الموسم 1، إلخ) → ادفع → احصل على الدخول\n\n"
+            "*الخطوة 2️⃣ يصل الدرس إلى الدردشة*\n"
+            "كل يوم ستحصل على درس جديد هنا مع النص والحديث والمهام\n"
+            "اقرأه هنا في البوت 📱\n\n"
+            "*الخطوة 3️⃣ افتح مكتبك الشخصي*\n"
+            "بعد القراءة، اضغط 🏠 *افتح مكتبك الشخصي* (أسفل كل درس)\n"
+            "ستفتح لك تطبيق صغير (تطبيق داخل Telegram)\n\n"
+            "*الخطوة 4️⃣ أكمل المهام في التطبيق*\n"
+            "ستشاهد مهام يومية:\n"
+            "• الممارسات (صباح، ظهيرة، مساء)\n"
+            "• الملحمة الأسبوعية\n"
+            "• القرآن\n"
+            "• التأمل المسائي\n\n"
+            "ضع علامة ✅ على كل مهمة تكملها\n\n"
+            "*الخطوة 5️⃣ خذ الاختبار في التطبيق*\n"
+            "بعد جميع المهام، ستحصل على اختبار — 3 أسئلة عن الدرس 📝\n"
+            "أجب بشكل صحيح → يفتح الدرس التالي تلقائياً 🚀\n\n"
+            "*الخطوة 6️⃣ يصل درس جديد إلى الدردشة*\n"
+            "عد هنا → ستجد درساً جديداً\n"
+            "ابدأ مرة أخرى 🔄\n\n"
+            "━━━━━━━━━━━━━━━━━\n"
+            "*الدورة:* درس → تطبيق → مهام → اختبار → درس جديد\n\n"
+            "أسئلة؟ اكتب /help أو اضغط 🙋 *تحتاج مساعدة*"
+        ),
+        "tr": (
+            "❓ *PROGRAMA NASIL DEVAM EDİLİR*\n\n"
+            "IQ Barakah sistemi adım adım nasıl çalışır:\n\n"
+            "*Adım 1️⃣ Plan seç ve öde*\n"
+            "Bir program seç (Başlama, Sezon 1, vb.) → öde → erişim kazan\n\n"
+            "*Adım 2️⃣ Ders sohbete ulaşır*\n"
+            "Her gün burada metin, hadis ve görevler içeren yeni bir ders alacaksın\n"
+            "Burada botta oku 📱\n\n"
+            "*Adım 3️⃣ Kişisel kabinetini aç*\n"
+            "Okuduktan sonra 🏠 *Kişisel kabineti aç* tuşuna bas (her dersin altında)\n"
+            "Mini uygulamanız açılacak (Telegram içinde küçük uygulama)\n\n"
+            "*Adım 4️⃣ Uygulamadaki görevleri tamamla*\n"
+            "Günlük görevleri göreceksin:\n"
+            "• Pratikler (sabah, öğle, akşam)\n"
+            "• Haftalık epik\n"
+            "• Kuran\n"
+            "• Akşam yansıması\n\n"
+            "Tamamladığın her görevi ✅ işaretle\n\n"
+            "*Adım 5️⃣ Uygulamada testi al*\n"
+            "Tüm görevlerden sonra test alacaksın — ders hakkında 3 soru 📝\n"
+            "Doğru cevapla → sonraki ders otomatik olarak açılır 🚀\n\n"
+            "*Adım 6️⃣ Yeni ders sohbete ulaşır*\n"
+            "Buraya geri dön → yeni bir ders göreceksin\n"
+            "Baştan başla 🔄\n\n"
+            "━━━━━━━━━━━━━━━━━\n"
+            "*Döngü:* ders → uygulama → görevler → test → yeni ders\n\n"
+            "Sorular? /help yaz ya da 🙋 *Yardım gerekli* tuşuna bas"
+        ),
+    }
+
+    return instructions.get(lang, instructions["ru"])
+
+
 async def _get_participant(session: AsyncSession, user_id: int) -> Participant | None:
     from sqlalchemy import select
     result = await session.execute(select(Participant).where(Participant.user_id == user_id))
