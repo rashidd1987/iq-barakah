@@ -12,6 +12,9 @@ from aiogram.types import BotCommand, BotCommandScopeChat
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from aiohttp import web
+
+from bot_v2.api.analyze import create_app as create_web_app
 from bot_v2.config import load_config
 from bot_v2.db import setup_db, ensure_database, create_tables
 from bot_v2.handlers import setup_routers
@@ -136,10 +139,17 @@ async def main():
     except Exception as e:
         logger.warning("Bot commands registration failed (non-critical): %s", e)
 
-    logger.info("Starting bot...")
+    logger.info("Starting bot + web server...")
+    web_app = create_web_app()
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 80)
     try:
+        await site.start()
+        logger.info("Web server started on port 80")
         await dp.start_polling(bot, skip_updates=True)
     finally:
+        await runner.cleanup()
         scheduler.shutdown()
 
 
