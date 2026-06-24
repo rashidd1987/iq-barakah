@@ -59,46 +59,45 @@ async def cmd_invite(message: Message, session: AsyncSession):
     await message.answer(text, parse_mode="Markdown", reply_markup=kb)
 
 
-@router.callback_query(F.data == "barakah_balance")
-@router.message(Command("balance"))
-async def show_balance(event: Message | CallbackQuery, session: AsyncSession):
-    if isinstance(event, CallbackQuery):
-        await event.answer()
-        message = event.message
-        user_id = event.from_user.id
-    else:
-        message = event
-        user_id = event.from_user.id
-
+async def _balance_text(session: AsyncSession, user_id: int):
     user = await UserRepo(session).get(user_id)
     if not user:
-        await message.answer("Сначала зарегистрируйся: /start")
-        return
-
+        return None, None
     transactions = await get_transactions(session, user_id, limit=5)
     ref_count = await get_referral_count(session, user_id)
-
     history = ""
     if transactions:
-        lines = []
-        for tx in transactions:
-            sign = "+" if tx.amount > 0 else ""
-            label = KIND_LABELS.get(tx.kind, tx.kind)
-            lines.append(f"{label}: {sign}{tx.amount} Б")
+        lines = [f"{KIND_LABELS.get(tx.kind, tx.kind)}: {'+'if tx.amount>0 else ''}{tx.amount} Б" for tx in transactions]
         history = "\n\n*Последние операции:*\n" + "\n".join(lines)
-
     text = (
         f"💰 *Баланс Баракатов*\n\n"
         f"*{user.barakah_balance} Б* = {user.barakah_balance} ₽\n\n"
         f"👥 Приглашено друзей: *{ref_count}*"
         f"{history}"
     )
-
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Пригласить друга", callback_data="barakah_invite")],
         [InlineKeyboardButton(text="🤲 Задонатить", callback_data="barakah_donate")],
     ])
+    return text, kb
+
+
+@router.message(Command("balance"))
+async def cmd_balance(message: Message, session: AsyncSession):
+    text, kb = await _balance_text(session, message.from_user.id)
+    if not text:
+        await message.answer("Сначала зарегистрируйся: /start")
+        return
     await message.answer(text, parse_mode="Markdown", reply_markup=kb)
+
+
+@router.callback_query(F.data == "barakah_balance")
+async def cb_barakah_balance(call: CallbackQuery, session: AsyncSession):
+    await call.answer()
+    text, kb = await _balance_text(session, call.from_user.id)
+    if not text:
+        return
+    await call.message.answer(text, parse_mode="Markdown", reply_markup=kb)
 
 
 @router.callback_query(F.data == "barakah_invite")
@@ -150,9 +149,7 @@ async def cb_barakah_donate(call: CallbackQuery, session: AsyncSession):
 
 
 @router.callback_query(F.data == "barakah_donate_confirm")
-async def cb_barakah_donate_confirm(call: CallbackQuery, session: AsyncSession):
-    from bot_v2.config import Config
-    await call.answer()
+async def cb_barakah_donate_confirm(call: CallbackQuery, session: AsyncSession, config=None):
     user = await UserRepo(session).get(call.from_user.id)
     if not user or user.barakah_balance <= 0:
         await call.answer("Баланс пуст", show_alert=True)
@@ -176,9 +173,8 @@ async def cb_barakah_donate_confirm(call: CallbackQuery, session: AsyncSession):
         parse_mode="Markdown",
     )
 
+    await call.answer()
     # Уведомить куратора
-    from bot_v2.config import Config as _Config
-    config: _Config = call.bot["config"] if hasattr(call.bot, "__getitem__") else None
     if config:
         for curator_id in config.curator_ids:
             try:
