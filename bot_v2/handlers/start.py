@@ -854,19 +854,173 @@ def _profile_complete(user) -> bool:
 async def cb_show_howto(call: CallbackQuery, session: AsyncSession):
     lang = await _message_lang(session, call.message) if call.message else "ru"
     await call.answer()
-    await call.message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
+    await _send_howto_instruction_with_photos(call.message, lang)
 
 
 @router.message(Command("howto"))
 async def cmd_howto(message: Message, session: AsyncSession):
     lang = await _message_lang(session, message)
-    await message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
+    await _send_howto_instruction_with_photos(message, lang)
 
 
 @router.message(lambda msg: "Как проходить" in msg.text or "How to" in msg.text or "كيفية" in msg.text or "Nasıl" in msg.text)
 async def msg_howto(message: Message, session: AsyncSession):
     lang = await _message_lang(session, message)
-    await message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
+    await _send_howto_instruction_with_photos(message, lang)
+
+
+async def _send_howto_instruction_with_photos(message: Message, lang: str):
+    """Отправляет 6 шагов инструкции со скриншотами."""
+    steps = _get_howto_steps(lang)
+    for step in steps:
+        await message.answer(step["text"], parse_mode="Markdown")
+        if step.get("photo_url"):
+            try:
+                await message.answer_photo(
+                    photo=step["photo_url"],
+                    caption=step.get("caption", ""),
+                    parse_mode="Markdown" if step.get("caption") else None
+                )
+            except Exception:
+                pass
+
+
+def _get_howto_steps(lang: str) -> list[dict]:
+    """Возвращает список 6 шагов инструкции с текстом и URL скриншотов."""
+    base_url = "https://iq-barakah.ru/site/screenshots"
+
+    steps_data = {
+        "ru": [
+            {
+                "text": "*Шаг 1️⃣ Выбираешь и оплачиваешь тариф*\n\nВыбираешь программу (Старт, Сезон 1, и т.д.) → оплачиваешь → получаешь доступ\n\nНа скриншоте видно окно выбора тарифов в боте.",
+                "photo_url": f"{base_url}/step1.jpg",
+                "caption": "Шаг 1: Выбор тариф"
+            },
+            {
+                "text": "*Шаг 2️⃣ Урок приходит в этот чат*\n\nКаждый день в этом чате появляется новый урок с текстом, хадисом и заданиями. Читаешь здесь, в боте 📱",
+                "photo_url": f"{base_url}/step2.jpg",
+                "caption": "Шаг 2: Урок приходит в чат бота"
+            },
+            {
+                "text": "*Шаг 3️⃣ Открываешь личный кабинет*\n\nПосле урока нажимаешь кнопку 🏠 *Открыть личный кабинет* (она внизу каждого урока). Откроется мини-апп (приложение внутри Telegram)",
+                "photo_url": f"{base_url}/step3.jpg",
+                "caption": "Шаг 3: Открытие личного кабинета"
+            },
+            {
+                "text": "*Шаг 4️⃣ Выполняешь задания в приложении*\n\nВ мини-апп видишь задания на день:\n• Практики (утром, днём, вечером)\n• Эпик недели\n• Коран\n• Вечерний отчёт\n\nОтмечаешь галочкой ✅ что выполнил",
+                "photo_url": f"{base_url}/step4.jpg",
+                "caption": "Шаг 4: Задания в мини-приложении"
+            },
+            {
+                "text": "*Шаг 5️⃣ Проходишь тест в приложении*\n\nПосле всех заданий появляется тест — 3 вопроса по теме урока 📝\n\nОтвеш правильно → следующий урок откроется автоматически 🚀",
+                "photo_url": f"{base_url}/step5.jpg",
+                "caption": "Шаг 5: Прохождение теста"
+            },
+            {
+                "text": "*Шаг 6️⃣ Новый урок приходит в чат*\n\nВернись в этот чат → там уже новый урок. И начинаешь всё сначала 🔄\n\n━━━━━━━━━━━━━━━━━\n*Главное:* урок → приложение → задания → тест → новый урок\n\nВопросы? Пиши /help или нажми 🙋 *Нужна помощь*",
+                "photo_url": f"{base_url}/step6.jpg",
+                "caption": "Шаг 6: Новый урок приходит в чат"
+            },
+        ],
+        "en": [
+            {
+                "text": "*Step 1️⃣ Choose & pay for a plan*\n\nSelect a program (Start, Season 1, etc.) → pay → get access\n\nYou can see the tariff selection window in the bot on the screenshot.",
+                "photo_url": f"{base_url}/step1.jpg",
+                "caption": "Step 1: Choose a plan"
+            },
+            {
+                "text": "*Step 2️⃣ Lesson arrives in chat*\n\nEach day you'll get a new lesson here with text, hadith, and tasks. Read it here in the bot 📱",
+                "photo_url": f"{base_url}/step2.jpg",
+                "caption": "Step 2: Lesson arrives in chat"
+            },
+            {
+                "text": "*Step 3️⃣ Open your personal cabinet*\n\nAfter reading, tap 🏠 *Open personal cabinet* (bottom of each lesson). Your mini app will open (a small app inside Telegram)",
+                "photo_url": f"{base_url}/step3.jpg",
+                "caption": "Step 3: Open personal cabinet"
+            },
+            {
+                "text": "*Step 4️⃣ Complete tasks in the app*\n\nYou'll see daily tasks:\n• Practices (morning, noon, evening)\n• Weekly epic\n• Quran\n• Evening reflection\n\nCheck ✅ each task you complete",
+                "photo_url": f"{base_url}/step4.jpg",
+                "caption": "Step 4: Tasks in the app"
+            },
+            {
+                "text": "*Step 5️⃣ Take the test in the app*\n\nAfter all tasks, you'll get a test — 3 questions about the lesson 📝\n\nAnswer correctly → next lesson unlocks automatically 🚀",
+                "photo_url": f"{base_url}/step5.jpg",
+                "caption": "Step 5: Take the test"
+            },
+            {
+                "text": "*Step 6️⃣ New lesson arrives in chat*\n\nCome back here → you'll see a new lesson. Start all over again 🔄\n\n━━━━━━━━━━━━━━━━━\n*The cycle:* lesson → app → tasks → test → new lesson\n\nQuestions? Type /help or tap 🙋 *Need help*",
+                "photo_url": f"{base_url}/step6.jpg",
+                "caption": "Step 6: New lesson arrives"
+            },
+        ],
+        "ar": [
+            {
+                "text": "*الخطوة 1️⃣ اختر خطتك ودفع*\n\nاختر البرنامج (البداية، الموسم 1، إلخ) → ادفع → احصل على الدخول\n\nيمكنك رؤية نافذة اختيار الخطة في البوت على لقطة الشاشة.",
+                "photo_url": f"{base_url}/step1.jpg",
+                "caption": "الخطوة 1: اختر خطة"
+            },
+            {
+                "text": "*الخطوة 2️⃣ يصل الدرس إلى الدردشة*\n\nكل يوم ستحصل على درس جديد هنا مع النص والحديث والمهام. اقرأه هنا في البوت 📱",
+                "photo_url": f"{base_url}/step2.jpg",
+                "caption": "الخطوة 2: الدرس يصل إلى الدردشة"
+            },
+            {
+                "text": "*الخطوة 3️⃣ افتح مكتبك الشخصي*\n\nبعد القراءة، اضغط 🏠 *افتح مكتبك الشخصي* (أسفل كل درس). ستفتح لك تطبيق صغير (تطبيق داخل Telegram)",
+                "photo_url": f"{base_url}/step3.jpg",
+                "caption": "الخطوة 3: افتح المكتب الشخصي"
+            },
+            {
+                "text": "*الخطوة 4️⃣ أكمل المهام في التطبيق*\n\nستشاهد مهام يومية:\n• الممارسات (صباح، ظهيرة، مساء)\n• الملحمة الأسبوعية\n• القرآن\n• التأمل المسائي\n\nضع علامة ✅ على كل مهمة تكملها",
+                "photo_url": f"{base_url}/step4.jpg",
+                "caption": "الخطوة 4: المهام في التطبيق"
+            },
+            {
+                "text": "*الخطوة 5️⃣ خذ الاختبار في التطبيق*\n\nبعد جميع المهام، ستحصل على اختبار — 3 أسئلة عن الدرس 📝\n\nأجب بشكل صحيح → يفتح الدرس التالي تلقائياً 🚀",
+                "photo_url": f"{base_url}/step5.jpg",
+                "caption": "الخطوة 5: خذ الاختبار"
+            },
+            {
+                "text": "*الخطوة 6️⃣ يصل درس جديد إلى الدردشة*\n\nعد هنا → ستجد درساً جديداً. ابدأ مرة أخرى 🔄\n\n━━━━━━━━━━━━━━━━━\n*الدورة:* درس → تطبيق → مهام → اختبار → درس جديد\n\nأسئلة؟ اكتب /help أو اضغط 🙋 *تحتاج مساعدة*",
+                "photo_url": f"{base_url}/step6.jpg",
+                "caption": "الخطوة 6: درس جديد يصل"
+            },
+        ],
+        "tr": [
+            {
+                "text": "*Adım 1️⃣ Plan seç ve öde*\n\nBir program seç (Başlama, Sezon 1, vb.) → öde → erişim kazan\n\nBotta plan seçim penceresini ekran görüntüsünde görebilirsin.",
+                "photo_url": f"{base_url}/step1.jpg",
+                "caption": "Adım 1: Plan seç"
+            },
+            {
+                "text": "*Adım 2️⃣ Ders sohbete ulaşır*\n\nHer gün burada metin, hadis ve görevler içeren yeni bir ders alacaksın. Burada botta oku 📱",
+                "photo_url": f"{base_url}/step2.jpg",
+                "caption": "Adım 2: Ders sohbete ulaşır"
+            },
+            {
+                "text": "*Adım 3️⃣ Kişisel kabinetini aç*\n\nOkuduktan sonra 🏠 *Kişisel kabineti aç* tuşuna bas (her dersin altında). Mini uygulamanız açılacak (Telegram içinde küçük uygulama)",
+                "photo_url": f"{base_url}/step3.jpg",
+                "caption": "Adım 3: Kişisel kabineti aç"
+            },
+            {
+                "text": "*Adım 4️⃣ Uygulamadaki görevleri tamamla*\n\nGünlük görevleri göreceksin:\n• Pratikler (sabah, öğle, akşam)\n• Haftalık epik\n• Kuran\n• Akşam yansıması\n\nTamamladığın her görevi ✅ işaretle",
+                "photo_url": f"{base_url}/step4.jpg",
+                "caption": "Adım 4: Uygulamadaki görevler"
+            },
+            {
+                "text": "*Adım 5️⃣ Uygulamada testi al*\n\nTüm görevlerden sonra test alacaksın — ders hakkında 3 soru 📝\n\nDoğru cevapla → sonraki ders otomatik olarak açılır 🚀",
+                "photo_url": f"{base_url}/step5.jpg",
+                "caption": "Adım 5: Testi al"
+            },
+            {
+                "text": "*Adım 6️⃣ Yeni ders sohbete ulaşır*\n\nBuraya geri dön → yeni bir ders göreceksin. Baştan başla 🔄\n\n━━━━━━━━━━━━━━━━━\n*Döngü:* ders → uygulama → görevler → test → yeni ders\n\nSorular? /help yaz ya da 🙋 *Yardım gerekli* tuşuna bas",
+                "photo_url": f"{base_url}/step6.jpg",
+                "caption": "Adım 6: Yeni ders ulaşır"
+            },
+        ],
+    }
+
+    return steps_data.get(lang, steps_data["ru"])
 
 
 def _build_howto_instruction(lang: str) -> str:
