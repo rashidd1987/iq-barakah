@@ -109,7 +109,15 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="🚢 Пройти диагностику Кораблика", callback_data="korablik_start")],
                 [InlineKeyboardButton(text="⏭ Сразу к программам", callback_data="show_tariffs")],
+                [InlineKeyboardButton(text="❓ Как проходить программу", callback_data="show_howto")],
             ])
+        )
+        await message.answer(
+            "📚 *Структура программы:*\n\n"
+            "Каждый день в чат приходит новый урок → ты читаешь его → открываешь личный кабинет → "
+            "проходишь задания и тест → следующий урок откроется автоматически 🔄",
+            parse_mode="Markdown",
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang)
         )
         return
 
@@ -832,13 +840,19 @@ def _profile_complete(user) -> bool:
 async def cb_show_howto(call: CallbackQuery, session: AsyncSession):
     lang = await _message_lang(call.message, session) if call.message else "ru"
     await call.answer()
-    await call.message.answer(_build_howto_instruction(lang))
+    await call.message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
 
 
 @router.message(Command("howto"))
 async def cmd_howto(message: Message, session: AsyncSession):
     lang = await _message_lang(message, session)
-    await message.answer(_build_howto_instruction(lang))
+    await message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
+
+
+@router.message(lambda msg: "Как проходить" in msg.text or "How to" in msg.text or "كيفية" in msg.text or "Nasıl" in msg.text)
+async def msg_howto(message: Message, session: AsyncSession):
+    lang = await _message_lang(message, session)
+    await message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
 
 
 def _build_howto_instruction(lang: str) -> str:
