@@ -838,20 +838,20 @@ def _profile_complete(user) -> bool:
 
 @router.callback_query(F.data == "show_howto")
 async def cb_show_howto(call: CallbackQuery, session: AsyncSession):
-    lang = await _message_lang(call.message, session) if call.message else "ru"
+    lang = await _message_lang(session, call.message) if call.message else "ru"
     await call.answer()
     await call.message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
 
 
 @router.message(Command("howto"))
 async def cmd_howto(message: Message, session: AsyncSession):
-    lang = await _message_lang(message, session)
+    lang = await _message_lang(session, message)
     await message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
 
 
 @router.message(lambda msg: "Как проходить" in msg.text or "How to" in msg.text or "كيفية" in msg.text or "Nasıl" in msg.text)
 async def msg_howto(message: Message, session: AsyncSession):
-    lang = await _message_lang(message, session)
+    lang = await _message_lang(session, message)
     await message.answer(_build_howto_instruction(lang), parse_mode="Markdown")
 
 
