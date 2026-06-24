@@ -69,6 +69,12 @@ def _ensure_compat_columns(sync_conn):
         if "last_active" not in p_columns:
             sync_conn.execute(text("ALTER TABLE participants ADD COLUMN last_active TIMESTAMP WITH TIME ZONE"))
 
+    # UTM-атрибуция
+    if "utm_source" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN utm_source VARCHAR(256)"))
+    if "last_utm_source" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN last_utm_source VARCHAR(256)"))
+
     # Баракаты
     if "referral_code" not in user_columns:
         sync_conn.execute(text("ALTER TABLE users ADD COLUMN referral_code VARCHAR(32)"))

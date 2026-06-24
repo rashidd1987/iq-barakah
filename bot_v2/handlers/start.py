@@ -79,6 +79,13 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     if len(parts) > 1:
         payload = parts[1]
 
+    # UTM deep link utm__<source>__<campaign>__...
+    if payload.startswith("utm__"):
+        db_user.last_utm_source = payload          # всегда обновляем
+        if not db_user.utm_source:                 # первый источник не перезаписываем
+            db_user.utm_source = payload
+        await session.flush()
+
     # Реферальный deep link ref_<code>
     if payload.startswith("ref_") and created:
         ref_code = payload[4:]
