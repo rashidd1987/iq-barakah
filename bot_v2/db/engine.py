@@ -69,6 +69,33 @@ def _ensure_compat_columns(sync_conn):
         if "last_active" not in p_columns:
             sync_conn.execute(text("ALTER TABLE participants ADD COLUMN last_active TIMESTAMP WITH TIME ZONE"))
 
+    # Баракаты
+    if "referral_code" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN referral_code VARCHAR(32)"))
+        sync_conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_referral_code ON users(referral_code)"))
+    if "referred_by" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN referred_by BIGINT REFERENCES users(id)"))
+    if "barakah_balance" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN barakah_balance INTEGER NOT NULL DEFAULT 0"))
+    if "charity_consent" not in user_columns:
+        sync_conn.execute(text("ALTER TABLE users ADD COLUMN charity_consent BOOLEAN NOT NULL DEFAULT false"))
+
+    # Таблица транзакций Баракатов
+    existing_tables = inspector.get_table_names()
+    if "barakah_transactions" not in existing_tables:
+        sync_conn.execute(text("""
+            CREATE TABLE barakah_transactions (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(id),
+                amount INTEGER NOT NULL,
+                kind VARCHAR(32) NOT NULL,
+                ref_user_id BIGINT,
+                payment_id INTEGER REFERENCES bot_payments(id),
+                note VARCHAR(256),
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+            )
+        """))
+
 
 async def close_db():
     if _engine:
