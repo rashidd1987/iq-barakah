@@ -39,6 +39,8 @@ async def handle_webapp_data(message: Message, session: AsyncSession, bot=None, 
         await _send_full_lesson(session, uid, payload, message)
     elif action == "curator_report":
         await _send_curator_report(session, uid, payload, message, bot, config)
+    elif action == "get_balance":
+        await _send_balance(session, uid, message)
     else:
         logger.debug("Unknown WebApp action: %s", action)
 
@@ -229,3 +231,37 @@ async def _send_full_lesson(session: AsyncSession, user_id: int, payload: dict, 
             await message.answer(plain)
         except Exception as e:
             logger.warning("Cannot send full lesson to %s: %s", user_id, e)
+
+
+async def _send_balance(session: AsyncSession, user_id: int, message: Message):
+    """Отправить баланс Баракатов из мини-апп."""
+    from bot_v2.db.models import User
+    from bot_v2.services.barakah import get_transactions, get_referral_count, ensure_referral_code
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    user = await session.get(User, user_id)
+    if not user:
+        return
+
+    ref_count = await get_referral_count(session, user_id)
+    code = await ensure_referral_code(session, user)
+    bot_me = await message.bot.get_me()
+    link = f"https://t.me/{bot_me.username}?start=ref_{code}"
+
+    transactions = await get_transactions(session, user_id, limit=5)
+    kind_labels = {"referral": "🎁 Реферал", "spend": "💸 Оплата", "donate": "🤲 Донат", "expire": "⏳ Истекло"}
+    history = ""
+    if transactions:
+        lines = [f"{kind_labels.get(tx.kind, tx.kind)}: {'+'if tx.amount>0 else ''}{tx.amount} Б" for tx in transactions]
+        history = "\n\n*Последние операции:*\n" + "\n".join(lines)
+
+    text = (
+        f"💰 *Баланс Баракатов: {user.barakah_balance} Б*\n\n"
+        f"1 Баракат = 1 ₽\n"
+        f"👥 Приглашено друзей: {ref_count}{history}"
+    )
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📤 Пригласить друга", url=f"https://t.me/share/url?url={link}")],
+        [InlineKeyboardButton(text="🤲 Задонатить", callback_data="barakah_donate")],
+    ])
+    await message.answer(text, parse_mode="Markdown", reply_markup=kb)

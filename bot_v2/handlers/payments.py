@@ -280,6 +280,23 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
             db_pay.paid_at = _dt.datetime.now(timezone.utc)
             await session.flush()
 
+            # Начисляем Баракаты рефереру
+            from bot_v2.services.barakah import accrue_referral_barakah
+            referrer_id = await accrue_referral_barakah(session, db_pay)
+            if referrer_id:
+                barakah_amount = round(db_pay.amount * 10 / 100)
+                try:
+                    await call.bot.send_message(
+                        referrer_id,
+                        f"🎁 *+{barakah_amount} Баракатов!*\n\n"
+                        f"Твой друг оплатил программу.\n"
+                        f"10% от его оплаты ({db_pay.amount}₽) зачислены тебе.\n\n"
+                        f"Посмотреть баланс: /balance",
+                        parse_mode="Markdown",
+                    )
+                except Exception:
+                    pass
+
         if level:
             p_repo = ParticipantRepo(session)
             participant = await p_repo.activate(call.from_user.id, level=level, week=1)

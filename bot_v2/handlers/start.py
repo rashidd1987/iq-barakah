@@ -79,6 +79,18 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     if len(parts) > 1:
         payload = parts[1]
 
+    # Реферальный deep link ref_<code>
+    if payload.startswith("ref_") and created:
+        ref_code = payload[4:]
+        from sqlalchemy import select as _sa_sel
+        from bot_v2.db.models import User as _User
+        referrer = await session.scalar(
+            _sa_sel(_User).where(_User.referral_code == ref_code)
+        )
+        if referrer and referrer.id != db_user.id:
+            db_user.referred_by = referrer.id
+            await session.flush()
+
     # Пришёл из НамазВдом (партнёрский deep link nmv_*)
     if payload.startswith("nmv_"):
         # Сохраняем источник в БД
