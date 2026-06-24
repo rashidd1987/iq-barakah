@@ -46,6 +46,7 @@ BOTTOM_TEXTS = {
     "site": {BTN_SITE, t("ru", "bottom.site")},
     "jarwas": {t("ru", "bottom.jarwas")},
     "help": {BTN_HELP, t("ru", "bottom.help")},
+    "channel": {t("ru", "bottom.channel"), "📢 Канал", "📢 Channel", "📢 القناة", "📢 Kanal"},
 }
 
 
@@ -771,6 +772,19 @@ async def cb_help_curator(call: CallbackQuery):
 async def cb_help_rashid(call: CallbackQuery):
     await call.answer()
     await call.message.answer("Напиши Рашиду лично:\n@rasid_iqbarakah")
+
+
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["channel"]))
+async def msg_channel_btn(message: Message, state: FSMContext):
+    """📢 Канал."""
+    await state.clear()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await message.answer(
+        "📢 Канал IQ Barakah — статьи, новости и обновления программы:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📢 Открыть канал @iqbaraka", url="https://t.me/iqbaraka")],
+        ])
+    )
 
 
 # ── Вечерний самоотчёт FSM теперь полностью в muhasaba.py ──────────────────
