@@ -136,8 +136,14 @@ async def handle_analyze(request):
     return web.json_response({"analysis": analysis}, headers=CORS_HEADERS)
 
 
+async def handle_health(request):
+    return web.Response(text="ok")
+
+
 def create_app() -> web.Application:
     app = web.Application()
+    app.router.add_get("/health", handle_health)
+    app.router.add_get("/", handle_health)
     app.router.add_options("/analyze", handle_options)
     app.router.add_post("/analyze", handle_analyze)
     return app
