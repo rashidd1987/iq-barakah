@@ -73,7 +73,7 @@ const TEXT = {
     quran: 'Коран',
     goodDeed: 'Доброе дело',
     close: 'Закрыть',
-    submitMuhasaba: '✍️ Сдать самоотчёт',
+    submitMuhasaba: '✍️ Оставить отзыв',
     wheelSaved: 'Колесо баланса сохранено ✓',
     dateLocale: 'ru-RU',
     weekdaysShort: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],

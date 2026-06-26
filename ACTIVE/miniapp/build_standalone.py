@@ -17,6 +17,7 @@ MODULES = [
     "data/tasks.js",
     "data/content.js",
     "data/summaries.js",
+    "data/vakt_summaries.js",
     "data/glossary.js",
     "data/step_tests.js",
     "i18n.js",

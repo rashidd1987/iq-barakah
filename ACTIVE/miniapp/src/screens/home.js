@@ -14,6 +14,38 @@ export const U = {
   xp: 0,
 }
 
+export function initOnboarding() {
+  if (lsGet('ob_done', false)) return
+  const overlay = document.getElementById('ob-overlay')
+  if (!overlay) return
+  overlay.classList.remove('ob-hidden')
+
+  let cur = 0
+  const total = 4
+  const slides = Array.from({ length: total }, (_, i) => document.getElementById(`ob-s${i}`))
+  const dots = Array.from({ length: total }, (_, i) => document.getElementById(`ob-d${i}`))
+  const nextBtn = document.getElementById('ob-next-btn')
+  const skipBtn = document.getElementById('ob-skip-btn')
+
+  function show(i) {
+    slides.forEach((s, j) => s?.classList.toggle('active', j === i))
+    dots.forEach((d, j) => d?.classList.toggle('active', j === i))
+    nextBtn.textContent = i === total - 1 ? 'Начать программу 🌱' : 'Дальше →'
+  }
+
+  function finish() {
+    lsSet('ob_done', true)
+    overlay.classList.add('ob-hidden')
+    setTimeout(() => overlay.remove(), 500)
+  }
+
+  nextBtn.onclick = () => {
+    if (cur < total - 1) { cur++; show(cur) }
+    else finish()
+  }
+  skipBtn.onclick = finish
+}
+
 export function initHome() {
   readUrlParams()
 
@@ -65,6 +97,12 @@ export function initHome() {
   // 7-day streak dots
   _renderStreakWeek()
 
+  // Streak banner (7+ дней)
+  _renderStreakBanner()
+
+  // Step progress bar
+  _renderStepProgress()
+
   // Ring progress
   const pct = U.currentWeek > 0 ? Math.round(Math.max(0, U.currentWeek - 1) / 30 * 100) : 0
   document.getElementById('rpct').textContent = pct + '%'
@@ -115,6 +153,41 @@ function _renderStreakWeek() {
       </div>`
   }
   el.innerHTML = html
+}
+
+function _renderStreakBanner() {
+  const container = document.getElementById('streak-banner-slot')
+  if (!container) return
+  if (U.streak >= 7) {
+    container.innerHTML = `
+      <div class="streak-banner">
+        <div class="streak-banner-icon">🔥</div>
+        <div class="streak-banner-text">
+          <div class="t">${U.streak} дней подряд — машааллах!</div>
+          <div class="s">Продолжай — серия строит характер</div>
+        </div>
+      </div>`
+  } else {
+    container.innerHTML = ''
+  }
+}
+
+function _renderStepProgress() {
+  const container = document.getElementById('step-progress-slot')
+  if (!container || !U.currentWeek) return
+  const total = 30
+  const done = Math.max(0, U.currentWeek - 1)
+  const pct = Math.round(done / total * 100)
+  container.innerHTML = `
+    <div class="step-progress-bar">
+      <div class="sp-icon">🗺️</div>
+      <div class="sp-info">
+        <div class="sp-title">Шаг ${U.currentWeek} из ${total}</div>
+        <div class="sp-track"><div class="sp-fill" style="width:${pct}%"></div></div>
+        <div class="sp-label">${done} шагов пройдено · ${total - done} осталось</div>
+      </div>
+      <div class="sp-pct">${pct}%</div>
+    </div>`
 }
 
 function readUrlParams() {

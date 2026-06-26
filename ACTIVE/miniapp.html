@@ -204,19 +204,6 @@ nav {
 .act-tx .t { font-weight: 700; font-size: 14px; }
 .act-tx .s { font-size: 12px; color: var(--muted); margin-top: 1px; }
 
-/* ── MUHASABA SCREEN ── */
-.muh-dot { height: 4px; flex: 1; border-radius: 2px; background: var(--border); transition: background .2s; }
-.muh-dot.active { background: var(--g2); }
-.muh-dot.done { background: var(--g3); }
-.muh-qnum { font-size: 11px; color: var(--g2); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-.muh-qtext { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.4; margin-bottom: 10px; }
-.muh-hint { font-size: 13px; color: var(--sub); line-height: 1.5; font-style: italic; border-left: 3px solid var(--g3); padding-left: 10px; margin-bottom: 14px; }
-.muh-ta { width: 100%; min-height: 90px; font-size: 14px; line-height: 1.6; resize: none; border-radius: 12px; padding: 10px 12px; background: var(--bg); color: var(--text); border: 1.5px solid var(--border); font-family: inherit; margin-bottom: 4px; }
-.muh-ta:focus { outline: none; border-color: var(--g2); }
-.muh-result-q { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 3px; }
-.muh-result-a { font-size: 14px; color: var(--text); line-height: 1.5; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-.muh-result-a:last-child { border-bottom: none; padding-bottom: 0; }
-
 /* ── TRACKER SCREEN ── */
 .date-strip {
   display: flex; gap: 7px;
@@ -1013,6 +1000,62 @@ textarea:focus { border-color: var(--g2); }
   text-align: center;
 }
 
+/* ── Onboarding ──────────────────────────────────────────────────── */
+#ob-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, #1a3d1b 0%, #0d2410 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 24px calc(40px + env(safe-area-inset-bottom, 0px));
+  transition: opacity .4s ease;
+}
+#ob-overlay.ob-hidden { opacity: 0; pointer-events: none; }
+.ob-slide { display: none; flex-direction: column; align-items: center; text-align: center; }
+.ob-slide.active { display: flex; }
+.ob-icon { font-size: 72px; margin-bottom: 24px; animation: ob-pop .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes ob-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ob-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 12px; line-height: 1.2; }
+.ob-sub { font-size: 16px; color: rgba(255,255,255,.65); line-height: 1.5; max-width: 300px; }
+.ob-dots { display: flex; gap: 8px; margin: 32px 0 24px; }
+.ob-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.25); transition: all .3s; }
+.ob-dot.active { width: 24px; border-radius: 4px; background: var(--gold); }
+.ob-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; }
+.ob-next { background: var(--gold); color: #1a1a1a; border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.ob-skip { background: transparent; color: rgba(255,255,255,.4); border: none; padding: 8px; font-size: 14px; cursor: pointer; }
+
+/* ── Streak Banner ───────────────────────────────────────────────── */
+.streak-banner {
+  background: linear-gradient(135deg, #7c2d12, #dc2626);
+  border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 4px;
+}
+.streak-banner-icon { font-size: 32px; }
+.streak-banner-text .t { color: #fff; font-weight: 800; font-size: 16px; }
+.streak-banner-text .s { color: rgba(255,255,255,.7); font-size: 13px; margin-top: 2px; }
+
+/* ── Step Progress (Шаг X из 30) ────────────────────────────────── */
+.step-progress-bar {
+  background: var(--card); border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 4px;
+}
+.sp-icon { font-size: 24px; }
+.sp-info { flex: 1; }
+.sp-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.sp-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.sp-fill { height: 100%; background: linear-gradient(90deg, var(--g2), var(--g3)); border-radius: 3px; transition: width .8s cubic-bezier(.22,1,.36,1); }
+.sp-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.sp-pct { font-size: 15px; font-weight: 800; color: var(--g2); }
+
+/* ── Step Summary (Итоги шага) ───────────────────────────────────── */
+#sh-summary .summary-body { padding: 8px 0 16px; }
+.sum-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.sum-row:last-child { border-bottom: none; }
+.sum-icon { font-size: 28px; width: 40px; text-align: center; }
+.sum-info .t { font-size: 15px; font-weight: 700; }
+.sum-info .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.sum-badge { margin-left: auto; background: var(--gpale); color: var(--g2); border-radius: 8px; padding: 4px 10px; font-size: 13px; font-weight: 700; }
+
   </style>
 </head>
 <body>
@@ -1107,6 +1150,8 @@ textarea:focus { border-color: var(--g2); }
     👁 Режим просмотра куратора · Все уроки открыты
   </div>
   <div class="c">
+    <div id="streak-banner-slot"></div>
+    <div id="step-progress-slot"></div>
     <div class="current-week" id="cw-banner">
       <div class="cw-icon" id="cw-icon">📖</div>
       <div class="cw-info">
@@ -1147,10 +1192,9 @@ textarea:focus { border-color: var(--g2); }
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, поминание Всевышнего, самоотчёт</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" data-screen="lessons"><div class="act-ic gr">📚</div><div class="act-tx"><div class="t" data-i18n="currentLesson">Текущий урок</div><div class="s" id="act-cur-week" data-i18n="openLessonsMap">Открыть карту уроков</div></div><span style="color:var(--muted)">›</span></div>
-      <div class="act-item" data-screen="muhasaba"><div class="act-ic" style="background:linear-gradient(135deg,#1a3d1b,#2c5f2d);color:white;">🌙</div><div class="act-tx"><div class="t">Вечерний разбор (Мухасаба)</div><div class="s">3 вопроса — итог дня и намерение</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" data-screen="wheel"><div class="act-ic gd">🎯</div><div class="act-tx"><div class="t" data-i18n="lifeWheel">Колесо баланса</div><div class="s" data-i18n="lifeWheelSub">8 сфер жизни</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t" data-i18n="eveningMuhasaba">Вечерний самоотчёт <span class="gterm-info" onclick="window.showGlossaryTip&&showGlossaryTip('Мухасаба')">ℹ</span></div><div class="s" data-i18n="eveningMuhasabaSub">Мухасаба — три вопроса · 2 минуты</div></div><span style="color:var(--muted)">›</span></div>
       <div class="act-item" id="btn-open-diag"><div class="act-ic pu">🎯</div><div class="act-tx"><div class="t" data-i18n="levelDiagnostic">Диагностика уровня</div><div class="s" data-i18n="levelDiagnosticSub">Пройти заново или сменить уровень</div></div><span style="color:var(--muted)">›</span></div>
-      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t">Оставить отзыв</div><div class="s">Поделитесь впечатлением о шаге</div></div><span style="color:var(--muted)">›</span></div>
     </div>
   </div>
 </div>
@@ -1212,7 +1256,7 @@ textarea:focus { border-color: var(--g2); }
 
     <!-- Report to curator -->
     <button class="report-btn" id="btn-curator-report">
-      ✍️ Оставить отзыв
+      📊 Отправить отчёт куратору
     </button>
   </div>
 </div>
@@ -1284,70 +1328,6 @@ textarea:focus { border-color: var(--g2); }
         <div class="ship-step"><div class="ship-step-n">3</div><span data-i18n="shipStep3">Джарвас даст рекомендации по каждой слабой зоне</span></div>
         <div class="ship-step"><div class="ship-step-n">4</div><span data-i18n="shipStep4">Результаты сохранятся — можно отслеживать прогресс раз в месяц</span></div>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- MUHASABA -->
-<div class="screen" id="sc-muhasaba">
-  <div class="hdr">
-    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge" style="background:rgba(255,255,255,.15);color:white;">🌙 Мухасаба</div></div>
-    <div class="hdr-title">Вечерний разбор</div>
-    <div class="hdr-sub">Три вопроса — итог дня и намерение на завтра</div>
-  </div>
-  <div class="c">
-    <div class="card" id="muh-card" style="overflow:hidden;">
-      <div class="cb" style="padding:0;">
-        <!-- step indicator -->
-        <div style="display:flex;gap:6px;padding:16px 16px 0;" id="muh-dots">
-          <div class="muh-dot active" data-step="0"></div>
-          <div class="muh-dot" data-step="1"></div>
-          <div class="muh-dot" data-step="2"></div>
-        </div>
-        <!-- questions wrapper (slides) -->
-        <div id="muh-slides" style="position:relative;overflow:hidden;">
-          <!-- Q1 -->
-          <div class="muh-slide" id="muh-q0">
-            <div style="padding:16px 16px 0;">
-              <div class="muh-qnum">Вопрос 1 из 3</div>
-              <div class="muh-qtext">Что сегодня получилось — даже самое маленькое?</div>
-              <div class="muh-hint">Аллах видит каждое усилие, даже если его не видит никто.</div>
-              <textarea class="muh-ta" id="muh-a0" placeholder="Напишите здесь..."></textarea>
-            </div>
-          </div>
-          <!-- Q2 -->
-          <div class="muh-slide" id="muh-q1" style="display:none;">
-            <div style="padding:16px 16px 0;">
-              <div class="muh-qnum">Вопрос 2 из 3</div>
-              <div class="muh-qtext">Что далось тяжело — и почему?</div>
-              <div class="muh-hint">Честность с собой — это уже часть поклонения. Не суди себя, просто замечай.</div>
-              <textarea class="muh-ta" id="muh-a1" placeholder="Напишите здесь..."></textarea>
-            </div>
-          </div>
-          <!-- Q3 -->
-          <div class="muh-slide" id="muh-q2" style="display:none;">
-            <div style="padding:16px 16px 0;">
-              <div class="muh-qnum">Вопрос 3 из 3</div>
-              <div class="muh-qtext">Что хочу сделать иначе завтра?</div>
-              <div class="muh-hint">Одно маленькое намерение — уже шаг вперёд. БисмиЛлях.</div>
-              <textarea class="muh-ta" id="muh-a2" placeholder="Напишите здесь..."></textarea>
-            </div>
-          </div>
-        </div>
-        <!-- nav buttons -->
-        <div style="display:flex;gap:8px;padding:12px 16px 16px;" id="muh-nav">
-          <button id="muh-prev" onclick="muhPrev()" style="display:none;flex:0 0 auto;padding:0 16px;height:44px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:14px;cursor:pointer;">← Назад</button>
-          <button id="muh-next" onclick="muhNext()" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--g2);color:white;font-size:15px;font-weight:600;cursor:pointer;">Следующий →</button>
-        </div>
-      </div>
-    </div>
-    <!-- saved result card -->
-    <div id="muh-result" style="display:none;">
-      <div class="card"><div class="cb">
-        <div class="ct" style="margin-bottom:8px;">✅ Разбор сохранён</div>
-        <div id="muh-result-body" style="display:flex;flex-direction:column;gap:10px;"></div>
-        <button onclick="muhReset()" style="margin-top:12px;width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--sub);font-size:14px;cursor:pointer;">Написать заново</button>
-      </div></div>
     </div>
   </div>
 </div>
@@ -1453,6 +1433,54 @@ textarea:focus { border-color: var(--g2); }
       <div class="fl" style="margin-top:10px;"><label>Главный инсайт шага</label><textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea></div>
     </div></div>
     <button class="btn btn-p" id="rv-btn">Отправить отзыв</button>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div id="ob-overlay" class="ob-hidden">
+  <div class="ob-slide active" id="ob-s0">
+    <div class="ob-icon">🌱</div>
+    <div class="ob-title">Ас-саляму алейкум!</div>
+    <div class="ob-sub">Добро пожаловать в IQ Barakah — твою систему роста мусульманина</div>
+  </div>
+  <div class="ob-slide" id="ob-s1">
+    <div class="ob-icon">📋</div>
+    <div class="ob-title">Трекер каждый день</div>
+    <div class="ob-sub">Отмечай намаз, ежедневные практики и задания шага. Серия дней строит характер</div>
+  </div>
+  <div class="ob-slide" id="ob-s2">
+    <div class="ob-icon">📚</div>
+    <div class="ob-title">30 шагов программы</div>
+    <div class="ob-sub">Выполни задания шага → пройди тест → открывай следующий. Шаг за шагом к изменениям</div>
+  </div>
+  <div class="ob-slide" id="ob-s3">
+    <div class="ob-icon">🚢</div>
+    <div class="ob-title">Найди пробоины</div>
+    <div class="ob-sub">Корабль Бараката — диагностика 15 сфер жизни. Джарвас даст разбор и маршрут роста</div>
+  </div>
+  <div class="ob-dots">
+    <div class="ob-dot active" id="ob-d0"></div>
+    <div class="ob-dot" id="ob-d1"></div>
+    <div class="ob-dot" id="ob-d2"></div>
+    <div class="ob-dot" id="ob-d3"></div>
+  </div>
+  <div class="ob-btns">
+    <button class="ob-next" id="ob-next-btn">Дальше →</button>
+    <button class="ob-skip" id="ob-skip-btn">Пропустить</button>
+  </div>
+</div>
+
+<!-- STEP SUMMARY SHEET -->
+<div class="overlay" id="ov-summary"></div>
+<div class="sheet" id="sh-summary">
+  <div class="sh"></div>
+  <div class="s-icon">🏆</div>
+  <div class="s-title" id="sum-title">Шаг завершён!</div>
+  <div class="s-sub" id="sum-sub">Альхамдулиллях — ты сделал это</div>
+  <div class="summary-body" id="sum-body"></div>
+  <div class="s-btns">
+    <button class="btn btn-p" id="sum-next-btn">→ К следующему шагу</button>
+    <button class="btn btn-o" id="sum-close-btn">Закрыть</button>
   </div>
 </div>
 <script>
@@ -2700,6 +2728,53 @@ const LESSON_SUMMARIES = {
     }
   ]
 };
+
+
+// --- data/vakt_summaries.js ---
+// Vyzhimki (preview summaries) for ВАКТ lessons in the Mini App
+// Structure: LESSON_SUMMARIES[level][weekIndex (0-based)][skill ('I'|'II'|'III')]
+// Source: Vyzhimki_VAKT.md
+
+const LESSON_SUMMARIES = {
+  'А': [
+    // Неделя 1 — Ният · тайный разговор
+    {
+      'I':  'Будильник, телефон, дорога, работа-пожары, дом, усталость, сон — и снова по кругу. Так живёт почти каждый, и это не лень, а жизнь на автопилоте. Хорошая новость: из неё есть выход — через одну простую привычку, которая занимает три секунды. На этой неделе ты её и поставишь — и день снова станет твоим.',
+      'II': 'Представь два дня у одного и того же человека. В одном он просто прожил их — функции выполнены, и только. В другом — те же дела, но каждое начато с тихого разворота сердца, и весь день пошёл в копилку перед Аллахом. Этот разворот называется ният. На этой неделе ты учишься делать его на автомате — и обычный день перестаёт быть пустым.',
+      'III': 'Имамы называли короткий хадис о намерениях бездонным — аш-Шафи\'и говорил, что его смысл входит в семьдесят глав знания. И есть тонкость: у искренности есть тихий вор, который крадёт не само дело, а его ценность изнутри. На этой неделе ты идёшь туда, где свидетель только Один — и самое незаметное дело начинает весить больше показных.',
+    },
+    // Неделя 2 — Утро · якорь дня
+    {
+      'I':  'Что первое ты делаешь, проснувшись? Если как у большинства — берёшь телефон, и день уже сломан: чужие новости, чужая тревога, твоя свежесть растрачена. Здесь нет осуждения, если ты пока не молишься Фаджр — никто не давит. На этой неделе ты сделаешь одно: пять минут тишины до экрана. И увидишь, как меняется тон всего дня.',
+      'II': 'Кто владеет утром — владеет днём. Большинство начинает день в режиме реакции — отвечая на чужие сообщения, проверяя чужие повестки. Можно иначе: задать тон самому, спокойно, ещё до того, как мир постучится. На этой неделе ты ставишь утренний якорь — одно действие, каждое утро, без телефона — и день перестаёт быть чужим.',
+      'III': 'Пророк ﷺ молил Аллаха о баракате именно для раннего утра своей общины. Учёные поколениями замечали: то, что начато на рассвете, идёт легче и приносит больше. Для готового — есть ступень выше: Тахаджуд, разговор с Аллахом, когда мир спит. На этой неделе ты пробуешь её — один раз — и видишь, как изнутри будто зажигают свет.',
+    },
+    // Неделя 3 — Ритм · планировать день вокруг ритма, а не хаоса
+    {
+      'I':  'Проснулся — телефон, потом дела вперемешку, к обеду уже устал, вечером — ощущение, что день прошёл впустую. Это не лень. Это отсутствие ритма: когда нет структуры, день управляет тобой, а не ты им. На этой неделе ты ставишь три якорные паузы — утром, днём и вечером — и с одним простым вопросом возвращаешь руль к себе.',
+      'II': 'Аллах предписал молиться не просто «когда получится» — а в строго определённое время. Пять раз в день, пять естественных точек, которые делят сутки на блоки. Мусульманин получил готовую архитектуру дня — не «сколько у меня часов», а «что успею между Фаджром и Зухром». На этой неделе ты учишься планировать вокруг намазов — и намаз перестаёт быть помехой делам, а становится точкой сброса и перефокуса.',
+      'III': '«Время — это твоя жизнь, а жизнь — твой капитал» — написал Ибн аль-Каййим. Праведные предшественники понимали время как доверенное имущество: за каждый час будет спрос. На этой неделе ты составляешь своё личное расписание ритма — не список задач, а порядок состояний вокруг пяти намазов. Это не планировщик, это настройка сердца на постоянную связь с Аллахом.',
+    },
+    // Неделя 4 — Внимание · ослабить власть телефона и рассеивания
+    {
+      'I':  'Средний человек проверяет телефон 96 раз в день — раз в 10 минут. Каждый раз — чужие новости, чужие мнения врываются в твой день, и ты даже не замечаешь, как теряешь себя. Телефон спроектирован так, чтобы ты не мог остановиться — это не твоя слабость, это чужой дизайн. На этой неделе два простых правила возвращают тебе утро и хотя бы один приём пищи — только твои.',
+      'II': '«Слух, зрение и сердце — все они будут спрошены» — говорит Аллах в Коране. Каждый бездумно досмотренный ролик, каждый час в ленте — это расход ресурса, за который будет спрос. При этом каждое уведомление требует 23 минуты, чтобы вернуться к прерванному делу. На этой неделе ты сужаешь проверку телефона до трёх окон в день — и смотришь, сколько времени и энергии вернётся.',
+      'III': 'Аль-Газали писал о «тафриг аль-кальб» — освобождении сердца: наполненный сосуд не принимает нового. Пророк ﷺ уединялся в пещере Хира месяцами — это была тренировка глубокого присутствия, которая сделала его готовым принять откровение. Глубокое внимание — это мышца: без тренировки атрофируется, с тренировкой — даёт качество мысли, которого не купишь. На этой неделе ты вводишь ежедневные 20 минут тишины — и обнаруживаешь, что лучшие решения рождаются именно там.',
+    },
+    // Неделя 5 — Вечерний отчёт · благодарность, пробоина, следующий шаг
+    {
+      'I':  'Есть одна привычка, которая отличает растущих от топчущихся на месте: они заканчивают день не просто «упав на диван», а задав себе три вопроса. За что благодарен? Где дал слабину? Что сделаю иначе завтра? Пять минут, никаких приложений, можно прямо в кровати. На этой неделе ты это начинаешь — и день перестаёт утекать бесследно.',
+      'II': '«Считайте себя прежде, чем будете посчитаны» — говорил Умар ибн аль-Хаттаб своим сподвижникам, которые уже были праведными. Самоотчёт — не признак слабости, это инструмент роста. На этой неделе ты ставишь письменный вечерний отчёт в три строки: благодарность, пробоина, следующий шаг. Семь минут письменно работают в разы сильнее, чем просто думать.',
+      'III': 'Аль-Газали описал полную систему ежедневной мухасабы: утром — договор с собой (мушарата), днём — осознанное наблюдение (муракаба), вечером — честный отчёт (мухасаба). «Умный человек подобен купцу — он проверяет счета каждый день. Кто не проверяет — обнаружит банкротство, когда уже поздно». На этой неделе ты вводишь все три этапа — и впервые видишь свой день не как поток событий, а как осознанный путь.',
+    },
+    // Неделя 6 — Постоянство · закрепить систему и выбрать следующий уровень
+    {
+      'I':  'Шесть недель пройдено. Ты остановился и спросил «ради чего?» — это было намерение. Побыл в утренней тишине до телефона — это было утро. Выстроил ритм вокруг намазов — это был ритм. Вернул своё внимание — это было внимание. Завершал дни честным вопросом — это был вечерний отчёт. На этой неделе ты выбираешь одно — то, что зацепило сильнее всего, — и делаешь это каждый день.',
+      'II': 'Система — это не когда легко. Система — это твоё поведение в самый трудный день: когда устал, когда не хочется, когда всё валится из рук. На этой неделе ты проверяешь: что из пяти практик уже работает само, а что ещё нужно держать осознанно. И впервые видишь честный итог — что стало частью тебя, а что ещё впереди.',
+      'III': '«Скажи: "Я уверовал в Аллаха" — а затем будь стойким» — истикама выше любых вспышек поклонения. Шесть недель — это был аудит фундамента: намерение, утро, ритм, внимание, вечерний отчёт. Ты знаешь теперь, где слабые места и что работает. На этой неделе ты не просто закрываешь курс — ты открываешь следующий уровень, где работа идёт уже не с расписанием, а с тем, кто ты есть.',
+    },
+  ]
+}
 
 
 // --- data/glossary.js ---
@@ -5773,7 +5848,7 @@ const TEXT = {
     quran: 'Коран',
     goodDeed: 'Доброе дело',
     close: 'Закрыть',
-    submitMuhasaba: '✍️ Сдать самоотчёт',
+    submitMuhasaba: '✍️ Оставить отзыв',
     wheelSaved: 'Колесо баланса сохранено ✓',
     dateLocale: 'ru-RU',
     weekdaysShort: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
@@ -6543,6 +6618,38 @@ const U = {
   xp: 0,
 }
 
+function initOnboarding() {
+  if (lsGet('ob_done', false)) return
+  const overlay = document.getElementById('ob-overlay')
+  if (!overlay) return
+  overlay.classList.remove('ob-hidden')
+
+  let cur = 0
+  const total = 4
+  const slides = Array.from({ length: total }, (_, i) => document.getElementById(`ob-s${i}`))
+  const dots = Array.from({ length: total }, (_, i) => document.getElementById(`ob-d${i}`))
+  const nextBtn = document.getElementById('ob-next-btn')
+  const skipBtn = document.getElementById('ob-skip-btn')
+
+  function show(i) {
+    slides.forEach((s, j) => s?.classList.toggle('active', j === i))
+    dots.forEach((d, j) => d?.classList.toggle('active', j === i))
+    nextBtn.textContent = i === total - 1 ? 'Начать программу 🌱' : 'Дальше →'
+  }
+
+  function finish() {
+    lsSet('ob_done', true)
+    overlay.classList.add('ob-hidden')
+    setTimeout(() => overlay.remove(), 500)
+  }
+
+  nextBtn.onclick = () => {
+    if (cur < total - 1) { cur++; show(cur) }
+    else finish()
+  }
+  skipBtn.onclick = finish
+}
+
 function initHome() {
   readUrlParams()
 
@@ -6594,6 +6701,12 @@ function initHome() {
   // 7-day streak dots
   _renderStreakWeek()
 
+  // Streak banner (7+ дней)
+  _renderStreakBanner()
+
+  // Step progress bar
+  _renderStepProgress()
+
   // Ring progress
   const pct = U.currentWeek > 0 ? Math.round(Math.max(0, U.currentWeek - 1) / 30 * 100) : 0
   document.getElementById('rpct').textContent = pct + '%'
@@ -6644,6 +6757,41 @@ function _renderStreakWeek() {
       </div>`
   }
   el.innerHTML = html
+}
+
+function _renderStreakBanner() {
+  const container = document.getElementById('streak-banner-slot')
+  if (!container) return
+  if (U.streak >= 7) {
+    container.innerHTML = `
+      <div class="streak-banner">
+        <div class="streak-banner-icon">🔥</div>
+        <div class="streak-banner-text">
+          <div class="t">${U.streak} дней подряд — машааллах!</div>
+          <div class="s">Продолжай — серия строит характер</div>
+        </div>
+      </div>`
+  } else {
+    container.innerHTML = ''
+  }
+}
+
+function _renderStepProgress() {
+  const container = document.getElementById('step-progress-slot')
+  if (!container || !U.currentWeek) return
+  const total = 30
+  const done = Math.max(0, U.currentWeek - 1)
+  const pct = Math.round(done / total * 100)
+  container.innerHTML = `
+    <div class="step-progress-bar">
+      <div class="sp-icon">🗺️</div>
+      <div class="sp-info">
+        <div class="sp-title">Шаг ${U.currentWeek} из ${total}</div>
+        <div class="sp-track"><div class="sp-fill" style="width:${pct}%"></div></div>
+        <div class="sp-label">${done} шагов пройдено · ${total - done} осталось</div>
+      </div>
+      <div class="sp-pct">${pct}%</div>
+    </div>`
 }
 
 function readUrlParams() {
@@ -6956,29 +7104,52 @@ function renderProgramTasks() {
   if (!existing) {
     const calBtn = document.createElement('button')
     calBtn.className = 'ptasks-cal-btn'
-    calBtn.innerHTML = '📅 Добавить в календарь'
+    calBtn.innerHTML = '📅 Добавить в календарь (все 7 дней)'
     calBtn.onclick = () => { haptic(); _addWeekToCalendar(level, weekInLevel, tasks) }
     container.parentElement.appendChild(calBtn)
   }
 }
 
-// ── Calendar export — 1 event for today ──────────────────────────────────────
+// ── Calendar export (ICS) ─────────────────────────────────────────────────────
 function _addWeekToCalendar(level, weekInLevel, tasks) {
   const LEVEL_OFFSET = { А: 0, Б: 6, В: 14, Г: 22 }
   const globalWeek = (LEVEL_OFFSET[level] ?? 0) + weekInLevel
 
+  const today = new Date()
+  const dow = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((dow + 6) % 7))
+
   const pad = n => String(n).padStart(2, '0')
+  const fmt = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
+
+  const taskLines = tasks.map((t, i) =>
+    `${i+1}. ${t.replace(/[\r\n,;]/g, ' ').substring(0, 120)}`
+  ).join('\\n')
+
+  const summary = `IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`
+  const desc = `Задания на каждый день:\\n${taskLines}\\n\\nОтмечай выполненное в Трекере`
+
+  const CRLF = '\r\n'
+  let vevents = ''
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    d.setHours(9, 0, 0, 0)
+    const dEnd = new Date(d)
+    dEnd.setHours(9, 30, 0, 0)
+    const uid = `iqb-w${globalWeek}-d${i+1}-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}@iqbarakah`
+    vevents += `BEGIN:VEVENT${CRLF}UID:${uid}${CRLF}DTSTART:${fmt(d)}${CRLF}DTEND:${fmt(dEnd)}${CRLF}SUMMARY:${summary}${CRLF}DESCRIPTION:${desc}${CRLF}END:VEVENT${CRLF}`
+  }
+
+  // Google Calendar URL (HTTPS — works in Telegram WebApp on all platforms)
+  monday.setHours(9, 0, 0, 0)
+  const mondayEnd = new Date(monday); mondayEnd.setHours(9, 30, 0, 0)
+  const title = encodeURIComponent(`IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`)
+  const details = encodeURIComponent(`Задания на каждый день шага:\n${tasks.slice(0,5).map((t,i)=>`${i+1}. ${t.substring(0,100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`)
+  const recur = 'RRULE%3AFREQ%3DDAILY%3BCOUNT%3D7'
   const fmtG = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
-
-  const start = new Date(); start.setHours(9, 0, 0, 0)
-  const end = new Date();   end.setHours(9, 30, 0, 0)
-
-  const title   = encodeURIComponent(`IQ Barakah · Шаг ${globalWeek} · Уровень ${level}`)
-  const details = encodeURIComponent(
-    `Задания шага:\n${tasks.slice(0, 5).map((t, i) => `${i+1}. ${t.substring(0, 100)}`).join('\n')}\n\nОтмечай выполненное в Трекере`
-  )
-
-  openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(start)}/${fmtG(end)}&details=${details}&sf=true&output=xml`)
+  openLink(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtG(monday)}/${fmtG(mondayEnd)}&recur=${recur}&details=${details}&sf=true&output=xml`)
 }
 
 // ── Individual habit streak ───────────────────────────────────────────────────
@@ -7234,7 +7405,7 @@ function _showStepResult(globalWeekIndex) {
   nextBtn.style.display = passed ? '' : 'none'
   closeBtn.textContent = passed ? 'Закрыть' : '← Назад к уроку'
 
-  nextBtn.onclick = () => { closeSheet('steptest'); _unlockNextStep(globalWeekIndex) }
+  nextBtn.onclick = () => { closeSheet('steptest'); setTimeout(() => _showStepSummary(globalWeekIndex), 300) }
   closeBtn.onclick = () => closeSheet('steptest')
 }
 
@@ -7251,6 +7422,74 @@ function _unlockNextStep(globalWeekIndex) {
   const circ = 2 * Math.PI * 62
   document.getElementById('ring')?.setAttribute('stroke-dashoffset', (circ * (1 - pct / 100)).toFixed(1))
   document.getElementById('sv-weeks').textContent = Math.max(0, currentWeek - 1)
+}
+
+function _showStepSummary(globalWeekIndex) {
+  const week = WEEKS[globalWeekIndex - 1]
+  const nextWeek = WEEKS[globalWeekIndex]
+  const { level, levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+
+  // Считаем выполненные задания
+  const today = new Date().toISOString().split('T')[0]
+  const storageKey = `ptasks_${level}_w${levelWeekIndex}_${U.skill || 'I'}_${today}`
+  const done = lsGet(storageKey, {})
+  const doneCount = Object.values(done).filter(Boolean).length
+
+  document.getElementById('sum-title').textContent = `Шаг ${globalWeekIndex} завершён! 🏆`
+  document.getElementById('sum-sub').textContent = 'Альхамдулиллях — ты сделал это'
+
+  const body = document.getElementById('sum-body')
+  body.innerHTML = `
+    <div class="sum-row">
+      <div class="sum-icon">${week?.icon || '📚'}</div>
+      <div class="sum-info">
+        <div class="t">${week?.title || 'Шаг ' + globalWeekIndex}</div>
+        <div class="s">Пройден и закреплён тестом</div>
+      </div>
+      <div class="sum-badge">✅ Готово</div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-icon">📋</div>
+      <div class="sum-info">
+        <div class="t">Задания выполнены</div>
+        <div class="s">${doneCount} заданий отмечено сегодня</div>
+      </div>
+      <div class="sum-badge">${doneCount} ✓</div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-icon">🗺️</div>
+      <div class="sum-info">
+        <div class="t">Прогресс программы</div>
+        <div class="s">${globalWeekIndex} из 30 шагов пройдено</div>
+      </div>
+      <div class="sum-badge">${Math.round(globalWeekIndex / 30 * 100)}%</div>
+    </div>
+    ${nextWeek ? `
+    <div class="sum-row">
+      <div class="sum-icon">${nextWeek.icon || '➡️'}</div>
+      <div class="sum-info">
+        <div class="t">Следующий: ${nextWeek.title}</div>
+        <div class="s">Шаг ${globalWeekIndex + 1} открыт</div>
+      </div>
+    </div>` : `
+    <div class="sum-row">
+      <div class="sum-icon">🎓</div>
+      <div class="sum-info">
+        <div class="t">Программа завершена!</div>
+        <div class="s">Машааллах — все 30 шагов пройдены</div>
+      </div>
+    </div>`}`
+
+  const nextBtn = document.getElementById('sum-next-btn')
+  const closeBtn = document.getElementById('sum-close-btn')
+  nextBtn.style.display = nextWeek ? '' : 'none'
+  nextBtn.onclick = () => { closeSheet('summary'); _unlockNextStep(globalWeekIndex) }
+  closeBtn.onclick = () => { closeSheet('summary'); _unlockNextStep(globalWeekIndex) }
+
+  openSheet('summary')
+  document.getElementById('ov-summary')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) { closeSheet('summary'); _unlockNextStep(globalWeekIndex) }
+  }, { once: true })
 }
 
 function setCurrentWeek(w) { currentWeek = w }
@@ -7662,7 +7901,7 @@ function initShipButtons() {
 
 // --- app.js ---
 
-const SCREENS = ['home', 'tracker', 'lessons', 'wheel', 'ship', 'muhasaba']
+const SCREENS = ['home', 'tracker', 'lessons', 'wheel', 'ship']
 let current = 'home'
 
 function switchScreen(id) {
@@ -7674,11 +7913,10 @@ function switchScreen(id) {
   document.getElementById(`nb-${id}`)?.classList.add('active')
   current = id
 
-  if (id === 'wheel')     renderWheel()
-  if (id === 'lessons')   renderLessons('all')
-  if (id === 'tracker')   renderTracker()
-  if (id === 'ship')      renderShip()
-  if (id === 'muhasaba')  initMuhasaba()
+  if (id === 'wheel')   renderWheel()
+  if (id === 'lessons') renderLessons('all')
+  if (id === 'tracker') renderTracker()
+  if (id === 'ship')    renderShip()
 }
 
 function rerenderCurrentScreen() {
@@ -7727,6 +7965,7 @@ initI18n()
 // Make glossary tip available globally (for inline HTML onclick)
 window.showGlossaryTip = showGlossaryTip
 initHome()
+initOnboarding()
 
 // Sync currentWeek from user state into lessons module
 setCurrentWeek(U.currentWeek)
@@ -7766,71 +8005,11 @@ initDiagnostic(() => {
 // Diagnostic trigger buttons
 document.getElementById('btn-open-diag')?.addEventListener('click', openDiag)
 
-// Review sheet (muhasaba) — legacy sheet kept for curator report
+// Review sheet (muhasaba)
 initReviewSheet(() => U.currentWeek, WEEKS)
-
-// ── MUHASABA SCREEN ──
-let muhStep = 0
-const MUH_QUESTIONS = [
-  { q: 'Что сегодня получилось — даже самое маленькое?' },
-  { q: 'Что далось тяжело — и почему?' },
-  { q: 'Что хочу сделать иначе завтра?' },
-]
-
-function muhShowStep(step) {
-  muhStep = step
-  MUH_QUESTIONS.forEach((_, i) => {
-    document.getElementById(`muh-q${i}`).style.display = i === step ? '' : 'none'
-    const dot = document.querySelector(`.muh-dot[data-step="${i}"]`)
-    if (dot) {
-      dot.classList.toggle('active', i === step)
-      dot.classList.toggle('done', i < step)
-    }
-  })
-  document.getElementById('muh-prev').style.display = step > 0 ? '' : 'none'
-  const next = document.getElementById('muh-next')
-  next.textContent = step < 2 ? 'Следующий →' : '✅ Сохранить'
-  document.getElementById(`muh-a${step}`)?.focus()
-}
-
-function muhNext() {
-  const ta = document.getElementById(`muh-a${muhStep}`)
-  if (!ta.value.trim()) { ta.style.borderColor = '#e74c3c'; ta.focus(); setTimeout(() => ta.style.borderColor = '', 1200); return }
-  if (muhStep < 2) { muhShowStep(muhStep + 1); return }
-  // save
-  const today = new Date().toISOString().slice(0, 10)
-  const answers = MUH_QUESTIONS.map((_, i) => document.getElementById(`muh-a${i}`)?.value.trim() || '')
-  lsSet('muh_' + today, { date: today, answers })
-  muhShowResult(answers)
-}
-
-function muhPrev() { if (muhStep > 0) muhShowStep(muhStep - 1) }
-
-function muhShowResult(answers) {
-  document.getElementById('muh-card').style.display = 'none'
-  const rb = document.getElementById('muh-result-body')
-  rb.innerHTML = MUH_QUESTIONS.map((q, i) =>
-    `<div><div class="muh-result-q">${q.q}</div><div class="muh-result-a">${answers[i]}</div></div>`
-  ).join('')
-  document.getElementById('muh-result').style.display = ''
-}
-
-function muhReset() {
-  MUH_QUESTIONS.forEach((_, i) => { const ta = document.getElementById(`muh-a${i}`); if (ta) ta.value = '' })
-  document.getElementById('muh-card').style.display = ''
-  document.getElementById('muh-result').style.display = 'none'
-  muhShowStep(0)
-}
-
-function initMuhasaba() {
-  muhShowStep(0)
-  const today = new Date().toISOString().slice(0, 10)
-  const saved = lsGet('muh_' + today, null)
-  if (saved?.answers) {
-    saved.answers.forEach((a, i) => { const ta = document.getElementById(`muh-a${i}`); if (ta) ta.value = a })
-    muhShowResult(saved.answers)
-  }
-}
+document.getElementById('btn-muhasaba')?.addEventListener('click', () =>
+  openReviewSheet(U.currentWeek, WEEKS)
+)
 
 // Curator report button
 document.getElementById('btn-curator-report')?.addEventListener('click', () => {

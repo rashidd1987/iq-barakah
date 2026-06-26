@@ -98,6 +98,8 @@
     👁 Режим просмотра куратора · Все уроки открыты
   </div>
   <div class="c">
+    <div id="streak-banner-slot"></div>
+    <div id="step-progress-slot"></div>
     <div class="current-week" id="cw-banner">
       <div class="cw-icon" id="cw-icon">📖</div>
       <div class="cw-info">
@@ -379,6 +381,54 @@
       <div class="fl" style="margin-top:10px;"><label>Главный инсайт шага</label><textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea></div>
     </div></div>
     <button class="btn btn-p" id="rv-btn">Отправить отзыв</button>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div id="ob-overlay" class="ob-hidden">
+  <div class="ob-slide active" id="ob-s0">
+    <div class="ob-icon">🌱</div>
+    <div class="ob-title">Ас-саляму алейкум!</div>
+    <div class="ob-sub">Добро пожаловать в IQ Barakah — твою систему роста мусульманина</div>
+  </div>
+  <div class="ob-slide" id="ob-s1">
+    <div class="ob-icon">📋</div>
+    <div class="ob-title">Трекер каждый день</div>
+    <div class="ob-sub">Отмечай намаз, ежедневные практики и задания шага. Серия дней строит характер</div>
+  </div>
+  <div class="ob-slide" id="ob-s2">
+    <div class="ob-icon">📚</div>
+    <div class="ob-title">30 шагов программы</div>
+    <div class="ob-sub">Выполни задания шага → пройди тест → открывай следующий. Шаг за шагом к изменениям</div>
+  </div>
+  <div class="ob-slide" id="ob-s3">
+    <div class="ob-icon">🚢</div>
+    <div class="ob-title">Найди пробоины</div>
+    <div class="ob-sub">Корабль Бараката — диагностика 15 сфер жизни. Джарвас даст разбор и маршрут роста</div>
+  </div>
+  <div class="ob-dots">
+    <div class="ob-dot active" id="ob-d0"></div>
+    <div class="ob-dot" id="ob-d1"></div>
+    <div class="ob-dot" id="ob-d2"></div>
+    <div class="ob-dot" id="ob-d3"></div>
+  </div>
+  <div class="ob-btns">
+    <button class="ob-next" id="ob-next-btn">Дальше →</button>
+    <button class="ob-skip" id="ob-skip-btn">Пропустить</button>
+  </div>
+</div>
+
+<!-- STEP SUMMARY SHEET -->
+<div class="overlay" id="ov-summary"></div>
+<div class="sheet" id="sh-summary">
+  <div class="sh"></div>
+  <div class="s-icon">🏆</div>
+  <div class="s-title" id="sum-title">Шаг завершён!</div>
+  <div class="s-sub" id="sum-sub">Альхамдулиллях — ты сделал это</div>
+  <div class="summary-body" id="sum-body"></div>
+  <div class="s-btns">
+    <button class="btn btn-p" id="sum-next-btn">→ К следующему шагу</button>
+    <button class="btn btn-o" id="sum-close-btn">Закрыть</button>
   </div>
 </div>
 

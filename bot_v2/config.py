@@ -10,7 +10,7 @@ class Config:
     curator_ids: list[int]
 
     site: str = "https://iq-barakah.ru"
-    miniapp_url: str = "https://iq-barakah.ru/miniapp.html"
+    miniapp_url: str = "https://iq-barakah.ru/miniapp.html?v=20260626"
     ship_url: str = "https://iq-barakah.ru/ship_barakat_business.html"
 
     yookassa_shop_id: str = ""

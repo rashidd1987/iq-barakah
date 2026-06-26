@@ -991,3 +991,59 @@ textarea:focus { border-color: var(--g2); }
   font-size: 13px; color: #92400e; line-height: 1.4;
   text-align: center;
 }
+
+/* ── Onboarding ──────────────────────────────────────────────────── */
+#ob-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: linear-gradient(160deg, #1a3d1b 0%, #0d2410 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 24px calc(40px + env(safe-area-inset-bottom, 0px));
+  transition: opacity .4s ease;
+}
+#ob-overlay.ob-hidden { opacity: 0; pointer-events: none; }
+.ob-slide { display: none; flex-direction: column; align-items: center; text-align: center; }
+.ob-slide.active { display: flex; }
+.ob-icon { font-size: 72px; margin-bottom: 24px; animation: ob-pop .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes ob-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.ob-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 12px; line-height: 1.2; }
+.ob-sub { font-size: 16px; color: rgba(255,255,255,.65); line-height: 1.5; max-width: 300px; }
+.ob-dots { display: flex; gap: 8px; margin: 32px 0 24px; }
+.ob-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.25); transition: all .3s; }
+.ob-dot.active { width: 24px; border-radius: 4px; background: var(--gold); }
+.ob-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; }
+.ob-next { background: var(--gold); color: #1a1a1a; border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.ob-skip { background: transparent; color: rgba(255,255,255,.4); border: none; padding: 8px; font-size: 14px; cursor: pointer; }
+
+/* ── Streak Banner ───────────────────────────────────────────────── */
+.streak-banner {
+  background: linear-gradient(135deg, #7c2d12, #dc2626);
+  border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 4px;
+}
+.streak-banner-icon { font-size: 32px; }
+.streak-banner-text .t { color: #fff; font-weight: 800; font-size: 16px; }
+.streak-banner-text .s { color: rgba(255,255,255,.7); font-size: 13px; margin-top: 2px; }
+
+/* ── Step Progress (Шаг X из 30) ────────────────────────────────── */
+.step-progress-bar {
+  background: var(--card); border-radius: 14px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 4px;
+}
+.sp-icon { font-size: 24px; }
+.sp-info { flex: 1; }
+.sp-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.sp-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.sp-fill { height: 100%; background: linear-gradient(90deg, var(--g2), var(--g3)); border-radius: 3px; transition: width .8s cubic-bezier(.22,1,.36,1); }
+.sp-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.sp-pct { font-size: 15px; font-weight: 800; color: var(--g2); }
+
+/* ── Step Summary (Итоги шага) ───────────────────────────────────── */
+#sh-summary .summary-body { padding: 8px 0 16px; }
+.sum-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.sum-row:last-child { border-bottom: none; }
+.sum-icon { font-size: 28px; width: 40px; text-align: center; }
+.sum-info .t { font-size: 15px; font-weight: 700; }
+.sum-info .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.sum-badge { margin-left: auto; background: var(--gpale); color: var(--g2); border-radius: 8px; padding: 4px 10px; font-size: 13px; font-weight: 700; }

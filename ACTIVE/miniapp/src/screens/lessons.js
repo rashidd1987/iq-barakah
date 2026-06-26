@@ -106,7 +106,7 @@ function _showStepResult(globalWeekIndex) {
   nextBtn.style.display = passed ? '' : 'none'
   closeBtn.textContent = passed ? 'Закрыть' : '← Назад к уроку'
 
-  nextBtn.onclick = () => { closeSheet('steptest'); _unlockNextStep(globalWeekIndex) }
+  nextBtn.onclick = () => { closeSheet('steptest'); setTimeout(() => _showStepSummary(globalWeekIndex), 300) }
   closeBtn.onclick = () => closeSheet('steptest')
 }
 
@@ -123,6 +123,74 @@ function _unlockNextStep(globalWeekIndex) {
   const circ = 2 * Math.PI * 62
   document.getElementById('ring')?.setAttribute('stroke-dashoffset', (circ * (1 - pct / 100)).toFixed(1))
   document.getElementById('sv-weeks').textContent = Math.max(0, currentWeek - 1)
+}
+
+function _showStepSummary(globalWeekIndex) {
+  const week = WEEKS[globalWeekIndex - 1]
+  const nextWeek = WEEKS[globalWeekIndex]
+  const { level, levelWeekIndex } = weekToLevelIndex(globalWeekIndex)
+
+  // Считаем выполненные задания
+  const today = new Date().toISOString().split('T')[0]
+  const storageKey = `ptasks_${level}_w${levelWeekIndex}_${U.skill || 'I'}_${today}`
+  const done = lsGet(storageKey, {})
+  const doneCount = Object.values(done).filter(Boolean).length
+
+  document.getElementById('sum-title').textContent = `Шаг ${globalWeekIndex} завершён! 🏆`
+  document.getElementById('sum-sub').textContent = 'Альхамдулиллях — ты сделал это'
+
+  const body = document.getElementById('sum-body')
+  body.innerHTML = `
+    <div class="sum-row">
+      <div class="sum-icon">${week?.icon || '📚'}</div>
+      <div class="sum-info">
+        <div class="t">${week?.title || 'Шаг ' + globalWeekIndex}</div>
+        <div class="s">Пройден и закреплён тестом</div>
+      </div>
+      <div class="sum-badge">✅ Готово</div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-icon">📋</div>
+      <div class="sum-info">
+        <div class="t">Задания выполнены</div>
+        <div class="s">${doneCount} заданий отмечено сегодня</div>
+      </div>
+      <div class="sum-badge">${doneCount} ✓</div>
+    </div>
+    <div class="sum-row">
+      <div class="sum-icon">🗺️</div>
+      <div class="sum-info">
+        <div class="t">Прогресс программы</div>
+        <div class="s">${globalWeekIndex} из 30 шагов пройдено</div>
+      </div>
+      <div class="sum-badge">${Math.round(globalWeekIndex / 30 * 100)}%</div>
+    </div>
+    ${nextWeek ? `
+    <div class="sum-row">
+      <div class="sum-icon">${nextWeek.icon || '➡️'}</div>
+      <div class="sum-info">
+        <div class="t">Следующий: ${nextWeek.title}</div>
+        <div class="s">Шаг ${globalWeekIndex + 1} открыт</div>
+      </div>
+    </div>` : `
+    <div class="sum-row">
+      <div class="sum-icon">🎓</div>
+      <div class="sum-info">
+        <div class="t">Программа завершена!</div>
+        <div class="s">Машааллах — все 30 шагов пройдены</div>
+      </div>
+    </div>`}`
+
+  const nextBtn = document.getElementById('sum-next-btn')
+  const closeBtn = document.getElementById('sum-close-btn')
+  nextBtn.style.display = nextWeek ? '' : 'none'
+  nextBtn.onclick = () => { closeSheet('summary'); _unlockNextStep(globalWeekIndex) }
+  closeBtn.onclick = () => { closeSheet('summary'); _unlockNextStep(globalWeekIndex) }
+
+  openSheet('summary')
+  document.getElementById('ov-summary')?.addEventListener('click', e => {
+    if (e.target === e.currentTarget) { closeSheet('summary'); _unlockNextStep(globalWeekIndex) }
+  }, { once: true })
 }
 
 export function setCurrentWeek(w) { currentWeek = w }
