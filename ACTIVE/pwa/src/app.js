@@ -2,18 +2,45 @@ import { renderTracker } from './screens/tracker.js'
 import { renderLessons } from './screens/lessons.js'
 import { renderWheel, saveWheel } from './screens/wheel.js'
 import { renderShip, initShipButtons } from './screens/ship.js'
+import { trackScreen } from './analytics.js'
 
 const SCREENS = ['home', 'tracker', 'lessons', 'wheel', 'ship']
+const SCREEN_ORDER = { home: 0, tracker: 1, lessons: 2, wheel: 3, ship: 4 }
 let current = 'home'
 
 export function switchScreen(id) {
-  if (!SCREENS.includes(id)) return
-  document.getElementById(`sc-${current}`)?.classList.remove('active')
-  document.getElementById(`nb-${current}`)?.classList.remove('active')
-  document.getElementById(`sc-${id}`)?.classList.add('active')
-  document.getElementById(`nb-${id}`)?.classList.add('active')
+  if (!SCREENS.includes(id) || id === current) return
+  const prevEl = document.getElementById(`sc-${current}`)
+  const nextEl = document.getElementById(`sc-${id}`)
+  if (!prevEl || !nextEl) return
+
+  const goRight = SCREEN_ORDER[id] > SCREEN_ORDER[current]
+
+  // slide out current
+  prevEl.classList.add(goRight ? 'slide-out-left' : 'slide-out-right')
+  prevEl.classList.remove('active')
+
+  // prepare next
+  nextEl.classList.add(goRight ? 'slide-in-right' : 'slide-in-left')
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      nextEl.classList.add('active')
+      nextEl.classList.remove('slide-in-right', 'slide-in-left')
+    })
+  })
+  setTimeout(() => {
+    prevEl.classList.remove('slide-out-left', 'slide-out-right')
+  }, 320)
+
+  const prevBtn = document.getElementById(`nb-${current}`)
+  const nextBtn = document.getElementById(`nb-${id}`)
+  prevBtn?.classList.remove('active')
+  prevBtn?.removeAttribute('aria-current')
+  nextBtn?.classList.add('active')
+  nextBtn?.setAttribute('aria-current', 'page')
   current = id
 
+  trackScreen(id)
   if (id === 'wheel')   renderWheel()
   if (id === 'lessons') renderLessons('all')
   if (id === 'tracker') renderTracker()

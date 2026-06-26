@@ -35,6 +35,16 @@ CREATE TABLE IF NOT EXISTS pwa_ship (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS pwa_analytics (
+    id         BIGSERIAL PRIMARY KEY,
+    uid        TEXT NOT NULL,
+    event      TEXT NOT NULL,
+    screen     TEXT,
+    ts         TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_pwa_tracker_user_date ON pwa_tracker(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_pwa_wheel_user ON pwa_wheel(user_id);
 CREATE INDEX IF NOT EXISTS idx_pwa_ship_user ON pwa_ship(user_id);
+CREATE INDEX IF NOT EXISTS idx_pwa_analytics_uid ON pwa_analytics(uid);
+CREATE INDEX IF NOT EXISTS idx_pwa_analytics_event ON pwa_analytics(event);

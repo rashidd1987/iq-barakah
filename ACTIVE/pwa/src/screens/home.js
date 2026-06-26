@@ -166,6 +166,8 @@ function _showProfileMenu() {
   try { savedUser = JSON.parse(localStorage.getItem('iq_user') || '{}') } catch {}
   const name  = savedUser.name  || U.name || 'Участник'
   const email = savedUser.email || ''
+  const remTime = localStorage.getItem('iq_remind_time') || '20:00'
+  const pushGranted = 'Notification' in window && Notification.permission === 'granted'
 
   const html = `
     <div style="text-align:center;padding:8px 0 20px">
@@ -173,9 +175,27 @@ function _showProfileMenu() {
       <div style="font-size:18px;font-weight:800;color:var(--text)">${name}</div>
       ${email ? `<div style="font-size:13px;color:var(--muted);margin-top:3px">${email}</div>` : ''}
     </div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-      <button class="btn btn-o" onclick="closeSheet()" style="justify-content:flex-start;gap:12px">⚙️ Настройки</button>
-      <button class="btn" onclick="_pwaLogout()" style="background:#fef2f2;color:#dc2626;border:1.5px solid #fecaca;justify-content:flex-start;gap:12px">🚪 Выйти из аккаунта</button>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div class="settings-row">
+        <span>👑 Подписка Premium</span>
+        <button class="btn btn-p" style="padding:8px 14px;font-size:13px" onclick="closeSheet();openPaywall()">Подключить</button>
+      </div>
+      <div class="settings-row">
+        <span>🔔 Напоминание</span>
+        <input type="time" value="${remTime}" onchange="localStorage.setItem('iq_remind_time',this.value)" style="width:90px"/>
+      </div>
+      ${!pushGranted ? `
+      <div class="settings-row">
+        <span>📲 Уведомления</span>
+        <button class="btn btn-o" style="padding:8px 14px;font-size:13px" onclick="_pwaPushAsk()">Включить</button>
+      </div>` : ''}
+      <div class="settings-row">
+        <span>📥 Экспорт данных</span>
+        <button class="btn btn-o" style="padding:8px 14px;font-size:13px" onclick="closeSheet();_pwaExport()">Скачать</button>
+      </div>
+      <div class="settings-row" style="border:none;margin-top:8px">
+        <button class="btn" onclick="_pwaLogout()" style="width:100%;background:#fef2f2;color:#dc2626;border:1.5px solid #fecaca">🚪 Выйти из аккаунта</button>
+      </div>
     </div>
   `
   window.openSheet(html)
@@ -185,4 +205,19 @@ window._pwaLogout = function() {
   localStorage.removeItem('iq_token')
   localStorage.removeItem('iq_user')
   window.location.reload()
+}
+
+window._pwaPushAsk = async function() {
+  const { requestPushPermission } = await import('../push.js')
+  const result = await requestPushPermission()
+  if (result === 'granted') {
+    const { initDailyReminder } = await import('../push.js')
+    initDailyReminder()
+    closeSheet()
+    setTimeout(() => window.openSheet('<div style="text-align:center;padding:24px"><div style="font-size:48px;margin-bottom:12px">🔔</div><div style="font-size:18px;font-weight:800">Уведомления включены!</div><p style="color:var(--muted);margin-top:8px">Напомним каждый день в 20:00</p></div>'), 300)
+  }
+}
+
+window._pwaExport = function() {
+  import('../export.js').then(m => m.exportProgress())
 }

@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
-from typing import Optional
-import jwt, bcrypt, os, asyncpg
+from typing import Optional, List, Dict, Any
+from collections import defaultdict
+import jwt, bcrypt, os, asyncpg, time
 
 SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
@@ -18,6 +20,28 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
+
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+_rate_store: Dict[str, List[float]] = defaultdict(list)
+RATE_LIMITS = {
+    '/auth/login': (10, 60),     # 10 req / 60s
+    '/auth/register': (5, 60),   # 5 req / 60s
+    'default': (120, 60),        # 120 req / 60s
+}
+
+@app.middleware('http')
+async def rate_limit_middleware(request: Request, call_next):
+    ip = request.client.host if request.client else 'unknown'
+    path = request.url.path
+    limit, window = RATE_LIMITS.get(path, RATE_LIMITS['default'])
+    key = f'{ip}:{path}'
+    now = time.time()
+    hits = _rate_store[key]
+    _rate_store[key] = [t for t in hits if now - t < window]
+    if len(_rate_store[key]) >= limit:
+        return JSONResponse({'detail': 'Too many requests'}, status_code=429)
+    _rate_store[key].append(now)
+    return await call_next(request)
 
 security = HTTPBearer()
 db_pool: asyncpg.Pool = None
@@ -158,3 +182,29 @@ async def save_ship(req: ShipReq, user_id: int = Depends(verify_token)):
 @app.get('/health')
 async def health():
     return {'status': 'ok'}
+
+# ── Analytics ─────────────────────────────────────────────────────────────────
+
+class AnalyticsEvent(BaseModel):
+    e: str
+    uid: str
+    ts: int
+    screen: Optional[str] = None
+
+class AnalyticsBatch(BaseModel):
+    events: List[AnalyticsEvent]
+
+@app.post('/analytics')
+async def analytics(batch: AnalyticsBatch):
+    if not db_pool:
+        return {'ok': True}
+    async with db_pool.acquire() as conn:
+        for ev in batch.events[:50]:  # cap per batch
+            try:
+                await conn.execute(
+                    'INSERT INTO pwa_analytics (uid, event, screen, ts) VALUES ($1,$2,$3,to_timestamp($4/1000.0))',
+                    ev.uid, ev.e[:64], ev.screen, ev.ts
+                )
+            except Exception:
+                pass  # never fail the client
+    return {'ok': True}
