@@ -525,6 +525,67 @@ async def cmd_forum_start(message: Message, session: AsyncSession, config: Confi
     await message.answer(f"✅ Готово!\n\nОтправлено: {ok}\nОшибок: {fail}")
 
 
+@router.message(Command("forum_ship"))
+async def cmd_forum_ship(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /forum_ship — разослать участникам форума ссылку на Разбор корабля."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    from sqlalchemy import select as sa_select, or_
+    from bot_v2.db.models import Payment
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    result = await session.execute(
+        sa_select(Payment).where(
+            Payment.tariff_id == "forum_27_06",
+            or_(Payment.status == "paid", Payment.status == "pending"),
+        )
+    )
+    payments = result.scalars().all()
+    seen = set()
+    unique = []
+    for p in payments:
+        if p.user_id not in seen:
+            seen.add(p.user_id)
+            unique.append(p)
+
+    if not unique:
+        await message.answer("❌ Нет участников форума в базе.")
+        return
+
+    await message.answer(f"📤 Отправляю Разбор корабля {len(unique)} участникам...")
+
+    ship_url = "https://iq-barakah.ru/ship-report.html?utm=forum2026"
+    ok = 0
+    fail = 0
+    for pay in unique:
+        try:
+            user = await UserRepo(session).get(pay.user_id)
+            name = (user.name or "").split()[0] if user else ""
+            greeting = f", {name}" if name else ""
+            await message.bot.send_message(
+                chat_id=pay.user_id,
+                text=(
+                    f"🚢 Ас-саляму алейкум{greeting}!\n\n"
+                    f"На форуме мы говорили о системе.\n\n"
+                    f"Следующий шаг — *Разбор корабля*.\n\n"
+                    f"Это 8 вопросов о твоей жизни и деле. По ответам AI выстраивает "
+                    f"персональный разбор: где течь, где ресурс, куда двигаться.\n\n"
+                    f"Занимает 5 минут. Результат — сразу. 🌿"
+                ),
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🚢 Пройти Разбор корабля", url=ship_url)],
+                ]),
+            )
+            ok += 1
+        except Exception as e:
+            logger.warning("forum_ship → %s: %s", pay.user_id, e)
+            fail += 1
+
+    await message.answer(f"✅ Готово!\n\nОтправлено: {ok}\nОшибок: {fail}")
+
+
 @router.message(Command("forum_list"))
 async def cmd_forum_list(message: Message, session: AsyncSession, config: Config):
     """Куратор: /forum_list — список всех купивших билет на форум."""
