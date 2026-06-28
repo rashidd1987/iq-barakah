@@ -245,6 +245,7 @@ async def _setup_commands(bot: Bot, config) -> None:
         BotCommand(command="gift_stats",   description="📊 Сколько мест использовано"),
         BotCommand(command="gift_reset",   description="♻️ Сбросить счётчик gift-ссылки"),
         BotCommand(command="forum_start",  description="🚀 Отправить диагностику форумщикам"),
+        BotCommand(command="forum_ship",   description="🚢 Разослать Разбор корабля форумщикам"),
         BotCommand(command="forum_list",   description="🎟 Список участников форума"),
         BotCommand(command="forum_add",    description="➕ Добавить тест-билет форума"),
         BotCommand(command="forum_reset_counter", description="♻️ Сбросить нумерацию билетов"),
