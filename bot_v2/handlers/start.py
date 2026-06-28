@@ -330,6 +330,66 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         )
         return
 
+    if payload == "forum2026":
+        from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+        _settings = SettingsRepo(session)
+
+        existing = await ParticipantRepo(session).get(message.from_user.id)
+        if existing and existing.is_active:
+            await message.answer(
+                "🌱 У тебя уже открыт доступ к программе.\n\nНажми *Мой путь* чтобы продолжить.",
+                parse_mode="Markdown",
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            return
+
+        # Ставим флаг — после диагностики активировать Старт бесплатно
+        await _settings.set(f"gift_pending:{message.from_user.id}", "1")
+        await _settings.set(f"forum2026:{message.from_user.id}", "1")
+
+        # Сохраняем UTM-источник
+        if not db_user.utm_source:
+            db_user.utm_source = "forum2026"
+        db_user.last_utm_source = "forum2026"
+        await session.flush()
+
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting = f", {name_first}" if name_first else ""
+
+        await message.answer(
+            f"🌿 Ас-саляму алейкум{greeting}!\n\n"
+            f"*Твой подарок форума — IQ Barakah Старт*\n\n"
+            f"6 шагов тайм-менеджмента мусульманина. Бесплатно — как мы и договорились. 🎁\n\n"
+            f"Прежде чем открыть первый шаг — пройди короткую диагностику.\n"
+            f"7 вопросов · 2 минуты · определит твой уровень. 🌱",
+            parse_mode="Markdown",
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, None),
+        )
+        await message.answer(
+            "👇 Нажми чтобы начать:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+            ]),
+        )
+        # Уведомить куратора
+        from bot_v2.keyboards.inline import kb_curator_contact
+        _uname = db_user.username if db_user and db_user.username else None
+        for curator_id in config.curator_ids:
+            try:
+                await message.bot.send_message(
+                    curator_id,
+                    f"🎟 *Участник форума зашёл в бот*\n\n"
+                    f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
+                    f"📌 Ожидает активации Старт (бесплатно)",
+                    parse_mode="Markdown",
+                    reply_markup=kb_curator_contact(message.from_user.id, _uname),
+                )
+            except Exception:
+                pass
+        return
+
     if payload == "forum":
         await message.answer(
             t(lang, "menu.updated", version=config.version),
