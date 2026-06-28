@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.jarwas-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:28px; }
+.j-card { background:var(--card-bg,#fff); border:1px solid var(--border,#e5e7eb); border-radius:12px; padding:20px 18px; }
+.j-card .val { font-size:2rem; font-weight:800; color:var(--accent,#2C5F44); line-height:1.1; }
+.j-card .lbl { font-size:.78rem; color:#6b7280; margin-top:4px; }
+.utm-table, .recent-table { width:100%; border-collapse:collapse; margin-bottom:28px; }
+.utm-table th, .recent-table th { text-align:left; font-size:.75rem; color:#6b7280; font-weight:600; padding:6px 10px; border-bottom:2px solid var(--border,#e5e7eb); }
+.utm-table td, .recent-table td { padding:8px 10px; border-bottom:1px solid var(--border,#f3f4f6); font-size:.85rem; }
+.utm-table .bar { height:8px; border-radius:4px; background:var(--accent,#2C5F44); display:inline-block; min-width:4px; }
+.badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:.72rem; font-weight:600; }
+.badge.ok { background:#d1fae5; color:#065f46; }
+.badge.err { background:#fee2e2; color:#991b1b; }
+.badge.business { background:#dbeafe; color:#1e40af; }
+.badge.personal { background:#ede9fe; color:#5b21b6; }
+.section-title { font-size:1rem; font-weight:700; margin:24px 0 12px; }
+.refresh-btn { float:right; font-size:.8rem; padding:6px 14px; border:1px solid var(--border,#e5e7eb); border-radius:8px; background:#fff; cursor:pointer; color:#374151; }
+.refresh-btn:hover { background:#f9fafb; }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <h1 style="margin:0;font-size:1.4rem">Джарвас — аналитика диагностики</h1>
+  <button class="refresh-btn" onclick="loadStats()">↻ Обновить</button>
+</div>
+
+<div id="error-msg" style="display:none;background:#fee2e2;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#991b1b;font-size:.85rem"></div>
+
+<div class="jarwas-grid" id="stat-cards">
+  <div class="j-card"><div class="val" id="s-total">—</div><div class="lbl">Всего анализов</div></div>
+  <div class="j-card"><div class="val" id="s-today">—</div><div class="lbl">Сегодня</div></div>
+  <div class="j-card"><div class="val" id="s-ok">—</div><div class="lbl">Успешно</div></div>
+  <div class="j-card"><div class="val" id="s-err">—</div><div class="lbl">Ошибок</div></div>
+  <div class="j-card"><div class="val" id="s-avg">—</div><div class="lbl">Средний балл</div></div>
+  <div class="j-card"><div class="val" id="s-biz">—</div><div class="lbl">Бизнес-корабль</div></div>
+  <div class="j-card"><div class="val" id="s-per">—</div><div class="lbl">Корабль жизни</div></div>
+</div>
+
+<div class="section-title">По источникам (UTM)</div>
+<table class="utm-table" id="utm-table">
+  <thead><tr><th>Источник</th><th>Кол-во</th><th>Доля</th><th></th></tr></thead>
+  <tbody id="utm-body"><tr><td colspan="4" style="color:#9ca3af;padding:16px 10px">Загрузка...</td></tr></tbody>
+</table>
+
+<div class="section-title">Последние 20 анализов</div>
+<table class="recent-table">
+  <thead><tr><th>Время</th><th>Вкладка</th><th>Балл</th><th>Статус</th><th>Источник</th></tr></thead>
+  <tbody id="recent-body"><tr><td colspan="5" style="color:#9ca3af;padding:16px 10px">Загрузка...</td></tr></tbody>
+</table>
+
+<script>
+const STATS_URL = 'https://iq-barakah-v2-rashidiq.amvera.io/stats';
+
+async function loadStats() {
+  try {
+    const r = await fetch(STATS_URL);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    document.getElementById('error-msg').style.display = 'none';
+    document.getElementById('s-total').textContent = d.total ?? 0;
+    document.getElementById('s-today').textContent = d.today ?? 0;
+    document.getElementById('s-ok').textContent = d.ok ?? 0;
+    document.getElementById('s-err').textContent = d.errors ?? 0;
+    document.getElementById('s-avg').textContent = (d.avg_score ?? 0) + '%';
+    document.getElementById('s-biz').textContent = d.business ?? 0;
+    document.getElementById('s-per').textContent = d.personal ?? 0;
+
+    const utms = d.utms || {};
+    const total = d.total || 1;
+    const utmSorted = Object.entries(utms).sort((a,b) => b[1]-a[1]);
+    const maxVal = utmSorted[0]?.[1] || 1;
+    document.getElementById('utm-body').innerHTML = utmSorted.map(([k,v]) =>
+      `<tr>
+        <td><code style="font-size:.82rem">${k}</code></td>
+        <td style="font-weight:700">${v}</td>
+        <td>${Math.round(v/total*100)}%</td>
+        <td><span class="bar" style="width:${Math.round(v/maxVal*120)}px"></span></td>
+      </tr>`
+    ).join('') || '<tr><td colspan="4" style="color:#9ca3af">Нет данных</td></tr>';
+
+    const recent = d.recent || [];
+    document.getElementById('recent-body').innerHTML = recent.map(row =>
+      `<tr>
+        <td style="color:#6b7280;font-size:.8rem">${row.dt}</td>
+        <td><span class="badge ${row.tab}">${row.tab === 'business' ? 'Бизнес' : 'Жизнь'}</span></td>
+        <td style="font-weight:700">${row.avg}%</td>
+        <td><span class="badge ${row.status}">${row.status === 'ok' ? '✓' : '✗'}</span></td>
+        <td><code style="font-size:.78rem">${row.utm}</code></td>
+      </tr>`
+    ).join('') || '<tr><td colspan="5" style="color:#9ca3af">Нет данных</td></tr>';
+
+  } catch(e) {
+    document.getElementById('error-msg').textContent = 'Ошибка загрузки: ' + e.message;
+    document.getElementById('error-msg').style.display = 'block';
+  }
+}
+
+loadStats();
+</script>
+{% endblock %}

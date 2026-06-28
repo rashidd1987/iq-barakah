@@ -191,10 +191,49 @@ async def handle_health(request):
     return web.Response(text="ok")
 
 
+async def handle_stats(request):
+    """JSON stats endpoint for CRM dashboard."""
+    try:
+        if not os.path.exists(STATS_FILE):
+            return web.json_response({"total": 0, "today": 0, "ok": 0, "errors": 0,
+                                      "business": 0, "personal": 0, "avg_score": 0,
+                                      "utms": {}, "last": None}, headers=CORS_HEADERS)
+        with open(STATS_FILE) as f:
+            lines = f.readlines()
+        total = len(lines)
+        ok = sum(1 for l in lines if "|ok|" in l or l.strip().endswith("|ok"))
+        business = sum(1 for l in lines if "|business|" in l)
+        personal = sum(1 for l in lines if "|personal|" in l)
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_count = sum(1 for l in lines if l.startswith(today))
+        avgs = [int(l.split("|")[2]) for l in lines if len(l.split("|")) >= 3 and l.split("|")[2].isdigit()]
+        avg_score = round(sum(avgs) / len(avgs)) if avgs else 0
+        utms: dict = {}
+        for l in lines:
+            parts = l.strip().split("|")
+            u = parts[4] if len(parts) >= 5 else "organic"
+            utms[u] = utms.get(u, 0) + 1
+        recent = []
+        for l in lines[-20:][::-1]:
+            parts = l.strip().split("|")
+            if len(parts) >= 5:
+                recent.append({"dt": parts[0], "tab": parts[1], "avg": parts[2],
+                                "status": parts[3], "utm": parts[4]})
+        return web.json_response({
+            "total": total, "today": today_count, "ok": ok, "errors": total - ok,
+            "business": business, "personal": personal, "avg_score": avg_score,
+            "utms": utms, "last": lines[-1].split("|")[0] if lines else None,
+            "recent": recent,
+        }, headers=CORS_HEADERS)
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500, headers=CORS_HEADERS)
+
+
 def create_app() -> web.Application:
     app = web.Application()
     app.router.add_get("/health", handle_health)
     app.router.add_get("/", handle_health)
+    app.router.add_get("/stats", handle_stats)
     app.router.add_options("/analyze", handle_options)
     app.router.add_post("/analyze", handle_analyze)
     return app

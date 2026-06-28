@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IQ Barakah CRM{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Mulish:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}?v=20260601-design-themes">
+</head>
+{% set page_theme = theme if theme is defined else request.query_params.get("theme", "premium") %}
+<body class="theme-{{ page_theme }}">
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark">IQ</span>
+      <span>
+        <strong>IQ Barakah</strong>
+        <small>CRM куратора</small>
+      </span>
+    </a>
+    <nav>
+      <a href="/">Обзор</a>
+      <a href="/students">Ученики</a>
+      <a href="/jarwas">Джарвас</a>
+      <form action="/logout" method="post">
+        <button type="submit" class="link-button">Выйти</button>
+      </form>
+    </nav>
+  </header>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
