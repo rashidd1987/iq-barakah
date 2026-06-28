@@ -333,6 +333,8 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     if payload == "forum2026":
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        from bot_v2.db.models import Payment as _Payment
+        from sqlalchemy import select as _sa_select
 
         _settings = SettingsRepo(session)
 
@@ -342,6 +344,21 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
                 "🌱 У тебя уже открыт доступ к программе.\n\nНажми *Мой путь* чтобы продолжить.",
                 parse_mode="Markdown",
                 reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            return
+
+        # Проверяем — есть ли оплата форума у этого пользователя
+        forum_pay = await session.scalar(
+            _sa_select(_Payment).where(
+                _Payment.user_id == message.from_user.id,
+                _Payment.tariff_id == "forum_27_06",
+            )
+        )
+        if not forum_pay:
+            await message.answer(
+                "🙏 Эта ссылка только для участников форума IQ Barakah.\n\n"
+                "Если ты оплатил билет — напиши куратору, он добавит тебя вручную.\n"
+                "📩 @iqbarakah"
             )
             return
 
