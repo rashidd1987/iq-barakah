@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 STATS_FILE = "/data/analyze_stats.log"
 
-def log_analysis(tab: str, avg: int, success: bool):
+def log_analysis(tab: str, avg: int, success: bool, utm: str = "organic"):
     try:
         os.makedirs("/data", exist_ok=True)
         with open(STATS_FILE, "a") as f:
-            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}|{tab}|{avg}|{'ok' if success else 'err'}\n")
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}|{tab}|{avg}|{'ok' if success else 'err'}|{utm}\n")
     except Exception:
         pass
 
@@ -35,13 +35,20 @@ def get_stats() -> str:
         today_count = sum(1 for l in lines if l.startswith(today))
         avgs = [int(l.split("|")[2]) for l in lines if len(l.split("|")) >= 3 and l.split("|")[2].isdigit()]
         avg_score = round(sum(avgs) / len(avgs)) if avgs else 0
+        utms: dict = {}
+        for l in lines:
+            parts = l.strip().split("|")
+            u = parts[4] if len(parts) >= 5 else "organic"
+            utms[u] = utms.get(u, 0) + 1
+        utm_lines = "\n".join(f"  — {k}: {v}" for k, v in sorted(utms.items(), key=lambda x: -x[1]))
         return (
             f"📊 Статистика /analyze\n\n"
             f"Всего анализов: {total}\n"
             f"Сегодня: {today_count}\n"
             f"Успешно: {ok} | Ошибок: {errors}\n"
             f"Бизнес-корабль: {business} | Корабль жизни: {personal}\n"
-            f"Средний балл: {avg_score}%\n"
+            f"Средний балл: {avg_score}%\n\n"
+            f"По источникам:\n{utm_lines}\n\n"
             f"Последний: {lines[-1].split('|')[0]}"
         )
     except Exception as e:
@@ -83,6 +90,7 @@ async def handle_analyze(request):
     scores = data.get("scores", [])
     name = data.get("name", "").strip()
     tab = data.get("tab", "business")
+    utm = data.get("utm", "organic")[:50]
 
     if len(scores) != 15:
         return web.json_response({"error": "Expected 15 scores"}, status=400, headers=CORS_HEADERS)
@@ -170,10 +178,10 @@ async def handle_analyze(request):
             messages=[{"role": "user", "content": prompt}],
         )
         analysis = message.content[0].text
-        log_analysis(tab, avg, success=True)
+        log_analysis(tab, avg, success=True, utm=utm)
     except Exception as e:
         logger.error("Anthropic API error: %s", e)
-        log_analysis(tab, avg, success=False)
+        log_analysis(tab, avg, success=False, utm=utm)
         return web.json_response({"error": "AI unavailable"}, status=503, headers=CORS_HEADERS)
 
     return web.json_response({"analysis": analysis}, headers=CORS_HEADERS)
