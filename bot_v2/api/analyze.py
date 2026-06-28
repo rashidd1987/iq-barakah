@@ -1,10 +1,51 @@
 """HTTP endpoint /analyze — персональный AI-разбор корабля."""
 import json
 import logging
+import os
+from datetime import datetime
 from aiohttp import web
 import anthropic
 
 logger = logging.getLogger(__name__)
+
+STATS_FILE = "/data/analyze_stats.log"
+
+def log_analysis(tab: str, avg: int, success: bool):
+    try:
+        os.makedirs("/data", exist_ok=True)
+        with open(STATS_FILE, "a") as f:
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}|{tab}|{avg}|{'ok' if success else 'err'}\n")
+    except Exception:
+        pass
+
+def get_stats() -> str:
+    try:
+        if not os.path.exists(STATS_FILE):
+            return "Статистики пока нет."
+        with open(STATS_FILE) as f:
+            lines = f.readlines()
+        if not lines:
+            return "Статистики пока нет."
+        total = len(lines)
+        ok = sum(1 for l in lines if l.strip().endswith("|ok"))
+        errors = total - ok
+        business = sum(1 for l in lines if "|business|" in l)
+        personal = sum(1 for l in lines if "|personal|" in l)
+        today = datetime.now().strftime("%Y-%m-%d")
+        today_count = sum(1 for l in lines if l.startswith(today))
+        avgs = [int(l.split("|")[2]) for l in lines if len(l.split("|")) >= 3 and l.split("|")[2].isdigit()]
+        avg_score = round(sum(avgs) / len(avgs)) if avgs else 0
+        return (
+            f"📊 Статистика /analyze\n\n"
+            f"Всего анализов: {total}\n"
+            f"Сегодня: {today_count}\n"
+            f"Успешно: {ok} | Ошибок: {errors}\n"
+            f"Бизнес-корабль: {business} | Корабль жизни: {personal}\n"
+            f"Средний балл: {avg_score}%\n"
+            f"Последний: {lines[-1].split('|')[0]}"
+        )
+    except Exception as e:
+        return f"Ошибка чтения статистики: {e}"
 
 BUSINESS_BLOCKS = [
     "Энергия основателя","Ният и мышление","Самореализация и зона гения",
@@ -129,8 +170,10 @@ async def handle_analyze(request):
             messages=[{"role": "user", "content": prompt}],
         )
         analysis = message.content[0].text
+        log_analysis(tab, avg, success=True)
     except Exception as e:
         logger.error("Anthropic API error: %s", e)
+        log_analysis(tab, avg, success=False)
         return web.json_response({"error": "AI unavailable"}, status=503, headers=CORS_HEADERS)
 
     return web.json_response({"analysis": analysis}, headers=CORS_HEADERS)

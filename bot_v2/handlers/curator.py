@@ -1,4 +1,4 @@
-"""Команды куратора: /activate, /deactivate, /participants, /setcalllink, /pair."""
+"""Команды куратора: /activate, /deactivate, /participants, /setcalllink, /pair, /analyzestats."""
 import logging
 from datetime import timezone, datetime
 
@@ -14,6 +14,7 @@ from bot_v2.db.repositories import ParticipantRepo, UserRepo, SettingsRepo, Pair
 from bot_v2.services.i18n import language_name
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 from bot_v2.services.insights import analyze_participant
+from bot_v2.api.analyze import get_stats
 
 logger = logging.getLogger(__name__)
 router = Router(name="curator")
@@ -1137,3 +1138,11 @@ async def cmd_preview_all(message: Message, session: AsyncSession, config: Confi
         f"Чтобы сбросить: `/resetme`",
         parse_mode="Markdown"
     )
+
+
+@router.message(Command("analyzestats"))
+async def cmd_analyzestats(message: Message, config: Config):
+    """Куратор: статистика запросов /analyze (Джарвас)."""
+    if not is_curator(message.from_user.id, config):
+        return
+    await message.answer(get_stats(), parse_mode="Markdown")
