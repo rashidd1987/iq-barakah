@@ -462,6 +462,40 @@ async def cmd_send_all(message: Message, session: AsyncSession, config: Config):
     )
 
 
+@router.message(Command("forum_fix_pending"))
+async def cmd_forum_fix_pending(message: Message, session: AsyncSession, config: Config):
+    """Куратор: /forum_fix_pending — поставить gift_pending всем форумщикам без активации."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    from sqlalchemy import select as sa_select, or_
+    from bot_v2.db.models import Payment, Participant
+    from bot_v2.db.repositories import SettingsRepo
+
+    _settings = SettingsRepo(session)
+    result = await session.execute(
+        sa_select(Payment).where(
+            Payment.tariff_id == "forum_27_06",
+            or_(Payment.status == "paid", Payment.status == "pending"),
+        )
+    )
+    payments = result.scalars().all()
+
+    fixed = 0
+    for pay in payments:
+        participant = await session.scalar(
+            sa_select(Participant).where(Participant.user_id == pay.user_id)
+        )
+        if not participant or not participant.is_active:
+            await _settings.set(f"gift_pending:{pay.user_id}", "1")
+            fixed += 1
+
+    await message.answer(
+        f"✅ Флаг gift_pending поставлен {fixed} участникам.\n\n"
+        f"Теперь когда они пройдут диагностику — Старт откроется автоматически."
+    )
+
+
 @router.message(Command("forum_start"))
 async def cmd_forum_start(message: Message, session: AsyncSession, config: Config):
     """Куратор: /forum_start — разослать диагностику всем оплатившим форум 27 июня."""
@@ -495,10 +529,16 @@ async def cmd_forum_start(message: Message, session: AsyncSession, config: Confi
 
     await message.answer(f"📤 Отправляю диагностику {len(payments)} участникам форума...")
 
+    from bot_v2.db.repositories import SettingsRepo
+    _settings = SettingsRepo(session)
+
     ok = 0
     fail = 0
     for pay in payments:
         try:
+            # Ставим флаг — после диагностики активировать Старт автоматически
+            await _settings.set(f"gift_pending:{pay.user_id}", "1")
+
             user = await UserRepo(session).get(pay.user_id)
             name = (user.name or "").split()[0] if user else ""
             greeting = f", {name}" if name else ""
