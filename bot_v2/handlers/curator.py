@@ -614,12 +614,43 @@ async def cmd_forum_list(message: Message, session: AsyncSession, config: Config
         await message.answer("Билетов на форум пока нет.")
         return
 
+    from bot_v2.db.models import DiagResult, Participant
+    from sqlalchemy import select as _sel
+
     lines = [f"🎟 *Участники форума — {len(unique)} чел.*\n"]
+    activated = 0
+    diag_done = 0
+
     for i, p in enumerate(unique, 1):
         user = await UserRepo(session).get(p.user_id)
         name = user.name if user else "—"
-        status = "✅" if p.status == "paid" else "⏳"
-        lines.append(f"{i}. {status} {name} (`{p.user_id}`)")
+
+        # Диагностика
+        diag = await session.scalar(
+            _sel(DiagResult).where(DiagResult.user_id == p.user_id)
+            .order_by(DiagResult.created_at.desc()).limit(1)
+        )
+        if diag:
+            diag_done += 1
+            level_map = {"А": "Пробуждение", "Б": "Практика", "В": "Баракат"}
+            diag_str = f"📊 {level_map.get(diag.level_key, diag.level_key)} {diag.pct}%"
+        else:
+            diag_str = "📊 —"
+
+        # Активация
+        participant = await session.scalar(
+            _sel(Participant).where(Participant.user_id == p.user_id)
+        )
+        if participant and participant.is_active:
+            activated += 1
+            act_str = f"✅ Шаг {participant.week}"
+        else:
+            act_str = "⏳ не активирован"
+
+        lines.append(f"{i}. *{name}* · {diag_str} · {act_str}")
+
+    lines.append(f"\n📈 Диагностику прошли: {diag_done}/{len(unique)}")
+    lines.append(f"🟢 Активировано в программе: {activated}/{len(unique)}")
 
     await message.answer("\n".join(lines), parse_mode="Markdown")
 
