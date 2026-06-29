@@ -347,20 +347,6 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             )
             return
 
-        # Проверяем — есть ли оплата форума у этого пользователя
-        forum_pay = await session.scalar(
-            _sa_select(_Payment).where(
-                _Payment.user_id == message.from_user.id,
-                _Payment.tariff_id == "forum_27_06",
-            )
-        )
-        if not forum_pay:
-            await message.answer(
-                "🙏 Эта ссылка только для участников форума IQ Barakah.\n\n"
-                "Если ты оплатил билет — напиши куратору, он добавит тебя вручную.\n"
-                "📩 @iqbarakah"
-            )
-            return
 
         # Ставим флаг — после диагностики активировать Старт бесплатно
         await _settings.set(f"gift_pending:{message.from_user.id}", "1")
