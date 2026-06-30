@@ -313,26 +313,48 @@ async def job_check_payments(bot, config):
                             participant = await p_repo.activate(payment.user_id, level=level, week=1)
                             await session.flush()
 
-                            # Отправляем подтверждение
-                            try:
-                                await bot.send_message(
-                                    chat_id=payment.user_id,
-                                    text=(
-                                        f"✅ *Оплата подтверждена!*\n\n"
-                                        f"📦 {tariff_name}\n\n"
-                                        f"Добро пожаловать в программу! Сейчас пришлю первый урок 🌱"
-                                    ),
-                                    parse_mode="Markdown",
-                                )
-                            except Exception as e:
-                                logger.warning("payment confirm msg failed %s: %s", payment.user_id, e)
+                            # Для Старта (vakt) — сначала диагностика уровня, потом урок
+                            if payment.tariff_id == "vakt":
+                                from bot_v2.db.repositories import SettingsRepo as _SR
+                                await _SR(session).set(f"gift_pending:{payment.user_id}", "1")
+                                from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+                                kb = InlineKeyboardMarkup(inline_keyboard=[[
+                                    InlineKeyboardButton(text="🎯 Пройти диагностику уровня", callback_data="start_diag")
+                                ]])
+                                try:
+                                    await bot.send_message(
+                                        chat_id=payment.user_id,
+                                        text=(
+                                            f"✅ *Оплата подтверждена!*\n\n"
+                                            f"📦 {tariff_name}\n\n"
+                                            f"Прежде чем начать — пройди короткую диагностику (2 минуты).\n"
+                                            f"Это 8 вопросов, чтобы я подобрал тебе уроки по твоему уровню. 🌱"
+                                        ),
+                                        parse_mode="Markdown",
+                                        reply_markup=kb,
+                                    )
+                                except Exception as e:
+                                    logger.warning("payment diag prompt failed %s: %s", payment.user_id, e)
+                            else:
+                                # Для остальных тарифов — сразу урок
+                                try:
+                                    await bot.send_message(
+                                        chat_id=payment.user_id,
+                                        text=(
+                                            f"✅ *Оплата подтверждена!*\n\n"
+                                            f"📦 {tariff_name}\n\n"
+                                            f"Добро пожаловать в программу! Сейчас пришлю первый урок 🌱"
+                                        ),
+                                        parse_mode="Markdown",
+                                    )
+                                except Exception as e:
+                                    logger.warning("payment confirm msg failed %s: %s", payment.user_id, e)
 
-                            # Отправляем урок
-                            from bot_v2.handlers.program import send_weekly_lesson
-                            try:
-                                await send_weekly_lesson(bot, payment.user_id, participant, session, config)
-                            except Exception as e:
-                                logger.warning("send_weekly_lesson after payment failed %s: %s", payment.user_id, e)
+                                from bot_v2.handlers.program import send_weekly_lesson
+                                try:
+                                    await send_weekly_lesson(bot, payment.user_id, participant, session, config)
+                                except Exception as e:
+                                    logger.warning("send_weekly_lesson after payment failed %s: %s", payment.user_id, e)
 
                             # Уведомляем кураторов
                             name = user.name if user else str(payment.user_id)
