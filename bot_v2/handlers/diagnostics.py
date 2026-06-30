@@ -145,12 +145,14 @@ async def _finish_diag(call: CallbackQuery, state: FSMContext, session: AsyncSes
         p_repo = _PR(session)
         participant = await p_repo.get(call.from_user.id)
         if not participant or not participant.is_active:
-            participant = await p_repo.activate(call.from_user.id, level="А", week=1)
+            participant = await p_repo.activate(call.from_user.id, level=result["level_key"], week=1)
             await session.flush()
         await asyncio.sleep(1.5)
+        level_names = {"А": "IQ Barakah Старт", "Б": "Сезон 1 — Основание", "В": "Сезон 2 — Строительство"}
+        level_name = level_names.get(result["level_key"], "IQ Barakah")
         await call.bot.send_message(
             call.from_user.id,
-            "🌱 *Отлично! Открываю твой первый шаг IQ Barakah Старт.*\n\n"
+            f"🌱 *Отлично! По результатам диагностики открываю тебе {level_name}.*\n\n"
             "Шаг 1 — Ният (намерение). Читай, делай, возвращайся. 🌿",
             parse_mode="Markdown",
         )
