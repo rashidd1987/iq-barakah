@@ -79,6 +79,18 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
     if len(parts) > 1:
         payload = parts[1]
 
+    # PWA Telegram Login: /start pwa_<session_id>
+    if payload.startswith("pwa_"):
+        session_id = payload[4:]
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Подтвердить вход в IQ Barakah", callback_data=f"pwa_confirm_{session_id}")
+        ]])
+        await message.answer(
+            "🔐 Подтвердите вход в IQ Barakah PWA\n\nНажмите кнопку ниже — вы будете авторизованы на сайте.",
+            reply_markup=kb
+        )
+        return
+
     # UTM deep link utm__<source>__<campaign>__...
     if payload.startswith("utm__"):
         db_user.last_utm_source = payload          # всегда обновляем
@@ -1407,3 +1419,34 @@ def _source_key(text: str) -> str | None:
     if "📍" in text or "другое" in text:
         return "other"
     return None
+
+
+# ── PWA Telegram Login ────────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("pwa_confirm_"))
+async def cb_pwa_confirm(call: CallbackQuery, config: Config):
+    """Пользователь нажал «Подтвердить вход в PWA»."""
+    await call.answer()
+    session_id = call.data.removeprefix("pwa_confirm_")
+    tg_user = call.from_user
+    import aiohttp
+    try:
+        async with aiohttp.ClientSession() as http:
+            resp = await http.post(
+                f"{config.pwa_api_url}/auth/tg-confirm",
+                json={
+                    "session_id": session_id,
+                    "tg_id": tg_user.id,
+                    "tg_name": tg_user.full_name or tg_user.first_name or "Участник",
+                    "secret": config.pwa_bot_secret,
+                },
+                timeout=aiohttp.ClientTimeout(total=10),
+            )
+            if resp.status == 200:
+                await call.message.edit_text(
+                    "✅ Вы вошли в IQ Barakah!\n\nВернитесь на сайт — страница автоматически откроется.",
+                )
+            else:
+                await call.message.edit_text("❌ Ошибка подтверждения. Попробуйте снова.")
+    except Exception as e:
+        await call.message.edit_text(f"❌ Ошибка соединения: {e}")

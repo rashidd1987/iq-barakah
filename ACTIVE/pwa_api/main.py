@@ -2,11 +2,11 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
-import jwt, bcrypt, os, asyncpg, time
+import jwt, bcrypt, os, asyncpg, time, secrets
 
 SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
@@ -50,7 +50,71 @@ db_pool: asyncpg.Pool = None
 async def startup():
     global db_pool
     if DATABASE_URL:
-        db_pool = await asyncpg.create_pool(DATABASE_URL.replace('+asyncpg', ''))
+        try:
+            db_pool = await asyncpg.create_pool(DATABASE_URL.replace('+asyncpg', ''))
+            print('DB connected OK')
+            await _run_migrations()
+        except Exception as e:
+            print(f'DB connection failed: {e} — running without DB')
+
+async def _run_migrations():
+    stmts = [
+        '''CREATE TABLE IF NOT EXISTS pwa_users (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            tg_id BIGINT UNIQUE,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+        '''CREATE TABLE IF NOT EXISTS pwa_tracker (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL REFERENCES pwa_users(id) ON DELETE CASCADE,
+            date DATE NOT NULL,
+            data JSONB NOT NULL DEFAULT '{}',
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+            UNIQUE(user_id, date)
+        )''',
+        '''CREATE TABLE IF NOT EXISTS pwa_wheel (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL REFERENCES pwa_users(id) ON DELETE CASCADE,
+            scores JSONB NOT NULL DEFAULT '{}',
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+        '''CREATE TABLE IF NOT EXISTS pwa_ship (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL REFERENCES pwa_users(id) ON DELETE CASCADE,
+            type TEXT NOT NULL,
+            scores JSONB NOT NULL DEFAULT '{}',
+            avg FLOAT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+        '''CREATE TABLE IF NOT EXISTS pwa_analytics (
+            id BIGSERIAL PRIMARY KEY,
+            uid TEXT NOT NULL,
+            event TEXT NOT NULL,
+            screen TEXT,
+            ts TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+        'CREATE INDEX IF NOT EXISTS idx_pwa_tracker_user_date ON pwa_tracker(user_id, date)',
+        'CREATE INDEX IF NOT EXISTS idx_pwa_wheel_user ON pwa_wheel(user_id)',
+        'CREATE INDEX IF NOT EXISTS idx_pwa_ship_user ON pwa_ship(user_id)',
+        'CREATE INDEX IF NOT EXISTS idx_pwa_analytics_uid ON pwa_analytics(uid)',
+        '''CREATE TABLE IF NOT EXISTS pwa_tg_sessions (
+            session_id TEXT PRIMARY KEY,
+            tg_id BIGINT,
+            tg_name TEXT,
+            confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+    ]
+    async with db_pool.acquire() as conn:
+        for stmt in stmts:
+            try:
+                await conn.execute(stmt)
+            except Exception as e:
+                print(f'Migration note: {e}')
+    print('Migration OK')
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
@@ -179,9 +243,109 @@ async def save_ship(req: ShipReq, user_id: int = Depends(verify_token)):
         )
     return {'ok': True}
 
+@app.delete('/me')
+async def delete_account(user_id: int = Depends(verify_token)):
+    if not db_pool:
+        return {'ok': True}
+    async with db_pool.acquire() as conn:
+        await conn.execute('DELETE FROM pwa_tracker WHERE user_id=$1', user_id)
+        await conn.execute('DELETE FROM pwa_wheel WHERE user_id=$1', user_id)
+        await conn.execute('DELETE FROM pwa_ship WHERE user_id=$1', user_id)
+        await conn.execute('DELETE FROM pwa_analytics WHERE uid IN (SELECT $1::text)', str(user_id))
+        await conn.execute('DELETE FROM pwa_users WHERE id=$1', user_id)
+    return {'ok': True}
+
+@app.get('/run-migrate')
+async def run_migrate():
+    if not db_pool:
+        return {'error': 'no db pool'}
+    await _run_migrations()
+    return {'ok': True}
+
 @app.get('/health')
 async def health():
-    return {'status': 'ok'}
+    db_ok = db_pool is not None
+    db_url_set = bool(DATABASE_URL)
+    return {'status': 'ok', 'db_connected': db_ok, 'db_url_set': db_url_set}
+
+# ── Telegram Login ────────────────────────────────────────────────────────────
+
+BOT_SECRET = os.environ.get('BOT_SECRET', 'pwa-internal-secret')
+
+@app.post('/auth/tg-init')
+async def tg_init():
+    """PWA вызывает при нажатии кнопки. Возвращает session_id для polling."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    session_id = secrets.token_urlsafe(16)
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            'INSERT INTO pwa_tg_sessions (session_id, created_at) VALUES ($1, $2)',
+            session_id, datetime.utcnow()
+        )
+    return {'session_id': session_id}
+
+@app.get('/auth/tg-check')
+async def tg_check(session_id: str):
+    """PWA поллит каждые 2 сек. Возвращает токен когда пользователь подтвердил в боте."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            'SELECT tg_id, tg_name, confirmed, created_at FROM pwa_tg_sessions WHERE session_id=$1',
+            session_id
+        )
+    if not row:
+        raise HTTPException(404, 'Сессия не найдена')
+    # Истекла через 10 минут
+    if (datetime.utcnow() - row['created_at']).total_seconds() > 600:
+        raise HTTPException(410, 'Сессия истекла')
+    if not row['confirmed']:
+        return {'status': 'pending'}
+    # Найти или создать pwa_user по tg_id
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow('SELECT id, email FROM pwa_users WHERE tg_id=$1', row['tg_id'])
+        if not user:
+            # Автосоздание аккаунта
+            email = f"tg_{row['tg_id']}@iq-barakah.ru"
+            user = await conn.fetchrow(
+                '''INSERT INTO pwa_users (name, email, password_hash, tg_id, created_at)
+                   VALUES ($1,$2,$3,$4,$5) RETURNING id, email''',
+                row['tg_name'] or 'Участник', email, '', row['tg_id'], datetime.utcnow()
+            )
+    token = make_token(user['id'], user['email'])
+    return {'status': 'ok', 'access_token': token, 'token_type': 'bearer'}
+
+class TgConfirmReq(BaseModel):
+    session_id: str
+    tg_id: int
+    tg_name: str
+    secret: str
+
+@app.post('/auth/tg-confirm')
+async def tg_confirm(req: TgConfirmReq):
+    """Бот вызывает этот эндпоинт когда пользователь нажал «Подтвердить» в Telegram."""
+    if req.secret != BOT_SECRET:
+        raise HTTPException(403, 'Forbidden')
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            'UPDATE pwa_tg_sessions SET tg_id=$1, tg_name=$2, confirmed=TRUE WHERE session_id=$3',
+            req.tg_id, req.tg_name, req.session_id
+        )
+    return {'ok': True}
+
+@app.get('/debug/db')
+async def debug_db():
+    if not db_pool:
+        return {'db': 'not connected', 'url_set': bool(DATABASE_URL), 'url_prefix': DATABASE_URL[:40] if DATABASE_URL else None}
+    try:
+        async with db_pool.acquire() as conn:
+            tables = await conn.fetch("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'pwa_%'")
+            return {'db': 'connected', 'pwa_tables': [r['tablename'] for r in tables]}
+    except Exception as e:
+        return {'db': 'error', 'error': str(e)}
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 

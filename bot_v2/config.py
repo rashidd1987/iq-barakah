@@ -20,6 +20,8 @@ class Config:
     mizan_payment_webhook_secret: str = ""
 
     anthropic_api_key: str = ""
+    pwa_api_url: str = "https://pwa-api.iq-barakah.ru"
+    pwa_bot_secret: str = "pwa-internal-secret"
 
     default_call_link: str = "https://t.me/iqbarakah"
     version: str = "bot_v2.20260621"
@@ -45,6 +47,8 @@ def load_config() -> Config:
         mizan_payment_webhook_url=os.environ.get("MIZAN_PAYMENT_WEBHOOK_URL", ""),
         mizan_payment_webhook_secret=os.environ.get("MIZAN_PAYMENT_WEBHOOK_SECRET", ""),
         anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
+        pwa_api_url=os.environ.get("PWA_API_URL", "https://pwa-api.iq-barakah.ru"),
+        pwa_bot_secret=os.environ.get("PWA_BOT_SECRET", "pwa-internal-secret"),
     )
 
 
