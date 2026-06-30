@@ -144,12 +144,15 @@ async def _finish_diag(call: CallbackQuery, state: FSMContext, session: AsyncSes
         await _settings.set(f"gift_pending:{call.from_user.id}", "")
         p_repo = _PR(session)
         participant = await p_repo.get(call.from_user.id)
+        vakt_level_map = {"А": "I", "Б": "II", "В": "III"}
+        vakt_level = vakt_level_map.get(result["level_key"], "I")
         if not participant or not participant.is_active:
-            participant = await p_repo.activate(call.from_user.id, level=result["level_key"], week=1)
+            participant = await p_repo.activate(call.from_user.id, level="А", week=1)
             await session.flush()
+        participant.vakt_level = vakt_level
+        await session.flush()
         await asyncio.sleep(1.5)
-        level_names = {"А": "IQ Barakah Старт", "Б": "Сезон 1 — Основание", "В": "Сезон 2 — Строительство"}
-        level_name = level_names.get(result["level_key"], "IQ Barakah")
+        level_name = f"IQ Barakah Старт (уровень {vakt_level})"
         await call.bot.send_message(
             call.from_user.id,
             f"🌱 *Отлично! По результатам диагностики открываю тебе {level_name}.*\n\n"
