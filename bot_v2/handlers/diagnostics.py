@@ -79,7 +79,7 @@ async def cb_start_diag(call: CallbackQuery, state: FSMContext, session: AsyncSe
 
 
 @router.callback_query(DiagStates.gender, F.data.in_({"gender_m", "gender_f"}))
-async def cb_diag_gender(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+async def cb_diag_gender(call: CallbackQuery, state: FSMContext, session: AsyncSession, config=None):
     is_female = call.data == "gender_f"
     await state.update_data(is_female=is_female)
     repo = UserRepo(session)
@@ -96,7 +96,7 @@ async def _ask_question(message: Message, q_idx: int, state: FSMContext, lang: s
     await message.answer(text, reply_markup=kb_diag_answer(options, q_idx))
 
 
-async def _handle_answer(call: CallbackQuery, state: FSMContext, session: AsyncSession, q_idx: int, score: int):
+async def _handle_answer(call: CallbackQuery, state: FSMContext, session: AsyncSession, q_idx: int, score: int, config=None):
     await call.answer()
     await call.message.edit_reply_markup()
     data = await state.get_data()
@@ -108,10 +108,11 @@ async def _handle_answer(call: CallbackQuery, state: FSMContext, session: AsyncS
     if next_q < QUESTIONS_COUNT:
         await _ask_question(call.message, next_q, state, data.get("lang"))
     else:
-        await _finish_diag(call, state, session, scores)
+        await _finish_diag(call, state, session, scores, config)
 
 
-async def _finish_diag(call: CallbackQuery, state: FSMContext, session: AsyncSession, scores: list[int]):
+async def _finish_diag(call: CallbackQuery, state: FSMContext, session: AsyncSession, scores: list[int], config=None):
+    import asyncio
     data = await state.get_data()
     is_female = data.get("is_female", False)
     lang = data.get("lang")
@@ -134,6 +135,31 @@ async def _finish_diag(call: CallbackQuery, state: FSMContext, session: AsyncSes
     )
     await call.message.answer(text, parse_mode="Markdown")
     await state.clear()
+
+    # Авто-активация для gift_pending (форумщики и gift-ссылки)
+    from bot_v2.db.repositories import SettingsRepo as _SR, ParticipantRepo as _PR
+    _settings = _SR(session)
+    gift_flag = await _settings.get(f"gift_pending:{call.from_user.id}")
+    if gift_flag == "1":
+        await _settings.set(f"gift_pending:{call.from_user.id}", "")
+        p_repo = _PR(session)
+        participant = await p_repo.get(call.from_user.id)
+        if not participant or not participant.is_active:
+            participant = await p_repo.activate(call.from_user.id, level="А", week=1)
+            await session.flush()
+        await asyncio.sleep(1.5)
+        await call.bot.send_message(
+            call.from_user.id,
+            "🌱 *Отлично! Открываю твой первый шаг IQ Barakah Старт.*\n\n"
+            "Шаг 1 — Ният (намерение). Читай, делай, возвращайся. 🌿",
+            parse_mode="Markdown",
+        )
+        try:
+            from bot_v2.handlers.program import send_weekly_lesson
+            await send_weekly_lesson(call.bot, call.from_user.id, participant, session, config)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("gift diag lesson: %s", e)
 
 
 # Динамически регистрируем хендлеры для каждого вопроса
