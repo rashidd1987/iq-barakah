@@ -30,7 +30,7 @@ function LessonsNavigator() {
       <LessonsStack.Screen
         name="LessonDetail"
         component={LessonDetailScreen}
-        options={({ route }) => ({ title: `Неделя ${route.params.week}` })}
+        options={({ route }) => ({ title: `Шаг ${route.params.week}` })}
       />
     </LessonsStack.Navigator>
   )

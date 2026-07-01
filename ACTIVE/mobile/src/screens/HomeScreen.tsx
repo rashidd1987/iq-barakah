@@ -52,7 +52,7 @@ export default function HomeScreen() {
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{level ? LEVEL_NAMES[level] ?? level : '—'}</Text>
-        <Text style={styles.headerSub}>Неделя {week} из {totalWeeks}</Text>
+        <Text style={styles.headerSub}>Шаг {week} из {totalWeeks}</Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
         </View>

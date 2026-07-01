@@ -40,7 +40,7 @@ export default function LessonsScreen({ navigation }: Props) {
             disabled={locked || !level}
             onPress={() => level && navigation.navigate('LessonDetail', { level, week: weekNum })}
           >
-            <Text style={styles.weekLabel}>{locked ? '🔒' : '📖'} Неделя {weekNum}</Text>
+            <Text style={styles.weekLabel}>{locked ? '🔒' : '📖'} Шаг {weekNum}</Text>
             {weekNum === currentWeek && <Text style={styles.currentBadge}>Текущая</Text>}
           </Pressable>
         )

@@ -41,7 +41,7 @@ export default function ProfileScreen() {
       <View style={[styles.card, styles.infoCard]}>
         <Text style={styles.infoLabel}>Уровень</Text>
         <Text style={styles.infoValue}>{level ?? '—'}</Text>
-        <Text style={styles.infoLabel}>Неделя</Text>
+        <Text style={styles.infoLabel}>Шаг</Text>
         <Text style={styles.infoValue}>{week ?? '—'}</Text>
       </View>
 
