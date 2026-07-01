@@ -9,6 +9,6 @@ build:
   useCache: false
 
 run:
-  command: bash -c "cd ACTIVE/pwa_api && python -m uvicorn main:app --host 0.0.0.0 --port 80"
+  command: bash start_pwa.sh
   persistenceMount: /data
   httpPort: 80
