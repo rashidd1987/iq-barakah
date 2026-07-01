@@ -203,6 +203,41 @@ async def handle_health(request):
     return web.Response(text="ok")
 
 
+CONTACTS_FILE = "/data/contacts.log"
+TRACK_FILE = "/data/track.log"
+
+
+async def handle_track(request):
+    """Log report open events."""
+    try:
+        data = await request.json()
+        event = data.get("event", "unknown")[:30]
+        utm = data.get("utm", "organic")[:50]
+        tab = data.get("tab", "unknown")[:20]
+        os.makedirs("/data", exist_ok=True)
+        with open(TRACK_FILE, "a") as f:
+            f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}|{event}|{tab}|{utm}\n")
+    except Exception:
+        pass
+    return web.Response(text="ok", headers=CORS_HEADERS)
+
+
+async def handle_contact(request):
+    """Save contact (Telegram username) for follow-up."""
+    try:
+        data = await request.json()
+        tg = data.get("telegram", "").strip()[:60]
+        utm = data.get("utm", "organic")[:50]
+        tab = data.get("tab", "unknown")[:20]
+        if tg:
+            os.makedirs("/data", exist_ok=True)
+            with open(CONTACTS_FILE, "a") as f:
+                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M')}|{tg}|{tab}|{utm}\n")
+    except Exception:
+        pass
+    return web.Response(text="ok", headers=CORS_HEADERS)
+
+
 async def handle_stats(request):
     """JSON stats endpoint for CRM dashboard."""
     try:
@@ -248,4 +283,8 @@ def create_app() -> web.Application:
     app.router.add_get("/stats", handle_stats)
     app.router.add_options("/analyze", handle_options)
     app.router.add_post("/analyze", handle_analyze)
+    app.router.add_options("/track", handle_options)
+    app.router.add_post("/track", handle_track)
+    app.router.add_options("/contact", handle_options)
+    app.router.add_post("/contact", handle_contact)
     return app

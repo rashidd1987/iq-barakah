@@ -1278,3 +1278,64 @@ async def cmd_analyzestats(message: Message, config: Config):
     if not is_curator(message.from_user.id, config):
         return
     await message.answer(get_stats(), parse_mode="Markdown")
+
+
+@router.message(Command("shipreport"))
+async def cmd_shipreport(message: Message, session: AsyncSession, config: Config):
+    """/shipreport <user_id> [pro] — сгенерировать ссылку на ship-report для участника."""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer(
+            "Использование: `/shipreport <user_id> [pro]`\n\n"
+            "Пример: `/shipreport 123456789`\n"
+            "Для платной версии: `/shipreport 123456789 pro`",
+            parse_mode="Markdown"
+        )
+        return
+    try:
+        user_id = int(args[0])
+    except ValueError:
+        await message.answer("❌ user_id должен быть числом.")
+        return
+
+    is_pro = len(args) > 1 and args[1].lower() == "pro"
+
+    user = await UserRepo(session).get_by_id(user_id)
+    if not user:
+        await message.answer(f"❌ Пользователь {user_id} не найден.")
+        return
+
+    # Берём последний диагностический результат (корабль жизни или бизнес)
+    from sqlalchemy import select as sa_select, desc
+    diag = await session.scalar(
+        sa_select(DiagResult)
+        .where(DiagResult.user_id == user_id)
+        .order_by(desc(DiagResult.created_at))
+        .limit(1)
+    )
+
+    name = user.first_name or ""
+    base = "https://iq-barakah.ru/ship-report-pro.html" if is_pro else "https://iq-barakah.ru/ship-report.html"
+
+    if diag and diag.scores and len(diag.scores) == 15:
+        # Конвертируем индексы ответов в проценты (0→85, 1→65, 2→42, 3→18)
+        score_map = {0: 85, 1: 65, 2: 42, 3: 18}
+        pct_scores = [score_map.get(int(s), 52) for s in diag.scores]
+        scores_str = ",".join(str(s) for s in pct_scores)
+        url = f"{base}?tab=personal&name={name}&scores={scores_str}&utm=curator"
+        await message.answer(
+            f"{'🔑 Платная версия' if is_pro else '📊 Базовая версия'} для *{name}* (ID: {user_id})\n\n"
+            f"Результат диагностики от {diag.created_at.strftime('%d.%m.%Y')}:\n"
+            f"{url}",
+            parse_mode="Markdown"
+        )
+    else:
+        # Нет диагностики — даём ссылку без scores (пройдёт квиз)
+        import urllib.parse
+        url = f"{base}?name={urllib.parse.quote(name)}&utm=curator"
+        await message.answer(
+            f"⚠️ Диагностика для *{name}* не найдена — ссылка без результатов (откроется квиз):\n\n{url}",
+            parse_mode="Markdown"
+        )
