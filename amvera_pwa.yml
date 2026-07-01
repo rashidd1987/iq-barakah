@@ -5,10 +5,10 @@ meta:
     version: "3.11"
 
 build:
-  requirementsPath: bot_v2/requirements.txt
+  requirementsPath: ACTIVE/pwa_api/requirements.txt
   useCache: false
 
 run:
-  command: python -m bot_v2.main
+  command: python pwa_run.py
   persistenceMount: /data
-  httpPort: 80
+  containerPort: 80
