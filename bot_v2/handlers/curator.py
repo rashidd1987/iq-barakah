@@ -689,7 +689,8 @@ async def cmd_forum_list(message: Message, session: AsyncSession, config: Config
 
         uname = f" @{user.username}" if user and user.username else ""
         uid_str = f"`{p.user_id}`"
-        lines.append(f"{i}. *{name}*{uname} {uid_str} · {diag_str} · {act_str}")
+        safe_name = _md_escape(name)
+        lines.append(f"{i}. *{safe_name}*{uname} {uid_str} · {diag_str} · {act_str}")
 
     summary = (
         f"\n📈 Диагностику прошли: {diag_done}/{len(unique)}\n"
