@@ -288,6 +288,59 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
                 pass
         return
 
+    if payload.startswith("ol_"):
+        # Ссылка для лидеров мнения — многоразовая, со своим приветствием
+        from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+        _settings = SettingsRepo(session)
+
+        existing = await ParticipantRepo(session).get(message.from_user.id)
+        if existing and existing.is_active:
+            await message.answer(
+                "🌱 У тебя уже открыт доступ к программе.\n\nНажми *Мой путь* чтобы продолжить.",
+                parse_mode="Markdown",
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            return
+
+        await _settings.set(f"gift_pending:{message.from_user.id}", "1")
+
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting = f", {name_first}" if name_first else ""
+
+        await message.answer(
+            f"🌿 Ас-саляму алейкум{greeting}!\n\n"
+            f"Рашид открыл тебе *IQ Barakah Старт* — 6 недель тайм-менеджмента мусульманина.\n\n"
+            f"Это не курс лекций. Это система, которая меняет день изнутри — через ният, фаджр и осознанность.\n\n"
+            f"Прежде чем начать — пройди короткую диагностику.\n"
+            f"8 вопросов · 2 минуты · программа подстроится под твой уровень. 🌱",
+            parse_mode="Markdown",
+        )
+        await message.answer(
+            "👇 Нажми чтобы определить твой уровень:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🎯 Пройти диагностику", callback_data="start_diag")],
+            ]),
+        )
+
+        # Уведомляем куратора
+        from bot_v2.keyboards.inline import kb_curator_contact
+        _uname = db_user.username if db_user and db_user.username else None
+        for curator_id in config.curator_ids:
+            try:
+                await message.bot.send_message(
+                    curator_id,
+                    f"🌟 *Лидер мнения активировал ссылку*\n\n"
+                    f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
+                    f"🔗 Источник: `{payload}`",
+                    parse_mode="Markdown",
+                    reply_markup=kb_curator_contact(message.from_user.id, _uname),
+                )
+            except Exception:
+                pass
+        return
+
     if payload == "gift":
         # Бесплатный доступ к IQ Barakah Старт — сначала диагностика, потом урок
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
