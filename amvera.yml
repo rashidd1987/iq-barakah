@@ -11,4 +11,4 @@ build:
 run:
   command: python -m bot_v2.main
   persistenceMount: /data
-  httpPort: 80
+  containerPort: 80
