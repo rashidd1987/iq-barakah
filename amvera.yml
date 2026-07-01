@@ -9,6 +9,6 @@ build:
   useCache: false
 
 run:
-  scriptName: pwa_run.py
+  command: python pwa_run.py
   persistenceMount: /data
   httpPort: 80
