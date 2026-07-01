@@ -9,6 +9,6 @@ build:
   useCache: false
 
 run:
-  command: bash start_pwa.sh
+  scriptName: pwa_run.py
   persistenceMount: /data
   httpPort: 80
