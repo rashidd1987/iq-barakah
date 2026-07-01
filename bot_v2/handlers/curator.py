@@ -687,7 +687,7 @@ async def cmd_forum_list(message: Message, session: AsyncSession, config: Config
         else:
             act_str = "⏳ не активирован"
 
-        uname = f" @{user.username}" if user and user.username else ""
+        uname = f" @{_md_escape(user.username)}" if user and user.username else ""
         uid_str = f"`{p.user_id}`"
         safe_name = _md_escape(name)
         lines.append(f"{i}. *{safe_name}*{uname} {uid_str} · {diag_str} · {act_str}")
