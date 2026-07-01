@@ -3,9 +3,10 @@ import logging
 import random
 from datetime import datetime, timezone
 
+import aiohttp
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot_v2.db.engine import get_session_factory
@@ -13,6 +14,29 @@ from bot_v2.db.models import Participant, User
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 
 logger = logging.getLogger(__name__)
+
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+
+
+async def _send_expo_push(session: AsyncSession, user_id: int, title: str, body: str) -> None:
+    """Доп. канал к Telegram-сообщению для тех, у кого установлено мобильное приложение
+    (push_tokens — таблица, которую пишет ACTIVE/pwa_api через POST /push/register)."""
+    row = (
+        await session.execute(
+            text("SELECT expo_token FROM push_tokens WHERE user_id = :uid"), {"uid": user_id}
+        )
+    ).first()
+    if not row:
+        return
+    try:
+        async with aiohttp.ClientSession() as http:
+            await http.post(
+                EXPO_PUSH_URL,
+                json={"to": row[0], "title": title, "body": body, "sound": "default"},
+                timeout=aiohttp.ClientTimeout(total=10),
+            )
+    except Exception as e:
+        logger.warning("expo_push → %s: %s", user_id, e)
 
 # Для начинающих (уровень I) — без упоминания намаза
 FAJR_MSGS_BEGINNER = [
@@ -102,11 +126,13 @@ async def job_jarwas_fajr(bot: Bot):
                 # Уровень I → без упоминания намаза
                 skill = participant.vakt_level or "I"
                 msgs = FAJR_MSGS_BEGINNER if skill == "I" else FAJR_MSGS
+                text_msg = random.choice(msgs)
                 await bot.send_message(
                     chat_id=user.id,
-                    text=random.choice(msgs),
+                    text=text_msg,
                     parse_mode="Markdown",
                 )
+                await _send_expo_push(session, user.id, "🌅 Фаджр", text_msg.split("\n")[0].strip("*"))
                 count += 1
             except Exception as e:
                 logger.warning("jarwas_fajr → %s: %s", user.id, e)
@@ -124,14 +150,16 @@ async def job_jarwas_friday(bot: Bot):
             if last and (now - last).days > 14:
                 continue
             try:
+                friday_msg = random.choice(FRIDAY_MSGS)
                 await bot.send_message(
                     chat_id=user.id,
-                    text=random.choice(FRIDAY_MSGS),
+                    text=friday_msg,
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([[
                         InlineKeyboardButton("🌙 Записать мухасабу", callback_data="start_muhasaba"),
                     ]]),
                 )
+                await _send_expo_push(session, user.id, "🕌 Джума мубарак", friday_msg.split("\n")[0].strip("*"))
                 count += 1
             except Exception as e:
                 logger.warning("jarwas_friday → %s: %s", user.id, e)

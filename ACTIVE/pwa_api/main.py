@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
-import jwt, bcrypt, os, asyncpg, time, secrets
+from pathlib import Path
+import jwt, bcrypt, os, asyncpg, time, secrets, json
 
 SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
@@ -46,12 +47,22 @@ async def rate_limit_middleware(request: Request, call_next):
 security = HTTPBearer()
 db_pool: asyncpg.Pool = None
 
+async def _init_connection(conn: asyncpg.Connection):
+    # Without this, asyncpg hands back/expects raw JSON text for json/jsonb columns
+    # instead of Python dicts — every JSONB read/write in this file relies on the codec.
+    await conn.set_type_codec(
+        'jsonb', encoder=json.dumps, decoder=json.loads, schema='pg_catalog'
+    )
+    await conn.set_type_codec(
+        'json', encoder=json.dumps, decoder=json.loads, schema='pg_catalog'
+    )
+
 @app.on_event('startup')
 async def startup():
     global db_pool
     if DATABASE_URL:
         try:
-            db_pool = await asyncpg.create_pool(DATABASE_URL.replace('+asyncpg', ''))
+            db_pool = await asyncpg.create_pool(DATABASE_URL.replace('+asyncpg', ''), init=_init_connection)
             print('DB connected OK')
             await _run_migrations()
         except Exception as e:
@@ -106,6 +117,14 @@ async def _run_migrations():
             tg_name TEXT,
             confirmed BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+        # Mobile app push tokens. Keyed by bot_v2 users.id (tg_id) — not pwa_users — since
+        # the mobile app reads/writes bot_v2's real program tables directly (see /mobile/*).
+        '''CREATE TABLE IF NOT EXISTS push_tokens (
+            user_id BIGINT PRIMARY KEY,
+            expo_token TEXT NOT NULL,
+            platform TEXT NOT NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT NOW()
         )''',
     ]
     async with db_pool.acquire() as conn:
@@ -371,4 +390,190 @@ async def analytics(batch: AnalyticsBatch):
                 )
             except Exception:
                 pass  # never fail the client
+    return {'ok': True}
+
+# ── Mobile app API ────────────────────────────────────────────────────────────
+# Unlike the PWA endpoints above (which read/write the isolated pwa_* tables),
+# the mobile app reads/writes bot_v2's real program tables directly (users,
+# participants, tracker_records, week_acks) keyed by Telegram id — so a
+# student's progress is visible to curators (CRM) and to the bot's own jobs,
+# not stranded in a shadow table. See ACTIVE/pwa_api's plan doc for context.
+
+LEVEL_WEEKS = {'А': 6, 'Б': 8, 'В': 8, 'Г': 8}
+
+CONTENT_DIR = Path(__file__).parent / 'content'
+_content_cache: Dict[str, dict] = {}
+
+def _load_lesson_content(level: str, week: int) -> Optional[dict]:
+    key = f'{level}_{week}'
+    if key in _content_cache:
+        return _content_cache[key]
+    path = CONTENT_DIR / f'{level}.json'
+    if not path.exists():
+        return None
+    try:
+        weeks = json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        return None
+    if not (1 <= week <= len(weeks)):
+        return None
+    lesson = weeks[week - 1]
+    _content_cache[key] = lesson
+    return lesson
+
+def make_mobile_token(tg_id: int) -> str:
+    payload = {
+        'tg_id': tg_id,
+        'scope': 'mobile',
+        'exp': datetime.utcnow() + timedelta(days=TOKEN_EXPIRE_DAYS),
+    }
+    return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
+
+def verify_mobile_token(creds: HTTPAuthorizationCredentials = Depends(security)) -> int:
+    try:
+        payload = jwt.decode(creds.credentials, SECRET, algorithms=[ALGORITHM])
+        if payload.get('scope') != 'mobile':
+            raise ValueError('wrong token scope')
+        return int(payload['tg_id'])
+    except Exception:
+        raise HTTPException(status_code=401, detail='Токен недействителен')
+
+@app.post('/mobile/auth/tg-init')
+async def mobile_tg_init():
+    """Мобильное приложение вызывает при нажатии «Войти через Telegram». Переиспользует
+    ту же таблицу сессий и тот же bot-side колбэк (POST /auth/tg-confirm), что и PWA."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    session_id = secrets.token_urlsafe(16)
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            'INSERT INTO pwa_tg_sessions (session_id, created_at) VALUES ($1, $2)',
+            session_id, datetime.utcnow()
+        )
+    return {'session_id': session_id}
+
+@app.get('/mobile/auth/tg-check')
+async def mobile_tg_check(session_id: str):
+    """Поллинг из мобильного приложения. В отличие от /auth/tg-check (PWA), не создаёт
+    нового пользователя — ищет существующего ученика бота по tg_id и требует активной
+    записи в participants (иначе куратор ещё не подключил его к программе)."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            'SELECT tg_id, confirmed, created_at FROM pwa_tg_sessions WHERE session_id=$1',
+            session_id
+        )
+        if not row:
+            raise HTTPException(404, 'Сессия не найдена')
+        if (datetime.utcnow() - row['created_at']).total_seconds() > 600:
+            raise HTTPException(410, 'Сессия истекла')
+        if not row['confirmed']:
+            return {'status': 'pending'}
+
+        user = await conn.fetchrow('SELECT id FROM users WHERE id=$1', row['tg_id'])
+        if not user:
+            raise HTTPException(404, 'Пользователь не найден в системе IQ Barakah')
+        participant = await conn.fetchrow(
+            'SELECT id FROM participants WHERE user_id=$1 AND is_active=TRUE', row['tg_id']
+        )
+        if not participant:
+            raise HTTPException(403, 'Программа ещё не активирована куратором')
+
+    return {'status': 'ok', 'access_token': make_mobile_token(row['tg_id']), 'token_type': 'bearer'}
+
+@app.get('/mobile/participant')
+async def mobile_participant(tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        p = await conn.fetchrow(
+            'SELECT level, week, vakt_level, is_active FROM participants WHERE user_id=$1 AND is_active=TRUE',
+            tg_id
+        )
+    if not p:
+        raise HTTPException(404, 'Участник не найден')
+    return dict(p)
+
+@app.get('/mobile/content/{level}/{week}')
+async def mobile_content(level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
+    lesson = _load_lesson_content(level, week)
+    if not lesson:
+        raise HTTPException(404, 'Урок не найден')
+    return lesson
+
+class WeekAckReq(BaseModel):
+    level: str
+    week: int
+
+@app.post('/mobile/week-ack')
+async def mobile_week_ack(req: WeekAckReq, tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            await conn.execute(
+                '''INSERT INTO week_acks (user_id, level, week, acked_at)
+                   VALUES ($1,$2,$3,$4)
+                   ON CONFLICT ON CONSTRAINT uq_week_ack DO NOTHING''',
+                tg_id, req.level, req.week, datetime.utcnow()
+            )
+            p = await conn.fetchrow(
+                'SELECT week FROM participants WHERE user_id=$1 AND is_active=TRUE', tg_id
+            )
+            if p and p['week'] == req.week:
+                max_week = LEVEL_WEEKS.get(req.level, 8)
+                if req.week < max_week:
+                    await conn.execute(
+                        'UPDATE participants SET week=week+1 WHERE user_id=$1 AND is_active=TRUE', tg_id
+                    )
+    return {'ok': True}
+
+@app.get('/mobile/tracker')
+async def mobile_tracker(days: int = 30, tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch(
+            'SELECT date, habits FROM tracker_records WHERE user_id=$1 ORDER BY date DESC LIMIT $2',
+            tg_id, days
+        )
+    return [{'date': r['date'].isoformat(), 'habits': r['habits']} for r in rows]
+
+class MobileTrackerReq(BaseModel):
+    date: str
+    habits: dict
+
+@app.post('/mobile/tracker')
+async def mobile_save_tracker(req: MobileTrackerReq, tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    try:
+        record_date = datetime.strptime(req.date, '%Y-%m-%d').date()
+    except ValueError:
+        raise HTTPException(400, 'Некорректная дата, ожидается YYYY-MM-DD')
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            '''INSERT INTO tracker_records (user_id, date, habits, updated_at)
+               VALUES ($1,$2,$3,$4)
+               ON CONFLICT ON CONSTRAINT uq_tracker_day DO UPDATE SET habits=$3, updated_at=$4''',
+            tg_id, record_date, req.habits, datetime.utcnow()
+        )
+    return {'ok': True}
+
+class PushRegisterReq(BaseModel):
+    expo_token: str
+    platform: str
+
+@app.post('/push/register')
+async def push_register(req: PushRegisterReq, tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            '''INSERT INTO push_tokens (user_id, expo_token, platform, updated_at)
+               VALUES ($1,$2,$3,$4)
+               ON CONFLICT (user_id) DO UPDATE SET expo_token=$2, platform=$3, updated_at=$4''',
+            tg_id, req.expo_token, req.platform, datetime.utcnow()
+        )
     return {'ok': True}
