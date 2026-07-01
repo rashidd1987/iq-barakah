@@ -691,10 +691,21 @@ async def cmd_forum_list(message: Message, session: AsyncSession, config: Config
         uid_str = f"`{p.user_id}`"
         lines.append(f"{i}. *{name}*{uname} {uid_str} · {diag_str} · {act_str}")
 
-    lines.append(f"\n📈 Диагностику прошли: {diag_done}/{len(unique)}")
-    lines.append(f"🟢 Активировано в программе: {activated}/{len(unique)}")
+    summary = (
+        f"\n📈 Диагностику прошли: {diag_done}/{len(unique)}\n"
+        f"🟢 Активировано в программе: {activated}/{len(unique)}"
+    )
 
-    await message.answer("\n".join(lines), parse_mode="Markdown")
+    # Разбиваем на части по 15 участников
+    header = lines[0]
+    entries = lines[1:]
+    chunk_size = 15
+    for idx in range(0, len(entries), chunk_size):
+        chunk = entries[idx:idx + chunk_size]
+        text = header + "\n" + "\n".join(chunk)
+        if idx + chunk_size >= len(entries):
+            text += summary
+        await message.answer(text, parse_mode="Markdown")
 
 
 @router.message(Command("forum_reset_counter"))
