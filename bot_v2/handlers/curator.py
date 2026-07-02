@@ -791,7 +791,7 @@ async def cmd_gift(message: Message, session: AsyncSession, config: Config):
     from bot_v2.db.repositories import SettingsRepo
     await SettingsRepo(session).set(f"gift_pending:{uid}", "1")
 
-    name = user.name or str(uid)
+    name = _md_escape(user.name or str(uid))
     await message.answer(
         f"✅ Бесплатный доступ выдан *{name}* (`{uid}`).\n\n"
         f"Отправляю им приглашение пройти диагностику — после неё откроется Шаг 1.",
@@ -848,8 +848,8 @@ async def cmd_user_info(message: Message, session: AsyncSession, config: Config)
     payments = payments_result.scalars().all()
 
     # Строим ответ
-    name = user.name or "—"
-    username = f"@{user.username}" if user.username else "—"
+    name = _md_escape(user.name or "—")
+    username = f"@{_md_escape(user.username)}" if user.username else "—"
     lang = user.language_code or "—"
     created = user.created_at.strftime("%d.%m.%Y %H:%M") if user.created_at else "—"
 

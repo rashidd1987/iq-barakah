@@ -13,6 +13,10 @@ from bot_v2.db.engine import get_session_factory
 from bot_v2.db.models import Participant, User
 from bot_v2.services.program import LEVEL_NAMES, LEVEL_WEEKS
 
+
+def _md_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("*", "\\*").replace("_", "\\_").replace("`", "\\`")
+
 logger = logging.getLogger(__name__)
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
@@ -180,7 +184,7 @@ async def job_silence_check(bot: Bot, curator_ids: list[int]):
             except Exception:
                 continue
             days = (now - last).days
-            first_name = (user.name or "Брат").split()[0]
+            first_name = _md_escape((user.name or "Брат").split()[0])
 
             if days == 3:
                 try:
@@ -238,7 +242,7 @@ async def job_progress_mirror(bot: Bot, miniapp_url: str):
                 continue
             sent_keys.add(key)
 
-            first = (user.name or "Брат").split()[0]
+            first = _md_escape((user.name or "Брат").split()[0])
             total = LEVEL_WEEKS.get(level, 8)
             pct = round(week / total * 100)
 
@@ -385,7 +389,7 @@ async def job_check_payments(bot, config):
                                     logger.warning("send_weekly_lesson after payment failed %s: %s", payment.user_id, e)
 
                             # Уведомляем кураторов
-                            name = user.name if user else str(payment.user_id)
+                            name = _md_escape(user.name) if user else str(payment.user_id)
                             username = user.username if user and user.username else ""
                             await notify_mizan_payment(
                                 config,
@@ -444,6 +448,8 @@ async def job_check_followups(bot):
         return
 
     for key, value in rows:
+        if value == "sent":
+            continue
         try:
             fire_at = int(value)
         except ValueError:
@@ -453,14 +459,11 @@ async def job_check_followups(bot):
 
         uid = int(key.split(":")[1])
 
-        # Удаляем запись и отправляем сообщение
+        # Помечаем до отправки — чтобы не слать повторно даже если отправка упадёт
         async with get_session_factory()() as session:
             async with session.begin():
                 repo = SettingsRepo(session)
-                await repo.set(key, "sent")  # помечаем чтобы не слать повторно
-
-        if value == "sent":
-            continue
+                await repo.set(key, "sent")
 
         try:
             from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
