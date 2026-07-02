@@ -81,6 +81,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
 
     # PWA Telegram Login: /start pwa_<session_id>
     if payload.startswith("pwa_"):
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         session_id = payload[4:]
         kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="✅ Подтвердить вход в IQ Barakah", callback_data=f"pwa_confirm_{session_id}")
