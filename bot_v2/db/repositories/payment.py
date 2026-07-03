@@ -26,6 +26,14 @@ class PaymentRepo:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_yoo_id_for_update(self, yoo_id: str) -> Payment | None:
+        """SELECT FOR UPDATE — блокирует строку до конца транзакции.
+        Использовать при подтверждении оплаты чтобы избежать двойной активации."""
+        result = await self.session.execute(
+            select(Payment).where(Payment.yoo_payment_id == yoo_id).with_for_update()
+        )
+        return result.scalar_one_or_none()
+
     async def get_pending(self, user_id: int) -> Payment | None:
         result = await self.session.execute(
             select(Payment).where(Payment.user_id == user_id, Payment.status == "pending")

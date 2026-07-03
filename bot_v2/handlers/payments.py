@@ -247,13 +247,14 @@ async def cb_check_payment(call: CallbackQuery, session: AsyncSession, config: C
     status = await get_payment_status(config.yookassa_shop_id, config.yookassa_secret_key, payment_id)
 
     if status == "succeeded":
-        # Проверяем — не активировали ли уже
-        pay_repo = PaymentRepo(session)
-        db_pay = await pay_repo.get_by_yoo_id(payment_id)
         tariff = get_tariff(tariff_id)
         tariff_view = get_tariff_view(tariff_id, lang) or tariff
         tariff_name = tariff_view["name"] if tariff_view else tariff_id
         level = TARIFF_LEVEL_MAP.get(tariff_id)
+
+        # SELECT FOR UPDATE — блокируем строку чтобы concurrent клики не дали двойную активацию
+        pay_repo = PaymentRepo(session)
+        db_pay = await pay_repo.get_by_yoo_id_for_update(payment_id)
 
         if db_pay and db_pay.status == "paid":
             user = await UserRepo(session).get(call.from_user.id)

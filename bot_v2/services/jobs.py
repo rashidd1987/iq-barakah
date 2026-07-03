@@ -326,8 +326,10 @@ async def job_check_payments(bot, config):
             if status == "succeeded":
                 async with get_session_factory()() as session:
                     async with session.begin():
-                        # Помечаем оплаченным
-                        db_pay = await session.get(Payment, payment.id)
+                        # SELECT FOR UPDATE — блокируем строку, чтобы cb_check_payment не активировал параллельно
+                        db_pay = (await session.execute(
+                            select(Payment).where(Payment.id == payment.id).with_for_update()
+                        )).scalar_one_or_none()
                         if not db_pay or db_pay.status == "paid":
                             continue
                         db_pay.status = "paid"
