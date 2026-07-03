@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import React, { useCallback, useEffect, useState } from 'react'
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import ErrorState from '../components/ErrorState'
 import { LessonsStackParamList } from '../navigation/types'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
@@ -15,32 +16,45 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
   const [skill, setSkill] = useState<SkillLevel>('I')
   const [content, setContent] = useState<Awaited<ReturnType<typeof api.content>> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [acking, setAcking] = useState(false)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true)
+    setError(false)
     api
       .content(level, week)
       .then(setContent)
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [level, week])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const handleComplete = async () => {
     setAcking(true)
     try {
       await api.weekAck(level, week)
       navigation.goBack()
+    } catch {
+      Alert.alert('Не удалось сохранить', 'Проверьте интернет-соединение и попробуйте снова.')
     } finally {
       setAcking(false)
     }
   }
 
-  if (loading || !content) {
+  if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.g2} />
       </View>
     )
+  }
+
+  if (error || !content) {
+    return <ErrorState message="Не удалось загрузить урок" onRetry={load} />
   }
 
   return (

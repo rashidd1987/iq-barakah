@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 import { registerForPushNotifications } from '../utils/push'
+import { lsGet, lsSet } from '../utils/storage'
+
+const PUSH_ENABLED_KEY = 'push_enabled'
 
 export default function ProfileScreen() {
   const { logout } = useAuth()
@@ -13,9 +16,23 @@ export default function ProfileScreen() {
   const [togglingPush, setTogglingPush] = useState(false)
 
   useEffect(() => {
-    api.participant().then((p) => {
-      setLevel(p.level)
-      setWeek(p.week)
+    api
+      .participant()
+      .then((p) => {
+        setLevel(p.level)
+        setWeek(p.week)
+      })
+      .catch(() => {
+        // level/week stay as "—" — logout and the push toggle below still work offline
+      })
+
+    lsGet(PUSH_ENABLED_KEY, false).then(async (wasEnabled) => {
+      if (!wasEnabled) return
+      // Re-register on load: the Expo push token can rotate between app installs/updates,
+      // so a stale token silently stops receiving pushes without this.
+      const token = await registerForPushNotifications()
+      setPushEnabled(!!token)
+      if (!token) await lsSet(PUSH_ENABLED_KEY, false)
     })
   }, [])
 
@@ -27,10 +44,12 @@ export default function ProfileScreen() {
         if (!token) {
           Alert.alert('Уведомления недоступны', 'Разрешите уведомления в настройках устройства.')
           setPushEnabled(false)
+          await lsSet(PUSH_ENABLED_KEY, false)
           return
         }
       }
       setPushEnabled(value)
+      await lsSet(PUSH_ENABLED_KEY, value)
     } finally {
       setTogglingPush(false)
     }

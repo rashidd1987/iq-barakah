@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import ErrorState from '../components/ErrorState'
 import { DAILY, NAMAZ, WEEKLY } from '../data/habits'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
@@ -13,17 +14,19 @@ const EMPTY_HABITS: Habits = { namaz: {}, daily: {}, weekly: {} }
 export default function TrackerScreen() {
   const [habits, setHabits] = useState<Habits>(EMPTY_HABITS)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [saving, setSaving] = useState(false)
   const date = todayKey()
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       const records = await api.tracker(1)
       const today = records.find((r: any) => r.date === date) as { habits?: Partial<Habits> } | undefined
       setHabits({ ...EMPTY_HABITS, ...(today?.habits ?? {}) })
     } catch {
-      setHabits(EMPTY_HABITS)
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -36,11 +39,15 @@ export default function TrackerScreen() {
   )
 
   const toggle = async (bucket: keyof Habits, id: string) => {
+    const previous = habits
     const next: Habits = { ...habits, [bucket]: { ...habits[bucket], [id]: !habits[bucket][id] } }
     setHabits(next)
     setSaving(true)
     try {
       await api.saveTracker(date, next)
+    } catch {
+      setHabits(previous) // save failed — revert the optimistic tap instead of showing unsaved state as done
+      Alert.alert('Не сохранилось', 'Проверьте интернет-соединение и попробуйте ещё раз.')
     } finally {
       setSaving(false)
     }
@@ -52,6 +59,10 @@ export default function TrackerScreen() {
         <ActivityIndicator color={colors.g2} />
       </View>
     )
+  }
+
+  if (error) {
+    return <ErrorState message="Не удалось загрузить трекер" onRetry={load} />
   }
 
   return (

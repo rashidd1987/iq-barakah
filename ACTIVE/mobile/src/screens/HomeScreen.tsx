@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import ErrorState from '../components/ErrorState'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 import { computeDeeds, computeStreak, computeXP } from '../utils/stats'
@@ -15,6 +16,7 @@ const LEVEL_WEEKS: Record<string, number> = { А: 6, Б: 8, В: 8, Г: 8 }
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [level, setLevel] = useState<string | null>(null)
   const [week, setWeek] = useState(1)
   const [stats, setStats] = useState({ streak: 0, deeds: 0, xp: 0 })
@@ -28,8 +30,10 @@ export default function HomeScreen() {
       const streak = computeStreak(records)
       const deeds = computeDeeds(records)
       setStats({ streak, deeds, xp: computeXP(streak, participant.week - 1, deeds) })
+      setError(false)
     } catch {
-      // network/auth errors surface as empty state — user can pull to refresh
+      // keep any previously loaded data on screen — only show the error state if we have nothing yet
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -43,6 +47,10 @@ export default function HomeScreen() {
 
   const totalWeeks = level ? LEVEL_WEEKS[level] ?? 8 : 8
   const progressPct = Math.min(100, Math.round(((week - 1) / totalWeeks) * 100))
+
+  if (error && level === null) {
+    return <ErrorState onRetry={load} />
+  }
 
   return (
     <ScrollView

@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import ErrorState from '../components/ErrorState'
 import { LessonsStackParamList } from '../navigation/types'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
@@ -13,18 +14,31 @@ type Props = NativeStackScreenProps<LessonsStackParamList, 'LessonsList'>
 export default function LessonsScreen({ navigation }: Props) {
   const [level, setLevel] = useState<string | null>(null)
   const [currentWeek, setCurrentWeek] = useState(1)
+  const [error, setError] = useState(false)
 
-  useFocusEffect(
-    useCallback(() => {
-      api.participant().then((p) => {
+  const load = useCallback(() => {
+    setError(false)
+    api
+      .participant()
+      .then((p) => {
         setLevel(p.level)
         setCurrentWeek(p.week)
       })
-    }, []),
+      .catch(() => setError(true))
+  }, [])
+
+  useFocusEffect(
+    useCallback(() => {
+      load()
+    }, [load]),
   )
 
   const totalWeeks = level ? LEVEL_WEEKS[level] ?? 8 : 0
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i + 1)
+
+  if (error && level === null) {
+    return <ErrorState onRetry={load} />
+  }
 
   return (
     <FlatList

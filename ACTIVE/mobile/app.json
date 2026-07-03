@@ -1,17 +1,20 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "IQ Barakah",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#1a3d1b",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.iqbarakah.mobile"
     },
     "android": {
+      "package": "ru.iqbarakah.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1a3d1b",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -22,7 +25,22 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#1a3d1b"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "54eb32e2-ac23-4a47-b58c-bf00b9016853"
+      }
+    },
+    "owner": "roha05"
   }
 }
