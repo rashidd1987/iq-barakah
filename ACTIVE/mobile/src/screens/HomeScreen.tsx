@@ -2,23 +2,16 @@ import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
+import { LEVEL_LABELS, LEVEL_ICONS, TOTAL_STEPS, globalWeekIndex } from '../data/weeks'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 import { computeDeeds, computeStreak, computeXP } from '../utils/stats'
-
-const LEVEL_NAMES: Record<string, string> = {
-  А: '🌱 IQ Barakah Старт',
-  Б: '📗 Season 1',
-  В: '📘 Season 2',
-  Г: '📙 Season 3',
-}
-const LEVEL_WEEKS: Record<string, number> = { А: 6, Б: 8, В: 8, Г: 8 }
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [level, setLevel] = useState<string | null>(null)
-  const [week, setWeek] = useState(1)
+  const [globalWeek, setGlobalWeek] = useState(1)
   const [stats, setStats] = useState({ streak: 0, deeds: 0, xp: 0 })
 
   const load = useCallback(async () => {
@@ -26,10 +19,11 @@ export default function HomeScreen() {
     try {
       const [participant, records] = await Promise.all([api.participant(), api.tracker(30)])
       setLevel(participant.level)
-      setWeek(participant.week)
+      const gw = globalWeekIndex(participant.level, participant.week)
+      setGlobalWeek(gw)
       const streak = computeStreak(records)
       const deeds = computeDeeds(records)
-      setStats({ streak, deeds, xp: computeXP(streak, participant.week - 1, deeds) })
+      setStats({ streak, deeds, xp: computeXP(streak, gw - 1, deeds) })
       setError(false)
     } catch {
       // keep any previously loaded data on screen — only show the error state if we have nothing yet
@@ -45,8 +39,7 @@ export default function HomeScreen() {
     }, [load]),
   )
 
-  const totalWeeks = level ? LEVEL_WEEKS[level] ?? 8 : 8
-  const progressPct = Math.min(100, Math.round(((week - 1) / totalWeeks) * 100))
+  const progressPct = Math.min(100, Math.round(((globalWeek - 1) / TOTAL_STEPS) * 100))
 
   if (error && level === null) {
     return <ErrorState onRetry={load} />
@@ -59,8 +52,10 @@ export default function HomeScreen() {
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{level ? LEVEL_NAMES[level] ?? level : '—'}</Text>
-        <Text style={styles.headerSub}>Шаг {week} из {totalWeeks}</Text>
+        <Text style={styles.headerTitle}>
+          {level ? `${LEVEL_ICONS[level] ?? ''} ${LEVEL_LABELS[level] ?? level}` : '—'}
+        </Text>
+        <Text style={styles.headerSub}>Шаг {globalWeek} из {TOTAL_STEPS}</Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
         </View>

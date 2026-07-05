@@ -58,7 +58,8 @@ export const api = {
       tasks: Record<'I' | 'II' | 'III', string[]>
     }>(`/mobile/content/${encodeURIComponent(level)}/${week}`),
 
-  weekAck: (level: string, week: number) => api.post('/mobile/week-ack', { level, week }),
+  weekAck: (level: string, week: number) =>
+    api.post<{ ok: boolean; graduated: boolean }>('/mobile/week-ack', { level, week }),
 
   tracker: (days = 30) =>
     api.get<{ date: string; habits: Record<string, Record<string, boolean>> }[]>(

@@ -508,8 +508,14 @@ class WeekAckReq(BaseModel):
 
 @app.post('/mobile/week-ack')
 async def mobile_week_ack(req: WeekAckReq, tg_id: int = Depends(verify_mobile_token)):
+    """Отмечает шаг пройденным. По достижении последнего шага уровня участник
+    «выпускается» (is_active=FALSE, graduated_at=NOW()) — точно так же, как это
+    делает бот (ParticipantRepo.graduate) при переходе на следующий сезон. Дальше
+    вход в приложение снова возможен только после активации куратором на новый
+    уровень — мобильное приложение НЕ продвигает участника между уровнями само."""
     if not db_pool:
         raise HTTPException(500, 'База данных не подключена')
+    graduated = False
     async with db_pool.acquire() as conn:
         async with conn.transaction():
             await conn.execute(
@@ -527,7 +533,14 @@ async def mobile_week_ack(req: WeekAckReq, tg_id: int = Depends(verify_mobile_to
                     await conn.execute(
                         'UPDATE participants SET week=week+1 WHERE user_id=$1 AND is_active=TRUE', tg_id
                     )
-    return {'ok': True}
+                else:
+                    await conn.execute(
+                        '''UPDATE participants SET is_active=FALSE, graduated_at=$2
+                           WHERE user_id=$1 AND is_active=TRUE''',
+                        tg_id, datetime.utcnow()
+                    )
+                    graduated = True
+    return {'ok': True, 'graduated': graduated}
 
 @app.get('/mobile/tracker')
 async def mobile_tracker(days: int = 30, tg_id: int = Depends(verify_mobile_token)):
