@@ -55,7 +55,11 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
           [{ text: 'Ок', onPress: () => navigation.goBack() }],
         )
       } else {
-        navigation.goBack()
+        Alert.alert(
+          '🎉 Хвала Аллаху, ты молодец!',
+          `Шаг ${globalWeek} закрыт. Так держать — каждый пройденный шаг закрепляет то, что раньше держалось только на силе воли.`,
+          [{ text: 'Дальше', onPress: () => navigation.goBack() }],
+        )
       }
     } catch {
       Alert.alert('Не удалось сохранить', 'Проверьте интернет-соединение и попробуйте снова.')

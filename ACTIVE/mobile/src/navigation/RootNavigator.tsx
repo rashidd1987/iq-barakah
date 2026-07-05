@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { colors } from '../theme/colors'
@@ -13,7 +13,6 @@ import LoginScreen from '../screens/LoginScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import TrackerScreen from '../screens/TrackerScreen'
 import VisionScreen from '../screens/VisionScreen'
-import { lsGet, lsSet } from '../utils/storage'
 import { LessonsStackParamList, RootTabParamList } from './types'
 
 const Tab = createBottomTabNavigator<RootTabParamList>()
@@ -57,19 +56,8 @@ function Tabs() {
   )
 }
 
-type OnboardingStage = 'diagnostic' | 'vision' | 'done'
-
 export default function RootNavigator() {
-  const { isLoggedIn, isLoading } = useAuth()
-  const [onboarding, setOnboarding] = useState<OnboardingStage | null>(null)
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setOnboarding(null)
-      return
-    }
-    lsGet('seen_diagnostic', false).then((seen) => setOnboarding(seen ? 'done' : 'diagnostic'))
-  }, [isLoggedIn])
+  const { isLoggedIn, isLoading, onboarding, advanceOnboarding } = useAuth()
 
   if (isLoading || (isLoggedIn && onboarding === null)) {
     return (
@@ -79,18 +67,13 @@ export default function RootNavigator() {
     )
   }
 
-  const finishOnboarding = () => {
-    lsSet('seen_diagnostic', true)
-    setOnboarding('done')
-  }
-
   let content
   if (!isLoggedIn) {
     content = <LoginScreen />
   } else if (onboarding === 'diagnostic') {
-    content = <DiagnosticScreen onContinue={() => setOnboarding('vision')} />
+    content = <DiagnosticScreen onContinue={() => advanceOnboarding('vision')} />
   } else if (onboarding === 'vision') {
-    content = <VisionScreen onContinue={finishOnboarding} />
+    content = <VisionScreen onContinue={() => advanceOnboarding('done')} />
   } else {
     content = <Tabs />
   }

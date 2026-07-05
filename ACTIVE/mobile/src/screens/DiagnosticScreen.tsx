@@ -91,7 +91,16 @@ export default function DiagnosticScreen({ onContinue }: Props) {
     const q = QUESTIONS[step]
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>Прежде чем начать · {step + 1} из {QUESTIONS.length}</Text>
+        <Text style={styles.eyebrow}>Честный разговор перед стартом</Text>
+        <View style={styles.dots}>
+          {QUESTIONS.map((_, i) => (
+            <View key={i} style={[styles.dot, i === step && styles.dotActive, i < step && styles.dotDone]} />
+          ))}
+        </View>
+        <View style={styles.iconCircle}>
+          <Text style={styles.iconCircleText}>{q.mapIcon}</Text>
+        </View>
+        <Text style={styles.stepCounter}>Вопрос {step + 1} из {QUESTIONS.length}</Text>
         <Text style={styles.question}>{q.question}</Text>
         <View style={styles.options}>
           {q.options.map((o) => (
@@ -100,6 +109,7 @@ export default function DiagnosticScreen({ onContinue }: Props) {
             </Pressable>
           ))}
         </View>
+        <Text style={styles.privacyNote}>Это видишь только ты — здесь никто не оценивает</Text>
       </ScrollView>
     )
   }
@@ -126,10 +136,27 @@ export default function DiagnosticScreen({ onContinue }: Props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 24, paddingTop: 64, flexGrow: 1, justifyContent: 'center' },
-  eyebrow: { fontSize: 13, fontWeight: '600', color: colors.gold, marginBottom: 8, textAlign: 'center' },
+  content: { padding: 24, paddingTop: 56, flexGrow: 1, justifyContent: 'center' },
+  eyebrow: { fontSize: 13, fontWeight: '600', color: colors.gold, marginBottom: 16, textAlign: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.g2, width: 22 },
+  dotDone: { backgroundColor: colors.g3 },
+  iconCircle: {
+    alignSelf: 'center',
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.gpale,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  iconCircleText: { fontSize: 38 },
+  stepCounter: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', marginBottom: 12 },
   question: { fontSize: 20, fontWeight: '700', color: colors.g1, textAlign: 'center', marginBottom: 32, lineHeight: 28 },
   options: { gap: 12 },
+  privacyNote: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 24 },
   optionCard: {
     backgroundColor: colors.card,
     borderRadius: radius.card,

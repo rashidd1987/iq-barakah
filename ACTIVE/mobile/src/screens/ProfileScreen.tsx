@@ -9,7 +9,7 @@ import { lsGet, lsSet } from '../utils/storage'
 const PUSH_ENABLED_KEY = 'push_enabled'
 
 export default function ProfileScreen() {
-  const { logout } = useAuth()
+  const { logout, resetOnboarding } = useAuth()
   const [level, setLevel] = useState<string | null>(null)
   const [week, setWeek] = useState<number | null>(null)
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -69,6 +69,10 @@ export default function ProfileScreen() {
         <Switch value={pushEnabled} onValueChange={handlePushToggle} disabled={togglingPush} />
       </View>
 
+      <Pressable style={styles.linkButton} onPress={resetOnboarding}>
+        <Text style={styles.linkText}>Пройти диагностику заново</Text>
+      </Pressable>
+
       <Pressable style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutText}>Выйти</Text>
       </Pressable>
@@ -84,6 +88,8 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 18, fontWeight: '700', color: colors.text },
   row: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   rowLabel: { fontSize: 14, color: colors.text, flex: 1, marginRight: 12 },
-  logoutButton: { marginTop: 16, alignItems: 'center', padding: 12 },
+  linkButton: { marginTop: 4, alignItems: 'center', padding: 12 },
+  linkText: { color: colors.g2, fontSize: 14, fontWeight: '600' },
+  logoutButton: { marginTop: 4, alignItems: 'center', padding: 12 },
   logoutText: { color: colors.muted, fontSize: 14 },
 })
