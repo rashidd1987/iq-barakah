@@ -72,4 +72,15 @@ export const api = {
     api.post('/push/register', { expo_token: expoToken, platform }),
 
   cohortCount: () => api.get<{ count: number }>('/mobile/cohort-count'),
+
+  quiz: (level: string, week: number) =>
+    api.get<Record<'I' | 'II' | 'III', QuizQuestion[]>>(
+      `/mobile/quiz/${encodeURIComponent(level)}/${week}`,
+    ),
+}
+
+export interface QuizQuestion {
+  q: string
+  opts: string[]
+  correct: number
 }

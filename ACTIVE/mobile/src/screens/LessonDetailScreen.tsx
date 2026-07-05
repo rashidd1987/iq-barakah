@@ -4,7 +4,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import ErrorState from '../components/ErrorState'
 import { LessonsStackParamList } from '../navigation/types'
 import { colors, radius, shadow } from '../theme/colors'
-import { api } from '../utils/api'
+import { api, QuizQuestion } from '../utils/api'
 
 type SkillLevel = 'I' | 'II' | 'III'
 const SKILL_ORDER: SkillLevel[] = ['I', 'II', 'III']
@@ -18,7 +18,13 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
   const [content, setContent] = useState<Awaited<ReturnType<typeof api.content>> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [acking, setAcking] = useState(false)
+
+  const [quizStarted, setQuizStarted] = useState(false)
+  const [quizLoading, setQuizLoading] = useState(false)
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
+  const [quizIndex, setQuizIndex] = useState(0)
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
+  const [finishing, setFinishing] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -38,8 +44,8 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
     load()
   }, [load])
 
-  const handleComplete = async () => {
-    setAcking(true)
+  const finishStep = useCallback(async () => {
+    setFinishing(true)
     try {
       const result = await api.weekAck(level, week)
       if (result.graduated) {
@@ -54,7 +60,43 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
     } catch {
       Alert.alert('Не удалось сохранить', 'Проверьте интернет-соединение и попробуйте снова.')
     } finally {
-      setAcking(false)
+      setFinishing(false)
+    }
+  }, [level, week, navigation])
+
+  const startQuiz = async () => {
+    if (!skill) return
+    setQuizLoading(true)
+    try {
+      const quiz = await api.quiz(level, week)
+      const qs = quiz[skill] ?? []
+      if (qs.length === 0) {
+        // No quiz content for this step — fall back to direct completion rather than blocking progress.
+        await finishStep()
+        return
+      }
+      setQuestions(qs)
+      setQuizIndex(0)
+      setSelectedAnswer(null)
+      setQuizStarted(true)
+    } catch {
+      Alert.alert('Не удалось загрузить тест', 'Проверьте интернет-соединение и попробуйте снова.')
+    } finally {
+      setQuizLoading(false)
+    }
+  }
+
+  const answerQuestion = (optionIndex: number) => {
+    if (selectedAnswer !== null) return // already answered — feedback is shown, wait for "Далее"
+    setSelectedAnswer(optionIndex)
+  }
+
+  const nextQuestion = () => {
+    if (quizIndex + 1 < questions.length) {
+      setQuizIndex(quizIndex + 1)
+      setSelectedAnswer(null)
+    } else {
+      finishStep()
     }
   }
 
@@ -68,6 +110,49 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
 
   if (error || !content || !skill) {
     return <ErrorState message="Не удалось загрузить урок" onRetry={load} />
+  }
+
+  if (quizStarted) {
+    const q = questions[quizIndex]
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.stepLabel}>Вопрос {quizIndex + 1} из {questions.length}</Text>
+        <Text style={styles.quizQuestion}>{q.q}</Text>
+
+        {q.opts.map((opt, i) => {
+          const isSelected = selectedAnswer === i
+          const isCorrect = i === q.correct
+          const showFeedback = selectedAnswer !== null
+          let optionStyle = styles.quizOption
+          if (showFeedback && isCorrect) optionStyle = { ...styles.quizOption, ...styles.quizOptionCorrect }
+          else if (showFeedback && isSelected && !isCorrect) optionStyle = { ...styles.quizOption, ...styles.quizOptionWrong }
+          return (
+            <Pressable key={i} style={optionStyle} onPress={() => answerQuestion(i)} disabled={showFeedback}>
+              <Text style={styles.quizOptionText}>
+                {String.fromCharCode(65 + i)}) {opt}
+              </Text>
+            </Pressable>
+          )
+        })}
+
+        {selectedAnswer !== null && (
+          <>
+            <Text style={styles.quizFeedback}>
+              {selectedAnswer === q.correct ? '✅ Верно!' : `🔄 Не совсем. Правильный ответ: ${q.opts[q.correct]}`}
+            </Text>
+            <Pressable style={styles.completeButton} onPress={nextQuestion} disabled={finishing}>
+              {finishing ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.completeButtonText}>
+                  {quizIndex + 1 < questions.length ? 'Следующий вопрос' : 'Завершить шаг'}
+                </Text>
+              )}
+            </Pressable>
+          </>
+        )}
+      </ScrollView>
+    )
   }
 
   return (
@@ -105,8 +190,8 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
         </View>
       ))}
 
-      <Pressable style={styles.completeButton} onPress={handleComplete} disabled={acking}>
-        {acking ? <ActivityIndicator color="#fff" /> : <Text style={styles.completeButtonText}>Урок пройден</Text>}
+      <Pressable style={styles.completeButton} onPress={startQuiz} disabled={quizLoading}>
+        {quizLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.completeButtonText}>Пройти тест и завершить шаг</Text>}
       </Pressable>
     </ScrollView>
   )
@@ -137,6 +222,20 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 8 },
   taskCard: { padding: 12, marginBottom: 8 },
   taskText: { fontSize: 14, color: colors.text },
+  quizQuestion: { fontSize: 18, fontWeight: '700', color: colors.g1, marginBottom: 20, lineHeight: 25 },
+  quizOption: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    ...shadow.card,
+  },
+  quizOptionCorrect: { borderColor: colors.g2, backgroundColor: colors.gpale },
+  quizOptionWrong: { borderColor: '#c0392b', backgroundColor: '#fdecea' },
+  quizOptionText: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  quizFeedback: { fontSize: 14, fontWeight: '600', color: colors.text, marginTop: 8, marginBottom: 16, textAlign: 'center' },
   completeButton: {
     marginTop: 16,
     backgroundColor: colors.g2,

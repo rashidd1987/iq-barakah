@@ -421,6 +421,25 @@ def _load_lesson_content(level: str, week: int) -> Optional[dict]:
     _content_cache[key] = lesson
     return lesson
 
+_quiz_cache: Dict[str, dict] = {}
+
+def _load_quiz(level: str, week: int) -> Optional[dict]:
+    key = f'{level}_{week}'
+    if key in _quiz_cache:
+        return _quiz_cache[key]
+    path = CONTENT_DIR / f'quiz_{level}.json'
+    if not path.exists():
+        return None
+    try:
+        weeks = json.loads(path.read_text(encoding='utf-8'))
+    except Exception:
+        return None
+    if not (1 <= week <= len(weeks)):
+        return None
+    quiz = weeks[week - 1]
+    _quiz_cache[key] = quiz
+    return quiz
+
 def make_mobile_token(tg_id: int) -> str:
     payload = {
         'tg_id': tg_id,
@@ -521,6 +540,15 @@ async def mobile_content(level: str, week: int, tg_id: int = Depends(verify_mobi
     if not lesson:
         raise HTTPException(404, 'Урок не найден')
     return lesson
+
+@app.get('/mobile/quiz/{level}/{week}')
+async def mobile_quiz(level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
+    """Вопросы для проверки понимания шага — те же, что задаёт бот
+    (bot_v2/services/step_tests.get_test), экспортированы в JSON заранее."""
+    quiz = _load_quiz(level, week)
+    if quiz is None:
+        raise HTTPException(404, 'Тест не найден')
+    return quiz
 
 class WeekAckReq(BaseModel):
     level: str
