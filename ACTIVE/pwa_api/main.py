@@ -495,6 +495,26 @@ async def mobile_participant(tg_id: int = Depends(verify_mobile_token)):
         raise HTTPException(404, 'Участник не найден')
     return dict(p)
 
+@app.get('/mobile/cohort-count')
+async def mobile_cohort_count(tg_id: int = Depends(verify_mobile_token)):
+    """Сколько ещё активных участников сейчас на том же шаге — для джамаат-эффекта
+    на главном экране («с тобой ещё N братьев»). Считает только реальных активных
+    участников, без выдумок."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        me = await conn.fetchrow(
+            'SELECT level, week FROM participants WHERE user_id=$1 AND is_active=TRUE', tg_id
+        )
+        if not me:
+            raise HTTPException(404, 'Участник не найден')
+        row = await conn.fetchrow(
+            '''SELECT COUNT(*) AS cnt FROM participants
+               WHERE level=$1 AND week=$2 AND is_active=TRUE AND user_id != $3''',
+            me['level'], me['week'], tg_id
+        )
+    return {'count': row['cnt']}
+
 @app.get('/mobile/content/{level}/{week}')
 async def mobile_content(level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
     lesson = _load_lesson_content(level, week)

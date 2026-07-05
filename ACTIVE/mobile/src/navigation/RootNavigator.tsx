@@ -1,16 +1,18 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { colors } from '../theme/colors'
+import DiagnosticScreen from '../screens/DiagnosticScreen'
 import HomeScreen from '../screens/HomeScreen'
 import LessonDetailScreen from '../screens/LessonDetailScreen'
 import LessonsScreen from '../screens/LessonsScreen'
 import LoginScreen from '../screens/LoginScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import TrackerScreen from '../screens/TrackerScreen'
+import { lsGet } from '../utils/storage'
 import { LessonsStackParamList, RootTabParamList } from './types'
 
 const Tab = createBottomTabNavigator<RootTabParamList>()
@@ -56,8 +58,17 @@ function Tabs() {
 
 export default function RootNavigator() {
   const { isLoggedIn, isLoading } = useAuth()
+  const [seenDiagnostic, setSeenDiagnostic] = useState<boolean | null>(null)
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setSeenDiagnostic(null)
+      return
+    }
+    lsGet('seen_diagnostic', false).then(setSeenDiagnostic)
+  }, [isLoggedIn])
+
+  if (isLoading || (isLoggedIn && seenDiagnostic === null)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator color={colors.g2} />
@@ -65,5 +76,14 @@ export default function RootNavigator() {
     )
   }
 
-  return <NavigationContainer>{isLoggedIn ? <Tabs /> : <LoginScreen />}</NavigationContainer>
+  let content
+  if (!isLoggedIn) {
+    content = <LoginScreen />
+  } else if (!seenDiagnostic) {
+    content = <DiagnosticScreen onContinue={() => setSeenDiagnostic(true)} />
+  } else {
+    content = <Tabs />
+  }
+
+  return <NavigationContainer>{content}</NavigationContainer>
 }

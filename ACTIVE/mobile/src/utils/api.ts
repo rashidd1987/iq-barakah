@@ -70,4 +70,6 @@ export const api = {
 
   registerPush: (expoToken: string, platform: string) =>
     api.post('/push/register', { expo_token: expoToken, platform }),
+
+  cohortCount: () => api.get<{ count: number }>('/mobile/cohort-count'),
 }
