@@ -7,6 +7,40 @@ import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 import { computeDeeds, computeStreak, computeXP } from '../utils/stats'
 
+const RITUALS = [
+  { hour: 6, minute: 0, label: 'утреннего поминания' },
+  { hour: 13, minute: 30, label: 'обеденного намаза' },
+  { hour: 20, minute: 0, label: 'вечернего поминания' },
+  { hour: 22, minute: 0, label: 'вечернего разбора' },
+]
+
+function greeting(hour: number): string {
+  if (hour < 5) return 'Доброй ночи'
+  if (hour < 12) return 'Доброе утро'
+  if (hour < 18) return 'Добрый день'
+  return 'Добрый вечер'
+}
+
+function nextRitual(now: Date): { label: string; minutesUntil: number } {
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  for (const r of RITUALS) {
+    const ritualMinutes = r.hour * 60 + r.minute
+    if (ritualMinutes > nowMinutes) {
+      return { label: r.label, minutesUntil: ritualMinutes - nowMinutes }
+    }
+  }
+  // Past the last ritual today — next one is tomorrow's first.
+  const first = RITUALS[0]
+  return { label: first.label, minutesUntil: 24 * 60 - nowMinutes + first.hour * 60 + first.minute }
+}
+
+function formatCountdown(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m} мин`
+  return `${h} ч ${m} мин`
+}
+
 export default function HomeScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -48,12 +82,20 @@ export default function HomeScreen() {
     return <ErrorState onRetry={load} />
   }
 
+  const now = new Date()
+  const ritual = nextRitual(now)
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
+      <Text style={styles.greeting}>{greeting(now.getHours())} 👋</Text>
+      <Text style={styles.ritualCountdown}>
+        До {ritual.label}: <Text style={styles.ritualCountdownStrong}>{formatCountdown(ritual.minutesUntil)}</Text>
+      </Text>
+
       <View style={styles.streakHero}>
         <Text style={styles.streakFlame}>🔥</Text>
         <Text style={styles.streakNumber}>{stats.streak}</Text>
@@ -108,6 +150,9 @@ function StatCard({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
+  greeting: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 2 },
+  ritualCountdown: { fontSize: 13, color: colors.sub, marginBottom: 16 },
+  ritualCountdownStrong: { fontWeight: '700', color: colors.g2 },
   streakHero: {
     alignItems: 'center',
     backgroundColor: colors.g1,

@@ -12,7 +12,8 @@ import LessonsScreen from '../screens/LessonsScreen'
 import LoginScreen from '../screens/LoginScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import TrackerScreen from '../screens/TrackerScreen'
-import { lsGet } from '../utils/storage'
+import VisionScreen from '../screens/VisionScreen'
+import { lsGet, lsSet } from '../utils/storage'
 import { LessonsStackParamList, RootTabParamList } from './types'
 
 const Tab = createBottomTabNavigator<RootTabParamList>()
@@ -56,19 +57,21 @@ function Tabs() {
   )
 }
 
+type OnboardingStage = 'diagnostic' | 'vision' | 'done'
+
 export default function RootNavigator() {
   const { isLoggedIn, isLoading } = useAuth()
-  const [seenDiagnostic, setSeenDiagnostic] = useState<boolean | null>(null)
+  const [onboarding, setOnboarding] = useState<OnboardingStage | null>(null)
 
   useEffect(() => {
     if (!isLoggedIn) {
-      setSeenDiagnostic(null)
+      setOnboarding(null)
       return
     }
-    lsGet('seen_diagnostic', false).then(setSeenDiagnostic)
+    lsGet('seen_diagnostic', false).then((seen) => setOnboarding(seen ? 'done' : 'diagnostic'))
   }, [isLoggedIn])
 
-  if (isLoading || (isLoggedIn && seenDiagnostic === null)) {
+  if (isLoading || (isLoggedIn && onboarding === null)) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator color={colors.g2} />
@@ -76,11 +79,18 @@ export default function RootNavigator() {
     )
   }
 
+  const finishOnboarding = () => {
+    lsSet('seen_diagnostic', true)
+    setOnboarding('done')
+  }
+
   let content
   if (!isLoggedIn) {
     content = <LoginScreen />
-  } else if (!seenDiagnostic) {
-    content = <DiagnosticScreen onContinue={() => setSeenDiagnostic(true)} />
+  } else if (onboarding === 'diagnostic') {
+    content = <DiagnosticScreen onContinue={() => setOnboarding('vision')} />
+  } else if (onboarding === 'vision') {
+    content = <VisionScreen onContinue={finishOnboarding} />
   } else {
     content = <Tabs />
   }
