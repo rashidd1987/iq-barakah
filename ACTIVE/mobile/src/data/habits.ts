@@ -29,3 +29,8 @@ export const WEEKLY: HabitDef[] = [
   { id: 'guest', icon: '🎤', label: 'Пятничный гость', sub: 'Пт — шейх, врач или предприниматель' },
   { id: 'mirror', icon: '📊', label: 'Зеркало прогресса', sub: 'Каждые 2 нед — авто-отчёт бота' },
 ]
+
+export const ONETIME: HabitDef[] = [
+  { id: 'letter', icon: '✉️', label: 'Письмо себе', sub: 'День нулевой — прочтёшь в конце' },
+  { id: 'anchor', icon: '👥', label: 'Якорный брат', sub: 'При входе — брат с похожим уровнем' },
+]

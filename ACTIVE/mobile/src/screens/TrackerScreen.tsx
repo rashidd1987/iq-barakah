@@ -2,41 +2,78 @@ import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
-import { DAILY, NAMAZ, WEEKLY } from '../data/habits'
+import { DAILY, NAMAZ, ONETIME, WEEKLY } from '../data/habits'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
-import { todayKey } from '../utils/storage'
 
-type Habits = { namaz: Record<string, boolean>; daily: Record<string, boolean>; weekly: Record<string, boolean> }
+type Habits = {
+  namaz: Record<string, boolean>
+  daily: Record<string, boolean>
+  weekly: Record<string, boolean>
+  onetime: Record<string, boolean>
+  tasks: Record<string, boolean>
+}
 
-const EMPTY_HABITS: Habits = { namaz: {}, daily: {}, weekly: {} }
+const EMPTY_HABITS: Habits = { namaz: {}, daily: {}, weekly: {}, onetime: {}, tasks: {} }
+
+const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+function toDateKey(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+// Monday-start week containing `today` — matches the miniapp's tracker week strip.
+function currentWeekDates(): Date[] {
+  const today = new Date()
+  const dayOfWeek = (today.getDay() + 6) % 7 // 0 = Monday
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - dayOfWeek)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return d
+  })
+}
 
 export default function TrackerScreen() {
+  const weekDates = currentWeekDates()
+  const todayKey = toDateKey(new Date())
+  const [selectedDate, setSelectedDate] = useState(todayKey)
   const [habits, setHabits] = useState<Habits>(EMPTY_HABITS)
+  const [stepTasks, setStepTasks] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [saving, setSaving] = useState(false)
-  const date = todayKey()
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (date: string) => {
     setLoading(true)
     setError(false)
     try {
-      const records = await api.tracker(1)
-      const today = records.find((r: any) => r.date === date) as { habits?: Partial<Habits> } | undefined
-      setHabits({ ...EMPTY_HABITS, ...(today?.habits ?? {}) })
+      const [records, participant] = await Promise.all([api.tracker(30), api.participant()])
+      const record = records.find((r) => r.date === date) as { habits?: Partial<Habits> } | undefined
+      setHabits({ ...EMPTY_HABITS, ...(record?.habits ?? {}) })
+
+      const skill = (participant.vakt_level as 'I' | 'II' | 'III') || 'I'
+      const content = await api.content(participant.level, participant.week)
+      setStepTasks(content.tasks[skill] ?? [])
     } catch {
       setError(true)
     } finally {
       setLoading(false)
     }
-  }, [date])
+  }, [])
 
   useFocusEffect(
     useCallback(() => {
-      load()
-    }, [load]),
+      load(selectedDate)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [load, selectedDate]),
   )
+
+  const selectDate = (date: string) => {
+    setSelectedDate(date)
+    load(date)
+  }
 
   const toggle = async (bucket: keyof Habits, id: string) => {
     const previous = habits
@@ -44,7 +81,7 @@ export default function TrackerScreen() {
     setHabits(next)
     setSaving(true)
     try {
-      await api.saveTracker(date, next)
+      await api.saveTracker(selectedDate, next)
     } catch {
       setHabits(previous) // save failed — revert the optimistic tap instead of showing unsaved state as done
       Alert.alert('Не сохранилось', 'Проверьте интернет-соединение и попробуйте ещё раз.')
@@ -62,14 +99,60 @@ export default function TrackerScreen() {
   }
 
   if (error) {
-    return <ErrorState message="Не удалось загрузить трекер" onRetry={load} />
+    return <ErrorState message="Не удалось загрузить трекер" onRetry={() => load(selectedDate)} />
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.weekStrip}>
+        {weekDates.map((d) => {
+          const key = toDateKey(d)
+          const isSelected = key === selectedDate
+          const isToday = key === todayKey
+          return (
+            <Pressable
+              key={key}
+              style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+              onPress={() => selectDate(key)}
+            >
+              <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>
+                {WEEKDAY_LABELS[(d.getDay() + 6) % 7]}
+              </Text>
+              <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>{d.getDate()}</Text>
+              {isToday && <View style={styles.todayDot} />}
+            </Pressable>
+          )
+        })}
+      </View>
+
+      {stepTasks.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📋 Задания шага</Text>
+          {stepTasks.map((task, i) => {
+            const id = String(i)
+            const done = !!habits.tasks[id]
+            return (
+              <Pressable
+                key={id}
+                style={[styles.card, done && styles.cardDone]}
+                onPress={() => toggle('tasks', id)}
+              >
+                <View style={styles.itemInfo}>
+                  <Text style={styles.taskText}>{task}</Text>
+                </View>
+                <View style={[styles.check, done && styles.checkDone]}>
+                  {done && <Text style={styles.checkMark}>✓</Text>}
+                </View>
+              </Pressable>
+            )
+          })}
+        </View>
+      )}
+
       <Section title="🕌 Намаз" bucket="namaz" items={NAMAZ} habits={habits} onToggle={toggle} />
       <Section title="☀️ Каждый день" bucket="daily" items={DAILY} habits={habits} onToggle={toggle} />
       <Section title="📅 На неделю" bucket="weekly" items={WEEKLY} habits={habits} onToggle={toggle} />
+      <Section title="🔖 Один раз" bucket="onetime" items={ONETIME} habits={habits} onToggle={toggle} />
       {saving && <Text style={styles.savingHint}>Сохранение…</Text>}
     </ScrollView>
   )
@@ -112,6 +195,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
+  weekStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: 10,
+    marginBottom: 20,
+    ...shadow.card,
+  },
+  dayCell: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10 },
+  dayCellSelected: { backgroundColor: colors.g2 },
+  dayLabel: { fontSize: 11, color: colors.muted, marginBottom: 2 },
+  dayLabelSelected: { color: colors.goldpale },
+  dayNum: { fontSize: 15, fontWeight: '700', color: colors.text },
+  dayNumSelected: { color: '#fff' },
+  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.gold, marginTop: 3 },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 8 },
   card: {
@@ -128,6 +227,7 @@ const styles = StyleSheet.create({
   itemInfo: { flex: 1 },
   itemLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
   itemSub: { fontSize: 12, color: colors.sub, marginTop: 2 },
+  taskText: { fontSize: 13, color: colors.text, lineHeight: 19 },
   check: {
     width: 24,
     height: 24,
@@ -136,6 +236,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 8,
   },
   checkDone: { backgroundColor: colors.g2, borderColor: colors.g2 },
   checkMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
