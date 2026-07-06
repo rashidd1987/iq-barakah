@@ -1,3 +1,4 @@
+import * as Application from 'expo-application'
 import React, { useEffect, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
@@ -76,6 +77,8 @@ export default function ProfileScreen() {
       <Pressable style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutText}>Выйти</Text>
       </Pressable>
+
+      <Text style={styles.buildTag}>build {Application.nativeBuildVersion ?? '?'}</Text>
     </View>
   )
 }
@@ -92,4 +95,5 @@ const styles = StyleSheet.create({
   linkText: { color: colors.g2, fontSize: 14, fontWeight: '600' },
   logoutButton: { marginTop: 4, alignItems: 'center', padding: 12 },
   logoutText: { color: colors.muted, fontSize: 14 },
+  buildTag: { textAlign: 'center', color: colors.border, fontSize: 11, marginTop: 8 },
 })

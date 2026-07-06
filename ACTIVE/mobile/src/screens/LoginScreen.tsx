@@ -1,3 +1,4 @@
+import * as Application from 'expo-application'
 import React, { useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
@@ -48,6 +49,8 @@ export default function LoginScreen() {
       <Text style={styles.hint}>
         Вход доступен только участникам программы, уже активированным куратором в боте.
       </Text>
+
+      <Text style={styles.buildTag}>build {Application.nativeBuildVersion ?? '?'}</Text>
     </View>
   )
 }
@@ -74,4 +77,5 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   status: { marginTop: 16, color: colors.sub, textAlign: 'center' },
   hint: { marginTop: 40, color: colors.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: 16 },
+  buildTag: { marginTop: 16, color: colors.border, fontSize: 11 },
 })
