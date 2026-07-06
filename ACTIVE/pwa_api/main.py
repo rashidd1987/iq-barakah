@@ -622,6 +622,76 @@ async def mobile_save_tracker(req: MobileTrackerReq, tg_id: int = Depends(verify
         )
     return {'ok': True}
 
+class MobileWheelReq(BaseModel):
+    scores: dict
+
+@app.get('/mobile/wheel')
+async def mobile_get_wheel(tg_id: int = Depends(verify_mobile_token)):
+    """Последняя оценка «Колеса баланса» — те же 8 сфер, что и в Mini App,
+    но сохраняются в реальную таблицу бота (wheel_records), а не в localStorage."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            'SELECT scores, created_at FROM wheel_records WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
+            tg_id
+        )
+    if not row:
+        return {'scores': None, 'created_at': None}
+    return {'scores': row['scores'], 'created_at': row['created_at'].isoformat()}
+
+@app.post('/mobile/wheel')
+async def mobile_save_wheel(req: MobileWheelReq, tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            'INSERT INTO wheel_records (user_id, scores, created_at) VALUES ($1,$2,$3)',
+            tg_id, req.scores, datetime.utcnow()
+        )
+    return {'ok': True}
+
+class MobileMuhasabaReq(BaseModel):
+    answers: List[Dict[str, str]]  # [{q, a}, ...]
+
+@app.post('/mobile/muhasaba')
+async def mobile_save_muhasaba(req: MobileMuhasabaReq, tg_id: int = Depends(verify_mobile_token)):
+    """Тот же вечерний самоотчёт (мухасаба), что и в боте — 3 вопроса, сохраняются
+    в ту же таблицу muhasaba_logs, поэтому куратор видит записи независимо от того,
+    ответил ученик в боте или в приложении."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        await conn.execute(
+            'INSERT INTO muhasaba_logs (user_id, answers, created_at) VALUES ($1,$2,$3)',
+            tg_id, req.answers, datetime.utcnow()
+        )
+    return {'ok': True}
+
+@app.get('/mobile/muhasaba/streak')
+async def mobile_muhasaba_streak(tg_id: int = Depends(verify_mobile_token)):
+    """Стрик считается напрямую по датам записей в muhasaba_logs (устойчив к тому,
+    что запись могла прийти из бота или из приложения), а не по отдельному счётчику."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT DISTINCT created_at::date AS d FROM muhasaba_logs WHERE user_id=$1 ORDER BY d DESC LIMIT 60",
+            tg_id
+        )
+    dates = [r['d'] for r in rows]
+    today = datetime.utcnow().date()
+    done_today = bool(dates) and dates[0] == today
+    streak = 0
+    cursor = today if done_today else today - timedelta(days=1)
+    for d in dates:
+        if d == cursor:
+            streak += 1
+            cursor -= timedelta(days=1)
+        elif d < cursor:
+            break
+    return {'streak': streak, 'done_today': done_today}
+
 class PushRegisterReq(BaseModel):
     expo_token: str
     platform: str

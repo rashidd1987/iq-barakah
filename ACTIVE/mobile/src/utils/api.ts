@@ -77,6 +77,12 @@ export const api = {
     api.get<Record<'I' | 'II' | 'III', QuizQuestion[]>>(
       `/mobile/quiz/${encodeURIComponent(level)}/${week}`,
     ),
+
+  getWheel: () => api.get<{ scores: Record<string, number> | null; created_at: string | null }>('/mobile/wheel'),
+  saveWheel: (scores: Record<string, number>) => api.post('/mobile/wheel', { scores }),
+
+  saveMuhasaba: (answers: { q: string; a: string }[]) => api.post('/mobile/muhasaba', { answers }),
+  muhasabaStreak: () => api.get<{ streak: number; done_today: boolean }>('/mobile/muhasaba/streak'),
 }
 
 export interface QuizQuestion {

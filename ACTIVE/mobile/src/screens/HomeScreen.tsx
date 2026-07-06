@@ -1,11 +1,29 @@
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import * as WebBrowser from 'expo-web-browser'
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
+import { useAuth } from '../context/AuthContext'
+import { HomeStackParamList } from '../navigation/types'
 import { LEVEL_LABELS, LEVEL_ICONS, TOTAL_STEPS, globalWeekIndex } from '../data/weeks'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 import { computeDeeds, computeStreak, computeXP } from '../utils/stats'
+
+// Same hosted diagnostic the miniapp itself links out to (ACTIVE/site/miniapp.html
+// opens the exact same URL) — 15-compartment "Корабль Бараката" business/personal
+// assessment. Not worth re-implementing natively; opening it in-app is the parity move.
+const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business.html'
+
+const QUICK_LINKS = [
+  { id: 'tracker', icon: '📋', title: 'Трекер дня', sub: 'Намаз, поминание, самоотчёт' },
+  { id: 'lessons', icon: '📚', title: 'Текущий урок', sub: 'Открыть карту уроков' },
+  { id: 'wheel', icon: '🎯', title: 'Колесо баланса', sub: '8 сфер жизни' },
+  { id: 'muhasaba', icon: '✍️', title: 'Вечерний самоотчёт', sub: 'Мухасаба — три вопроса · 2 минуты' },
+  { id: 'diag', icon: '🎯', title: 'Диагностика уровня', sub: 'Пройти заново' },
+  { id: 'ship', icon: '⚓', title: 'Корабль Бараката', sub: '15 отсеков · бизнес и личная жизнь' },
+] as const
 
 const RITUALS = [
   { hour: 6, minute: 0, label: 'утреннего поминания' },
@@ -41,7 +59,10 @@ function formatCountdown(minutes: number): string {
   return `${h} ч ${m} мин`
 }
 
-export default function HomeScreen() {
+type Props = NativeStackScreenProps<HomeStackParamList, 'HomeMain'>
+
+export default function HomeScreen({ navigation }: Props) {
+  const { resetOnboarding } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [level, setLevel] = useState<string | null>(null)
@@ -77,6 +98,29 @@ export default function HomeScreen() {
   )
 
   const progressPct = Math.min(100, Math.round(((globalWeek - 1) / TOTAL_STEPS) * 100))
+
+  const handleQuickLink = (id: (typeof QUICK_LINKS)[number]['id']) => {
+    switch (id) {
+      case 'tracker':
+        navigation.getParent()?.navigate('Tracker')
+        break
+      case 'lessons':
+        navigation.getParent()?.navigate('Lessons')
+        break
+      case 'wheel':
+        navigation.getParent()?.navigate('Wheel')
+        break
+      case 'muhasaba':
+        navigation.navigate('Muhasaba')
+        break
+      case 'diag':
+        resetOnboarding()
+        break
+      case 'ship':
+        WebBrowser.openBrowserAsync(SHIP_URL)
+        break
+    }
+  }
 
   if (error && level === null) {
     return <ErrorState onRetry={load} />
@@ -125,6 +169,20 @@ export default function HomeScreen() {
       <View style={styles.statsRow}>
         <StatCard label="Добрые дела" value={`${stats.deeds}`} />
         <StatCard label="Баракат" value={`${stats.xp} XP`} />
+      </View>
+
+      <Text style={styles.quickLinksTitle}>Перейти</Text>
+      <View style={styles.quickLinks}>
+        {QUICK_LINKS.map((item) => (
+          <Pressable key={item.id} style={styles.quickLinkRow} onPress={() => handleQuickLink(item.id)}>
+            <Text style={styles.quickLinkIcon}>{item.icon}</Text>
+            <View style={styles.quickLinkInfo}>
+              <Text style={styles.quickLinkLabel}>{item.title}</Text>
+              <Text style={styles.quickLinkSub}>{item.sub}</Text>
+            </View>
+            <Text style={styles.quickLinkArrow}>›</Text>
+          </Pressable>
+        ))}
       </View>
     </ScrollView>
   )
@@ -189,4 +247,27 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, padding: 14, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '700', color: colors.text },
   statLabel: { fontSize: 12, color: colors.sub, marginTop: 4 },
+  quickLinksTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  quickLinks: { gap: 8 },
+  quickLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: 12,
+    ...shadow.card,
+  },
+  quickLinkIcon: { fontSize: 22, marginRight: 12 },
+  quickLinkInfo: { flex: 1 },
+  quickLinkLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
+  quickLinkSub: { fontSize: 12, color: colors.sub, marginTop: 2 },
+  quickLinkArrow: { fontSize: 20, color: colors.muted },
 })
