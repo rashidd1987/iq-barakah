@@ -2,68 +2,138 @@ import React, { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, radius, shadow } from '../theme/colors'
 
-type Severity = 'red' | 'yellow' | 'green'
+// Ported 1:1 from bot_v2/handlers/korablik.py (the "Кораблик" — 7-section ship
+// diagnostic) so the app onboarding matches what students already know from the bot.
+// Only the ending differs: the bot pitches tariffs here, the app continues into
+// VisionScreen since the person is already an enrolled student.
 
 interface Option {
   label: string
-  severity: Severity
+  score: 0 | 1 | 2 | 3
 }
 
 interface Question {
-  key: string
-  question: string
-  options: Option[]
-  mapLabel: string
-  mapIcon: string
+  title: string
+  text: string
+  opts: Option[]
 }
 
 const QUESTIONS: Question[] = [
   {
-    key: 'namaz',
-    question: 'Сколько раз за последнюю неделю ты по-настоящему был в намазе, а не просто механически его выполнил?',
-    options: [
-      { label: '0-1 раз', severity: 'red' },
-      { label: '2-4 раза', severity: 'yellow' },
-      { label: '5-7 раз', severity: 'green' },
+    title: 'Вера и намерение',
+    text: 'Есть ли у тебя ощущение, что живёшь с намерением — знаешь зачем и ради чего?',
+    opts: [
+      { label: '😶 Нет, живу как идёт', score: 0 },
+      { label: '🌧 Иногда чувствую — потом теряю', score: 1 },
+      { label: '🌤 В целом есть внутренняя опора', score: 2 },
+      { label: '☀️ Да, каждый день осознанно', score: 3 },
     ],
-    mapLabel: 'Осознанность в намазе',
-    mapIcon: '🕌',
   },
   {
-    key: 'phone',
-    question: 'Сколько раз в день ты берёшь телефон, не задумываясь, зачем?',
-    options: [
-      { label: '30+ раз, почти на автомате', severity: 'red' },
-      { label: '10-30 раз', severity: 'yellow' },
-      { label: 'Меньше 10, обычно осознанно', severity: 'green' },
+    title: 'Время и утро',
+    text: 'Как начинается твой день?',
+    opts: [
+      { label: '📱 Сразу в телефон — и так до вечера', score: 0 },
+      { label: '🌀 Встаю, но без цели и ритма', score: 1 },
+      { label: '☀️ Есть что-то стабильное по утрам', score: 2 },
+      { label: '🌟 Утро — якорь всего моего дня', score: 3 },
     ],
-    mapLabel: 'Контроль над вниманием',
-    mapIcon: '📱',
   },
   {
-    key: 'family',
-    question: 'Когда ты последний раз был с семьёй по-настоящему, не думая о делах?',
-    options: [
-      { label: 'Не помню, когда в последний раз', severity: 'red' },
-      { label: 'На этой неделе', severity: 'yellow' },
-      { label: 'Сегодня', severity: 'green' },
+    title: 'Цели и движение',
+    text: 'Ты движешься к тому, чего хочешь?',
+    opts: [
+      { label: '😔 Цели есть — движения нет', score: 0 },
+      { label: '🔄 Стартую и быстро останавливаюсь', score: 1 },
+      { label: '📈 Двигаюсь, но нестабильно', score: 2 },
+      { label: '🎯 Есть курс — и я его держу', score: 3 },
     ],
-    mapLabel: 'Присутствие с семьёй',
-    mapIcon: '🏠',
+  },
+  {
+    title: 'Семья и отношения',
+    text: 'Как ты присутствуешь в жизни близких?',
+    opts: [
+      { label: '🏃 Постоянно в хаосе — не до них', score: 0 },
+      { label: '📱 Я рядом, но мыслями не здесь', score: 1 },
+      { label: '❤️ Стараюсь быть лучше', score: 2 },
+      { label: '🏠 Есть тепло, порядок и присутствие', score: 3 },
+    ],
+  },
+  {
+    title: 'Деньги и дело',
+    text: 'Как обстоят дела с работой и финансами?',
+    opts: [
+      { label: '😰 Постоянный стресс и нехватка', score: 0 },
+      { label: '⚖️ Хватает, но нет роста', score: 1 },
+      { label: '📊 Есть движение вперёд', score: 2 },
+      { label: '💎 Чувствую баракат в своём деле', score: 3 },
+    ],
+  },
+  {
+    title: 'Здоровье и энергия',
+    text: 'Как у тебя с энергией и телом?',
+    opts: [
+      { label: '😴 Хроническая усталость', score: 0 },
+      { label: '⚡ Бывают хорошие дни', score: 1 },
+      { label: '💪 В целом держусь', score: 2 },
+      { label: '🌿 Слежу за телом — это мой инструмент', score: 3 },
+    ],
+  },
+  {
+    title: 'Внутренний мир и смысл',
+    text: 'Есть ли у тебя ощущение смысла и покоя?',
+    opts: [
+      { label: '😶 Пустота — зачем всё это', score: 0 },
+      { label: '🌧 Иногда теряюсь', score: 1 },
+      { label: '🌤 В целом есть внутренняя опора', score: 2 },
+      { label: '☀️ Живу с ощущением пути и цели', score: 3 },
+    ],
   },
 ]
 
-const SEVERITY_DOT: Record<Severity, string> = { red: '🔴', yellow: '🟡', green: '🟢' }
-
-function synthesize(answers: Severity[]): string {
-  const reds = answers.filter((a) => a === 'red').length
-  if (reds >= 2) {
-    return 'Ты сейчас в основном на автопилоте — это не приговор, а точная отправная точка. Система нужна не потому, что ты слаб, а потому, что даже сильная воля не заменяет структуру.'
-  }
-  if (reds === 1) {
-    return 'Есть опоры, но есть и трещины. Без системы именно они обычно и подводят первыми.'
-  }
-  return 'Ты уже держишь многое — но осознанность без структуры редко живёт дольше пары недель. Система закрепит то, что уже есть.'
+const BREAKDOWN: Record<string, Record<number, { icon: string; desc: string; step: string | null }>> = {
+  'Вера и намерение': {
+    0: { icon: '🔴', desc: 'Ты живёшь скорее по инерции, чем по намерению. Это не слабость — просто никто не показал как иначе.', step: 'Начать день с одного осознанного намерения' },
+    1: { icon: '🟡', desc: 'Намерение иногда есть — но держится недолго. Важно создать якорь, который будет возвращать.', step: 'Записывать ният каждое утро — одним предложением' },
+    2: { icon: '🟢', desc: 'Есть внутренняя опора. Теперь важно углубить её и сделать ежедневной практикой.', step: 'Углубить через программу' },
+    3: { icon: '✨', desc: 'Хвала Аллаху — ты живёшь осознанно. Это основа всего.', step: null },
+  },
+  'Время и утро': {
+    0: { icon: '🔴', desc: 'Утро уходит в телефон — и день уже потерян. Один якорь с утра меняет всё.', step: 'Одно действие до телефона — каждое утро' },
+    1: { icon: '🟡', desc: 'Ты встаёшь, но без курса. День управляет тобой, а не ты днём.', step: 'Определить одно утреннее действие и делать его 7 дней' },
+    2: { icon: '🟢', desc: 'Есть ритм по утрам. Нужно сделать его более осознанным.', step: 'Добавить намерение к утреннему ритуалу' },
+    3: { icon: '✨', desc: 'Утро — якорь. Это уже меняет качество всего дня.', step: null },
+  },
+  'Цели и движение': {
+    0: { icon: '🔴', desc: 'Цели есть — системы нет. Без системы даже сильный человек топчется на месте.', step: 'Один маленький шаг в день — не список, а один шаг' },
+    1: { icon: '🟡', desc: 'Ты стартуешь — но не держишь. Нужна не мотивация, а ритм.', step: 'Выбрать одну цель и делать шаг каждый день 2 недели' },
+    2: { icon: '🟢', desc: 'Есть движение, но нестабильно. Нужна система удержания.', step: 'Добавить вечерний отчёт: сделал шаг или нет' },
+    3: { icon: '✨', desc: 'Держишь курс — это редкость. Теперь важна глубина.', step: null },
+  },
+  'Семья и отношения': {
+    0: { icon: '🔴', desc: 'Хаос вытесняет присутствие. Близкие чувствуют твоё отсутствие, даже когда ты рядом.', step: '15 минут без телефона с близкими — каждый день' },
+    1: { icon: '🟡', desc: 'Ты рядом — но не полностью здесь. Присутствие важнее времени.', step: 'Один разговор в день — глаза в глаза, без экрана' },
+    2: { icon: '🟢', desc: 'Ты стараешься быть лучше. Нужно перейти от намерения к системе.', step: 'Семейный ритуал — одно действие каждую неделю' },
+    3: { icon: '✨', desc: 'Есть тепло и порядок. Это фундамент.', step: null },
+  },
+  'Деньги и дело': {
+    0: { icon: '🔴', desc: 'Стресс вокруг денег забирает энергию на всё остальное. Это замкнутый круг — и из него есть выход.', step: 'Прояснить: где утекает, где можно добавить — один пункт' },
+    1: { icon: '🟡', desc: 'Хватает, но нет роста. Дело работает, но без стратегии.', step: 'Один шаг в неделю по развитию дела' },
+    2: { icon: '🟢', desc: 'Движение есть. Нужно добавить систему и намерение.', step: 'Соединить дело с миссией — зачем это, кроме денег' },
+    3: { icon: '✨', desc: 'Баракат в деле — это видно. Теперь масштаб и служение.', step: null },
+  },
+  'Здоровье и энергия': {
+    0: { icon: '🔴', desc: 'Хроническая усталость — это сигнал, не норма. Тело говорит: что-то нужно изменить.', step: 'Одно действие для тела каждый день — даже 10 минут' },
+    1: { icon: '🟡', desc: 'Хорошие дни есть — но нет стабильности. Энергия нужна для всего остального.', step: 'Сон и подъём в одно время — 5 дней подряд' },
+    2: { icon: '🟢', desc: 'В целом держишься. Добавь осознанность к заботе о теле.', step: 'Отслеживать энергию: что даёт, что забирает' },
+    3: { icon: '✨', desc: 'Тело — инструмент, и ты за ним следишь. Это редкость.', step: null },
+  },
+  'Внутренний мир и смысл': {
+    0: { icon: '🔴', desc: 'Ощущение пустоты — это не конец. Это сигнал: что-то важное ждёт, чтобы его открыли.', step: 'Один разговор с собой: чего я на самом деле хочу' },
+    1: { icon: '🟡', desc: 'Иногда теряешься — и это нормально. Важно знать, как возвращаться.', step: 'Вечерний вопрос: за что я благодарен сегодня' },
+    2: { icon: '🟢', desc: 'Опора есть. Нужно сделать её более осознанной и глубокой.', step: 'Найти то, что возвращает к смыслу — и делать это регулярно' },
+    3: { icon: '✨', desc: 'Живёшь с ощущением пути. Это самое ценное.', step: null },
+  },
 }
 
 interface Props {
@@ -72,20 +142,17 @@ interface Props {
 
 export default function DiagnosticScreen({ onContinue }: Props) {
   const [step, setStep] = useState(0)
-  const [answers, setAnswers] = useState<Severity[]>([])
+  const [scores, setScores] = useState<number[]>([])
 
-  const handleAnswer = (severity: Severity) => {
-    const next = [...answers, severity]
-    setAnswers(next)
+  const handleAnswer = (score: number) => {
+    const next = [...scores, score]
+    setScores(next)
     if (step + 1 < QUESTIONS.length) {
       setStep(step + 1)
     }
-    // "seen_diagnostic" is persisted by the parent navigator once the whole
-    // onboarding (diagnosis + vision) completes — not here, so a killed app
-    // mid-flow doesn't skip the vision screen on next launch.
   }
 
-  const finished = answers.length === QUESTIONS.length
+  const finished = scores.length === QUESTIONS.length
 
   if (!finished) {
     const q = QUESTIONS[step]
@@ -98,13 +165,13 @@ export default function DiagnosticScreen({ onContinue }: Props) {
           ))}
         </View>
         <View style={styles.iconCircle}>
-          <Text style={styles.iconCircleText}>{q.mapIcon}</Text>
+          <Text style={styles.iconCircleText}>⚓</Text>
         </View>
-        <Text style={styles.stepCounter}>Вопрос {step + 1} из {QUESTIONS.length}</Text>
-        <Text style={styles.question}>{q.question}</Text>
+        <Text style={styles.stepCounter}>Отсек {step + 1} из {QUESTIONS.length}</Text>
+        <Text style={styles.question}>{q.text}</Text>
         <View style={styles.options}>
-          {q.options.map((o) => (
-            <Pressable key={o.label} style={styles.optionCard} onPress={() => handleAnswer(o.severity)}>
+          {q.opts.map((o) => (
+            <Pressable key={o.label} style={styles.optionCard} onPress={() => handleAnswer(o.score)}>
               <Text style={styles.optionLabel}>{o.label}</Text>
             </Pressable>
           ))}
@@ -114,19 +181,28 @@ export default function DiagnosticScreen({ onContinue }: Props) {
     )
   }
 
+  const total = scores.reduce((a, b) => a + b, 0)
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.eyebrow}>Твоя карта прямо сейчас</Text>
+      <Text style={styles.eyebrow}>Джазакаллаху хайран за честность 🙏</Text>
+      <Text style={styles.mapTitle}>Вот твоя картина</Text>
       <View style={styles.mapCard}>
-        {QUESTIONS.map((q, i) => (
-          <View key={q.key} style={styles.mapRow}>
-            <Text style={styles.mapIcon}>{q.mapIcon}</Text>
-            <Text style={styles.mapLabel}>{q.mapLabel}</Text>
-            <Text style={styles.mapDot}>{SEVERITY_DOT[answers[i]]}</Text>
-          </View>
-        ))}
+        {QUESTIONS.map((q, i) => {
+          const b = BREAKDOWN[q.title][scores[i]]
+          return (
+            <View key={q.title} style={styles.mapRow}>
+              <View style={styles.mapRowHead}>
+                <Text style={styles.mapIcon}>{b.icon}</Text>
+                <Text style={styles.mapLabel}>{q.title}</Text>
+              </View>
+              <Text style={styles.mapDesc}>{b.desc}</Text>
+              {b.step && <Text style={styles.mapStep}>→ {b.step}</Text>}
+            </View>
+          )
+        })}
       </View>
-      <Text style={styles.reflection}>{synthesize(answers)}</Text>
+      <Text style={styles.totalNote}>Итого: {total} из 21</Text>
       <Pressable style={styles.continueButton} onPress={onContinue}>
         <Text style={styles.continueButtonText}>Посмотреть, кем ты станешь</Text>
       </Pressable>
@@ -138,7 +214,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 24, paddingTop: 56, flexGrow: 1, justifyContent: 'center' },
   eyebrow: { fontSize: 13, fontWeight: '600', color: colors.gold, marginBottom: 16, textAlign: 'center' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginBottom: 24, flexWrap: 'wrap' },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
   dotActive: { backgroundColor: colors.g2, width: 22 },
   dotDone: { backgroundColor: colors.g3 },
@@ -156,7 +232,6 @@ const styles = StyleSheet.create({
   stepCounter: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', marginBottom: 12 },
   question: { fontSize: 20, fontWeight: '700', color: colors.g1, textAlign: 'center', marginBottom: 32, lineHeight: 28 },
   options: { gap: 12 },
-  privacyNote: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 24 },
   optionCard: {
     backgroundColor: colors.card,
     borderRadius: radius.card,
@@ -165,18 +240,22 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   optionLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
+  privacyNote: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 24 },
+  mapTitle: { fontSize: 22, fontWeight: '800', color: colors.g1, textAlign: 'center', marginBottom: 20 },
   mapCard: {
     backgroundColor: colors.card,
     borderRadius: radius.card,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     ...shadow.card,
   },
-  mapRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  mapIcon: { fontSize: 20, marginRight: 12 },
-  mapLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
-  mapDot: { fontSize: 16 },
-  reflection: { fontSize: 14, color: colors.sub, textAlign: 'center', lineHeight: 21, marginBottom: 28 },
+  mapRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  mapRowHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  mapIcon: { fontSize: 18, marginRight: 8 },
+  mapLabel: { fontSize: 14, fontWeight: '700', color: colors.text },
+  mapDesc: { fontSize: 13, color: colors.sub, lineHeight: 19 },
+  mapStep: { fontSize: 12, color: colors.g2, fontWeight: '600', marginTop: 4 },
+  totalNote: { fontSize: 12, color: colors.muted, textAlign: 'center', marginBottom: 24 },
   continueButton: {
     backgroundColor: colors.g2,
     paddingVertical: 14,
