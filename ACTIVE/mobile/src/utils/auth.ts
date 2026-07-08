@@ -1,4 +1,5 @@
 import * as Linking from 'expo-linking'
+import { AppState } from 'react-native'
 import { api, setToken } from './api'
 
 const BOT_USERNAME = process.env.EXPO_PUBLIC_BOT_USERNAME || 'iqbaraka_bot'
@@ -24,20 +25,48 @@ export async function loginWithTelegram(options: LoginOptions = {}): Promise<boo
   onStatus?.('waiting_confirmation')
   const deadline = Date.now() + timeoutMs
 
-  while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
-    try {
-      const result = await api.tgCheck(session_id)
-      if (result.status === 'ok' && result.access_token) {
-        await setToken(result.access_token)
-        onStatus?.('success')
-        return true
-      }
-    } catch {
-      // transient network error while polling — keep trying until timeout
-    }
-  }
+  return new Promise<boolean>((resolve) => {
+    let settled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
 
-  onStatus?.('timeout')
-  return false
+    const finish = (result: boolean) => {
+      if (settled) return
+      settled = true
+      if (timer) clearTimeout(timer)
+      subscription.remove()
+      resolve(result)
+    }
+
+    const checkOnce = async () => {
+      if (settled) return
+      try {
+        const result = await api.tgCheck(session_id)
+        if (result.status === 'ok' && result.access_token) {
+          await setToken(result.access_token)
+          onStatus?.('success')
+          finish(true)
+          return
+        }
+      } catch {
+        // transient network error while polling — keep trying until timeout
+      }
+      if (settled) return
+      if (Date.now() >= deadline) {
+        onStatus?.('timeout')
+        finish(false)
+        return
+      }
+      timer = setTimeout(checkOnce, pollIntervalMs)
+    }
+
+    // The OS throttles setTimeout while the app is backgrounded (which is exactly
+    // when the user is over in Telegram confirming) — the timed poll can lag well
+    // behind the confirmation. Re-check immediately the moment the app regains
+    // focus instead of waiting for the next throttled tick.
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') checkOnce()
+    })
+
+    checkOnce()
+  })
 }
