@@ -336,6 +336,20 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
                 await send_weekly_lesson(call.bot, uid, participant, session, config)
             except Exception as e:
                 logger.warning("gift korablik lesson: %s", e)
+            # Если это партнёр — отправляем его реферальную ссылку для аудитории
+            partner_code = await _gift_repo.get(f"partner_pending:{uid}")
+            if partner_code:
+                await _gift_repo.set(f"partner_pending:{uid}", "")
+                try:
+                    await call.bot.send_message(
+                        uid,
+                        f"🤝 *Теперь — твоя ссылка для аудитории:*\n\n"
+                        f"`https://t.me/iqbaraka_bot?start=ref_{partner_code}`\n\n"
+                        f"Делись ею с подписчиками — получишь 10% Баракатами с каждой их оплаты автоматически.",
+                        parse_mode="Markdown",
+                    )
+                except Exception as e:
+                    logger.warning("partner ref link: %s", e)
             return
 
         # Сохраняем время завершения кораблика для скидки 24 часа

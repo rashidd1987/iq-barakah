@@ -323,36 +323,34 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
                 db_user.referred_by = leader_id
                 await session.flush()
 
+        # Генерируем реф. код заранее и сохраняем флаг — отправим ссылку после активации
+        from bot_v2.services.barakah import ensure_referral_code
+        ref_code = await ensure_referral_code(session, db_user)
         await _settings.set(f"gift_pending:{message.from_user.id}", "1")
+        await _settings.set(f"partner_pending:{message.from_user.id}", ref_code)
+        await session.flush()
 
         name_first = (db_user.name or "").split()[0] if db_user.name else ""
         greeting = f", {name_first}" if name_first else ""
 
         await message.answer(
+            t(lang, "menu.updated", version=config.version),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, None),
+            parse_mode=None,
+        )
+        await message.answer(
             f"🌿 Ас-саляму алейкум{greeting}!\n\n"
             f"Тебе открыт *IQ Barakah Старт* — 6 шагов тайм-менеджмента мусульманина.\n\n"
             f"Это не курс лекций. Это система, которая меняет день изнутри — через ният, фаджр и осознанность.\n\n"
             f"Прежде чем начать — пройди короткую диагностику.\n"
-            f"7 вопросов · 2 минуты · программа подстроится под твой уровень. 🌱",
+            f"7 вопросов · 2 минуты · определит твой уровень. 🌱",
             parse_mode="Markdown",
         )
         await message.answer(
             "👇 Нажми чтобы определить твой уровень:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🎯 Пройти диагностику", callback_data="start_diag")],
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
             ]),
-        )
-
-        # Отправляем лидеру его реферальную ссылку для аудитории
-        from bot_v2.services.barakah import ensure_referral_code
-        ref_code = await ensure_referral_code(session, db_user)
-        await session.flush()
-        await message.answer(
-            f"🤝 *Твоя реферальная ссылка для аудитории:*\n\n"
-            f"`https://t.me/iqbaraka_bot?start=ref_{ref_code}`\n\n"
-            f"Когда твои подписчики оплатят программу — ты получишь 10% Баракатами автоматически.\n"
-            f"Баракаты можно потратить на продление своей программы.",
-            parse_mode="Markdown",
         )
 
         # Уведомляем куратора
@@ -365,7 +363,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
                     f"🌟 *Лидер мнения активировал партнёрскую ссылку*\n\n"
                     f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
                     f"🔗 Источник: `{payload}`\n"
-                    f"🎯 Реф. ссылка выдана: `ref_{ref_code}`",
+                    f"🎯 Реф. код: `ref_{ref_code}`",
                     parse_mode="Markdown",
                     reply_markup=kb_curator_contact(message.from_user.id, _uname),
                 )

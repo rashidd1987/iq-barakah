@@ -165,6 +165,21 @@ async def _finish_diag(call: CallbackQuery, state: FSMContext, session: AsyncSes
         except Exception as e:
             import logging
             logging.getLogger(__name__).warning("gift diag lesson: %s", e)
+        # Если это партнёр — отправляем его реферальную ссылку для аудитории
+        partner_code = await _settings.get(f"partner_pending:{call.from_user.id}")
+        if partner_code:
+            await _settings.set(f"partner_pending:{call.from_user.id}", "")
+            try:
+                await call.bot.send_message(
+                    call.from_user.id,
+                    f"🤝 *Теперь — твоя ссылка для аудитории:*\n\n"
+                    f"`https://t.me/iqbaraka_bot?start=ref_{partner_code}`\n\n"
+                    f"Делись ею с подписчиками — получишь 10% Баракатами с каждой их оплаты автоматически.",
+                    parse_mode="Markdown",
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("partner ref link diag: %s", e)
 
 
 # Динамически регистрируем хендлеры для каждого вопроса
