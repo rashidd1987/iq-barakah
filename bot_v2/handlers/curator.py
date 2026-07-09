@@ -1353,3 +1353,54 @@ async def cmd_shipreport(message: Message, session: AsyncSession, config: Config
             f"⚠️ Диагностика для *{name}* не найдена — ссылка без результатов (откроется квиз):\n\n{url}",
             parse_mode="Markdown"
         )
+
+
+@router.message(Command("addpartner"))
+async def cmd_addpartner(message: Message, session: AsyncSession, config: Config):
+    """/addpartner <user_id> — выдать лидеру мнения бесплатный доступ и реферальную ссылку."""
+    if not is_curator(message.from_user.id, config):
+        return
+    args = message.text.split()[1:]
+    if not args:
+        await message.answer(
+            "Использование: `/addpartner <user_id>`\n\n"
+            "Лидер получит:\n"
+            "• Бесплатный доступ к IQ Barakah Старт\n"
+            "• Свою реферальную ссылку для аудитории (10% с каждой оплаты)",
+            parse_mode="Markdown",
+        )
+        return
+    try:
+        uid = int(args[0])
+    except ValueError:
+        await message.answer("❌ user_id должен быть числом.")
+        return
+
+    user = await UserRepo(session).get(uid)
+    if not user:
+        await message.answer(
+            f"❌ Пользователь `{uid}` не найден.\n\nПопроси лидера сначала написать боту /start",
+            parse_mode="Markdown",
+        )
+        return
+
+    # Генерируем/получаем referral_code лидера
+    from bot_v2.services.barakah import ensure_referral_code
+    ref_code = await ensure_referral_code(session, user)
+    await session.flush()
+
+    # Ссылка для самого лидера (бесплатный доступ к Старту)
+    partner_link = f"https://t.me/iqbaraka_bot?start=ol_{uid}"
+    # Ссылка для его аудитории (реферальная, 10% комиссия)
+    audience_link = f"https://t.me/iqbaraka_bot?start=ref_{ref_code}"
+
+    name = _md_escape(user.name or str(uid))
+    await message.answer(
+        f"✅ *Партнёр добавлен: {name}* (`{uid}`)\n\n"
+        f"*1. Ссылка для лидера* — отправь ему, чтобы получил бесплатный Старт:\n"
+        f"`{partner_link}`\n\n"
+        f"*2. Ссылка для аудитории* — лидер делится с подписчиками:\n"
+        f"`{audience_link}`\n\n"
+        f"Когда аудитория платит — лидер получает 10% Баракатами автоматически.",
+        parse_mode="Markdown",
+    )

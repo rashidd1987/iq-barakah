@@ -290,7 +290,7 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         return
 
     if payload.startswith("ol_"):
-        # Ссылка для лидеров мнения — многоразовая, со своим приветствием
+        # Ссылка для лидеров мнения — бесплатный доступ к Старту
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -298,12 +298,30 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
 
         existing = await ParticipantRepo(session).get(message.from_user.id)
         if existing and existing.is_active:
+            # Уже активирован — просто напомним реферальную ссылку
+            from bot_v2.services.barakah import ensure_referral_code
+            ref_code = await ensure_referral_code(session, db_user)
+            await session.flush()
             await message.answer(
                 "🌱 У тебя уже открыт доступ к программе.\n\nНажми *Мой путь* чтобы продолжить.",
                 parse_mode="Markdown",
                 reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
             )
+            await message.answer(
+                f"🤝 *Твоя реферальная ссылка для аудитории:*\n\n"
+                f"`https://t.me/iqbaraka_bot?start=ref_{ref_code}`\n\n"
+                f"Делись ею — получишь 10% Баракатами с каждой оплаты твоих подписчиков.",
+                parse_mode="Markdown",
+            )
             return
+
+        # Привязываем referred_by если в payload указан user_id лидера (ol_<uid>)
+        ol_suffix = payload[3:]
+        if ol_suffix.isdigit() and not db_user.referred_by:
+            leader_id = int(ol_suffix)
+            if leader_id != message.from_user.id:
+                db_user.referred_by = leader_id
+                await session.flush()
 
         await _settings.set(f"gift_pending:{message.from_user.id}", "1")
 
@@ -312,10 +330,10 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
 
         await message.answer(
             f"🌿 Ас-саляму алейкум{greeting}!\n\n"
-            f"Рашид открыл тебе *IQ Barakah Старт* — 6 недель тайм-менеджмента мусульманина.\n\n"
+            f"Тебе открыт *IQ Barakah Старт* — 6 шагов тайм-менеджмента мусульманина.\n\n"
             f"Это не курс лекций. Это система, которая меняет день изнутри — через ният, фаджр и осознанность.\n\n"
             f"Прежде чем начать — пройди короткую диагностику.\n"
-            f"8 вопросов · 2 минуты · программа подстроится под твой уровень. 🌱",
+            f"7 вопросов · 2 минуты · программа подстроится под твой уровень. 🌱",
             parse_mode="Markdown",
         )
         await message.answer(
@@ -325,6 +343,18 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             ]),
         )
 
+        # Отправляем лидеру его реферальную ссылку для аудитории
+        from bot_v2.services.barakah import ensure_referral_code
+        ref_code = await ensure_referral_code(session, db_user)
+        await session.flush()
+        await message.answer(
+            f"🤝 *Твоя реферальная ссылка для аудитории:*\n\n"
+            f"`https://t.me/iqbaraka_bot?start=ref_{ref_code}`\n\n"
+            f"Когда твои подписчики оплатят программу — ты получишь 10% Баракатами автоматически.\n"
+            f"Баракаты можно потратить на продление своей программы.",
+            parse_mode="Markdown",
+        )
+
         # Уведомляем куратора
         from bot_v2.keyboards.inline import kb_curator_contact
         _uname = db_user.username if db_user and db_user.username else None
@@ -332,9 +362,10 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             try:
                 await message.bot.send_message(
                     curator_id,
-                    f"🌟 *Лидер мнения активировал ссылку*\n\n"
+                    f"🌟 *Лидер мнения активировал партнёрскую ссылку*\n\n"
                     f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
-                    f"🔗 Источник: `{payload}`",
+                    f"🔗 Источник: `{payload}`\n"
+                    f"🎯 Реф. ссылка выдана: `ref_{ref_code}`",
                     parse_mode="Markdown",
                     reply_markup=kb_curator_contact(message.from_user.id, _uname),
                 )
