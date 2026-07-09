@@ -1011,6 +1011,40 @@ async def cb_week_lesson(call: CallbackQuery, session: AsyncSession, config: Con
         await call.message.answer("Не удалось загрузить урок. Попробуй позже.")
 
 
+@router.message(Command("partner"))
+async def cmd_partner(message: Message, session: AsyncSession, config: Config):
+    """/partner — показать реферальную ссылку для аудитории."""
+    from bot_v2.services.barakah import ensure_referral_code
+    from bot_v2.db.repositories import SettingsRepo
+    user = await UserRepo(session).get(message.from_user.id)
+    if not user:
+        await message.answer("Сначала напиши /start")
+        return
+    ref_code = await ensure_referral_code(session, user)
+    await session.flush()
+
+    ref_link = f"https://t.me/iqbaraka_bot?start=ref_{ref_code}"
+    balance = user.barakah_balance or 0
+
+    from bot_v2.db.models import User as _User
+    from sqlalchemy import select as _sel, func as _func
+    referrals_count = await session.scalar(
+        _sel(_func.count()).where(_User.referred_by == user.id)
+    )
+
+    await message.answer(
+        f"🤝 *Твоя партнёрская ссылка*\n\n"
+        f"`{ref_link}`\n\n"
+        f"Поделись с аудиторией — когда они оплатят программу, "
+        f"ты получишь *10% Баракатами* автоматически.\n\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"👥 Привлечено: *{referrals_count or 0}* чел.\n"
+        f"💰 Баланс Баракатов: *{balance}*\n\n"
+        f"_Баракатами можно оплатить следующий месяц программы._",
+        parse_mode="Markdown",
+    )
+
+
 @router.message(Command("resetme"))
 async def cmd_resetme(message: Message, session: AsyncSession, state: FSMContext, config: Config):
     """Полный сброс профиля для тестирования — только кураторам."""

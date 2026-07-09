@@ -219,6 +219,7 @@ async def _setup_commands(bot: Bot, config) -> None:
     user_commands = [
         BotCommand(command="start",    description="🚀 Запустить / перезапустить бота"),
         BotCommand(command="progress", description="📊 Мой прогресс"),
+        BotCommand(command="partner",  description="🤝 Моя реферальная ссылка — делись и получай 10%"),
         BotCommand(command="myid",     description="🪪 Мой Telegram ID"),
     ]
 
