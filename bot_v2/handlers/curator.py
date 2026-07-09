@@ -1362,11 +1362,15 @@ async def cmd_addpartner(message: Message, session: AsyncSession, config: Config
         return
     args = message.text.split()[1:]
     if not args:
+        # Без user_id — даём универсальную ссылку для отправки лидеру
+        curator_id = message.from_user.id
+        universal_link = f"https://t.me/iqbaraka_bot?start=ol_{curator_id}"
         await message.answer(
-            "Использование: `/addpartner <user_id>`\n\n"
-            "Лидер получит:\n"
-            "• Бесплатный доступ к IQ Barakah Старт\n"
-            "• Свою реферальную ссылку для аудитории (10% с каждой оплаты)",
+            f"🤝 *Ссылка для лидера мнения:*\n\n"
+            f"`{universal_link}`\n\n"
+            f"Скопируй и отправь лидеру — он получит бесплатный Старт "
+            f"и свою реферальную ссылку для аудитории.\n\n"
+            f"_Чтобы отслеживать конкретного лидера: `/addpartner <user_id>`_",
             parse_mode="Markdown",
         )
         return
