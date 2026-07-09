@@ -1362,16 +1362,28 @@ async def cmd_addpartner(message: Message, session: AsyncSession, config: Config
         return
     args = message.text.split()[1:]
     if not args:
-        # Без user_id — даём универсальную ссылку для отправки лидеру
         curator_id = message.from_user.id
         universal_link = f"https://t.me/iqbaraka_bot?start=ol_{curator_id}"
+        # Сообщение 1 — красивый текст со ссылкой, готово к пересылке лидеру
         await message.answer(
-            f"🤝 *Ссылка для лидера мнения:*\n\n"
-            f"`{universal_link}`\n\n"
-            f"Скопируй и отправь лидеру — он получит бесплатный Старт "
-            f"и свою реферальную ссылку для аудитории.\n\n"
-            f"_Чтобы отслеживать конкретного лидера: `/addpartner <user_id>`_",
-            parse_mode="Markdown",
+            f"📋 *Скопируй и отправь лидеру:*\n\n"
+            f"🌿 Ас\\-саляму алейкум\\!\n\n"
+            f"Рашид лично открыл тебе кое\\-что важное\\.\n\n"
+            f"IQ Barakah Старт — 6 шагов, которые меняют не расписание, а отношение ко времени\\. Без воды — только система\\.\n\n"
+            f"Ты здесь не случайно\\.\n\n"
+            f"Прежде чем открыть первый шаг — пройди диагностику\\.\n"
+            f"7 вопросов · 2 минуты · программа подстроится под твой уровень\\. 🌱\n\n"
+            f"{universal_link}",
+            parse_mode="MarkdownV2",
+        )
+        # Сообщение 2 — что лидер получит после прохождения
+        await message.answer(
+            f"📋 *После прохождения — бот автоматически отправит лидеру:*\n\n"
+            f"🤝 Теперь — твоя ссылка для аудитории:\n\n"
+            f"`https://t.me/iqbaraka_bot?start=ref_XXXXX`\n\n"
+            f"Делись ею с подписчиками — получишь 10% Баракатами с каждой их оплаты автоматически\\.\n\n"
+            f"_Чтобы привязать конкретного лидера: `/addpartner <user\\_id>`_",
+            parse_mode="MarkdownV2",
         )
         return
     try:
