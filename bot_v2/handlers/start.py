@@ -427,6 +427,36 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
         )
         return
 
+    # Прямая ссылка на тариф: t.me/bot?start=tariff_s1_month
+    if payload.startswith("tariff_"):
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        from bot_v2.services.program import get_tariff, get_tariff_view
+        tariff_id = payload[len("tariff_"):]
+        tariff = get_tariff(tariff_id)
+        if tariff:
+            tariff_view = get_tariff_view(tariff_id, lang) or tariff
+            await message.answer(
+                t(lang, "menu.updated", version=config.version),
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+                parse_mode=None,
+            )
+            price_str = f"{tariff['price']:,}".replace(",", " ")
+            await message.answer(
+                f"*{tariff_view['name']}*\n_{tariff_view['desc']}_\n\n💰 {price_str} ₽",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💳 Оплатить", callback_data=f"pay:{tariff_id}")],
+                    [InlineKeyboardButton(text="📋 Все тарифы", callback_data="show_tariffs")],
+                ]),
+            )
+        else:
+            await message.answer(
+                t(lang, "menu.updated", version=config.version),
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, participant),
+                parse_mode=None,
+            )
+        return
+
     if payload == "forum2026":
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
