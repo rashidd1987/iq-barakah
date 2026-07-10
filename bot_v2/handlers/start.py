@@ -455,6 +455,63 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
             )
         return
 
+    if payload == "forum_return":
+        # Для участников форума которых возвращаем — тёплое приветствие, не маркетинг
+        from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+        _settings = SettingsRepo(session)
+        existing = await ParticipantRepo(session).get(message.from_user.id)
+        if existing and existing.is_active:
+            await message.answer(
+                "🌱 У тебя уже открыт доступ к программе.\n\nНажми *Мой путь* чтобы продолжить.",
+                parse_mode="Markdown",
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            return
+
+        await _settings.set(f"gift_pending:{message.from_user.id}", "1")
+        if not db_user.utm_source:
+            db_user.utm_source = "forum_return"
+        db_user.last_utm_source = "forum_return"
+        await session.flush()
+
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting = f", {name_first}" if name_first else ""
+
+        await message.answer(
+            t(lang, "menu.updated", version=config.version),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, None),
+            parse_mode=None,
+        )
+        await message.answer(
+            f"Ас-саляму алейкум{greeting}! 🤝\n\n"
+            f"Рад снова видеть тебя.\n\n"
+            f"После форума я продолжаю дорабатывать IQ Barakah. "
+            f"Буду очень благодарен, если пройдёшь первые шаги и честно поделишься мнением — "
+            f"обратная связь от участников первого форума сейчас помогает сделать программу лучше.\n\n"
+            f"Прежде чем открыть первый шаг — пройди короткую диагностику.\n"
+            f"7 вопросов · 2 минуты · определит твой уровень. 🌱",
+            parse_mode="Markdown",
+        )
+        await message.answer(
+            "👇 Нажми чтобы начать:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+            ]),
+        )
+        for curator_id in config.curator_ids:
+            try:
+                await message.bot.send_message(
+                    curator_id,
+                    f"🔄 *Участник форума вернулся через forum\\_return*\n\n"
+                    f"👤 {db_user.name or '—'} (`{message.from_user.id}`)",
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                pass
+        return
+
     if payload == "forum2026":
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
         from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
