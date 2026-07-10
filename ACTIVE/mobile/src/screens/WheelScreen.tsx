@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
+import ScreenHeader from '../components/ScreenHeader'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 
@@ -81,8 +82,8 @@ export default function WheelScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Колесо баланса</Text>
-      <Text style={styles.subtitle}>Оцените каждую сферу от 1 до 10</Text>
+      <ScreenHeader badge="Баланс" title="Колесо жизни" subtitle="Оцените каждую сферу от 1 до 10" />
+      <View style={styles.body}>
       {lastSaved && (
         <Text style={styles.lastSaved}>Последняя оценка: {new Date(lastSaved).toLocaleDateString('ru-RU')}</Text>
       )}
@@ -114,6 +115,7 @@ export default function WheelScreen() {
       <Pressable style={styles.saveButton} onPress={save} disabled={saving}>
         {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>💾 Сохранить оценку</Text>}
       </Pressable>
+      </View>
     </ScrollView>
   )
 }
@@ -121,10 +123,9 @@ export default function WheelScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 32 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.g1, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: colors.sub, marginBottom: 4 },
-  lastSaved: { fontSize: 12, color: colors.muted, marginBottom: 16 },
+  content: { paddingBottom: 32 },
+  body: { padding: 16, marginTop: -16 },
+  lastSaved: { fontSize: 12, color: colors.muted, marginBottom: 16, marginTop: 12 },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.card,

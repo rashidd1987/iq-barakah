@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
+import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
 import { HomeStackParamList } from '../navigation/types'
 import { LEVEL_LABELS, LEVEL_ICONS, TOTAL_STEPS, globalWeekIndex } from '../data/weeks'
@@ -135,11 +136,13 @@ export default function HomeScreen({ navigation }: Props) {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
     >
-      <Text style={styles.greeting}>{greeting(now.getHours())} 👋</Text>
-      <Text style={styles.ritualCountdown}>
-        До {ritual.label}: <Text style={styles.ritualCountdownStrong}>{formatCountdown(ritual.minutesUntil)}</Text>
-      </Text>
+      <ScreenHeader
+        badge="Главная"
+        title={`${greeting(now.getHours())} 👋`}
+        subtitle={`До ${ritual.label}: ${formatCountdown(ritual.minutesUntil)}`}
+      />
 
+      <View style={styles.body}>
       <View style={styles.streakHero}>
         <Text style={styles.streakFlame}>🔥</Text>
         <Text style={styles.streakNumber}>{stats.streak}</Text>
@@ -184,6 +187,7 @@ export default function HomeScreen({ navigation }: Props) {
           </Pressable>
         ))}
       </View>
+      </View>
     </ScrollView>
   )
 }
@@ -207,16 +211,15 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 32 },
-  greeting: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 2 },
-  ritualCountdown: { fontSize: 13, color: colors.sub, marginBottom: 16 },
-  ritualCountdownStrong: { fontWeight: '700', color: colors.g2 },
+  content: { paddingBottom: 32 },
+  body: { padding: 16, marginTop: -16 },
   streakHero: {
     alignItems: 'center',
     backgroundColor: colors.g1,
     borderRadius: radius.card,
     paddingVertical: 28,
     marginBottom: 16,
+    ...shadow.card,
   },
   streakFlame: { fontSize: 40 },
   streakNumber: { fontSize: 48, fontWeight: '800', color: colors.gold, marginTop: -4 },

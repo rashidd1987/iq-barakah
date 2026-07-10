@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
+import ScreenHeader from '../components/ScreenHeader'
 import { DAILY, NAMAZ, ONETIME, WEEKLY } from '../data/habits'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
@@ -104,6 +105,8 @@ export default function TrackerScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScreenHeader badge="Трекер" title="Сегодня" subtitle="Отмечайте выполненное" />
+      <View style={styles.body}>
       <View style={styles.weekStrip}>
         {weekDates.map((d) => {
           const key = toDateKey(d)
@@ -154,6 +157,7 @@ export default function TrackerScreen() {
       <Section title="📅 На неделю" bucket="weekly" items={WEEKLY} habits={habits} onToggle={toggle} />
       <Section title="🔖 Один раз" bucket="onetime" items={ONETIME} habits={habits} onToggle={toggle} />
       {saving && <Text style={styles.savingHint}>Сохранение…</Text>}
+      </View>
     </ScrollView>
   )
 }
@@ -194,7 +198,8 @@ function Section({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 32 },
+  content: { paddingBottom: 32 },
+  body: { padding: 16, marginTop: -16 },
   weekStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',

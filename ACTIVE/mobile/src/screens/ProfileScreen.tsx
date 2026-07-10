@@ -1,6 +1,7 @@
 import * as Application from 'expo-application'
 import React, { useEffect, useState } from 'react'
-import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
@@ -57,7 +58,9 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScreenHeader badge="Профиль" title="Твой путь" />
+      <View style={styles.body}>
       <View style={[styles.card, styles.infoCard]}>
         <Text style={styles.infoLabel}>Уровень</Text>
         <Text style={styles.infoValue}>{level ?? '—'}</Text>
@@ -79,12 +82,15 @@ export default function ProfileScreen() {
       </Pressable>
 
       <Text style={styles.buildTag}>build {Application.nativeBuildVersion ?? '?'}</Text>
-    </View>
+      </View>
+    </ScrollView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg, padding: 16 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingBottom: 32 },
+  body: { padding: 16, marginTop: -16 },
   card: { backgroundColor: colors.card, borderRadius: radius.card, ...shadow.card },
   infoCard: { padding: 16, marginBottom: 12 },
   infoLabel: { fontSize: 12, color: colors.sub, marginTop: 8 },

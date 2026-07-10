@@ -32,7 +32,7 @@ const TAB_ICONS: Record<keyof RootTabParamList, string> = {
 function LessonsNavigator() {
   return (
     <LessonsStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
-      <LessonsStack.Screen name="LessonsList" component={LessonsScreen} options={{ title: 'Уроки' }} />
+      <LessonsStack.Screen name="LessonsList" component={LessonsScreen} options={{ headerShown: false }} />
       <LessonsStack.Screen
         name="LessonDetail"
         component={LessonDetailScreen}
@@ -45,7 +45,7 @@ function LessonsNavigator() {
 function HomeNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
-      <HomeStack.Screen name="HomeMain" component={HomeScreen} options={{ title: 'Главная' }} />
+      <HomeStack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
       <HomeStack.Screen name="Muhasaba" component={MuhasabaScreen} options={{ title: 'Вечерний самоотчёт' }} />
     </HomeStack.Navigator>
   )
@@ -63,9 +63,9 @@ function Tabs() {
     >
       <Tab.Screen name="Home" component={HomeNavigator} options={{ title: 'Главная', headerShown: false }} />
       <Tab.Screen name="Lessons" component={LessonsNavigator} options={{ title: 'Уроки', headerShown: false }} />
-      <Tab.Screen name="Tracker" component={TrackerScreen} options={{ title: 'Трекер' }} />
-      <Tab.Screen name="Wheel" component={WheelScreen} options={{ title: 'Баланс' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Профиль' }} />
+      <Tab.Screen name="Tracker" component={TrackerScreen} options={{ title: 'Трекер', headerShown: false }} />
+      <Tab.Screen name="Wheel" component={WheelScreen} options={{ title: 'Баланс', headerShown: false }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Профиль', headerShown: false }} />
     </Tab.Navigator>
   )
 }
