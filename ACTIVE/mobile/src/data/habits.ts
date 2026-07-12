@@ -32,5 +32,5 @@ export const WEEKLY: HabitDef[] = [
 
 export const ONETIME: HabitDef[] = [
   { id: 'letter', icon: '✉️', label: 'Письмо себе', sub: 'День нулевой — прочтёшь в конце' },
-  { id: 'anchor', icon: '👥', label: 'Якорный брат', sub: 'При входе — брат с похожим уровнем' },
+  { id: 'anchor', icon: '👥', label: 'Брат/сестра по пути', sub: 'При входе — брат с похожим уровнем' },
 ]

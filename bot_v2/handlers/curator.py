@@ -210,7 +210,7 @@ async def cmd_activate(message: Message, session: AsyncSession, config: Config):
     # Автопарринг
     pair_repo = PairRepo(session)
     partner_id = await _auto_pair(target_id, pair_repo, p_repo)
-    pair_status = "🤝 Якорный партнёр назначен" if partner_id else "⏳ Ждёт пары"
+    pair_status = "🤝 Партнёр по пути назначен" if partner_id else "⏳ Ждёт пары"
 
     await message.answer(
         f"✅ *Активировано*\n\n"
