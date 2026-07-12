@@ -50,7 +50,7 @@ export default function LessonsScreen({ navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScreenHeader badge="Программа" title="Карта пути" subtitle="ВАКТ 6 шагов + IQ Barakah 24 шага · 3 сезона">
+      <ScreenHeader badge="Программа" title="Карта пути" subtitle="Старт IQ Barakah 6 шагов + Путь IQ Barakah 24 шагов">
         <View style={styles.hdrProgressTrack}>
           <View style={[styles.hdrProgressFill, { width: `${progressPct}%` }]} />
         </View>
