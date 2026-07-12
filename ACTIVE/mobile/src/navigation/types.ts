@@ -1,6 +1,6 @@
 export type LessonsStackParamList = {
   LessonsList: undefined
-  LessonDetail: { level: string; week: number; globalWeek: number }
+  LessonDetail: { level: string; week: number; globalWeek: number; autoStartQuiz?: boolean }
 }
 
 export type HomeStackParamList = {

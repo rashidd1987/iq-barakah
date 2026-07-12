@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import ScreenHeader from '../components/ScreenHeader'
 import { DAILY, NAMAZ, ONETIME, WEEKLY } from '../data/habits'
+import { globalWeekIndex } from '../data/weeks'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 
@@ -37,11 +38,13 @@ function currentWeekDates(): Date[] {
 }
 
 export default function TrackerScreen() {
+  const navigation = useNavigation<any>()
   const weekDates = currentWeekDates()
   const todayKey = toDateKey(new Date())
   const [selectedDate, setSelectedDate] = useState(todayKey)
   const [habits, setHabits] = useState<Habits>(EMPTY_HABITS)
   const [stepTasks, setStepTasks] = useState<string[]>([])
+  const [step, setStep] = useState<{ level: string; week: number; globalWeek: number } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -57,6 +60,11 @@ export default function TrackerScreen() {
       const skill = (participant.vakt_level as 'I' | 'II' | 'III') || 'I'
       const content = await api.content(participant.level, participant.week)
       setStepTasks(content.tasks[skill] ?? [])
+      setStep({
+        level: participant.level,
+        week: participant.week,
+        globalWeek: globalWeekIndex(participant.level, participant.week),
+      })
     } catch {
       setError(true)
     } finally {
@@ -149,6 +157,31 @@ export default function TrackerScreen() {
               </Pressable>
             )
           })}
+
+          {stepTasks.every((_, i) => !!habits.tasks[String(i)]) && (
+            <View style={styles.celebrationCard}>
+              <View style={styles.celebrationRow}>
+                <Text style={styles.celebrationIcon}>🎉</Text>
+                <View style={styles.celebrationText}>
+                  <Text style={styles.celebrationTitle}>Все задания выполнены! Альхамдулиллях</Text>
+                  <Text style={styles.celebrationSub}>Ты молодец — продолжай в том же духе 💚</Text>
+                </View>
+              </View>
+              {step && (
+                <Pressable
+                  style={styles.testButton}
+                  onPress={() =>
+                    navigation.navigate('Lessons', {
+                      screen: 'LessonDetail',
+                      params: { level: step.level, week: step.week, globalWeek: step.globalWeek, autoStartQuiz: true },
+                    })
+                  }
+                >
+                  <Text style={styles.testButtonText}>🎯 Пройти тест шага</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
       )}
 
@@ -246,4 +279,23 @@ const styles = StyleSheet.create({
   checkDone: { backgroundColor: colors.g2, borderColor: colors.g2 },
   checkMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   savingHint: { textAlign: 'center', color: colors.muted, fontSize: 12 },
+  celebrationCard: {
+    backgroundColor: colors.g2,
+    borderRadius: radius.card,
+    padding: 16,
+    marginTop: 4,
+  },
+  celebrationRow: { flexDirection: 'row', alignItems: 'center' },
+  celebrationIcon: { fontSize: 26, marginRight: 12 },
+  celebrationText: { flex: 1 },
+  celebrationTitle: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  celebrationSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
+  testButton: {
+    backgroundColor: colors.gold,
+    borderRadius: radius.button,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  testButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 })

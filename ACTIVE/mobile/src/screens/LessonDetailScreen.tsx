@@ -44,6 +44,17 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
     load()
   }, [load])
 
+  const [autoStartDone, setAutoStartDone] = useState(false)
+  useEffect(() => {
+    // Coming from the Tracker's "all tasks done" celebration — skip straight to the
+    // quiz instead of making the student find the button again on the lesson page.
+    if (route.params.autoStartQuiz && !autoStartDone && !loading && !error && skill && content) {
+      setAutoStartDone(true)
+      startQuiz()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.params.autoStartQuiz, autoStartDone, loading, error, skill, content])
+
   const finishStep = useCallback(async () => {
     setFinishing(true)
     try {
