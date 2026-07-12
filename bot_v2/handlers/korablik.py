@@ -181,6 +181,17 @@ def _get_level(total: int) -> str:
         return "баракат"
 
 
+# Стартовый уровень программы (А/Б/В/Г) по результату диагностики Кораблика —
+# используется при бесплатной автоактивации (форум/подарок), чтобы результат
+# диагностики реально влиял на то, откуда человек начинает, а не был только
+# текстом в сообщении.
+_LEVEL_TO_PROGRAM_LEVEL = {
+    "пробуждение": "А",
+    "практика": "Б",
+    "баракат": "В",
+}
+
+
 def _build_result(scores: list) -> tuple:
     total = sum(scores)
     level = _get_level(total)
@@ -297,7 +308,8 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
             p_repo = _PR(session)
             participant = await p_repo.get(uid)
             if not participant or not participant.is_active:
-                participant = await p_repo.activate(uid, level="А", week=1)
+                start_level = _LEVEL_TO_PROGRAM_LEVEL.get(level, "А")
+                participant = await p_repo.activate(uid, level=start_level, week=1)
                 await session.flush()
             await asyncio.sleep(1.5)
             await call.bot.send_message(
@@ -323,7 +335,8 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
             p_repo2 = _PR2(session)
             participant = await p_repo2.get(uid)
             if not participant or not participant.is_active:
-                participant = await p_repo2.activate(uid, level="А", week=1)
+                start_level = _LEVEL_TO_PROGRAM_LEVEL.get(level, "А")
+                participant = await p_repo2.activate(uid, level=start_level, week=1)
                 await session.flush()
             await asyncio.sleep(1.5)
             await call.bot.send_message(
