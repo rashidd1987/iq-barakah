@@ -6,6 +6,7 @@ export type LessonsStackParamList = {
 export type HomeStackParamList = {
   HomeMain: undefined
   Muhasaba: undefined
+  ActivityFeed: undefined
 }
 
 export type RootTabParamList = {

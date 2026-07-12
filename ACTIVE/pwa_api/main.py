@@ -534,6 +534,36 @@ async def mobile_cohort_count(tg_id: int = Depends(verify_mobile_token)):
         )
     return {'count': row['cnt']}
 
+LEVEL_OFFSET = {'А': 0, 'Б': 6, 'В': 14, 'Г': 22}
+
+@app.get('/mobile/activity-feed')
+async def mobile_activity_feed(limit: int = 20, tg_id: int = Depends(verify_mobile_token)):
+    """Read-only лента побед — «Ахмад прошёл Шаг 12» — из week_acks, той же таблицы,
+    что и весь остальной прогресс. Не чат, только видимость чужих завершённых шагов
+    для социального эффекта. Имя показываем только по первому слову — приватность."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    limit = max(1, min(limit, 50))
+    async with db_pool.acquire() as conn:
+        rows = await conn.fetch(
+            '''SELECT wa.user_id, wa.level, wa.week, wa.acked_at, u.name
+               FROM week_acks wa
+               JOIN users u ON u.id = wa.user_id
+               ORDER BY wa.acked_at DESC
+               LIMIT $1''',
+            limit,
+        )
+    return [
+        {
+            'first_name': (r['name'] or 'Участник').split()[0],
+            'level': r['level'],
+            'global_week': LEVEL_OFFSET.get(r['level'], 0) + r['week'],
+            'acked_at': r['acked_at'].isoformat(),
+            'is_me': r['user_id'] == tg_id,
+        }
+        for r in rows
+    ]
+
 @app.get('/mobile/content/{level}/{week}')
 async def mobile_content(level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
     lesson = _load_lesson_content(level, week)

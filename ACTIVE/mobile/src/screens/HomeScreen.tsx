@@ -20,6 +20,7 @@ const SHIP_URL = 'https://rashidd1987.github.io/iq-barakah/ship_barakat_business
 const QUICK_LINKS = [
   { id: 'tracker', icon: '📋', title: 'Трекер дня', sub: 'Намаз, поминание, самоотчёт' },
   { id: 'lessons', icon: '📚', title: 'Текущий урок', sub: 'Открыть карту уроков' },
+  { id: 'feed', icon: '🎉', title: 'Лента побед', sub: 'Кто из джамаата что прошёл' },
   { id: 'wheel', icon: '🎯', title: 'Колесо баланса', sub: '8 сфер жизни' },
   { id: 'muhasaba', icon: '✍️', title: 'Вечерний самоотчёт', sub: 'Мухасаба — три вопроса · 2 минуты' },
   { id: 'diag', icon: '🎯', title: 'Диагностика уровня', sub: 'Пройти заново' },
@@ -107,6 +108,9 @@ export default function HomeScreen({ navigation }: Props) {
         break
       case 'lessons':
         navigation.getParent()?.navigate('Lessons')
+        break
+      case 'feed':
+        navigation.navigate('ActivityFeed')
         break
       case 'wheel':
         navigation.getParent()?.navigate('Wheel')

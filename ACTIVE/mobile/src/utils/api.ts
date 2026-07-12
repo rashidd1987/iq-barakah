@@ -83,6 +83,17 @@ export const api = {
 
   saveMuhasaba: (answers: { q: string; a: string }[]) => api.post('/mobile/muhasaba', { answers }),
   muhasabaStreak: () => api.get<{ streak: number; done_today: boolean }>('/mobile/muhasaba/streak'),
+
+  activityFeed: (limit = 20) =>
+    api.get<ActivityItem[]>(`/mobile/activity-feed?limit=${limit}`),
+}
+
+export interface ActivityItem {
+  first_name: string
+  level: string
+  global_week: number
+  acked_at: string
+  is_me: boolean
 }
 
 export interface QuizQuestion {

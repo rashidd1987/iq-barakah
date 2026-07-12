@@ -5,6 +5,7 @@ import React from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { colors } from '../theme/colors'
+import ActivityFeedScreen from '../screens/ActivityFeedScreen'
 import DiagnosticScreen from '../screens/DiagnosticScreen'
 import HomeScreen from '../screens/HomeScreen'
 import LessonDetailScreen from '../screens/LessonDetailScreen'
@@ -47,6 +48,7 @@ function HomeNavigator() {
     <HomeStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
       <HomeStack.Screen name="Muhasaba" component={MuhasabaScreen} options={{ title: 'Вечерний самоотчёт' }} />
+      <HomeStack.Screen name="ActivityFeed" component={ActivityFeedScreen} options={{ headerShown: false }} />
     </HomeStack.Navigator>
   )
 }
