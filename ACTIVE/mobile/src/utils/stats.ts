@@ -13,9 +13,14 @@ function hasAnyHabit(record: TrackerRecord | undefined): boolean {
   return namazDone || dailyDone
 }
 
+// Streak-shield: one missed day per 7 consecutive days doesn't break the streak
+// (same idea as Duolingo's streak freeze) — a single human slip shouldn't wipe out
+// weeks of consistency, but skipping still can't go on forever.
 export function computeStreak(records: TrackerRecord[]): number {
   const byDate = new Map(records.map((r) => [r.date, r]))
   let streak = 0
+  let shieldsAvailable = 1
+  let daysSinceShieldReset = 0
   const today = new Date()
 
   for (let i = 0; i < 365; i++) {
@@ -25,8 +30,17 @@ export function computeStreak(records: TrackerRecord[]): number {
     const record = byDate.get(key)
     if (hasAnyHabit(record)) {
       streak++
+      daysSinceShieldReset++
+      if (daysSinceShieldReset >= 7) {
+        shieldsAvailable = 1
+        daysSinceShieldReset = 0
+      }
+    } else if (i === 0) {
+      continue // today may not have data yet — don't break the streak on it
+    } else if (shieldsAvailable > 0) {
+      shieldsAvailable--
+      daysSinceShieldReset = 0
     } else {
-      if (i === 0) continue // today may not have data yet — don't break the streak on it
       break
     }
   }

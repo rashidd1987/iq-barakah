@@ -34,6 +34,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
   const [streak, setStreak] = useState<number | null>(null)
+  const [reflection, setReflection] = useState<string | null>(null)
   const [checkingToday, setCheckingToday] = useState(true)
   const [alreadyDoneToday, setAlreadyDoneToday] = useState(false)
 
@@ -63,7 +64,8 @@ export default function MuhasabaScreen({ navigation }: Props) {
     }
     setSaving(true)
     try {
-      await api.saveMuhasaba(QUESTIONS.map((q, i) => ({ q: q.q, a: answers[i] })))
+      const saveRes = await api.saveMuhasaba(QUESTIONS.map((q, i) => ({ q: q.q, a: answers[i] })))
+      setReflection(saveRes.reflection)
       const res = await api.muhasabaStreak()
       setStreak(res.streak)
       setDone(true)
@@ -97,17 +99,24 @@ export default function MuhasabaScreen({ navigation }: Props) {
 
   if (done) {
     return (
-      <View style={styles.center}>
+      <ScrollView contentContainerStyle={styles.doneContent}>
         <Text style={styles.doneIcon}>🌿</Text>
         <Text style={styles.doneTitle}>Баракаллаху фик</Text>
-        <Text style={styles.doneText}>Ты завершил день честно. Вечерний самоотчёт записан.</Text>
+        {reflection ? (
+          <View style={styles.jarwasCard}>
+            <Text style={styles.jarwasLabel}>🌱 Джарвас</Text>
+            <Text style={styles.jarwasText}>{reflection}</Text>
+          </View>
+        ) : (
+          <Text style={styles.doneText}>Ты завершил день честно. Вечерний самоотчёт записан.</Text>
+        )}
         {streak !== null && streak > 1 && (
           <Text style={styles.streakText}>🔥 {streak} {streak === 1 ? 'день' : 'дней'} подряд</Text>
         )}
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Спокойной ночи 🌙</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     )
   }
 
@@ -168,6 +177,16 @@ const styles = StyleSheet.create({
   doneTitle: { fontSize: 22, fontWeight: '700', color: colors.g1, marginBottom: 8, textAlign: 'center' },
   doneText: { fontSize: 14, color: colors.sub, textAlign: 'center', marginBottom: 16, lineHeight: 20 },
   streakText: { fontSize: 15, fontWeight: '700', color: colors.gold, marginBottom: 24 },
+  doneContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 24 },
+  jarwasCard: {
+    backgroundColor: colors.gpale,
+    borderRadius: radius.card,
+    padding: 16,
+    marginBottom: 16,
+    width: '100%',
+  },
+  jarwasLabel: { fontSize: 12, fontWeight: '700', color: colors.g2, marginBottom: 6 },
+  jarwasText: { fontSize: 14, color: colors.text, lineHeight: 21 },
   backButton: {
     backgroundColor: colors.g2,
     paddingVertical: 12,

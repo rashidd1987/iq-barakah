@@ -81,7 +81,8 @@ export const api = {
   getWheel: () => api.get<{ scores: Record<string, number> | null; created_at: string | null }>('/mobile/wheel'),
   saveWheel: (scores: Record<string, number>) => api.post('/mobile/wheel', { scores }),
 
-  saveMuhasaba: (answers: { q: string; a: string }[]) => api.post('/mobile/muhasaba', { answers }),
+  saveMuhasaba: (answers: { q: string; a: string }[]) =>
+    api.post<{ ok: boolean; reflection: string }>('/mobile/muhasaba', { answers }),
   muhasabaStreak: () => api.get<{ streak: number; done_today: boolean }>('/mobile/muhasaba/streak'),
 
   activityFeed: (limit = 20) =>

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
+import { globalWeekIndex } from '../data/weeks'
 import { colors, radius, shadow } from '../theme/colors'
 import { api } from '../utils/api'
 import { registerForPushNotifications } from '../utils/push'
@@ -10,12 +11,21 @@ import { lsGet, lsSet } from '../utils/storage'
 
 const PUSH_ENABLED_KEY = 'push_enabled'
 
+interface Achievement {
+  icon: string
+  label: string
+  unlocked: boolean
+}
+
 export default function ProfileScreen() {
   const { logout, resetOnboarding } = useAuth()
   const [level, setLevel] = useState<string | null>(null)
   const [week, setWeek] = useState<number | null>(null)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [togglingPush, setTogglingPush] = useState(false)
+  const [muhasabaStreak, setMuhasabaStreak] = useState(0)
+  const [completedSteps, setCompletedSteps] = useState(0)
+  const [wheelDone, setWheelDone] = useState(false)
 
   useEffect(() => {
     api
@@ -23,10 +33,14 @@ export default function ProfileScreen() {
       .then((p) => {
         setLevel(p.level)
         setWeek(p.week)
+        setCompletedSteps(Math.max(0, globalWeekIndex(p.level, p.week) - 1))
       })
       .catch(() => {
         // level/week stay as "—" — logout and the push toggle below still work offline
       })
+
+    api.muhasabaStreak().then((r) => setMuhasabaStreak(r.streak)).catch(() => {})
+    api.getWheel().then((r) => setWheelDone(!!r.created_at)).catch(() => {})
 
     lsGet(PUSH_ENABLED_KEY, false).then(async (wasEnabled) => {
       if (!wasEnabled) return
@@ -37,6 +51,17 @@ export default function ProfileScreen() {
       if (!token) await lsSet(PUSH_ENABLED_KEY, false)
     })
   }, [])
+
+  const achievements: Achievement[] = [
+    { icon: '🔥', label: 'Стрик 7 дней', unlocked: muhasabaStreak >= 7 },
+    { icon: '🔥', label: 'Стрик 14 дней', unlocked: muhasabaStreak >= 14 },
+    { icon: '🔥', label: 'Стрик 30 дней', unlocked: muhasabaStreak >= 30 },
+    { icon: '🔥', label: 'Стрик 40 дней', unlocked: muhasabaStreak >= 40 },
+    { icon: '🌱', label: 'Первый шаг', unlocked: completedSteps >= 1 },
+    { icon: '📚', label: '5 шагов пройдено', unlocked: completedSteps >= 5 },
+    { icon: '🏆', label: 'ВАКТ завершён', unlocked: completedSteps >= 6 },
+    { icon: '🎯', label: 'Колесо заполнено', unlocked: wheelDone },
+  ]
 
   const handlePushToggle = async (value: boolean) => {
     setTogglingPush(true)
@@ -73,6 +98,16 @@ export default function ProfileScreen() {
         <Switch value={pushEnabled} onValueChange={handlePushToggle} disabled={togglingPush} />
       </View>
 
+      <Text style={styles.sectionTitle}>Достижения</Text>
+      <View style={styles.achievementsGrid}>
+        {achievements.map((a, i) => (
+          <View key={i} style={[styles.badge, !a.unlocked && styles.badgeLocked]}>
+            <Text style={[styles.badgeIcon, !a.unlocked && styles.badgeIconLocked]}>{a.unlocked ? a.icon : '🔒'}</Text>
+            <Text style={[styles.badgeLabel, !a.unlocked && styles.badgeLabelLocked]}>{a.label}</Text>
+          </View>
+        ))}
+      </View>
+
       <Pressable style={styles.linkButton} onPress={resetOnboarding}>
         <Text style={styles.linkText}>Пройти диагностику заново</Text>
       </Pressable>
@@ -97,6 +132,28 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 18, fontWeight: '700', color: colors.text },
   row: { padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   rowLabel: { fontSize: 14, color: colors.text, flex: 1, marginRight: 12 },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  achievementsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
+  badge: {
+    width: '31%',
+    backgroundColor: colors.gpale,
+    borderRadius: radius.card,
+    paddingVertical: 14,
+    alignItems: 'center',
+    ...shadow.card,
+  },
+  badgeLocked: { backgroundColor: colors.card, opacity: 0.6 },
+  badgeIcon: { fontSize: 24, marginBottom: 6 },
+  badgeIconLocked: { opacity: 0.5 },
+  badgeLabel: { fontSize: 11, fontWeight: '600', color: colors.g2, textAlign: 'center', paddingHorizontal: 4 },
+  badgeLabelLocked: { color: colors.muted },
   linkButton: { marginTop: 4, alignItems: 'center', padding: 12 },
   linkText: { color: colors.g2, fontSize: 14, fontWeight: '600' },
   logoutButton: { marginTop: 4, alignItems: 'center', padding: 12 },

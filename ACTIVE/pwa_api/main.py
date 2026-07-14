@@ -9,6 +9,11 @@ from collections import defaultdict
 from pathlib import Path
 import jwt, bcrypt, os, asyncpg, time, secrets, json
 
+# Reused as-is from the bot (self-contained: only imports `anthropic`, no aiogram/DB
+# deps) so the muhasaba AI reflection is identical whether answered in the bot or here.
+from bot_v2.services.jarwas import ask_jarwas_muhasaba, setup_jarwas
+setup_jarwas(os.environ.get('ANTHROPIC_API_KEY', ''))
+
 SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 ALGORITHM = 'HS256'
@@ -696,12 +701,27 @@ async def mobile_save_muhasaba(req: MobileMuhasabaReq, tg_id: int = Depends(veri
             'INSERT INTO muhasaba_logs (user_id, answers, created_at) VALUES ($1,$2,$3)',
             tg_id, req.answers, datetime.utcnow()
         )
-    return {'ok': True}
+
+    def _answer_for(keyword: str) -> str:
+        return next((a.get('a', '') for a in req.answers if keyword in a.get('q', '').lower()), '')
+
+    q1 = _answer_for('получилось')
+    q2 = _answer_for('тяжело')
+    q3 = _answer_for('иначе') or _answer_for('сделаю')
+    try:
+        reflection = await ask_jarwas_muhasaba(q1, q2, q3)
+    except Exception:
+        reflection = 'МашаАллах! Мухасаба записана. Каждый раз когда ты останавливаешься и честно смотришь на себя — ты растёшь. 🌿'
+    return {'ok': True, 'reflection': reflection}
 
 @app.get('/mobile/muhasaba/streak')
 async def mobile_muhasaba_streak(tg_id: int = Depends(verify_mobile_token)):
     """Стрик считается напрямую по датам записей в muhasaba_logs (устойчив к тому,
-    что запись могла прийти из бота или из приложения), а не по отдельному счётчику."""
+    что запись могла прийти из бота или из приложения), а не по отдельному счётчику.
+
+    Стрик-щит: один пропущенный день на каждые 7 дней подряд не обнуляет стрик —
+    так же, как streak freeze в Duolingo. Цель — не наказывать за единичный
+    человеческий срыв, но и не давать пропускать бесконечно."""
     if not db_pool:
         raise HTTPException(500, 'База данных не подключена')
     async with db_pool.acquire() as conn:
@@ -709,16 +729,27 @@ async def mobile_muhasaba_streak(tg_id: int = Depends(verify_mobile_token)):
             "SELECT DISTINCT created_at::date AS d FROM muhasaba_logs WHERE user_id=$1 ORDER BY d DESC LIMIT 60",
             tg_id
         )
-    dates = [r['d'] for r in rows]
+    dates_set = {r['d'] for r in rows}
     today = datetime.utcnow().date()
-    done_today = bool(dates) and dates[0] == today
+    done_today = today in dates_set
+
     streak = 0
+    shields_available = 1
+    days_since_shield_reset = 0
     cursor = today if done_today else today - timedelta(days=1)
-    for d in dates:
-        if d == cursor:
+    for _ in range(60):
+        if cursor in dates_set:
             streak += 1
+            days_since_shield_reset += 1
+            if days_since_shield_reset >= 7:
+                shields_available = 1
+                days_since_shield_reset = 0
             cursor -= timedelta(days=1)
-        elif d < cursor:
+        elif shields_available > 0 and cursor < today:
+            shields_available -= 1
+            days_since_shield_reset = 0
+            cursor -= timedelta(days=1)
+        else:
             break
     return {'streak': streak, 'done_today': done_today}
 
