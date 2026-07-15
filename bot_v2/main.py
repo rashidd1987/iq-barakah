@@ -252,6 +252,7 @@ async def _setup_commands(bot: Bot, config) -> None:
         BotCommand(command="forum_reset_counter", description="♻️ Сбросить нумерацию билетов"),
         BotCommand(command="user_info",    description="👤 Инфо об участнике по user_id"),
         BotCommand(command="addpartner",   description="🤝 Добавить лидера мнения (бесплатный доступ + реф. ссылка)"),
+        BotCommand(command="partners",     description="👥 Кто пришёл через партнёров"),
     ]
 
     # Глобальные команды (для всех)

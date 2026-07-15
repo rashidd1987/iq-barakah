@@ -1355,6 +1355,68 @@ async def cmd_shipreport(message: Message, session: AsyncSession, config: Config
         )
 
 
+@router.message(Command("partners"))
+async def cmd_partners(message: Message, session: AsyncSession, config: Config):
+    """/partners — список всех кто пришёл через партнёрскую ссылку лидера мнения."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    # Все пользователи у кого last_utm_source = 'forum_return' или referred_by != null (ol_ ссылка)
+    result = await session.execute(
+        select(User, Participant)
+        .outerjoin(Participant, Participant.user_id == User.id)
+        .where(
+            (User.last_utm_source == "forum_return") |
+            (User.referred_by.isnot(None))
+        )
+        .order_by(User.created_at.desc())
+    )
+    rows = result.all()
+
+    if not rows:
+        await message.answer("Пока никто не пришёл через партнёрские ссылки.")
+        return
+
+    # Собираем лидеров (referred_by) для имён
+    leader_ids = {u.referred_by for u, _ in rows if u.referred_by}
+    leaders = {}
+    if leader_ids:
+        lr = await session.execute(select(User).where(User.id.in_(leader_ids)))
+        for lu in lr.scalars():
+            leaders[lu.id] = lu.name or str(lu.id)
+
+    lines = [f"👥 *Пришли через партнёров* — {len(rows)} чел.\n"]
+    for user, participant in rows:
+        status = "✅" if (participant and participant.is_active) else "⏳"
+        source = ""
+        if user.referred_by:
+            leader_name = leaders.get(user.referred_by, str(user.referred_by))
+            source = f" ← {leader_name}"
+        elif user.last_utm_source == "forum_return":
+            source = " ← форум"
+        name = user.name or "—"
+        username = f" @{user.username}" if user.username else ""
+        date = user.created_at.strftime("%d.%m") if user.created_at else ""
+        lines.append(f"{status} {name}{username} `{user.id}` {date}{source}")
+
+    # Разбиваем на части если много
+    text = "\n".join(lines)
+    if len(text) > 4000:
+        chunks = []
+        chunk = lines[0] + "\n"
+        for line in lines[1:]:
+            if len(chunk) + len(line) + 1 > 4000:
+                chunks.append(chunk)
+                chunk = line + "\n"
+            else:
+                chunk += line + "\n"
+        chunks.append(chunk)
+        for chunk in chunks:
+            await message.answer(chunk, parse_mode="Markdown")
+    else:
+        await message.answer(text, parse_mode="Markdown")
+
+
 @router.message(Command("addpartner"))
 async def cmd_addpartner(message: Message, session: AsyncSession, config: Config):
     """/addpartner <user_id> — выдать лидеру мнения бесплатный доступ и реферальную ссылку."""
