@@ -71,6 +71,7 @@ export default function HomeScreen({ navigation }: Props) {
   const [globalWeek, setGlobalWeek] = useState(1)
   const [stats, setStats] = useState({ streak: 0, deeds: 0, xp: 0 })
   const [cohortCount, setCohortCount] = useState<number | null>(null)
+  const [missions, setMissions] = useState({ habitsDone: false, stepDone: false, muhasabaDone: false })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -85,6 +86,25 @@ export default function HomeScreen({ navigation }: Props) {
       setError(false)
       // Best-effort — the jamaat count is a nice-to-have, not worth blocking the screen over.
       api.cohortCount().then((r) => setCohortCount(r.count)).catch(() => setCohortCount(null))
+
+      // "Миссии дня" — best-effort, doesn't block the main screen if it fails.
+      const todayKey = new Date().toISOString().slice(0, 10)
+      const todayRecord = records.find((r) => r.date === todayKey)
+      const habitsDone = !!todayRecord && Object.values({
+        ...todayRecord.habits.namaz,
+        ...todayRecord.habits.daily,
+      }).some(Boolean)
+      api
+        .content(participant.level, participant.week)
+        .then((content) => {
+          const skill = (participant.vakt_level as 'I' | 'II' | 'III') || 'I'
+          const tasks = content.tasks[skill] ?? []
+          const taskState = (todayRecord?.habits as { tasks?: Record<string, boolean> } | undefined)?.tasks ?? {}
+          const stepDone = tasks.length > 0 && tasks.every((_, i) => taskState[String(i)])
+          setMissions((m) => ({ ...m, habitsDone, stepDone }))
+        })
+        .catch(() => setMissions((m) => ({ ...m, habitsDone })))
+      api.muhasabaStreak().then((r) => setMissions((m) => ({ ...m, muhasabaDone: r.done_today }))).catch(() => {})
     } catch {
       // keep any previously loaded data on screen — only show the error state if we have nothing yet
       setError(true)
@@ -155,6 +175,25 @@ export default function HomeScreen({ navigation }: Props) {
         </Text>
       </View>
 
+      <Text style={styles.quickLinksTitle}>Миссии дня</Text>
+      <View style={styles.missionsCard}>
+        <MissionRow
+          label="Отметь привычки дня"
+          done={missions.habitsDone}
+          onPress={() => navigation.getParent()?.navigate('Tracker')}
+        />
+        <MissionRow
+          label={`Заверши шаг ${globalWeek}`}
+          done={missions.stepDone}
+          onPress={() => navigation.getParent()?.navigate('Tracker')}
+        />
+        <MissionRow
+          label="Вечерний самоотчёт"
+          done={missions.muhasabaDone}
+          onPress={() => navigation.navigate('Muhasaba')}
+        />
+      </View>
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
           {level ? `${LEVEL_ICONS[level] ?? ''} ${LEVEL_LABELS[level] ?? level}` : '—'}
@@ -202,6 +241,17 @@ function pluralBrothers(n: number): string {
   if (mod10 === 1 && mod100 !== 11) return 'брат'
   if ([2, 3, 4].includes(mod10) && ![12, 13, 14].includes(mod100)) return 'брата'
   return 'братьев'
+}
+
+function MissionRow({ label, done, onPress }: { label: string; done: boolean; onPress: () => void }) {
+  return (
+    <Pressable style={styles.missionRow} onPress={onPress}>
+      <View style={[styles.missionCheck, done && styles.missionCheckDone]}>
+        {done && <Text style={styles.missionCheckMark}>✓</Text>}
+      </View>
+      <Text style={[styles.missionLabel, done && styles.missionLabelDone]}>{label}</Text>
+    </Pressable>
+  )
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -254,6 +304,28 @@ const styles = StyleSheet.create({
   statCard: { flex: 1, padding: 14, alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: '700', color: colors.text },
   statLabel: { fontSize: 12, color: colors.sub, marginTop: 4 },
+  missionsCard: {
+    backgroundColor: colors.card,
+    borderRadius: radius.card,
+    padding: 8,
+    marginBottom: 16,
+    ...shadow.card,
+  },
+  missionRow: { flexDirection: 'row', alignItems: 'center', padding: 8 },
+  missionCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  missionCheckDone: { backgroundColor: colors.g2, borderColor: colors.g2 },
+  missionCheckMark: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  missionLabel: { fontSize: 14, color: colors.text, fontWeight: '600' },
+  missionLabelDone: { color: colors.muted, textDecorationLine: 'line-through' },
   quickLinksTitle: {
     fontSize: 11,
     fontWeight: '700',

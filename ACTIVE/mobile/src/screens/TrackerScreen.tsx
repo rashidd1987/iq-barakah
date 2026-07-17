@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import ScreenHeader from '../components/ScreenHeader'
 import { DAILY, NAMAZ, ONETIME, WEEKLY } from '../data/habits'
@@ -180,6 +180,16 @@ export default function TrackerScreen() {
                   <Text style={styles.testButtonText}>🎯 Пройти тест шага</Text>
                 </Pressable>
               )}
+              <Pressable
+                style={styles.shareButton}
+                onPress={() =>
+                  Share.share({
+                    message: `🎉 Я выполнил все задания дня в программе IQ Barakah! Альхамдулиллях 🌿`,
+                  }).catch(() => {})
+                }
+              >
+                <Text style={styles.shareButtonText}>📤 Поделиться</Text>
+              </Pressable>
             </View>
           )}
         </View>
@@ -298,4 +308,12 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   testButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  shareButton: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: radius.button,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  shareButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 })

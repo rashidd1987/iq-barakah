@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React, { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import { LessonsStackParamList } from '../navigation/types'
 import { colors, radius, shadow } from '../theme/colors'
@@ -59,17 +59,27 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
     setFinishing(true)
     try {
       const result = await api.weekAck(level, week)
+      const shareStep = () =>
+        Share.share({
+          message: `🎉 Я прошёл Шаг ${globalWeek} программы IQ Barakah! Альхамдулиллях 🌿`,
+        }).catch(() => {})
       if (result.graduated) {
         Alert.alert(
           '🏆 Уровень завершён!',
           'Ты прошёл все шаги этого уровня. Следующий сезон откроется, когда куратор активирует его в боте.',
-          [{ text: 'Ок', onPress: () => navigation.goBack() }],
+          [
+            { text: 'Поделиться', onPress: shareStep },
+            { text: 'Ок', onPress: () => navigation.goBack() },
+          ],
         )
       } else {
         Alert.alert(
           '🎉 Хвала Аллаху, ты молодец!',
           `Шаг ${globalWeek} закрыт. Так держать — каждый пройденный шаг закрепляет то, что раньше держалось только на силе воли.`,
-          [{ text: 'Дальше', onPress: () => navigation.goBack() }],
+          [
+            { text: 'Поделиться', onPress: shareStep },
+            { text: 'Дальше', onPress: () => navigation.goBack() },
+          ],
         )
       }
     } catch {
