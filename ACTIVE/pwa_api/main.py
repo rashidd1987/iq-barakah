@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
 from pathlib import Path
-import jwt, bcrypt, os, asyncpg, time, secrets, json
+import jwt, bcrypt, os, asyncpg, time, secrets, json, hashlib, hmac
+from urllib.parse import parse_qsl
 
 # Reused as-is from the bot (self-contained: only imports `anthropic`, no aiogram/DB
 # deps) so the muhasaba AI reflection is identical whether answered in the bot or here.
@@ -769,3 +770,62 @@ async def push_register(req: PushRegisterReq, tg_id: int = Depends(verify_mobile
             tg_id, req.expo_token, req.platform, datetime.utcnow()
         )
     return {'ok': True}
+
+# ── Mini App read-only sync ─────────────────────────────────────────────────
+# The Mini App keeps its own tracker/wheel/muhasaba entirely client-side
+# (localStorage) — that's an intentional product decision, not something this
+# endpoint changes. Its only job: let the Mini App know the participant's REAL
+# current level/step from bot_v2's tables, so it doesn't show stale data after
+# the student progresses via the bot or the native app. Read-only, no writes.
+
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
+MINIAPP_LEVEL_OFFSET = {'А': 0, 'Б': 6, 'В': 14, 'Г': 22}
+
+def _verify_telegram_init_data(init_data: str) -> Optional[dict]:
+    """Validates the initData string a Telegram Mini App gets from window.Telegram.WebApp,
+    per https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app"""
+    if not BOT_TOKEN or not init_data:
+        return None
+    try:
+        parsed = dict(parse_qsl(init_data, strict_parsing=True))
+    except ValueError:
+        return None
+    received_hash = parsed.pop('hash', None)
+    if not received_hash:
+        return None
+    data_check_string = '\n'.join(f'{k}={v}' for k, v in sorted(parsed.items()))
+    secret_key = hmac.new(b'WebAppData', BOT_TOKEN.encode(), hashlib.sha256).digest()
+    computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(computed_hash, received_hash):
+        return None
+    return parsed
+
+class MiniappParticipantReq(BaseModel):
+    init_data: str
+
+@app.post('/miniapp/participant')
+async def miniapp_participant(req: MiniappParticipantReq):
+    parsed = _verify_telegram_init_data(req.init_data)
+    if not parsed:
+        raise HTTPException(401, 'Недействительные данные Telegram')
+    try:
+        tg_user = json.loads(parsed.get('user', '{}'))
+        tg_id = int(tg_user['id'])
+    except (KeyError, ValueError, json.JSONDecodeError):
+        raise HTTPException(400, 'Нет данных пользователя Telegram')
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        p = await conn.fetchrow(
+            'SELECT level, week, vakt_level FROM participants WHERE user_id=$1 AND is_active=TRUE',
+            tg_id
+        )
+    if not p:
+        return {'active': False}
+    return {
+        'active': True,
+        'level': p['level'],
+        'week': p['week'],
+        'vakt_level': p['vakt_level'],
+        'global_week': MINIAPP_LEVEL_OFFSET.get(p['level'], 0) + p['week'],
+    }
