@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сброс кэша IQ Barakah</title>
+  <style>
+    body {
+      min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center;
+      background: #f2f2ed; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #111827; text-align: center; padding: 24px;
+    }
+    .card { max-width: 360px; }
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid #e8f5e9; border-top-color: #2c5f2d;
+      border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 18px; margin-bottom: 8px; }
+    p { color: #4b5563; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>Очищаем кэш приложения…</h1>
+    <p>Сейчас откроется чистая версия PWA.</p>
+  </div>
+  <script>
+    (async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations()
+          await Promise.all(regs.map(r => r.unregister()))
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys()
+          await Promise.all(keys.map(k => caches.delete(k)))
+        }
+      } catch (e) {
+        // best-effort — even if this fails, still redirect
+      }
+      setTimeout(() => {
+        window.location.href = '/pwa/?reset=' + Date.now()
+      }, 800)
+    })()
+  </script>
+</body>
+</html>
