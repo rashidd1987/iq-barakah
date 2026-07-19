@@ -1097,6 +1097,14 @@ textarea:focus { border-color: var(--g2); }
         <div class="stat"><div class="stat-e">⭐</div><div class="stat-v" id="sv-xp">0</div><div class="stat-l" data-i18n="barakahPoints">баракат-баллов</div></div>
       </div>
     </div></div>
+    <div class="card" id="app-promo-banner" style="background:linear-gradient(135deg, var(--g2), var(--g3));border-radius:var(--r);padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="openLink('https://iq-barakah.ru/app.html')">
+      <div style="font-size:28px;">📲</div>
+      <div style="flex:1;color:#fff;">
+        <div style="font-weight:800;font-size:14px;" data-i18n="getAppTitle">Веди трекер в приложении</div>
+        <div style="font-size:12px;opacity:.82;" data-i18n="getAppSub">Не теряется среди чатов · напоминания · офлайн</div>
+      </div>
+      <div style="color:#fff;font-size:20px;opacity:.7;">›</div>
+    </div>
     <div data-i18n="goTo" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:0 2px;">Перейти</div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, поминание Всевышнего, самоотчёт</div></div><span style="color:var(--muted)">›</span></div>
@@ -2617,6 +2625,8 @@ const TEXT = {
     goodDeeds: 'добрых дел',
     barakahPoints: 'баракат-баллов',
     goTo: 'Перейти',
+    getAppTitle: 'Веди трекер в приложении',
+    getAppSub: 'Не теряется среди чатов · напоминания · офлайн',
     dayTracker: 'Трекер дня',
     dayTrackerSub: 'Намаз, поминание Всевышнего, самоотчёт',
     currentLesson: 'Текущий урок',
@@ -2698,6 +2708,8 @@ const TEXT = {
     goodDeeds: 'good deeds',
     barakahPoints: 'barakah points',
     goTo: 'Go to',
+    getAppTitle: 'Track your habits in the app',
+    getAppSub: "Won't get lost among chats · reminders · offline",
     dayTracker: 'Day tracker',
     dayTrackerSub: 'Prayer, adhkar, muhasabah',
     currentLesson: 'Current lesson',
@@ -2779,6 +2791,8 @@ const TEXT = {
     goodDeeds: 'أعمال صالحة',
     barakahPoints: 'نقاط البركة',
     goTo: 'انتقل إلى',
+    getAppTitle: 'تابع عاداتك في التطبيق',
+    getAppSub: 'لا يضيع بين المحادثات · تذكيرات · بدون إنترنت',
     dayTracker: 'متابعة اليوم',
     dayTrackerSub: 'الصلاة، الأذكار، المحاسبة',
     currentLesson: 'الدرس الحالي',
@@ -2860,6 +2874,8 @@ const TEXT = {
     goodDeeds: 'gute Taten',
     barakahPoints: 'Barakah-Punkte',
     goTo: 'Gehe zu',
+    getAppTitle: 'Verfolge deine Gewohnheiten in der App',
+    getAppSub: 'Geht nicht in Chats unter · Erinnerungen · offline',
     dayTracker: 'Tages-Tracker',
     dayTrackerSub: 'Gebet, Adhkar, Muhasabah',
     currentLesson: 'Aktuelle Lektion',
@@ -4525,6 +4541,39 @@ initHome()
 
 // Sync currentWeek from user state into lessons module
 setCurrentWeek(U.currentWeek)
+
+// Read-only sync with bot_v2's real tables — the tracker/wheel/muhasaba here stay
+// on localStorage as before, but the level/step badge shouldn't go stale after the
+// student progresses via the bot or the native app while this Mini App session is
+// still holding an older cached value.
+async function syncRealProgress() {
+  if (!tg?.initData) return
+  try {
+    const res = await fetch('https://pwa-api.iq-barakah.ru/miniapp/participant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ init_data: tg.initData }),
+    })
+    if (!res.ok) return
+    const data = await res.json()
+    if (!data.active) return
+    const changed = data.level !== U.level || data.global_week !== U.currentWeek
+    if (!changed) return
+    U.level = data.level
+    U.currentWeek = data.global_week
+    if (['I', 'II', 'III'].includes(data.vakt_level)) U.skill = data.vakt_level
+    lsSet('level', U.level)
+    lsSet('currentWeek', U.currentWeek)
+    lsSet('skill', U.skill)
+    initHome()
+    setCurrentWeek(U.currentWeek)
+    renderTracker()
+    rerenderCurrentScreen()
+  } catch (e) {
+    // offline or backend unavailable — keep whatever localStorage already had
+  }
+}
+syncRealProgress()
 
 // Nav
 initNav()
