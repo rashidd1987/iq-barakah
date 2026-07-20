@@ -8051,7 +8051,11 @@ function _syncDebug(msg) {
   el.style.display = 'block'
 }
 async function syncRealProgress() {
-  if (!tg?.initData) { _syncDebug('no tg.initData (not opened as Telegram Mini App)'); return }
+  if (!window.Telegram) { _syncDebug('window.Telegram missing (script blocked?)'); return }
+  if (!window.Telegram.WebApp) { _syncDebug('Telegram.WebApp missing'); return }
+  if (!tg) { _syncDebug('tg wrapper is null'); return }
+  const platformInfo = 'platform=' + (tg.platform || '?') + ' version=' + (tg.version || '?') + ' initDataLen=' + (tg.initData ? tg.initData.length : 0)
+  if (!tg.initData) { _syncDebug('no initData · ' + platformInfo); return }
   try {
     const res = await fetch('https://pwa-api.iq-barakah.ru/miniapp/participant', {
       method: 'POST',
