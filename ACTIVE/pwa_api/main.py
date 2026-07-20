@@ -778,7 +778,7 @@ async def push_register(req: PushRegisterReq, tg_id: int = Depends(verify_mobile
 # current level/step from bot_v2's tables, so it doesn't show stale data after
 # the student progresses via the bot or the native app. Read-only, no writes.
 
-BOT_TOKEN = os.environ.get('BOT_TOKEN', '')
+BOT_TOKEN = os.environ.get('BOT_TOKEN', '').strip()
 MINIAPP_LEVEL_OFFSET = {'А': 0, 'Б': 6, 'В': 14, 'Г': 22}
 
 def _verify_telegram_init_data(init_data: str) -> Optional[dict]:
