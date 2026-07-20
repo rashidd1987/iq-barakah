@@ -1157,6 +1157,7 @@ textarea:focus { border-color: var(--g2); }
   <div id="preview-banner" style="display:none;background:#1a3d1b;color:#fff;padding:10px 16px;align-items:center;gap:8px;font-size:13px;font-weight:700;">
     👁 Режим просмотра куратора · Все уроки открыты
   </div>
+  <div id="sync-debug-status" style="display:none;background:#fef3c7;color:#78350f;padding:8px 16px;font-size:11px;text-align:center;"></div>
   <div class="c">
     <div id="streak-banner-slot"></div>
     <div id="step-progress-slot"></div>
@@ -8043,19 +8044,25 @@ setCurrentWeek(U.currentWeek)
 // on localStorage as before, but the level/step badge shouldn't go stale after the
 // student progresses via the bot or the native app while this Mini App session is
 // still holding an older cached value.
+function _syncDebug(msg) {
+  const el = document.getElementById('sync-debug-status')
+  if (!el) return
+  el.textContent = '🔧 sync: ' + msg
+  el.style.display = 'block'
+}
 async function syncRealProgress() {
-  if (!tg?.initData) return
+  if (!tg?.initData) { _syncDebug('no tg.initData (not opened as Telegram Mini App)'); return }
   try {
     const res = await fetch('https://pwa-api.iq-barakah.ru/miniapp/participant', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ init_data: tg.initData }),
     })
-    if (!res.ok) return
+    if (!res.ok) { _syncDebug('HTTP ' + res.status); return }
     const data = await res.json()
-    if (!data.active) return
+    if (!data.active) { _syncDebug('no active participant record'); return }
     const changed = data.level !== U.level || data.global_week !== U.currentWeek
-    if (!changed) return
+    if (!changed) { _syncDebug('ok, already up to date (' + data.level + ' ' + data.global_week + ')'); return }
     U.level = data.level
     U.currentWeek = data.global_week
     if (['I', 'II', 'III'].includes(data.vakt_level)) U.skill = data.vakt_level
@@ -8066,8 +8073,9 @@ async function syncRealProgress() {
     setCurrentWeek(U.currentWeek)
     renderTracker()
     rerenderCurrentScreen()
+    _syncDebug('updated to ' + data.level + ' ' + data.global_week)
   } catch (e) {
-    // offline or backend unavailable — keep whatever localStorage already had
+    _syncDebug('error: ' + e.message)
   }
 }
 syncRealProgress()
