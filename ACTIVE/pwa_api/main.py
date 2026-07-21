@@ -800,6 +800,28 @@ def _verify_telegram_init_data(init_data: str) -> Optional[dict]:
         return None
     return parsed
 
+@app.get('/miniapp/token-check')
+async def miniapp_token_check():
+    """Диагностика: какому боту принадлежит BOT_TOKEN из переменных окружения.
+    Возвращает только username бота (сам токен не раскрывается) — чтобы сверить,
+    что в Amvera вставлен токен именно @iqbaraka_bot, а не другого бота."""
+    if not BOT_TOKEN:
+        return {'ok': False, 'reason': 'BOT_TOKEN не задан'}
+    import urllib.request
+    def _get_me():
+        with urllib.request.urlopen(
+            f'https://api.telegram.org/bot{BOT_TOKEN}/getMe', timeout=10
+        ) as resp:
+            return json.loads(resp.read().decode())
+    try:
+        import asyncio
+        data = await asyncio.to_thread(_get_me)
+    except Exception as e:
+        return {'ok': False, 'reason': f'getMe failed: {type(e).__name__}'}
+    if not data.get('ok'):
+        return {'ok': False, 'reason': 'токен отвергнут Telegram (невалидный)'}
+    return {'ok': True, 'bot_username': data['result'].get('username')}
+
 class MiniappParticipantReq(BaseModel):
     init_data: str
 
