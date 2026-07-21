@@ -1,8 +1,9 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { HomeStackParamList } from '../navigation/types'
-import { colors, radius, shadow } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { api } from '../utils/api'
 
 // Ported 1:1 from bot_v2/handlers/muhasaba.py — same 3 questions and hadith framing,
@@ -29,6 +30,8 @@ const QUESTIONS = [
 type Props = NativeStackScreenProps<HomeStackParamList, 'Muhasaba'>
 
 export default function MuhasabaScreen({ navigation }: Props) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<string[]>(['', '', ''])
   const [saving, setSaving] = useState(false)
@@ -137,7 +140,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
       />
       <Pressable style={styles.continueButton} onPress={next} disabled={saving || !answers[step].trim()}>
         {saving ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.continueButtonText}>
             {step < QUESTIONS.length - 1 ? 'Дальше' : 'Завершить'}
@@ -148,7 +151,9 @@ export default function MuhasabaScreen({ navigation }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 24 },
   content: { padding: 24, paddingTop: 40, flexGrow: 1 },
@@ -172,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignItems: 'center',
   },
-  continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   doneIcon: { fontSize: 48, marginBottom: 12 },
   doneTitle: { fontSize: 22, fontWeight: '700', color: colors.g1, marginBottom: 8, textAlign: 'center' },
   doneText: { fontSize: 14, color: colors.sub, textAlign: 'center', marginBottom: 16, lineHeight: 20 },
@@ -193,5 +198,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     borderRadius: radius.button,
   },
-  backButtonText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-})
+  backButtonText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600' },
+  })
+}

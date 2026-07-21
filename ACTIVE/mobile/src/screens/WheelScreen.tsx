@@ -1,9 +1,10 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import ScreenHeader from '../components/ScreenHeader'
-import { colors, radius, shadow } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { api } from '../utils/api'
 
 // Ported 1:1 from the miniapp's SECTORS (ACTIVE/site/miniapp.html) — same 8 spheres,
@@ -24,6 +25,8 @@ const SECTORS = [
 const DEFAULT_SCORE = 5
 
 export default function WheelScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const [scores, setScores] = useState<Record<string, number>>(() =>
     Object.fromEntries(SECTORS.map((s) => [s.key, DEFAULT_SCORE])),
   )
@@ -113,14 +116,16 @@ export default function WheelScreen() {
       </View>
 
       <Pressable style={styles.saveButton} onPress={save} disabled={saving}>
-        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>💾 Сохранить оценку</Text>}
+        {saving ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.saveButtonText}>💾 Сохранить оценку</Text>}
       </Pressable>
       </View>
     </ScrollView>
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { paddingBottom: 32 },
@@ -147,5 +152,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignItems: 'center',
   },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-})
+  saveButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  })
+}

@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, radius, shadow } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 
 // Ported 1:1 from bot_v2/handlers/korablik.py (the "Кораблик" — 7-section ship
 // diagnostic) so the app onboarding matches what students already know from the bot.
@@ -141,6 +142,8 @@ interface Props {
 }
 
 export default function DiagnosticScreen({ onContinue }: Props) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const [step, setStep] = useState(0)
   const [scores, setScores] = useState<number[]>([])
 
@@ -210,7 +213,9 @@ export default function DiagnosticScreen({ onContinue }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 24, paddingTop: 56, flexGrow: 1, justifyContent: 'center' },
   eyebrow: { fontSize: 13, fontWeight: '600', color: colors.gold, marginBottom: 16, textAlign: 'center' },
@@ -263,5 +268,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignSelf: 'center',
   },
-  continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-})
+  continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  })
+}

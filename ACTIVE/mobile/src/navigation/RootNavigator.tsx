@@ -1,10 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
-import { NavigationContainer } from '@react-navigation/native'
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
-import React from 'react'
+import React, { useMemo } from 'react'
 import { ActivityIndicator, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
-import { colors } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
 import ActivityFeedScreen from '../screens/ActivityFeedScreen'
 import DiagnosticScreen from '../screens/DiagnosticScreen'
 import HomeScreen from '../screens/HomeScreen'
@@ -31,6 +31,7 @@ const TAB_ICONS: Record<keyof RootTabParamList, string> = {
 }
 
 function LessonsNavigator() {
+  const { colors } = useTheme()
   return (
     <LessonsStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
       <LessonsStack.Screen name="LessonsList" component={LessonsScreen} options={{ headerShown: false }} />
@@ -44,6 +45,7 @@ function LessonsNavigator() {
 }
 
 function HomeNavigator() {
+  const { colors } = useTheme()
   return (
     <HomeStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
@@ -54,6 +56,7 @@ function HomeNavigator() {
 }
 
 function Tabs() {
+  const { colors } = useTheme()
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -74,6 +77,22 @@ function Tabs() {
 
 export default function RootNavigator() {
   const { isLoggedIn, isLoading, onboarding, advanceOnboarding } = useAuth()
+  const { colors, isDark } = useTheme()
+  const navigationTheme = useMemo(
+    () => ({
+      ...(isDark ? DarkTheme : DefaultTheme),
+      colors: {
+        ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+        primary: colors.g2,
+        background: colors.bg,
+        card: colors.card,
+        text: colors.text,
+        border: colors.border,
+        notification: colors.gold,
+      },
+    }),
+    [colors, isDark],
+  )
 
   if (isLoading || (isLoggedIn && onboarding === null)) {
     return (
@@ -94,5 +113,5 @@ export default function RootNavigator() {
     content = <Tabs />
   }
 
-  return <NavigationContainer>{content}</NavigationContainer>
+  return <NavigationContainer theme={navigationTheme}>{content}</NavigationContainer>
 }

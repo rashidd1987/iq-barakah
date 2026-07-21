@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { colors, radius, shadow } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 
 const TRAITS = [
   'Просыпается с ниятом, а не с телефоном в руке',
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export default function VisionScreen({ onContinue }: Props) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.eyebrow}>Через 30 шагов</Text>
@@ -40,7 +43,9 @@ export default function VisionScreen({ onContinue }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 24, paddingTop: 64, flexGrow: 1, justifyContent: 'center' },
   eyebrow: { fontSize: 13, fontWeight: '600', color: colors.gold, textAlign: 'center', marginBottom: 4 },
@@ -63,5 +68,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignSelf: 'center',
   },
-  continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-})
+  continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  })
+}

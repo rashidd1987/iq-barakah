@@ -1,12 +1,13 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import ScreenHeader from '../components/ScreenHeader'
 import { GlobalWeek, PHASE_LABELS, TOTAL_STEPS, WEEKS, globalWeekIndex, weekToLevelIndex } from '../data/weeks'
 import { LessonsStackParamList } from '../navigation/types'
-import { colors, radius, shadow } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { api } from '../utils/api'
 
 type Props = NativeStackScreenProps<LessonsStackParamList, 'LessonsList'>
@@ -23,6 +24,8 @@ const CHIPS: { key: PhaseFilter; label: string }[] = [
 ]
 
 export default function LessonsScreen({ navigation }: Props) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const [currentGlobalWeek, setCurrentGlobalWeek] = useState<number | null>(null)
   const [error, setError] = useState(false)
   const [filter, setFilter] = useState<PhaseFilter>('all')
@@ -104,7 +107,9 @@ export default function LessonsScreen({ navigation }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingBottom: 32 },
   hdrProgressTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 4, overflow: 'hidden', marginTop: 12 },
@@ -120,7 +125,7 @@ const styles = StyleSheet.create({
   },
   chipOn: { backgroundColor: colors.g2 },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.sub },
-  chipTextOn: { color: '#fff' },
+  chipTextOn: { color: colors.onPrimary },
   section: { marginBottom: 20 },
   phaseTitle: { fontSize: 13, fontWeight: '700', color: colors.sub, marginBottom: 8 },
   card: {
@@ -147,4 +152,5 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-})
+  })
+}

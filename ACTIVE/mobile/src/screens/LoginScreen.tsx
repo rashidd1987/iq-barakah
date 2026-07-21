@@ -1,8 +1,9 @@
 import * as Application from 'expo-application'
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
-import { colors, radius } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { radius, ThemeColors } from '../theme/colors'
 import { LoginStatus, loginWithTelegram } from '../utils/auth'
 
 const STATUS_LABEL: Record<LoginStatus, string> = {
@@ -14,6 +15,8 @@ const STATUS_LABEL: Record<LoginStatus, string> = {
 }
 
 export default function LoginScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const { markLoggedIn } = useAuth()
   const [status, setStatus] = useState<LoginStatus | null>(null)
   const [busy, setBusy] = useState(false)
@@ -38,7 +41,7 @@ export default function LoginScreen() {
 
       <Pressable style={styles.button} onPress={handleLogin} disabled={busy}>
         {busy ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onPrimary} />
         ) : (
           <Text style={styles.buttonText}>Войти через Telegram</Text>
         )}
@@ -55,7 +58,7 @@ export default function LoginScreen() {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     minWidth: 240,
     alignItems: 'center',
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   status: { marginTop: 16, color: colors.sub, textAlign: 'center' },
   hint: { marginTop: 40, color: colors.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: 16 },
   buildTag: { marginTop: 16, color: colors.border, fontSize: 11 },

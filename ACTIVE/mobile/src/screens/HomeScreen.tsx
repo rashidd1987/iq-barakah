@@ -1,14 +1,15 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import * as WebBrowser from 'expo-web-browser'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../context/ThemeContext'
 import { HomeStackParamList } from '../navigation/types'
 import { LEVEL_LABELS, LEVEL_ICONS, TOTAL_STEPS, globalWeekIndex } from '../data/weeks'
-import { colors, radius, shadow } from '../theme/colors'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { api } from '../utils/api'
 import { computeDeeds, computeStreak, computeXP } from '../utils/stats'
 
@@ -64,6 +65,8 @@ function formatCountdown(minutes: number): string {
 type Props = NativeStackScreenProps<HomeStackParamList, 'HomeMain'>
 
 export default function HomeScreen({ navigation }: Props) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const { resetOnboarding } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -244,6 +247,8 @@ function pluralBrothers(n: number): string {
 }
 
 function MissionRow({ label, done, onPress }: { label: string; done: boolean; onPress: () => void }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   return (
     <Pressable style={styles.missionRow} onPress={onPress}>
       <View style={[styles.missionCheck, done && styles.missionCheckDone]}>
@@ -255,6 +260,8 @@ function MissionRow({ label, done, onPress }: { label: string; done: boolean; on
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   return (
     <View style={[styles.card, styles.statCard]}>
       <Text style={styles.statValue}>{value}</Text>
@@ -263,7 +270,9 @@ function StatCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { paddingBottom: 32 },
   body: { padding: 16, marginTop: -16 },
@@ -284,7 +293,7 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
   },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  headerTitle: { color: colors.onPrimary, fontSize: 20, fontWeight: '700' },
   headerSub: { color: colors.goldpale, fontSize: 14, marginTop: 4, marginBottom: 12 },
   progressTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 4, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: colors.gold },
@@ -323,7 +332,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   missionCheckDone: { backgroundColor: colors.g2, borderColor: colors.g2 },
-  missionCheckMark: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  missionCheckMark: { color: colors.onPrimary, fontSize: 12, fontWeight: '700' },
   missionLabel: { fontSize: 14, color: colors.text, fontWeight: '600' },
   missionLabelDone: { color: colors.muted, textDecorationLine: 'line-through' },
   quickLinksTitle: {
@@ -349,4 +358,5 @@ const styles = StyleSheet.create({
   quickLinkLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
   quickLinkSub: { fontSize: 12, color: colors.sub, marginTop: 2 },
   quickLinkArrow: { fontSize: 20, color: colors.muted },
-})
+  })
+}

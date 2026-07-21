@@ -1,11 +1,12 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import ScreenHeader from '../components/ScreenHeader'
+import { useTheme } from '../context/ThemeContext'
 import { DAILY, NAMAZ, ONETIME, WEEKLY } from '../data/habits'
 import { globalWeekIndex } from '../data/weeks'
-import { colors, radius, shadow } from '../theme/colors'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { api } from '../utils/api'
 
 type Habits = {
@@ -38,6 +39,8 @@ function currentWeekDates(): Date[] {
 }
 
 export default function TrackerScreen() {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const navigation = useNavigation<any>()
   const weekDates = currentWeekDates()
   const todayKey = toDateKey(new Date())
@@ -218,6 +221,8 @@ function Section({
   habits: Habits
   onToggle: (bucket: keyof Habits, id: string) => void
 }) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -238,7 +243,9 @@ function Section({
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { paddingBottom: 32 },
@@ -257,7 +264,7 @@ const styles = StyleSheet.create({
   dayLabel: { fontSize: 11, color: colors.muted, marginBottom: 2 },
   dayLabelSelected: { color: colors.goldpale },
   dayNum: { fontSize: 15, fontWeight: '700', color: colors.text },
-  dayNumSelected: { color: '#fff' },
+  dayNumSelected: { color: colors.onPrimary },
   todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.gold, marginTop: 3 },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginBottom: 8 },
@@ -287,7 +294,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   checkDone: { backgroundColor: colors.g2, borderColor: colors.g2 },
-  checkMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  checkMark: { color: colors.onPrimary, fontSize: 13, fontWeight: '700' },
   savingHint: { textAlign: 'center', color: colors.muted, fontSize: 12 },
   celebrationCard: {
     backgroundColor: colors.g2,
@@ -298,7 +305,7 @@ const styles = StyleSheet.create({
   celebrationRow: { flexDirection: 'row', alignItems: 'center' },
   celebrationIcon: { fontSize: 26, marginRight: 12 },
   celebrationText: { flex: 1 },
-  celebrationTitle: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  celebrationTitle: { fontSize: 13, fontWeight: '700', color: colors.onPrimary },
   celebrationSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 },
   testButton: {
     backgroundColor: colors.gold,
@@ -307,7 +314,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 14,
   },
-  testButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  testButtonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '700' },
   shareButton: {
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: radius.button,
@@ -315,5 +322,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  shareButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-})
+  shareButtonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '700' },
+  })
+}

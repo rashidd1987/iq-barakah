@@ -1,9 +1,10 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
 import { LessonsStackParamList } from '../navigation/types'
-import { colors, radius, shadow } from '../theme/colors'
+import { useTheme } from '../context/ThemeContext'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { api, QuizQuestion } from '../utils/api'
 
 type SkillLevel = 'I' | 'II' | 'III'
@@ -13,6 +14,8 @@ const SKILL_LABELS: Record<SkillLevel, string> = { I: 'Начальный', II: 
 type Props = NativeStackScreenProps<LessonsStackParamList, 'LessonDetail'>
 
 export default function LessonDetailScreen({ route, navigation }: Props) {
+  const { colors } = useTheme()
+  const styles = useMemo(() => createStyles(colors), [colors])
   const { level, week, globalWeek } = route.params
   const [skill, setSkill] = useState<SkillLevel | null>(null)
   const [content, setContent] = useState<Awaited<ReturnType<typeof api.content>> | null>(null)
@@ -167,7 +170,7 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
             </Text>
             <Pressable style={styles.completeButton} onPress={nextQuestion} disabled={finishing}>
               {finishing ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color={colors.onPrimary} />
               ) : (
                 <Text style={styles.completeButtonText}>
                   {quizIndex + 1 < questions.length ? 'Следующий вопрос' : 'Завершить шаг'}
@@ -216,13 +219,15 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
       ))}
 
       <Pressable style={styles.completeButton} onPress={startQuiz} disabled={quizLoading}>
-        {quizLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.completeButtonText}>Пройти тест и завершить шаг</Text>}
+        {quizLoading ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.completeButtonText}>Пройти тест и завершить шаг</Text>}
       </Pressable>
     </ScrollView>
   )
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 40 },
@@ -239,7 +244,7 @@ const styles = StyleSheet.create({
   },
   growthStepCurrent: { backgroundColor: colors.g2 },
   growthStepText: { fontSize: 12, fontWeight: '600', color: colors.g2 },
-  growthStepTextCurrent: { color: '#fff' },
+  growthStepTextCurrent: { color: colors.onPrimary },
   growthHint: { fontSize: 12, color: colors.muted, marginBottom: 16 },
   card: { backgroundColor: colors.card, borderRadius: radius.card, ...shadow.card },
   textCard: { padding: 16, marginBottom: 20 },
@@ -268,5 +273,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     alignItems: 'center',
   },
-  completeButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-})
+  completeButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  })
+}
