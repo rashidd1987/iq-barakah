@@ -20,6 +20,9 @@ export interface ThemeColors {
   border: string
   completed: string
   incomplete: string
+  successSoft: string
+  danger: string
+  dangerSoft: string
   onPrimary: string
   overlay: string
   shadow: string
@@ -43,6 +46,9 @@ const classicLight: ThemeColors = {
   border: '#DDE3DB',
   completed: '#74866A',
   incomplete: '#8B928A',
+  successSoft: '#E8F1E9',
+  danger: '#A64B43',
+  dangerSoft: '#F8E9E6',
   onPrimary: '#F8F4E8',
   overlay: 'rgba(23,61,42,0.08)',
   shadow: '#102218',
@@ -66,6 +72,9 @@ const classicDark: ThemeColors = {
   border: 'rgba(201,168,76,0.18)',
   completed: '#71825F',
   incomplete: '#777C70',
+  successSoft: '#1D2A1F',
+  danger: '#D88478',
+  dangerSoft: '#2D1A18',
   onPrimary: '#F8F4E8',
   overlay: 'rgba(201,168,76,0.08)',
   shadow: '#000000',
@@ -89,6 +98,9 @@ const feminineLight: ThemeColors = {
   border: '#EBDADD',
   completed: '#74866A',
   incomplete: '#A77482',
+  successSoft: '#ECF2E9',
+  danger: '#A64B5B',
+  dangerSoft: '#F8E8EC',
   onPrimary: '#FFF9F5',
   overlay: 'rgba(185,122,133,0.09)',
   shadow: '#3D2835',
@@ -112,6 +124,9 @@ const feminineDark: ThemeColors = {
   border: 'rgba(198,161,91,0.17)',
   completed: '#71815F',
   incomplete: '#A96E80',
+  successSoft: '#252C21',
+  danger: '#D98798',
+  dangerSoft: '#321C25',
   onPrimary: '#FFF8F3',
   overlay: 'rgba(185,122,133,0.10)',
   shadow: '#000000',
