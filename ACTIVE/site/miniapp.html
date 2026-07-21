@@ -6879,12 +6879,23 @@ function readUrlParams() {
   }
 
   if (lvl && wk > 0 && lvl in LEVEL_OFFSET) {
-    U.level = lvl
-    U.currentWeek = LEVEL_OFFSET[lvl] + wk
-    // Save to localStorage so next opens without params still work
-    lsSet('level', lvl)
-    lsSet('currentWeek', U.currentWeek)
-    lsSet('skill', skill)
+    const urlWeek = LEVEL_OFFSET[lvl] + wk
+    const savedWeek = lsGet('currentWeek', 0)
+    // The persistent bottom-bar button bakes its URL params at the moment the bot
+    // last sent the keyboard — after the student advances, that URL goes stale and
+    // must never roll saved progress backwards. Only accept URL params that are
+    // equal or ahead of what this device already knows.
+    if (urlWeek >= savedWeek) {
+      U.level = lvl
+      U.currentWeek = urlWeek
+      // Save to localStorage so next opens without params still work
+      lsSet('level', lvl)
+      lsSet('currentWeek', U.currentWeek)
+      lsSet('skill', skill)
+    } else {
+      U.level = lsGet('level', lvl)
+      U.currentWeek = savedWeek
+    }
   }
   U.skill = ['I', 'II', 'III'].includes(skill) ? skill : 'I'
 
