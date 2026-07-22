@@ -24,7 +24,18 @@
       "versionCode": 20
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "IQ Barakah",
+      "shortName": "IQ Barakah",
+      "lang": "ru",
+      "scope": "/pwa/",
+      "themeColor": "#173D2A",
+      "backgroundColor": "#F7F5EE",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "baseUrl": "/pwa"
     },
     "plugins": [
       "expo-secure-store",
