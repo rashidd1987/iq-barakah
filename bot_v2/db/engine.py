@@ -1,6 +1,4 @@
 import logging
-import os
-import re
 
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -55,52 +53,6 @@ async def create_tables():
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_ensure_compat_columns)
-    await _grant_pwa_database_access()
-
-
-async def _grant_pwa_database_access():
-    """Grant the separate PWA API role only the shared-program access it needs.
-
-    Disabled unless PWA_DB_ROLE is explicitly configured. Grant failures are
-    logged but never prevent the Telegram bot from starting.
-    """
-    role = os.environ.get("PWA_DB_ROLE", "").strip()
-    if not role:
-        return
-    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", role):
-        logger.error("PWA_DB_ROLE has an invalid identifier; grants skipped")
-        return
-
-    quoted_role = '"' + role.replace('"', '""') + '"'
-    shared_permissions = {
-        "users": "SELECT",
-        "participants": "SELECT, UPDATE",
-        "tracker_records": "SELECT, INSERT, UPDATE",
-        "week_acks": "SELECT, INSERT, UPDATE",
-        "wheel_records": "SELECT, INSERT, UPDATE",
-        "muhasaba_logs": "SELECT, INSERT, UPDATE",
-    }
-    try:
-        async with _engine.begin() as conn:
-            database = await conn.scalar(text("SELECT current_database()"))
-            quoted_database = '"' + database.replace('"', '""') + '"'
-            await conn.execute(text(f"GRANT CONNECT ON DATABASE {quoted_database} TO {quoted_role}"))
-            await conn.execute(text(f"GRANT USAGE, CREATE ON SCHEMA public TO {quoted_role}"))
-
-            existing = set((await conn.execute(text(
-                "SELECT tablename FROM pg_tables WHERE schemaname='public'"
-            ))).scalars())
-            for table, permissions in shared_permissions.items():
-                if table in existing:
-                    await conn.execute(text(
-                        f'GRANT {permissions} ON TABLE "{table}" TO {quoted_role}'
-                    ))
-            await conn.execute(text(
-                f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO {quoted_role}"
-            ))
-        logger.info("PWA database access granted to configured role")
-    except Exception:
-        logger.exception("Could not grant PWA database access; bot startup will continue")
 
 
 def _ensure_compat_columns(sync_conn):
