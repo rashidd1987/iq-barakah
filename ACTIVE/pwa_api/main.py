@@ -219,6 +219,40 @@ async def me(user_id: int = Depends(verify_token)):
         raise HTTPException(404, 'Пользователь не найден')
     return dict(user)
 
+@app.get('/participant')
+async def pwa_participant(user_id: int = Depends(verify_token)):
+    """Return the bot program position for the Telegram account linked to this PWA user.
+
+    This endpoint is deliberately read-only.  The bot remains the source of truth for
+    level/week advancement; the PWA only mirrors the current position.
+    """
+    if not db_pool:
+        raise HTTPException(503, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        pwa_user = await conn.fetchrow(
+            'SELECT tg_id FROM pwa_users WHERE id=$1', user_id
+        )
+        if not pwa_user:
+            raise HTTPException(404, 'Пользователь не найден')
+        if not pwa_user['tg_id']:
+            return {'linked': False, 'active': False}
+
+        participant = await conn.fetchrow(
+            '''SELECT level, week, vakt_level, is_active
+               FROM participants
+               WHERE user_id=$1 AND is_active=TRUE''',
+            pwa_user['tg_id'],
+        )
+    if not participant:
+        return {'linked': True, 'active': False}
+    return {
+        'linked': True,
+        'active': True,
+        'level': participant['level'],
+        'week': participant['week'],
+        'vakt_level': participant['vakt_level'],
+    }
+
 @app.get('/progress')
 async def progress(user_id: int = Depends(verify_token)):
     if not db_pool:
@@ -269,7 +303,11 @@ async def save_ship(req: ShipReq, user_id: int = Depends(verify_token)):
     return {'ok': True}
 
 @app.delete('/me')
-async def delete_account(user_id: int = Depends(verify_token)):
+async def delete_account(confirm: str = '', user_id: int = Depends(verify_token)):
+    # Account deletion is destructive and must never be used as a logout shortcut.
+    # Existing clients that accidentally call DELETE /me now fail closed.
+    if confirm != 'DELETE':
+        raise HTTPException(400, 'Для удаления аккаунта требуется явное подтверждение')
     if not db_pool:
         return {'ok': True}
     async with db_pool.acquire() as conn:
@@ -371,6 +409,37 @@ async def debug_db():
             return {'db': 'connected', 'pwa_tables': [r['tablename'] for r in tables]}
     except Exception as e:
         return {'db': 'error', 'error': str(e)}
+
+@app.get('/debug/test-profile')
+async def debug_test_profile(secret: str):
+    """Временный read-only диагностический эндпоинт — удалить после разбора Test-профиля."""
+    if secret != BOT_SECRET:
+        return {'error': 'forbidden'}
+    if not db_pool:
+        return {'error': 'db not connected'}
+    async with db_pool.acquire() as conn:
+        conninfo = await conn.fetchrow(
+            "SELECT current_database() AS db, inet_server_addr()::text AS host, inet_server_port() AS port"
+        )
+        test_profiles = await conn.fetch('''
+            SELECT pu.id AS pwa_user_id, pu.name, pu.tg_id, pu.created_at,
+                   p.level, p.week, p.vakt_level, p.is_active
+            FROM pwa_users pu
+            LEFT JOIN participants p ON p.user_id = pu.tg_id
+            WHERE pu.name = 'Test'
+            ORDER BY pu.created_at DESC LIMIT 10
+        ''')
+        sessions = await conn.fetch('''
+            SELECT session_id, tg_id, tg_name, confirmed, created_at
+            FROM pwa_tg_sessions
+            WHERE confirmed = TRUE
+            ORDER BY created_at DESC LIMIT 10
+        ''')
+    return {
+        'conninfo': dict(conninfo),
+        'test_profiles': [dict(r) for r in test_profiles],
+        'confirmed_sessions': [dict(r) for r in sessions],
+    }
 
 # ── Analytics ─────────────────────────────────────────────────────────────────
 
