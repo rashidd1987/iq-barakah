@@ -57,6 +57,7 @@ export default function WheelScreen() {
   )
 
   const setScore = (key: string, val: number) => setScores((prev) => ({ ...prev, [key]: val }))
+  const average = (Object.values(scores).reduce((sum, value) => sum + value, 0) / SECTORS.length).toFixed(1)
 
   const save = async () => {
     setSaving(true)
@@ -87,9 +88,11 @@ export default function WheelScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScreenHeader badge="Баланс" title="Колесо жизни" subtitle="Оцените каждую сферу от 1 до 10" />
       <View style={styles.body}>
-      {lastSaved && (
-        <Text style={styles.lastSaved}>Последняя оценка: {new Date(lastSaved).toLocaleDateString('ru-RU')}</Text>
-      )}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryIcon}><Ionicons name="analytics" size={25} color={colors.gold} /></View>
+        <View style={styles.summaryCopy}><Text style={styles.summaryLabel}>Текущий баланс</Text><Text style={styles.summaryHint}>{lastSaved ? `Обновлено ${new Date(lastSaved).toLocaleDateString('ru-RU')}` : 'Первая оценка'}</Text></View>
+        <Text style={styles.average}>{average}<Text style={styles.averageMax}>/10</Text></Text>
+      </View>
 
       <View style={styles.card}>
         {SECTORS.map((s) => (
@@ -116,7 +119,7 @@ export default function WheelScreen() {
       </View>
 
       <Pressable style={styles.saveButton} onPress={save} disabled={saving}>
-        {saving ? <ActivityIndicator color={colors.onPrimary} /> : <Text style={styles.saveButtonText}>💾 Сохранить оценку</Text>}
+        {saving ? <ActivityIndicator color={colors.onPrimary} /> : <View style={styles.saveButtonContent}><Ionicons name="checkmark-circle-outline" size={20} color={colors.onPrimary} /><Text style={styles.saveButtonText}>Сохранить оценку</Text></View>}
       </Pressable>
       </View>
     </ScrollView>
@@ -130,12 +133,14 @@ const createStyles = (colors: ThemeColors) => {
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { paddingBottom: 32 },
   body: { padding: 16, marginTop: -16 },
-  lastSaved: { fontSize: 12, color: colors.muted, marginBottom: 16, marginTop: 12 },
+  summaryCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.card, padding: 15, marginBottom: 12, ...shadow.card },
+  summaryIcon: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  summaryCopy: { flex: 1 }, summaryLabel: { color: colors.text, fontSize: 14, fontWeight: '800' }, summaryHint: { color: colors.muted, fontSize: 11, marginTop: 3 },
+  average: { color: colors.text, fontSize: 23, fontWeight: '800' }, averageMax: { color: colors.muted, fontSize: 11, fontWeight: '600' },
   card: {
     backgroundColor: colors.card,
     borderRadius: radius.card,
     padding: 16,
-    marginTop: 12,
     marginBottom: 20,
     ...shadow.card,
   },
@@ -153,5 +158,7 @@ const createStyles = (colors: ThemeColors) => {
     alignItems: 'center',
   },
   saveButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
+  saveButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   })
 }
+import { Ionicons } from '@expo/vector-icons'

@@ -167,9 +167,7 @@ export default function DiagnosticScreen({ onContinue }: Props) {
             <View key={i} style={[styles.dot, i === step && styles.dotActive, i < step && styles.dotDone]} />
           ))}
         </View>
-        <View style={styles.iconCircle}>
-          <Text style={styles.iconCircleText}>⚓</Text>
-        </View>
+        <View style={styles.iconCircle}><Ionicons name="navigate" size={36} color={colors.gold} /></View>
         <Text style={styles.stepCounter}>Отсек {step + 1} из {QUESTIONS.length}</Text>
         <Text style={styles.question}>{q.text}</Text>
         <View style={styles.options}>
@@ -179,7 +177,7 @@ export default function DiagnosticScreen({ onContinue }: Props) {
             </Pressable>
           ))}
         </View>
-        <Text style={styles.privacyNote}>Это видишь только ты — здесь никто не оценивает</Text>
+        <View style={styles.privacyRow}><Ionicons name="lock-closed-outline" size={14} color={colors.muted} /><Text style={styles.privacyNote}>Это видишь только ты — здесь никто не оценивает</Text></View>
       </ScrollView>
     )
   }
@@ -233,7 +231,6 @@ const createStyles = (colors: ThemeColors) => {
     justifyContent: 'center',
     marginBottom: 16,
   },
-  iconCircleText: { fontSize: 38 },
   stepCounter: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', marginBottom: 12 },
   question: { fontSize: 20, fontWeight: '700', color: colors.g1, textAlign: 'center', marginBottom: 32, lineHeight: 28 },
   options: { gap: 12 },
@@ -241,11 +238,12 @@ const createStyles = (colors: ThemeColors) => {
     backgroundColor: colors.card,
     borderRadius: radius.card,
     padding: 16,
-    alignItems: 'center',
+    alignItems: 'center', borderWidth: 1, borderColor: colors.border,
     ...shadow.card,
   },
-  optionLabel: { fontSize: 16, fontWeight: '600', color: colors.text },
-  privacyNote: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 24 },
+  optionLabel: { fontSize: 15, lineHeight: 21, fontWeight: '600', color: colors.text },
+  privacyRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 24 },
+  privacyNote: { fontSize: 12, color: colors.muted, textAlign: 'center', flexShrink: 1 },
   mapTitle: { fontSize: 22, fontWeight: '800', color: colors.g1, textAlign: 'center', marginBottom: 20 },
   mapCard: {
     backgroundColor: colors.card,
@@ -271,3 +269,4 @@ const createStyles = (colors: ThemeColors) => {
   continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   })
 }
+import { Ionicons } from '@expo/vector-icons'
