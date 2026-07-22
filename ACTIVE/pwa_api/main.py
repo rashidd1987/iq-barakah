@@ -222,12 +222,30 @@ async def me(user_id: int = Depends(verify_token)):
 @app.get('/progress')
 async def progress(user_id: int = Depends(verify_token)):
     if not db_pool:
-        return {'week': 1, 'tracker': {}, 'wheel': {}, 'ship': {}}
+        return {'participant': None, 'tracker': {}, 'wheel': {}, 'ship': []}
     async with db_pool.acquire() as conn:
+        user = await conn.fetchrow('SELECT tg_id FROM pwa_users WHERE id=$1', user_id)
+        participant = None
+        if user and user['tg_id']:
+            participant = await conn.fetchrow(
+                '''SELECT level, week, vakt_level
+                   FROM participants
+                   WHERE user_id=$1 AND is_active=TRUE''',
+                user['tg_id'],
+            )
         tracker = await conn.fetch('SELECT date, data FROM pwa_tracker WHERE user_id=$1 ORDER BY date DESC LIMIT 30', user_id)
         wheel   = await conn.fetchrow('SELECT scores FROM pwa_wheel WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1', user_id)
         ship    = await conn.fetch('SELECT type, scores, avg, created_at FROM pwa_ship WHERE user_id=$1 ORDER BY created_at DESC LIMIT 2', user_id)
+    participant_data = None
+    if participant:
+        participant_data = {
+            'level': participant['level'],
+            'week': participant['week'],
+            'global_week': LEVEL_OFFSET.get(participant['level'], 0) + participant['week'],
+            'vakt_level': participant['vakt_level'] or 'I',
+        }
     return {
+        'participant': participant_data,
         'tracker': {r['date']: r['data'] for r in tracker},
         'wheel':   dict(wheel['scores']) if wheel else {},
         'ship':    [dict(r) for r in ship],

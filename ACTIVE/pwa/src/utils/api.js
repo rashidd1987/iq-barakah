@@ -35,6 +35,8 @@ export const api = {
   register: (name, email, password) => req('POST', '/auth/register', { name, email, password }),
   me:       () => req('GET', '/me'),
   progress: () => req('GET', '/progress'),
+  telegramInit:  () => req('POST', '/auth/tg-init'),
+  telegramCheck: (sessionId) => req('GET', `/auth/tg-check?session_id=${encodeURIComponent(sessionId)}`),
   saveTracker: (data) => req('POST', '/tracker', data),
   saveWheel:   (data) => req('POST', '/wheel', data),
   saveShip:    (data) => req('POST', '/ship', data),
