@@ -1,8 +1,9 @@
+import { Ionicons } from '@expo/vector-icons'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import React, { useMemo } from 'react'
-import { ActivityIndicator, Text, View } from 'react-native'
+import { ActivityIndicator, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import ActivityFeedScreen from '../screens/ActivityFeedScreen'
@@ -22,18 +23,26 @@ const Tab = createBottomTabNavigator<RootTabParamList>()
 const LessonsStack = createNativeStackNavigator<LessonsStackParamList>()
 const HomeStack = createNativeStackNavigator<HomeStackParamList>()
 
-const TAB_ICONS: Record<keyof RootTabParamList, string> = {
-  Home: '🏠',
-  Lessons: '📚',
-  Tracker: '✅',
-  Wheel: '🎯',
-  Profile: '👤',
-}
+const TAB_ICONS = {
+  Home: { active: 'home', inactive: 'home-outline' },
+  Lessons: { active: 'book', inactive: 'book-outline' },
+  Tracker: { active: 'checkbox', inactive: 'checkbox-outline' },
+  Wheel: { active: 'analytics', inactive: 'analytics-outline' },
+  Profile: { active: 'person', inactive: 'person-outline' },
+} as const
+
+const stackHeaderOptions = (colors: ReturnType<typeof useTheme>['colors']) => ({
+  headerTintColor: colors.g2,
+  headerStyle: { backgroundColor: colors.card },
+  headerTitleStyle: { color: colors.text, fontWeight: '700' as const },
+  headerShadowVisible: false,
+  contentStyle: { backgroundColor: colors.bg },
+})
 
 function LessonsNavigator() {
   const { colors } = useTheme()
   return (
-    <LessonsStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
+    <LessonsStack.Navigator screenOptions={stackHeaderOptions(colors)}>
       <LessonsStack.Screen name="LessonsList" component={LessonsScreen} options={{ headerShown: false }} />
       <LessonsStack.Screen
         name="LessonDetail"
@@ -47,7 +56,7 @@ function LessonsNavigator() {
 function HomeNavigator() {
   const { colors } = useTheme()
   return (
-    <HomeStack.Navigator screenOptions={{ headerTintColor: colors.g1 }}>
+    <HomeStack.Navigator screenOptions={stackHeaderOptions(colors)}>
       <HomeStack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
       <HomeStack.Screen name="Muhasaba" component={MuhasabaScreen} options={{ title: 'Вечерний самоотчёт' }} />
       <HomeStack.Screen name="ActivityFeed" component={ActivityFeedScreen} options={{ headerShown: false }} />
@@ -60,10 +69,25 @@ function Tabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerTintColor: colors.g1,
-        tabBarActiveTintColor: colors.g2,
+        headerTintColor: colors.g2,
+        tabBarActiveTintColor: colors.gold,
         tabBarInactiveTintColor: colors.muted,
-        tabBarIcon: () => <Text>{TAB_ICONS[route.name]}</Text>,
+        tabBarHideOnKeyboard: true,
+        tabBarIcon: ({ color, size, focused }) => (
+          <Ionicons
+            name={focused ? TAB_ICONS[route.name].active : TAB_ICONS[route.name].inactive}
+            color={color}
+            size={focused ? size + 1 : size}
+          />
+        ),
+        tabBarStyle: {
+          height: 70,
+          paddingTop: 7,
+          paddingBottom: 8,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700' },
       })}
     >
       <Tab.Screen name="Home" component={HomeNavigator} options={{ title: 'Главная', headerShown: false }} />
