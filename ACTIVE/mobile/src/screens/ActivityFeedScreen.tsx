@@ -60,10 +60,10 @@ export default function ActivityFeedScreen() {
     >
       <ScreenHeader badge="Джамаат" title="Лента побед" subtitle="Кто чего достиг на пути — читай, вдохновляйся" />
       <View style={styles.body}>
-        {items.length === 0 && <Text style={styles.empty}>Пока никто не завершал шаги — стань первым 🌱</Text>}
+        {items.length === 0 && <View style={styles.empty}><View style={styles.emptyIcon}><Ionicons name="people-outline" size={29} color={colors.gold} /></View><Text style={styles.emptyTitle}>Пока здесь тихо</Text><Text style={styles.emptyText}>Заверши шаг и стань первым в ленте побед.</Text></View>}
         {items.map((item, i) => (
           <View key={i} style={[styles.card, item.is_me && styles.cardMe]}>
-            <Text style={styles.icon}>🎉</Text>
+            <View style={styles.icon}><Ionicons name="sparkles" size={20} color={colors.gold} /></View>
             <View style={styles.info}>
               <Text style={styles.text}>
                 <Text style={styles.name}>{item.is_me ? 'Ты' : item.first_name}</Text> прошёл Шаг {item.global_week}
@@ -84,7 +84,9 @@ const createStyles = (colors: ThemeColors) => {
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   content: { paddingBottom: 32 },
   body: { padding: 16, marginTop: -16 },
-  empty: { textAlign: 'center', color: colors.muted, fontSize: 14, marginTop: 24 },
+  empty: { alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.card, padding: 28, marginTop: 8, ...shadow.card },
+  emptyIcon: { width: 58, height: 58, borderRadius: 20, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  emptyTitle: { color: colors.text, fontSize: 16, fontWeight: '800' }, emptyText: { color: colors.muted, fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 5 },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -95,10 +97,11 @@ const createStyles = (colors: ThemeColors) => {
     ...shadow.card,
   },
   cardMe: { backgroundColor: colors.gpale },
-  icon: { fontSize: 22, marginRight: 12 },
+  icon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   info: { flex: 1 },
   text: { fontSize: 14, color: colors.text },
   name: { fontWeight: '700', color: colors.g2 },
   time: { fontSize: 12, color: colors.muted, marginTop: 2 },
   })
 }
+import { Ionicons } from '@expo/vector-icons'

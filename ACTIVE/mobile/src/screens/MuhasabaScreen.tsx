@@ -40,6 +40,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
   const [reflection, setReflection] = useState<string | null>(null)
   const [checkingToday, setCheckingToday] = useState(true)
   const [alreadyDoneToday, setAlreadyDoneToday] = useState(false)
+  const [saveError, setSaveError] = useState(false)
 
   const checkToday = useCallback(() => {
     setCheckingToday(true)
@@ -66,6 +67,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
       return
     }
     setSaving(true)
+    setSaveError(false)
     try {
       const saveRes = await api.saveMuhasaba(QUESTIONS.map((q, i) => ({ q: q.q, a: answers[i] })))
       setReflection(saveRes.reflection)
@@ -73,7 +75,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
       setStreak(res.streak)
       setDone(true)
     } catch {
-      // stay on the last question — the user can retry "Завершить"
+      setSaveError(true)
     } finally {
       setSaving(false)
     }
@@ -90,7 +92,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
   if (alreadyDoneToday && !done) {
     return (
       <View style={styles.center}>
-        <Text style={styles.doneIcon}>🌙</Text>
+        <View style={styles.doneIcon}><Ionicons name="moon" size={34} color={colors.gold} /></View>
         <Text style={styles.doneTitle}>Сегодня уже отвечал</Text>
         <Text style={styles.doneText}>Вечерний самоотчёт на сегодня уже записан. До встречи завтра.</Text>
         <Pressable style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -103,7 +105,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
   if (done) {
     return (
       <ScrollView contentContainerStyle={styles.doneContent}>
-        <Text style={styles.doneIcon}>🌿</Text>
+        <View style={styles.doneIcon}><Ionicons name="leaf" size={34} color={colors.gold} /></View>
         <Text style={styles.doneTitle}>Баракаллаху фик</Text>
         {reflection ? (
           <View style={styles.jarwasCard}>
@@ -138,6 +140,7 @@ export default function MuhasabaScreen({ navigation }: Props) {
         multiline
         autoFocus
       />
+      {saveError && <View style={styles.errorRow}><Ionicons name="alert-circle-outline" size={17} color={colors.danger} /><Text style={styles.errorText}>Не удалось сохранить. Проверь интернет и повтори.</Text></View>}
       <Pressable style={styles.continueButton} onPress={next} disabled={saving || !answers[step].trim()}>
         {saving ? (
           <ActivityIndicator color={colors.onPrimary} />
@@ -178,7 +181,7 @@ const createStyles = (colors: ThemeColors) => {
     alignItems: 'center',
   },
   continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
-  doneIcon: { fontSize: 48, marginBottom: 12 },
+  doneIcon: { width: 72, height: 72, borderRadius: 24, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   doneTitle: { fontSize: 22, fontWeight: '700', color: colors.g1, marginBottom: 8, textAlign: 'center' },
   doneText: { fontSize: 14, color: colors.sub, textAlign: 'center', marginBottom: 16, lineHeight: 20 },
   streakText: { fontSize: 15, fontWeight: '700', color: colors.gold, marginBottom: 24 },
@@ -199,5 +202,8 @@ const createStyles = (colors: ThemeColors) => {
     borderRadius: radius.button,
   },
   backButtonText: { color: colors.onPrimary, fontSize: 15, fontWeight: '600' },
+  errorRow: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.dangerSoft, borderRadius: 12, padding: 11, marginBottom: 14 },
+  errorText: { flex: 1, color: colors.danger, fontSize: 12, lineHeight: 17 },
   })
 }
+import { Ionicons } from '@expo/vector-icons'

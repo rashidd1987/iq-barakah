@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { radius, ThemeColors } from '../theme/colors'
+import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { LoginStatus, loginWithTelegram } from '../utils/auth'
 
 const STATUS_LABEL: Record<LoginStatus, string> = {
@@ -35,15 +35,17 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>🌱</Text>
+      <View style={styles.logo}><Ionicons name="leaf" size={35} color={colors.gold} /></View>
+      <Text style={styles.eyebrow}>ПУТЬ К ПОСТОЯНСТВУ</Text>
       <Text style={styles.title}>IQ Barakah</Text>
-      <Text style={styles.subtitle}>Программа личностного развития</Text>
+      <Text style={styles.subtitle}>Малые и постоянные шаги{`\n`}к осознанной жизни</Text>
 
-      <Pressable style={styles.button} onPress={handleLogin} disabled={busy}>
+      <View style={styles.loginCard}>
+      <Pressable style={[styles.button, busy && styles.buttonDisabled]} onPress={handleLogin} disabled={busy}>
         {busy ? (
           <ActivityIndicator color={colors.onPrimary} />
         ) : (
-          <Text style={styles.buttonText}>Войти через Telegram</Text>
+          <><Ionicons name="paper-plane" size={19} color={colors.onPrimary} /><Text style={styles.buttonText}>Войти через Telegram</Text></>
         )}
       </Pressable>
 
@@ -52,13 +54,16 @@ export default function LoginScreen() {
       <Text style={styles.hint}>
         Вход доступен только участникам программы, уже активированным куратором в боте.
       </Text>
+      </View>
 
       <Text style={styles.buildTag}>build {Application.nativeBuildVersion ?? '?'}</Text>
     </View>
   )
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const shadow = makeShadow(colors)
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -66,19 +71,23 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
     padding: 24,
   },
-  logo: { fontSize: 56, marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '700', color: colors.g1, marginBottom: 4 },
-  subtitle: { fontSize: 15, color: colors.sub, marginBottom: 32, textAlign: 'center' },
+  logo: { width: 76, height: 76, borderRadius: 26, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  eyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.3, color: colors.gold, marginBottom: 7 },
+  title: { fontSize: 31, fontWeight: '800', color: colors.text, marginBottom: 7 },
+  subtitle: { fontSize: 15, lineHeight: 22, color: colors.sub, marginBottom: 28, textAlign: 'center' },
+  loginCard: { width: '100%', maxWidth: 380, backgroundColor: colors.card, borderRadius: radius.card, padding: 18, ...shadow.card },
   button: {
     backgroundColor: colors.g2,
     paddingVertical: 14,
     paddingHorizontal: 28,
     borderRadius: radius.button,
-    minWidth: 240,
-    alignItems: 'center',
+    minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9,
   },
+  buttonDisabled: { opacity: 0.75 },
   buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   status: { marginTop: 16, color: colors.sub, textAlign: 'center' },
-  hint: { marginTop: 40, color: colors.muted, fontSize: 12, textAlign: 'center', paddingHorizontal: 16 },
+  hint: { marginTop: 22, color: colors.muted, fontSize: 11, lineHeight: 17, textAlign: 'center', paddingHorizontal: 8 },
   buildTag: { marginTop: 16, color: colors.border, fontSize: 11 },
-})
+  })
+}
+import { Ionicons } from '@expo/vector-icons'

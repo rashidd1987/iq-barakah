@@ -13,7 +13,7 @@ export default function ErrorState({ message = 'Не удалось загруз
   const styles = useMemo(() => createStyles(colors), [colors])
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>⚠️</Text>
+      <View style={styles.icon}><Ionicons name="cloud-offline-outline" size={31} color={colors.gold} /></View>
       <Text style={styles.message}>{message}</Text>
       <Text style={styles.hint}>Проверьте интернет-соединение</Text>
       <Pressable style={styles.button} onPress={onRetry}>
@@ -25,7 +25,7 @@ export default function ErrorState({ message = 'Не удалось загруз
 
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.bg },
-  icon: { fontSize: 32, marginBottom: 12 },
+  icon: { width: 64, height: 64, borderRadius: 22, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   message: { fontSize: 15, fontWeight: '600', color: colors.text, textAlign: 'center' },
   hint: { fontSize: 13, color: colors.muted, marginTop: 4, marginBottom: 20, textAlign: 'center' },
   button: {
@@ -36,3 +36,4 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   buttonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '600' },
 })
+import { Ionicons } from '@expo/vector-icons'
