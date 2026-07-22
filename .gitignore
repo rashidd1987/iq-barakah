@@ -9,6 +9,7 @@ __pycache__/
 *.zip
 *.doc
 graphify-out/
+artifacts/
 gstack-main/
 gstack-main.zip
 iq\ baraka.zip
