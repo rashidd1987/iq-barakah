@@ -1,4 +1,5 @@
-import { haptic, sendData } from '../utils/tg.js'
+import { addToHomeScreen, checkHomeScreenStatus, haptic, sendData, tg } from '../utils/tg.js'
+import { lsGet, lsSet } from '../utils/storage.js'
 
 export function openSheet(id) {
   document.getElementById(`ov-${id}`)?.classList.add('open')
@@ -44,6 +45,98 @@ export function showToast(msg) {
     t.style.opacity = '1'; t.style.transform = 'translateX(-50%) translateY(0)'
     setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(20px)' }, 2200)
   })
+}
+
+// ── Telegram home-screen shortcut ──────────────────────────────────────────
+const HOME_HINT_DISMISSED_KEY = 'home_shortcut_hint_dismissed'
+
+export function initHomeScreenShortcut(completedSteps = 0) {
+  const avatar = document.getElementById('ava')
+  const installButton = document.getElementById('btn-add-home-screen')
+  const closeButton = document.getElementById('btn-close-profile')
+  const overlay = document.getElementById('ov-profile')
+
+  const openProfile = () => {
+    haptic()
+    openSheet('profile')
+    refreshHomeScreenStatus()
+  }
+
+  avatar?.addEventListener('click', openProfile)
+  closeButton?.addEventListener('click', () => closeSheet('profile'))
+  overlay?.addEventListener('click', () => closeSheet('profile'))
+  installButton?.addEventListener('click', requestHomeScreenShortcut)
+
+  tg?.onEvent?.('homeScreenAdded', () => {
+    lsSet(HOME_HINT_DISMISSED_KEY, true)
+    document.getElementById('home-shortcut-slot')?.replaceChildren()
+    closeSheet('profile')
+    showToast('Иконка IQ Barakah добавлена')
+  })
+
+  // Show once after three completed steps. The avatar option remains available.
+  if (completedSteps >= 3 && !lsGet(HOME_HINT_DISMISSED_KEY, false)) {
+    checkHomeScreenStatus((status) => {
+      if (status === 'added' || status === 'unsupported') return
+      renderHomeScreenHint()
+    })
+  }
+}
+
+function refreshHomeScreenStatus() {
+  const button = document.getElementById('btn-add-home-screen')
+  const statusText = document.getElementById('home-screen-status')
+  if (!button || !statusText) return
+
+  checkHomeScreenStatus((status) => {
+    if (status === 'added') {
+      button.disabled = true
+      button.querySelector('.profile-action-title').textContent = 'Уже на главном экране'
+      statusText.textContent = 'Иконка IQ Barakah уже добавлена на телефон'
+      return
+    }
+    if (status === 'unsupported') {
+      button.disabled = true
+      button.querySelector('.profile-action-title').textContent = 'Недоступно на этом устройстве'
+      statusText.textContent = 'Обновите Telegram на телефоне и откройте мини-приложение снова'
+      return
+    }
+    button.disabled = false
+    button.querySelector('.profile-action-title').textContent = 'Добавить на главный экран'
+    statusText.textContent = 'IQ Barakah будет открываться отдельной иконкой через Telegram'
+  })
+}
+
+function requestHomeScreenShortcut() {
+  haptic()
+  if (!addToHomeScreen()) {
+    showToast('Обновите Telegram, чтобы добавить иконку')
+    return
+  }
+  lsSet(HOME_HINT_DISMISSED_KEY, true)
+}
+
+function renderHomeScreenHint() {
+  const slot = document.getElementById('home-shortcut-slot')
+  if (!slot) return
+
+  slot.innerHTML = `
+    <div class="home-shortcut-hint">
+      <button class="home-shortcut-dismiss" type="button" aria-label="Закрыть">×</button>
+      <div class="home-shortcut-icon">📲</div>
+      <div class="home-shortcut-copy">
+        <div class="home-shortcut-title">IQ Barakah всегда под рукой</div>
+        <div class="home-shortcut-sub">Добавьте мини-приложение отдельной иконкой на телефон</div>
+      </div>
+      <button class="home-shortcut-add" type="button">Добавить</button>
+    </div>`
+
+  slot.querySelector('.home-shortcut-add')?.addEventListener('click', requestHomeScreenShortcut)
+  slot.querySelector('.home-shortcut-dismiss')?.addEventListener('click', () => {
+    lsSet(HOME_HINT_DISMISSED_KEY, true)
+    slot.innerHTML = ''
+  })
+
 }
 
 // ── Review sheet state ──

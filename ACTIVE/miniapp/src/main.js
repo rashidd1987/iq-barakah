@@ -7,7 +7,7 @@ import { setCurrentWeek } from './screens/lessons.js'
 import { renderTracker } from './screens/tracker.js'
 import { initNav, rerenderCurrentScreen } from './app.js'
 import { initDiagnostic, openDiag } from './components/diagnostic.js'
-import { initReviewSheet, openReviewSheet } from './components/sheets.js'
+import { initHomeScreenShortcut, initReviewSheet, openReviewSheet } from './components/sheets.js'
 import { WEEKS } from './data/weeks.js'
 import { lsGet, lsSet } from './utils/storage.js'
 import { isChecked, getTrackerPayload } from './screens/tracker.js'
@@ -20,6 +20,7 @@ initI18n()
 window.showGlossaryTip = showGlossaryTip
 initHome()
 initOnboarding()
+initHomeScreenShortcut(U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0)
 
 // Sync currentWeek from user state into lessons module
 setCurrentWeek(U.currentWeek)

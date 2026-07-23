@@ -27,6 +27,28 @@ export function getTgUser() {
   return tg?.initDataUnsafe?.user ?? null
 }
 
+export function checkHomeScreenStatus(callback) {
+  if (!tg?.checkHomeScreenStatus || (tg.isVersionAtLeast && !tg.isVersionAtLeast('8.0'))) {
+    callback('unsupported')
+    return
+  }
+  try {
+    tg.checkHomeScreenStatus(callback)
+  } catch {
+    callback('unsupported')
+  }
+}
+
+export function addToHomeScreen() {
+  if (!tg?.addToHomeScreen || (tg.isVersionAtLeast && !tg.isVersionAtLeast('8.0'))) return false
+  try {
+    tg.addToHomeScreen()
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function cloudGet(key, cb) {
   tg?.CloudStorage?.getItem(key, cb)
 }
