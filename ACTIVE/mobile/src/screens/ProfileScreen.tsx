@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as Application from 'expo-application'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -9,6 +9,7 @@ import { globalWeekIndex, TOTAL_STEPS } from '../data/weeks'
 import { makeShadow, radius, ThemeColors, ThemeMode, ThemePalette } from '../theme/colors'
 import { api } from '../utils/api'
 import { registerForPushNotifications } from '../utils/push'
+import { getPwaInstallStatus, promptPwaInstall, PwaInstallStatus, subscribePwaInstallStatus } from '../utils/pwaInstall'
 import { lsGet, lsSet } from '../utils/storage'
 
 const PUSH_ENABLED_KEY = 'push_enabled'
@@ -41,6 +42,8 @@ export default function ProfileScreen() {
   const [muhasabaStreak, setMuhasabaStreak] = useState(0)
   const [completedSteps, setCompletedSteps] = useState(0)
   const [wheelDone, setWheelDone] = useState(false)
+  const [pwaInstallStatus, setPwaInstallStatus] = useState<PwaInstallStatus>(getPwaInstallStatus())
+  const [showInstallHelp, setShowInstallHelp] = useState(false)
 
   useEffect(() => {
     api.participant().then((p) => {
@@ -57,6 +60,11 @@ export default function ProfileScreen() {
       setPushEnabled(!!token)
       if (!token) await lsSet(PUSH_ENABLED_KEY, false)
     })
+  }, [])
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+    return subscribePwaInstallStatus(setPwaInstallStatus)
   }, [])
 
   const achievements: Achievement[] = [
@@ -89,6 +97,16 @@ export default function ProfileScreen() {
     } finally {
       setTogglingPush(false)
     }
+  }
+
+  const handlePwaInstall = async () => {
+    if (pwaInstallStatus === 'installed') return
+    if (pwaInstallStatus === 'installable') {
+      const installed = await promptPwaInstall()
+      if (installed) setShowInstallHelp(false)
+      return
+    }
+    setShowInstallHelp(true)
   }
 
   return (
@@ -144,6 +162,28 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Настройки</Text>
         <View style={[styles.card, styles.settingsCard]}>
+          {Platform.OS === 'web' && (
+            <>
+              <Pressable style={styles.settingRow} onPress={handlePwaInstall} disabled={pwaInstallStatus === 'installed'}>
+                <View style={styles.settingIcon}><Ionicons name={pwaInstallStatus === 'installed' ? 'checkmark-circle-outline' : 'phone-portrait-outline'} size={21} color={colors.g2} /></View>
+                <View style={styles.settingCopy}>
+                  <Text style={styles.settingTitle}>{pwaInstallStatus === 'installed' ? 'Приложение установлено' : 'Установить на телефон'}</Text>
+                  <Text style={styles.settingSub}>{pwaInstallStatus === 'installed' ? 'IQ Barakah уже на главном экране' : 'Добавить отдельную иконку IQ Barakah'}</Text>
+                </View>
+                {pwaInstallStatus !== 'installed' && <Ionicons name="chevron-forward" size={19} color={colors.muted} />}
+              </Pressable>
+              {showInstallHelp && pwaInstallStatus !== 'installed' && (
+                <View style={styles.installHelp}>
+                  <Ionicons name="information-circle-outline" size={20} color={colors.gold} />
+                  <View style={styles.installHelpCopy}>
+                    <Text style={styles.installHelpTitle}>{pwaInstallStatus === 'ios' ? 'Установка на iPhone' : 'Установка через браузер'}</Text>
+                    <Text style={styles.installHelpText}>{pwaInstallStatus === 'ios' ? 'Откройте эту страницу в Safari, нажмите «Поделиться» и выберите «На экран Домой».' : 'Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».'}</Text>
+                  </View>
+                </View>
+              )}
+              <View style={styles.separator} />
+            </>
+          )}
           <View style={styles.settingRow}>
             <View style={styles.settingIcon}><Ionicons name="notifications-outline" size={21} color={colors.g2} /></View>
             <View style={styles.settingCopy}><Text style={styles.settingTitle}>Напоминания</Text><Text style={styles.settingSub}>Фаджр и пятница</Text></View>
@@ -201,6 +241,7 @@ const createStyles = (colors: ThemeColors) => {
     optionLabel: { color: colors.text, fontSize: 13, fontWeight: '700' }, optionLabelSelected: { color: colors.g2 }, optionSub: { color: colors.muted, fontSize: 10, lineHeight: 14, marginTop: 3 },
     modeTitle: { marginTop: 18 }, modeRow: { flexDirection: 'row', gap: 7 }, modeOption: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 12, backgroundColor: colors.cardRaised, borderWidth: 1, borderColor: colors.border }, modeSelected: { borderColor: colors.gold, backgroundColor: colors.overlay }, modeText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
     settingsCard: { paddingHorizontal: 16, marginBottom: 24 }, settingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center' }, settingIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', marginRight: 12 }, settingCopy: { flex: 1 }, settingTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, settingSub: { color: colors.muted, fontSize: 11, marginTop: 3 }, separator: { height: 1, backgroundColor: colors.border, marginLeft: 52 },
+    installHelp: { flexDirection: 'row', gap: 9, padding: 12, marginBottom: 12, borderRadius: 13, backgroundColor: colors.goldpale }, installHelpCopy: { flex: 1 }, installHelpTitle: { color: colors.text, fontSize: 12, fontWeight: '800' }, installHelpText: { color: colors.sub, fontSize: 11, lineHeight: 16, marginTop: 3 },
     achievementsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }, achievement: { width: '48%', minHeight: 74, padding: 11, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.button, ...shadow.card }, achievementLocked: { elevation: 0, shadowOpacity: 0, borderWidth: 1, borderColor: colors.border }, achievementIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.overlay, marginRight: 9 }, achievementIconUnlocked: { backgroundColor: colors.goldpale }, achievementLabel: { flex: 1, color: colors.text, fontSize: 11, lineHeight: 15, fontWeight: '700' }, achievementLabelLocked: { color: colors.muted },
     logoutButton: { minHeight: 52, borderRadius: radius.button, borderWidth: 1, borderColor: colors.dangerSoft, backgroundColor: colors.card, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' }, logoutText: { color: colors.danger, fontSize: 14, fontWeight: '700' }, buildTag: { textAlign: 'center', color: colors.muted, fontSize: 10, marginTop: 14 },
   })
