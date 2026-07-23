@@ -41,7 +41,7 @@ interface TrackerPreviewItem {
 const EXTRA_LINKS = [
   { id: 'feed', icon: '✦', title: 'Лента побед', sub: 'Прогресс джамаата' },
   { id: 'wheel', icon: '◉', title: 'Баланс', sub: 'Восемь сфер жизни' },
-  { id: 'muhasaba', icon: '✎', title: 'Мухасаба', sub: 'Три вопроса вечером' },
+  { id: 'muhasaba', icon: '✎', title: 'Вечерний отчёт (Мухасаба)', sub: 'Три вопроса вечером' },
   { id: 'ship', icon: '⚓', title: 'Корабль', sub: 'Диагностика 15 отсеков' },
 ] as const
 
