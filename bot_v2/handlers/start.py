@@ -396,6 +396,86 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
                 pass
         return
 
+    if payload.startswith("olp_"):
+        # Лидер мнения — Старт навсегда + Путь на 30 дней
+        from bot_v2.db.repositories import ParticipantRepo, SettingsRepo
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        import time as _time
+
+        _settings = SettingsRepo(session)
+
+        existing = await ParticipantRepo(session).get(message.from_user.id)
+        if existing and existing.is_active:
+            from bot_v2.services.barakah import ensure_referral_code
+            ref_code = await ensure_referral_code(session, db_user)
+            await session.flush()
+            await message.answer(
+                "🌱 У тебя уже открыт доступ к программе.\n\nНажми *Мой путь* чтобы продолжить.",
+                parse_mode="Markdown",
+                reply_markup=kb_bottom_menu(config.miniapp_url, lang, existing),
+            )
+            await message.answer(
+                f"🤝 *Твоя реферальная ссылка для аудитории:*\n\n"
+                f"`https://t.me/iqbaraka_bot?start=ref_{ref_code}`\n\n"
+                f"Делись ею — получишь 10% Баракатами с каждой оплаты твоих подписчиков.",
+                parse_mode="Markdown",
+            )
+            return
+
+        olp_suffix = payload[4:]
+        if olp_suffix.isdigit() and not db_user.referred_by:
+            leader_id = int(olp_suffix)
+            if leader_id != message.from_user.id:
+                db_user.referred_by = leader_id
+                await session.flush()
+
+        from bot_v2.services.barakah import ensure_referral_code
+        ref_code = await ensure_referral_code(session, db_user)
+        # gift_full_pending — сигнал korablik: активировать level Б + сохранить path_until
+        await _settings.set(f"gift_full_pending:{message.from_user.id}", "1")
+        await _settings.set(f"partner_pending:{message.from_user.id}", ref_code)
+        await session.flush()
+
+        name_first = (db_user.name or "").split()[0] if db_user.name else ""
+        greeting = f", {name_first}" if name_first else ""
+
+        await message.answer(
+            t(lang, "menu.updated", version=config.version),
+            reply_markup=kb_bottom_menu(config.miniapp_url, lang, None),
+            parse_mode=None,
+        )
+        await message.answer(
+            f"🌿 Ас-саляму алейкум{greeting}!\n\n"
+            f"Тебе открыт *полный доступ к IQ Barakah* — 6 шагов Старта навсегда и Путь (24 недели) на 30 дней.\n\n"
+            f"Прежде чем начать — пройди короткую диагностику.\n"
+            f"7 вопросов · 2 минуты · определит твой уровень. 🌱",
+            parse_mode="Markdown",
+        )
+        await message.answer(
+            "👇 Нажми чтобы определить твой уровень:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🚢 Пройти диагностику", callback_data="korablik_start")],
+            ]),
+        )
+
+        from bot_v2.keyboards.inline import kb_curator_contact
+        _uname = db_user.username if db_user and db_user.username else None
+        for curator_id in config.curator_ids:
+            try:
+                await message.bot.send_message(
+                    curator_id,
+                    f"🌟 *Лидер мнения (полный доступ) активировал ссылку*\n\n"
+                    f"👤 {db_user.name or '—'} (`{message.from_user.id}`)\n"
+                    f"🔗 Источник: `{payload}`\n"
+                    f"🎯 Реф. код: `ref_{ref_code}`\n"
+                    f"📅 Путь доступен 30 дней",
+                    parse_mode="Markdown",
+                    reply_markup=kb_curator_contact(message.from_user.id, _uname),
+                )
+            except Exception:
+                pass
+        return
+
     if payload == "gift":
         # Бесплатный доступ к IQ Barakah Старт — сначала диагностика, потом урок
         from bot_v2.db.repositories import ParticipantRepo, SettingsRepo

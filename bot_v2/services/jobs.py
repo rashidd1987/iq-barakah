@@ -429,6 +429,61 @@ async def job_check_payments(bot, config):
                             db_pay.status = "failed"
 
 
+async def job_check_path_trials(bot):
+    """Раз в день — даунгрейд лидеров мнения у которых истёк 30-дневный доступ к Пути."""
+    import time as _time
+    from bot_v2.db.engine import get_session_factory
+    from bot_v2.db.repositories import SettingsRepo, ParticipantRepo
+
+    now = int(_time.time())
+
+    try:
+        async with get_session_factory()() as session:
+            async with session.begin():
+                from sqlalchemy import text
+                result = await session.execute(
+                    text("SELECT key, value FROM bot_settings WHERE key LIKE 'path_until:%'")
+                )
+                rows = result.fetchall()
+    except Exception as _e:
+        logger.warning("job_check_path_trials: %s", _e)
+        return
+
+    for key, value in rows:
+        if value in ("", "done"):
+            continue
+        try:
+            expires_at = int(value)
+        except ValueError:
+            continue
+        if now < expires_at:
+            continue
+
+        uid = int(key.split(":")[1])
+
+        async with get_session_factory()() as session:
+            async with session.begin():
+                p_repo = ParticipantRepo(session)
+                participant = await p_repo.get(uid)
+                if participant and participant.is_active and participant.level == "Б":
+                    # Даунгрейд до Старта (level А, неделя 1)
+                    participant.level = "А"
+                    participant.week = 1
+                s_repo = SettingsRepo(session)
+                await s_repo.set(key, "done")
+
+        try:
+            await bot.send_message(
+                uid,
+                "🌙 *Твой пробный доступ к Пути завершился.*\n\n"
+                "Старт (6 шагов) остался с тобой навсегда.\n\n"
+                "Хочешь продолжить Путь (24 недели)? Напиши куратору @iqbarakah.",
+                parse_mode="Markdown",
+            )
+        except Exception as _e:
+            logger.warning("job_check_path_trials notify uid=%s: %s", uid, _e)
+
+
 async def job_check_followups(bot):
     """Каждые 30 минут — отправляем follow-up тем, у кого наступило время."""
     import time as _time

@@ -365,6 +365,48 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
                     logger.warning("partner ref link: %s", e)
             return
 
+        # olp_ — Старт навсегда + Путь на 30 дней
+        gift_full_flag = await _gift_repo.get(f"gift_full_pending:{uid}")
+        if gift_full_flag == "1":
+            await _gift_repo.set(f"gift_full_pending:{uid}", "")
+            import time as _time2
+            from bot_v2.db.repositories import ParticipantRepo as _PR3
+            from bot_v2.handlers.program import send_weekly_lesson
+            p_repo3 = _PR3(session)
+            participant = await p_repo3.get(uid)
+            if not participant or not participant.is_active:
+                participant = await p_repo3.activate(uid, level="Б", week=1)
+                await session.flush()
+            # Сохраняем дату окончания доступа к Пути (30 дней)
+            path_until = str(int(_time2.time()) + 30 * 24 * 3600)
+            await _gift_repo.set(f"path_until:{uid}", path_until)
+            await asyncio.sleep(1.5)
+            await call.bot.send_message(
+                uid,
+                "🌱 *Диагностика завершена! Открываю IQ Barakah.*\n\n"
+                "Старт (6 шагов) — твой навсегда.\n"
+                "Путь (24 недели) — открыт на 30 дней. 🌿",
+                parse_mode="Markdown",
+            )
+            try:
+                await send_weekly_lesson(call.bot, uid, participant, session, config)
+            except Exception as e:
+                logger.warning("gift_full korablik lesson: %s", e)
+            partner_code = await _gift_repo.get(f"partner_pending:{uid}")
+            if partner_code:
+                await _gift_repo.set(f"partner_pending:{uid}", "")
+                try:
+                    await call.bot.send_message(
+                        uid,
+                        f"🤝 *Теперь — твоя ссылка для аудитории:*\n\n"
+                        f"`https://t.me/iqbaraka_bot?start=ref_{partner_code}`\n\n"
+                        f"Делись ею с подписчиками — получишь 10% Баракатами с каждой их оплаты автоматически.",
+                        parse_mode="Markdown",
+                    )
+                except Exception as e:
+                    logger.warning("gift_full partner ref link: %s", e)
+            return
+
         # Сохраняем время завершения кораблика для скидки 24 часа
         import time as _time
         from bot_v2.db.repositories import SettingsRepo

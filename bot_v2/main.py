@@ -28,6 +28,7 @@ from bot_v2.services.jobs import (
     job_progress_mirror,
     job_check_payments,
     job_check_followups,
+    job_check_path_trials,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -128,9 +129,13 @@ async def main():
         job_check_followups, "interval", minutes=30,
         args=[bot], id="check_followups",
     )
+    scheduler.add_job(
+        job_check_path_trials, "interval", hours=12,
+        args=[bot], id="check_path_trials",
+    )
 
     scheduler.start()
-    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson, check_payments, check_followups")
+    logger.info("Scheduler started: fajr, friday, silence, progress_mirror, weekly_lesson, check_payments, check_followups, check_path_trials")
 
     # ── Команды бота ──────────────────────────────────────────────
     try:
