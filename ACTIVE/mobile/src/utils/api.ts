@@ -38,6 +38,8 @@ export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 
   tgInit: () => api.post<{ session_id: string }>('/mobile/auth/tg-init'),
   tgCheck: (sessionId: string) =>
@@ -49,6 +51,9 @@ export const api = {
     api.get<{ level: string; week: number; vakt_level: string | null; is_active: boolean }>(
       '/mobile/participant',
     ),
+  profile: () => api.get<MobileProfile>('/mobile/profile'),
+  updateProfile: (body: { name: string; email: string | null; phone: string | null }) =>
+    api.put<{ ok: boolean }>('/mobile/profile', body),
 
   content: (level: string, week: number) =>
     api.get<{
@@ -101,4 +106,58 @@ export interface QuizQuestion {
   q: string
   opts: string[]
   correct: number
+}
+
+export interface MobileProfile {
+  personal: {
+    name: string
+    username: string | null
+    email: string | null
+    phone: string | null
+    auth_provider: 'telegram'
+    member_since: string | null
+  }
+  program: {
+    level: string | null
+    week: number | null
+    vakt_level: string | null
+    is_active: boolean
+    activated_at: string | null
+    graduated_at: string | null
+    weeks_completed: number
+    tasks_completed: number
+    tracker_days: number
+    muhasaba_count: number
+    diagnostics_count: number
+    first_step_at: string | null
+    last_step_at: string | null
+  }
+  referral: {
+    code: string
+    link: string
+    invited_count: number
+    active_count: number
+    graduated_count: number
+    paid_count: number
+    paid_total: number
+    barakah_balance: number
+    people: {
+      first_name: string
+      level: string | null
+      week: number | null
+      is_active: boolean
+      graduated: boolean
+      completed_steps: number
+      has_paid: boolean
+    }[]
+  }
+  charity: {
+    percent: number
+    own_reserved: number
+    referral_reserved: number
+    community_reserved: number
+    transferred: number | null
+    basis: 'paid_non_refunded'
+  }
+  payments: { paid_total: number; payments_count: number }
 }

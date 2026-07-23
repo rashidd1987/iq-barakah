@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as Application from 'expo-application'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
+import { Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { globalWeekIndex, TOTAL_STEPS } from '../data/weeks'
 import { makeShadow, radius, ThemeColors, ThemeMode, ThemePalette } from '../theme/colors'
-import { api } from '../utils/api'
+import { api, MobileProfile } from '../utils/api'
 import { registerForPushNotifications } from '../utils/push'
 import { getPwaInstallStatus, promptPwaInstall, PwaInstallStatus, subscribePwaInstallStatus } from '../utils/pwaInstall'
 import { lsGet, lsSet } from '../utils/storage'
@@ -44,8 +44,24 @@ export default function ProfileScreen() {
   const [wheelDone, setWheelDone] = useState(false)
   const [pwaInstallStatus, setPwaInstallStatus] = useState<PwaInstallStatus>(getPwaInstallStatus())
   const [showInstallHelp, setShowInstallHelp] = useState(false)
+  const [profile, setProfile] = useState<MobileProfile | null>(null)
+  const [profileError, setProfileError] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
 
   useEffect(() => {
+    api.profile().then((data) => {
+      setProfile(data)
+      setName(data.personal.name)
+      setEmail(data.personal.email ?? '')
+      setPhone(data.personal.phone ?? '')
+      setLevel(data.program.level)
+      setWeek(data.program.week)
+      setCompletedSteps(data.program.weeks_completed)
+    }).catch(() => setProfileError(true))
     api.participant().then((p) => {
       setLevel(p.level)
       setWeek(p.week)
@@ -109,6 +125,45 @@ export default function ProfileScreen() {
     setShowInstallHelp(true)
   }
 
+  const handleSaveProfile = async () => {
+    if (name.trim().length < 2) {
+      Alert.alert('Проверьте ФИО', 'Укажите имя длиной не менее двух символов.')
+      return
+    }
+    setSaving(true)
+    try {
+      await api.updateProfile({
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+      })
+      setProfile((current) => current ? {
+        ...current,
+        personal: {
+          ...current.personal,
+          name: name.trim(),
+          email: email.trim() || null,
+          phone: phone.trim() || null,
+        },
+      } : current)
+      setEditing(false)
+      Alert.alert('Сохранено', 'Данные профиля обновлены.')
+    } catch {
+      Alert.alert('Не удалось сохранить', 'Проверьте email и подключение к интернету.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleShareReferral = async () => {
+    if (!profile?.referral.link) return
+    await Share.share({
+      title: 'IQ Barakah',
+      message: `Присоединяйтесь к программе IQ Barakah: ${profile.referral.link}`,
+      url: profile.referral.link,
+    })
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScreenHeader badge="Профиль" title="Твой путь" />
@@ -129,6 +184,106 @@ export default function ProfileScreen() {
             <View style={styles.statDivider} />
             <Stat value={`${unlockedCount}/${achievements.length}`} label="Наград" colors={colors} />
           </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Личные данные</Text>
+        <View style={[styles.card, styles.profileCard]}>
+          <View style={styles.cardHeading}>
+            <View>
+              <Text style={styles.cardTitleNoMargin}>Профиль ученика</Text>
+              <Text style={styles.cardHint}>Вход защищён через Telegram</Text>
+            </View>
+            <Pressable style={styles.smallAction} onPress={() => setEditing((value) => !value)}>
+              <Ionicons name={editing ? 'close' : 'create-outline'} size={17} color={colors.g2} />
+              <Text style={styles.smallActionText}>{editing ? 'Отмена' : 'Изменить'}</Text>
+            </Pressable>
+          </View>
+          {profileError && <Text style={styles.inlineError}>Не удалось загрузить данные. Потяните экран для повторной попытки.</Text>}
+          <ProfileField label="ФИО" value={name} editing={editing} onChangeText={setName} colors={colors} />
+          <ProfileField label="Email" value={email} editing={editing} onChangeText={setEmail} keyboardType="email-address" colors={colors} placeholder="Добавить email" />
+          <ProfileField label="Телефон" value={phone} editing={editing} onChangeText={setPhone} keyboardType="phone-pad" colors={colors} placeholder="Добавить телефон" />
+          <View style={styles.authRow}>
+            <Ionicons name="paper-plane-outline" size={18} color={colors.g2} />
+            <View style={styles.authCopy}>
+              <Text style={styles.fieldLabel}>СПОСОБ ВХОДА</Text>
+              <Text style={styles.fieldValue}>Telegram{profile?.personal.username ? ` · @${profile.personal.username}` : ''}</Text>
+            </View>
+            <Ionicons name="shield-checkmark" size={20} color={colors.completed} />
+          </View>
+          {editing && (
+            <Pressable style={[styles.primaryButton, saving && styles.buttonDisabled]} onPress={handleSaveProfile} disabled={saving}>
+              <Text style={styles.primaryButtonText}>{saving ? 'Сохраняем…' : 'Сохранить изменения'}</Text>
+            </Pressable>
+          )}
+        </View>
+
+        <Text style={styles.sectionTitle}>Результаты за всё время</Text>
+        <View style={[styles.card, styles.journeyCard]}>
+          <View style={styles.metricGrid}>
+            <Metric icon="checkmark-done" value={profile?.program.weeks_completed ?? completedSteps} label="шагов пройдено" colors={colors} />
+            <Metric icon="list" value={profile?.program.tasks_completed ?? 0} label="заданий выполнено" colors={colors} />
+            <Metric icon="calendar" value={profile?.program.tracker_days ?? 0} label="дней трекера" colors={colors} />
+            <Metric icon="moon" value={profile?.program.muhasaba_count ?? 0} label="мухасаба" colors={colors} />
+          </View>
+          <View style={styles.journeyFooter}>
+            <Ionicons name="time-outline" size={18} color={colors.gold} />
+            <Text style={styles.journeyFooterText}>
+              {profile?.program.first_step_at
+                ? `Первый шаг: ${new Date(profile.program.first_step_at).toLocaleDateString('ru-RU')}`
+                : 'Первый завершённый шаг появится здесь'}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Приглашённые и Баракаты</Text>
+        <View style={[styles.card, styles.referralCard]}>
+          <View style={styles.referralTop}>
+            <View>
+              <Text style={styles.cardTitleNoMargin}>Твоя реферальная ссылка</Text>
+              <Text numberOfLines={1} style={styles.referralLink}>{profile?.referral.link ?? 'Загрузка…'}</Text>
+            </View>
+            <Pressable style={styles.shareButton} onPress={handleShareReferral} disabled={!profile}>
+              <Ionicons name="share-social-outline" size={20} color={colors.onPrimary} />
+            </Pressable>
+          </View>
+          <View style={styles.referralStats}>
+            <Stat value={`${profile?.referral.invited_count ?? 0}`} label="Приглашено" colors={colors} />
+            <View style={styles.statDivider} />
+            <Stat value={`${profile?.referral.active_count ?? 0}`} label="Учатся" colors={colors} />
+            <View style={styles.statDivider} />
+            <Stat value={`${profile?.referral.paid_count ?? 0}`} label="Оплатили" colors={colors} />
+            <View style={styles.statDivider} />
+            <Stat value={`${profile?.referral.barakah_balance ?? 0}`} label="Баракатов" colors={colors} />
+          </View>
+          {!!profile?.referral.people.length && (
+            <View style={styles.peopleList}>
+              {profile.referral.people.slice(0, 5).map((person, index) => (
+                <View key={`${person.first_name}-${index}`} style={styles.personRow}>
+                  <View style={styles.personAvatar}><Text style={styles.personAvatarText}>{person.first_name.slice(0, 1).toUpperCase()}</Text></View>
+                  <View style={styles.personCopy}>
+                    <Text style={styles.personName}>{person.first_name}</Text>
+                    <Text style={styles.personMeta}>
+                      {person.graduated ? 'Завершил программу' : person.level ? `Уровень ${person.level} · шаг ${person.week}` : 'Зарегистрирован'}
+                    </Text>
+                  </View>
+                  <Text style={styles.personSteps}>{person.completed_steps} шаг.</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <Text style={styles.sectionTitle}>Вклад в благотворительность</Text>
+        <View style={[styles.card, styles.charityCard]}>
+          <View style={styles.charityIcon}><Ionicons name="heart" size={24} color={colors.gold} /></View>
+          <View style={styles.charityLead}>
+            <Text style={styles.charityAmount}>{profile?.charity.own_reserved ?? 0} ₽</Text>
+            <Text style={styles.charityLabel}>рассчитано из твоих оплат</Text>
+          </View>
+          <View style={styles.charityDivider} />
+          <View style={styles.charityRow}><Text style={styles.charityRowLabel}>Через приглашённых</Text><Text style={styles.charityRowValue}>{profile?.charity.referral_reserved ?? 0} ₽</Text></View>
+          <View style={styles.charityRow}><Text style={styles.charityRowLabel}>Общий резерв программы</Text><Text style={styles.charityRowValue}>{profile?.charity.community_reserved ?? 0} ₽</Text></View>
+          <Text style={styles.charityNote}>Расчёт: 20% от подтверждённых оплат. Фактически перечисленные средства появятся после подключения подтверждённого реестра переводов.</Text>
         </View>
 
         <Text style={styles.sectionTitle}>Оформление</Text>
@@ -220,7 +375,60 @@ function Stat({ value, label, colors }: { value: string; label: string; colors: 
   return <View style={statStyles.item}><Text style={[statStyles.value, { color: colors.text }]}>{value}</Text><Text style={[statStyles.label, { color: colors.muted }]}>{label}</Text></View>
 }
 
+function ProfileField({
+  label, value, editing, onChangeText, colors, placeholder, keyboardType = 'default',
+}: {
+  label: string
+  value: string
+  editing: boolean
+  onChangeText: (value: string) => void
+  colors: ThemeColors
+  placeholder?: string
+  keyboardType?: 'default' | 'email-address' | 'phone-pad'
+}) {
+  return (
+    <View style={[profileFieldStyles.row, { borderBottomColor: colors.border }]}>
+      <Text style={[profileFieldStyles.label, { color: colors.muted }]}>{label.toUpperCase()}</Text>
+      {editing ? (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.muted}
+          keyboardType={keyboardType}
+          autoCapitalize={keyboardType === 'email-address' ? 'none' : 'words'}
+          style={[profileFieldStyles.input, { color: colors.text, backgroundColor: colors.cardRaised, borderColor: colors.border }]}
+        />
+      ) : (
+        <Text style={[profileFieldStyles.value, { color: value ? colors.text : colors.muted }]}>{value || placeholder || 'Не указано'}</Text>
+      )}
+    </View>
+  )
+}
+
+function Metric({ icon, value, label, colors }: { icon: keyof typeof Ionicons.glyphMap; value: number; label: string; colors: ThemeColors }) {
+  return (
+    <View style={[metricStyles.item, { backgroundColor: colors.cardRaised, borderColor: colors.border }]}>
+      <View style={[metricStyles.icon, { backgroundColor: colors.overlay }]}><Ionicons name={icon} size={19} color={colors.g2} /></View>
+      <Text style={[metricStyles.value, { color: colors.text }]}>{value}</Text>
+      <Text style={[metricStyles.label, { color: colors.muted }]}>{label}</Text>
+    </View>
+  )
+}
+
 const statStyles = StyleSheet.create({ item: { flex: 1, alignItems: 'center' }, value: { fontSize: 17, fontWeight: '800' }, label: { fontSize: 10, fontWeight: '600', marginTop: 2 } })
+const profileFieldStyles = StyleSheet.create({
+  row: { paddingVertical: 12, borderBottomWidth: 1 },
+  label: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8, marginBottom: 5 },
+  value: { fontSize: 14, fontWeight: '600', minHeight: 21 },
+  input: { height: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, fontSize: 14, fontWeight: '600' },
+})
+const metricStyles = StyleSheet.create({
+  item: { width: '48%', minHeight: 104, padding: 13, borderWidth: 1, borderRadius: 15 },
+  icon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  value: { fontSize: 20, fontWeight: '900' },
+  label: { fontSize: 10, fontWeight: '600', marginTop: 2 },
+})
 
 const createStyles = (colors: ThemeColors) => {
   const shadow = makeShadow(colors)
@@ -235,6 +443,47 @@ const createStyles = (colors: ThemeColors) => {
     progressTrack: { width: '100%', height: 7, borderRadius: 4, backgroundColor: colors.border, overflow: 'hidden', marginTop: 18 }, progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.gold },
     statsRow: { width: '100%', flexDirection: 'row', alignItems: 'center', marginTop: 18 }, statDivider: { width: 1, height: 27, backgroundColor: colors.border },
     sectionTitle: { fontSize: 11, fontWeight: '800', color: colors.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 9, marginLeft: 2 },
+    profileCard: { padding: 16, marginBottom: 24 },
+    cardHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+    cardTitleNoMargin: { color: colors.text, fontSize: 15, fontWeight: '800' },
+    cardHint: { color: colors.muted, fontSize: 10, marginTop: 3 },
+    smallAction: { flexDirection: 'row', gap: 5, alignItems: 'center', paddingHorizontal: 10, height: 34, borderRadius: 11, backgroundColor: colors.overlay },
+    smallActionText: { color: colors.g2, fontSize: 11, fontWeight: '800' },
+    inlineError: { color: colors.danger, fontSize: 11, lineHeight: 16, padding: 10, borderRadius: 10, backgroundColor: colors.dangerSoft, marginBottom: 8 },
+    fieldLabel: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
+    fieldValue: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: 4 },
+    authRow: { minHeight: 65, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    authCopy: { flex: 1 },
+    primaryButton: { height: 48, borderRadius: 14, backgroundColor: colors.g2, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+    primaryButtonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '800' },
+    buttonDisabled: { opacity: 0.55 },
+    journeyCard: { padding: 14, marginBottom: 24 },
+    metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    journeyFooter: { flexDirection: 'row', gap: 8, alignItems: 'center', paddingTop: 13, paddingHorizontal: 3 },
+    journeyFooterText: { flex: 1, color: colors.sub, fontSize: 11, lineHeight: 16 },
+    referralCard: { padding: 16, marginBottom: 24 },
+    referralTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, alignItems: 'center' },
+    referralLink: { color: colors.g2, fontSize: 10, marginTop: 5, maxWidth: 260 },
+    shareButton: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.g2 },
+    referralStats: { flexDirection: 'row', alignItems: 'center', marginTop: 19, paddingVertical: 14, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+    peopleList: { paddingTop: 7 },
+    personRow: { minHeight: 59, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: colors.border },
+    personAvatar: { width: 34, height: 34, borderRadius: 11, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+    personAvatarText: { color: colors.g2, fontSize: 13, fontWeight: '900' },
+    personCopy: { flex: 1 },
+    personName: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    personMeta: { color: colors.muted, fontSize: 10, marginTop: 3 },
+    personSteps: { color: colors.sub, fontSize: 10, fontWeight: '700' },
+    charityCard: { padding: 17, marginBottom: 24 },
+    charityIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: colors.goldpale, alignItems: 'center', justifyContent: 'center' },
+    charityLead: { position: 'absolute', left: 76, top: 17 },
+    charityAmount: { color: colors.text, fontSize: 22, fontWeight: '900' },
+    charityLabel: { color: colors.muted, fontSize: 10, marginTop: 2 },
+    charityDivider: { height: 1, backgroundColor: colors.border, marginTop: 15, marginBottom: 9 },
+    charityRow: { minHeight: 35, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    charityRowLabel: { color: colors.sub, fontSize: 11, fontWeight: '600' },
+    charityRowValue: { color: colors.text, fontSize: 12, fontWeight: '800' },
+    charityNote: { color: colors.muted, fontSize: 9, lineHeight: 14, marginTop: 9, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border },
     themeCard: { padding: 16, marginBottom: 24 }, cardTitle: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 10 }, paletteGrid: { flexDirection: 'row', gap: 10 },
     paletteOption: { flex: 1, minHeight: 105, borderWidth: 1, borderColor: colors.border, borderRadius: radius.button, padding: 12, backgroundColor: colors.cardRaised }, optionSelected: { borderColor: colors.gold, backgroundColor: colors.overlay },
     swatchRow: { flexDirection: 'row', alignItems: 'center', height: 26, marginBottom: 8 }, swatch: { width: 27, height: 27, borderRadius: 14, borderWidth: 2, borderColor: colors.cardRaised }, swatchOverlap: { marginLeft: -8 }, checkmark: { marginLeft: 'auto' },

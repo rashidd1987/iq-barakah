@@ -164,6 +164,11 @@ class ShipReq(BaseModel):
     scores: dict
     avg: float
 
+class MobileProfileUpdateReq(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 
 def make_token(user_id: int, email: str) -> str:
@@ -537,6 +542,189 @@ async def mobile_participant(tg_id: int = Depends(verify_mobile_token)):
     if not p:
         raise HTTPException(404, 'Участник не найден')
     return dict(p)
+
+def _clean_optional(value: Optional[str], max_length: int) -> Optional[str]:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned[:max_length] or None
+
+@app.get('/mobile/profile')
+async def mobile_profile(tg_id: int = Depends(verify_mobile_token)):
+    """Единый кабинет ученика для native-приложения и PWA.
+
+    Денежные показатели строятся только по successful payments. Поле
+    charity_reserved — расчётный резерв 20%, а не заявление о фактическом
+    банковском переводе благотворительной организации.
+    """
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            user = await conn.fetchrow(
+                '''SELECT id, name, username, email, phone, referral_code,
+                          barakah_balance, created_at
+                   FROM users WHERE id=$1''',
+                tg_id,
+            )
+            if not user:
+                raise HTTPException(404, 'Пользователь не найден')
+
+            referral_code = user['referral_code']
+            if not referral_code:
+                referral_code = f"{tg_id}{secrets.token_hex(3).upper()}"
+                await conn.execute(
+                    'UPDATE users SET referral_code=$1, updated_at=NOW() WHERE id=$2',
+                    referral_code, tg_id,
+                )
+
+            current = await conn.fetchrow(
+                '''SELECT level, week, vakt_level, is_active, activated_at, graduated_at
+                   FROM participants WHERE user_id=$1''',
+                tg_id,
+            )
+            progress = await conn.fetchrow(
+                '''SELECT
+                     (SELECT COUNT(*) FROM week_acks WHERE user_id=$1) AS weeks_completed,
+                     (SELECT COUNT(*) FROM task_completions WHERE user_id=$1) AS tasks_completed,
+                     (SELECT COUNT(DISTINCT date) FROM tracker_records WHERE user_id=$1) AS tracker_days,
+                     (SELECT COUNT(*) FROM muhasaba_logs WHERE user_id=$1) AS muhasaba_count,
+                     (SELECT COUNT(*) FROM diag_results WHERE user_id=$1) AS diagnostics_count,
+                     (SELECT MIN(acked_at) FROM week_acks WHERE user_id=$1) AS first_step_at,
+                     (SELECT MAX(acked_at) FROM week_acks WHERE user_id=$1) AS last_step_at''',
+                tg_id,
+            )
+            payments = await conn.fetchrow(
+                '''SELECT COALESCE(SUM(amount), 0) AS paid_total,
+                          COUNT(*) AS payments_count
+                   FROM bot_payments
+                   WHERE user_id=$1 AND status='paid' ''',
+                tg_id,
+            )
+            referral_summary = await conn.fetchrow(
+                '''SELECT
+                     COUNT(DISTINCT invited.id) AS invited_count,
+                     COUNT(DISTINCT p.user_id) FILTER (WHERE p.is_active=TRUE) AS active_count,
+                     COUNT(DISTINCT p.user_id) FILTER (WHERE p.graduated_at IS NOT NULL) AS graduated_count,
+                     COUNT(DISTINCT paid.user_id) AS paid_count,
+                     COALESCE(SUM(paid.amount), 0) AS paid_total
+                   FROM users invited
+                   LEFT JOIN participants p ON p.user_id=invited.id
+                   LEFT JOIN (
+                     SELECT user_id, SUM(amount) AS amount
+                     FROM bot_payments WHERE status='paid' GROUP BY user_id
+                   ) paid ON paid.user_id=invited.id
+                   WHERE invited.referred_by=$1''',
+                tg_id,
+            )
+            referrals = await conn.fetch(
+                '''SELECT invited.id, split_part(invited.name, ' ', 1) AS first_name,
+                          p.level, p.week, p.is_active, p.graduated_at,
+                          COUNT(DISTINCT wa.id) AS completed_steps,
+                          COALESCE(MAX(paid.amount), 0) AS paid_total
+                   FROM users invited
+                   LEFT JOIN participants p ON p.user_id=invited.id
+                   LEFT JOIN week_acks wa ON wa.user_id=invited.id
+                   LEFT JOIN (
+                     SELECT user_id, SUM(amount) AS amount
+                     FROM bot_payments WHERE status='paid' GROUP BY user_id
+                   ) paid ON paid.user_id=invited.id
+                   WHERE invited.referred_by=$1
+                   GROUP BY invited.id, invited.name, p.level, p.week, p.is_active, p.graduated_at
+                   ORDER BY invited.created_at DESC
+                   LIMIT 50''',
+                tg_id,
+            )
+            community = await conn.fetchrow(
+                "SELECT COALESCE(SUM(amount), 0) AS paid_total FROM bot_payments WHERE status='paid'"
+            )
+
+    own_paid = int(payments['paid_total'] or 0)
+    referral_paid = int(referral_summary['paid_total'] or 0)
+    community_paid = int(community['paid_total'] or 0)
+    return {
+        'personal': {
+            'name': user['name'],
+            'username': user['username'],
+            'email': user['email'],
+            'phone': user['phone'],
+            'auth_provider': 'telegram',
+            'member_since': user['created_at'].isoformat() if user['created_at'] else None,
+        },
+        'program': {
+            'level': current['level'] if current else None,
+            'week': current['week'] if current else None,
+            'vakt_level': current['vakt_level'] if current else None,
+            'is_active': bool(current['is_active']) if current else False,
+            'activated_at': current['activated_at'].isoformat() if current and current['activated_at'] else None,
+            'graduated_at': current['graduated_at'].isoformat() if current and current['graduated_at'] else None,
+            'weeks_completed': int(progress['weeks_completed'] or 0),
+            'tasks_completed': int(progress['tasks_completed'] or 0),
+            'tracker_days': int(progress['tracker_days'] or 0),
+            'muhasaba_count': int(progress['muhasaba_count'] or 0),
+            'diagnostics_count': int(progress['diagnostics_count'] or 0),
+            'first_step_at': progress['first_step_at'].isoformat() if progress['first_step_at'] else None,
+            'last_step_at': progress['last_step_at'].isoformat() if progress['last_step_at'] else None,
+        },
+        'referral': {
+            'code': referral_code,
+            'link': f'https://t.me/iqbaraka_bot?start=ref_{referral_code}',
+            'invited_count': int(referral_summary['invited_count'] or 0),
+            'active_count': int(referral_summary['active_count'] or 0),
+            'graduated_count': int(referral_summary['graduated_count'] or 0),
+            'paid_count': int(referral_summary['paid_count'] or 0),
+            'paid_total': referral_paid,
+            'barakah_balance': int(user['barakah_balance'] or 0),
+            'people': [
+                {
+                    'first_name': row['first_name'] or 'Участник',
+                    'level': row['level'],
+                    'week': row['week'],
+                    'is_active': bool(row['is_active']) if row['is_active'] is not None else False,
+                    'graduated': row['graduated_at'] is not None,
+                    'completed_steps': int(row['completed_steps'] or 0),
+                    'has_paid': int(row['paid_total'] or 0) > 0,
+                }
+                for row in referrals
+            ],
+        },
+        'charity': {
+            'percent': 20,
+            'own_reserved': round(own_paid * 0.20),
+            'referral_reserved': round(referral_paid * 0.20),
+            'community_reserved': round(community_paid * 0.20),
+            'transferred': None,
+            'basis': 'paid_non_refunded',
+        },
+        'payments': {
+            'paid_total': own_paid,
+            'payments_count': int(payments['payments_count'] or 0),
+        },
+    }
+
+@app.put('/mobile/profile')
+async def mobile_update_profile(
+    req: MobileProfileUpdateReq,
+    tg_id: int = Depends(verify_mobile_token),
+):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    name = req.name.strip()
+    if len(name) < 2 or len(name) > 256:
+        raise HTTPException(400, 'Укажите корректное ФИО')
+    email = _clean_optional(req.email, 256)
+    phone = _clean_optional(req.phone, 32)
+    if email and ('@' not in email or email.startswith('@') or email.endswith('@')):
+        raise HTTPException(400, 'Укажите корректный email')
+    async with db_pool.acquire() as conn:
+        result = await conn.execute(
+            '''UPDATE users SET name=$1, email=$2, phone=$3, updated_at=NOW()
+               WHERE id=$4''',
+            name, email.lower() if email else None, phone, tg_id,
+        )
+    if result == 'UPDATE 0':
+        raise HTTPException(404, 'Пользователь не найден')
+    return {'ok': True}
 
 @app.get('/mobile/cohort-count')
 async def mobile_cohort_count(tg_id: int = Depends(verify_mobile_token)):
