@@ -1385,7 +1385,7 @@ async def cmd_partners(message: Message, session: AsyncSession, config: Config):
         for lu in lr.scalars():
             leaders[lu.id] = lu.name or str(lu.id)
 
-    lines = [f"👥 *Пришли через партнёров* — {len(rows)} чел.\n"]
+    lines = [f"👥 Пришли через партнёров — {len(rows)} чел.\n"]
     for user, participant in rows:
         status = "✅" if (participant and participant.is_active) else "⏳"
         source = ""
@@ -1397,7 +1397,7 @@ async def cmd_partners(message: Message, session: AsyncSession, config: Config):
         name = user.name or "—"
         username = f" @{user.username}" if user.username else ""
         date = user.created_at.strftime("%d.%m") if user.created_at else ""
-        lines.append(f"{status} {name}{username} `{user.id}` {date}{source}")
+        lines.append(f"{status} {name}{username} {user.id} {date}{source}")
 
     # Разбиваем на части если много
     text = "\n".join(lines)
@@ -1412,9 +1412,9 @@ async def cmd_partners(message: Message, session: AsyncSession, config: Config):
                 chunk += line + "\n"
         chunks.append(chunk)
         for chunk in chunks:
-            await message.answer(chunk, parse_mode="Markdown")
+            await message.answer(chunk)
     else:
-        await message.answer(text, parse_mode="Markdown")
+        await message.answer(text)
 
 
 @router.message(Command("addpartner"))
