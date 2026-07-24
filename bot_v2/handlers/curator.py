@@ -1486,7 +1486,7 @@ async def cmd_addpartner(message: Message, session: AsyncSession, config: Config
 
 @router.message(Command("leader"))
 async def cmd_leader(message: Message, session: AsyncSession, config: Config):
-    """/leader — ссылки лидера мнения для куратора (оба варианта)."""
+    """/leader — ссылки и готовые тексты для лидеров мнения."""
     if not is_curator(message.from_user.id, config):
         return
 
@@ -1495,16 +1495,36 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
     link_full  = f"https://t.me/iqbaraka_bot?start=olp_{curator_id}"
 
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    # Сообщение 1 — Старт + Путь (тёплая аудитория)
     await message.answer(
-        "🔗 *Ссылки для лидеров мнения*\n\n"
-        "🌱 *Только Старт* (6 шагов, навсегда):\n"
-        f"`{link_start}`\n\n"
-        "🚀 *Старт + Путь* (24 недели, 30 дней пробного):\n"
-        f"`{link_full}`\n\n"
-        "Скопируй нужную и отправь лидеру мнения.",
-        parse_mode="Markdown",
+        "🚀 *Старт \\+ Путь — тёплая аудитория*\n\n"
+        "Скопируй и отправь после личного разговора:\n\n"
+        "\\-\\-\\-\n"
+        "Ас\\-саляму алейкум\\!\n\n"
+        "Слушай, я тебе открыл полный доступ к IQ Barakah — Старт навсегда и Путь на месяц\\.\n\n"
+        "Мне правда важно твоё мнение — пройди как обычный участник, посмотри изнутри как это работает\\.\n\n"
+        f"👉 {link_full}\n"
+        "\\-\\-\\-",
+        parse_mode="MarkdownV2",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🌱 Проверить Старт", url=link_start)],
-            [InlineKeyboardButton(text="🚀 Проверить Старт + Путь", url=link_full)],
+            [InlineKeyboardButton(text="🚀 Проверить ссылку Старт + Путь", url=link_full)],
+        ]),
+    )
+
+    # Сообщение 2 — Только Старт (холодная аудитория)
+    await message.answer(
+        "🌱 *Только Старт — холодная аудитория*\n\n"
+        "Скопируй и отправь незнакомой аудитории:\n\n"
+        "\\-\\-\\-\n"
+        "Ас\\-саляму алейкум\\!\n\n"
+        "Рашид лично открыл тебе IQ Barakah Старт — 6 шагов, которые меняют не расписание, а отношение ко времени\\.\n\n"
+        "Без воды — только система\\. Ты здесь не случайно\\.\n\n"
+        "Прежде чем открыть первый шаг — пройди диагностику\\. 7 вопросов · 2 минуты · программа подстроится под твой уровень\\.\n\n"
+        f"👉 {link_start}\n"
+        "\\-\\-\\-",
+        parse_mode="MarkdownV2",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌱 Проверить ссылку Старт", url=link_start)],
         ]),
     )
