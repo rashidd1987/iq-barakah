@@ -1,0 +1,62 @@
+name: Configure project report bot
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: configure-project-report-bot
+  cancel-in-progress: true
+
+jobs:
+  configure:
+    name: Configure Telegram commands
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: preview
+    steps:
+      - name: Validate secrets
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          test -n "$TELEGRAM_BOT_TOKEN"
+          test -n "$TELEGRAM_CHAT_ID"
+
+      - name: Configure command menu
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          COMMANDS='[
+            {"command":"projects","description":"Все проекты"},
+            {"command":"iqbarakah","description":"Статус IQ Barakah"},
+            {"command":"mizanlife","description":"Статус Mizan Life"},
+            {"command":"mizanos","description":"Статус Mizan OS"},
+            {"command":"status","description":"Состояние автоматизаций"},
+            {"command":"releases","description":"Последние релизы"},
+            {"command":"errors","description":"Последние ошибки"},
+            {"command":"help","description":"Справка по командам"}
+          ]'
+
+          curl --fail --silent --retry 3 --output /dev/null \
+            --request POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setMyCommands" \
+            --data-urlencode "commands=${COMMANDS}"
+
+      - name: Send connection report
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          MESSAGE="✅ Mizan Project Reports подключён.
+
+          Первый проект: IQ Barakah
+          Автоматические отчёты о preview APK активны.
+
+          Откройте меню бота, чтобы увидеть команды проектов."
+
+          curl --fail --silent --retry 3 --output /dev/null \
+            --request POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}"
