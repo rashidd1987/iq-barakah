@@ -1482,3 +1482,29 @@ async def cmd_addpartner(message: Message, session: AsyncSession, config: Config
         f"Когда аудитория платит — лидер получает 10% Баракатами автоматически.",
         parse_mode="Markdown",
     )
+
+
+@router.message(Command("leader"))
+async def cmd_leader(message: Message, session: AsyncSession, config: Config):
+    """/leader — ссылки лидера мнения для куратора (оба варианта)."""
+    if not is_curator(message.from_user.id, config):
+        return
+
+    curator_id = message.from_user.id
+    link_start = f"https://t.me/iqbaraka_bot?start=ol_{curator_id}"
+    link_full  = f"https://t.me/iqbaraka_bot?start=olp_{curator_id}"
+
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await message.answer(
+        "🔗 *Ссылки для лидеров мнения*\n\n"
+        "🌱 *Только Старт* (6 шагов, навсегда):\n"
+        f"`{link_start}`\n\n"
+        "🚀 *Старт + Путь* (24 недели, 30 дней пробного):\n"
+        f"`{link_full}`\n\n"
+        "Скопируй нужную и отправь лидеру мнения.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🌱 Проверить Старт", url=link_start)],
+            [InlineKeyboardButton(text="🚀 Проверить Старт + Путь", url=link_full)],
+        ]),
+    )
