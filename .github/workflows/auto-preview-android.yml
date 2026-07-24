@@ -1,0 +1,52 @@
+name: Automatic Android preview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ACTIVE/mobile/**"
+      - ".github/workflows/auto-preview-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-preview-main
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Validate and build preview APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: preview
+    defaults:
+      run:
+        working-directory: ACTIVE/mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ACTIVE/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript
+        run: npm run typecheck
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android preview APK
+        run: eas build --platform android --profile preview --non-interactive
