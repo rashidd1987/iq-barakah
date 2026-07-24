@@ -66,6 +66,7 @@ export const api = {
     api.post('/mobile/tracker', { date, habits }),
   registerPush: (expoToken: string, platform: string) =>
     api.post('/push/register', { expo_token: expoToken, platform }),
+  unregisterPush: () => api.post<{ ok: boolean }>('/push/unregister'),
   cohortCount: () => api.get<{ count: number }>('/mobile/cohort-count'),
   quiz: (level: string, week: number) =>
     api.get<Record<'I' | 'II' | 'III', QuizQuestion[]>>(

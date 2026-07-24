@@ -60,4 +60,4 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Start cloud build
-        run: eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive --no-wait
+        run: eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive

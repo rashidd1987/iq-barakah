@@ -13,6 +13,13 @@ function hasAnyHabit(record: TrackerRecord | undefined): boolean {
   return namazDone || dailyDone
 }
 
+function localDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Streak-shield: one missed day per 7 consecutive days doesn't break the streak
 // (same idea as Duolingo's streak freeze) — a single human slip shouldn't wipe out
 // weeks of consistency, but skipping still can't go on forever.
@@ -26,7 +33,7 @@ export function computeStreak(records: TrackerRecord[]): number {
   for (let i = 0; i < 365; i++) {
     const d = new Date(today)
     d.setDate(today.getDate() - i)
-    const key = d.toISOString().slice(0, 10)
+    const key = localDateKey(d)
     const record = byDate.get(key)
     if (hasAnyHabit(record)) {
       streak++

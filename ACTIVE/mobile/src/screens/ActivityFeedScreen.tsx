@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'
 import React, { useCallback, useMemo, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -104,4 +105,3 @@ const createStyles = (colors: ThemeColors) => {
   time: { fontSize: 12, color: colors.muted, marginTop: 2 },
   })
 }
-import { Ionicons } from '@expo/vector-icons'

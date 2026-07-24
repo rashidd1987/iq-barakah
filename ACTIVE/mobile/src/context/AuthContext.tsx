@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { clearToken, getToken } from '../utils/api'
+import { api, clearToken, getToken } from '../utils/api'
 import { lsGet, lsSet } from '../utils/storage'
 
 // Bumped from "seen_diagnostic" so every device re-runs the new onboarding once,
@@ -42,8 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const markLoggedIn = () => setIsLoggedIn(true)
 
   const logout = async () => {
-    await clearToken()
-    setIsLoggedIn(false)
+    try {
+      await api.unregisterPush()
+    } catch {
+      // Logout must still work offline; the server endpoint is idempotent and
+      // the next authenticated logout can safely retry the cleanup.
+    } finally {
+      await clearToken()
+      setIsLoggedIn(false)
+    }
   }
 
   const advanceOnboarding = (stage: OnboardingStage) => {

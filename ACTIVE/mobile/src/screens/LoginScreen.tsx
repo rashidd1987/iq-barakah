@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons'
 import * as Application from 'expo-application'
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
@@ -90,4 +91,3 @@ const createStyles = (colors: ThemeColors) => {
   buildTag: { marginTop: 16, color: colors.border, fontSize: 11 },
   })
 }
-import { Ionicons } from '@expo/vector-icons'

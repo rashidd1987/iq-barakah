@@ -107,9 +107,13 @@ export default function ProfileScreen() {
           await lsSet(PUSH_ENABLED_KEY, false)
           return
         }
+      } else {
+        await api.unregisterPush()
       }
       setPushEnabled(value)
       await lsSet(PUSH_ENABLED_KEY, value)
+    } catch {
+      Alert.alert('Не удалось изменить уведомления', 'Проверьте интернет-соединение и попробуйте снова.')
     } finally {
       setTogglingPush(false)
     }

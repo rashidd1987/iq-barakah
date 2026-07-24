@@ -76,6 +76,29 @@ jobs:
           name: pwa-release-${{ github.sha }}
           path: dist-pwa
 
+      - name: Validate deployment target
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_SSH_KEY"
+          test -n "$DEPLOY_KNOWN_HOSTS"
+          test -n "$HEALTHCHECK_URL"
+          case "${DEPLOY_PORT:-22}" in
+            *[!0-9]*) echo "DEPLOY_PORT must be numeric."; exit 1 ;;
+          esac
+          case "$DEPLOY_PATH" in
+            */pwa|*/pwa/) ;;
+            *) echo "DEPLOY_PATH must end with /pwa because this build uses /pwa asset URLs."; exit 1 ;;
+          esac
+
       - name: Configure SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
