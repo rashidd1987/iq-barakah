@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "IQ Barakah",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#1a3d1b",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ru.iqbarakah.mobile"
+    },
+    "android": {
+      "package": "ru.iqbarakah.mobile",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#1a3d1b",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 20
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "name": "IQ Barakah",
+      "shortName": "IQ Barakah",
+      "lang": "ru",
+      "scope": "/pwa/",
+      "themeColor": "#173D2A",
+      "backgroundColor": "#F7F5EE",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "baseUrl": "/pwa"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#1a3d1b"
+        }
+      ],
+      "expo-web-browser",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "54eb32e2-ac23-4a47-b58c-bf00b9016853"
+      }
+    },
+    "owner": "roha05"
+  }
+}
