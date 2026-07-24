@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "525476746386",
+    "project_id": "iq-barakah-mobile",
+    "storage_bucket": "iq-barakah-mobile.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525476746386:android:d7f586f4e931455b5b024b",
+        "android_client_info": {
+          "package_name": "ru.iqbarakah.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWn98rjPeDG3v4_txMmY5MLIpO9xgDNiU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
