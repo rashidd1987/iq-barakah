@@ -65,6 +65,7 @@ jobs:
       - name: Compile active services
         run: |
           python -m compileall -q bot_v2
+          python -m compileall -q report_bot
           if [ -f ACTIVE/pwa_api/main.py ]; then
             python -m py_compile ACTIVE/pwa_api/main.py
           fi
