@@ -367,7 +367,10 @@ def approval_auth_ok(request: web.Request, secret: str) -> bool:
         return False
     supplied = request.headers.get("Authorization", "")
     expected = f"Bearer {secret}"
-    return hmac.compare_digest(supplied, expected)
+    return hmac.compare_digest(
+        supplied.encode("utf-8"),
+        expected.encode("utf-8"),
+    )
 
 
 async def run_health_server(
