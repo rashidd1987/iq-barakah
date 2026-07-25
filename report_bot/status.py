@@ -42,7 +42,7 @@ class StatusClient:
             ) as response:
                 latency_ms = round((loop.time() - started_at) * 1000)
                 return SiteStatus(
-                    ok=200 <= response.status < 400,
+                    ok=200 <= response.status < 400 or response.status in {401, 403},
                     status_code=response.status,
                     latency_ms=latency_ms,
                 )
