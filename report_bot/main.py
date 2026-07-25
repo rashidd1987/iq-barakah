@@ -10,10 +10,13 @@ from aiogram import Bot, Dispatcher, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 
 from report_bot.config import Config, load_config
-from report_bot.projects import PROJECTS, PROJECTS_BY_KEY
+from report_bot.monitor import monitor_loop
+from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
 from report_bot.status import (
     StatusClient,
     all_sites_summary,
@@ -28,6 +31,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+MENU = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
+        [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
+        [KeyboardButton(text="➕ Добавить проект"), KeyboardButton(text="ℹ️ Помощь")],
+    ],
+    resize_keyboard=True,
+)
+
+
+class AddProject(StatesGroup):
+    key = State()
+    title = State()
+    url = State()
+    repo = State()
+
 
 def is_owner(message: Message, config: Config) -> bool:
     return bool(message.from_user and message.from_user.id in config.owner_ids)
@@ -38,7 +57,9 @@ async def deny_untrusted(message: Message) -> None:
     logger.warning("Rejected report bot request from Telegram user %s", user_id)
 
 
-def build_router(config: Config, client: StatusClient) -> Router:
+def build_router(
+    config: Config, client: StatusClient, registry: ProjectRegistry
+) -> Router:
     router = Router(name="owner_reports")
 
     async def require_owner(message: Message) -> bool:
@@ -48,6 +69,7 @@ def build_router(config: Config, client: StatusClient) -> Router:
         return False
 
     @router.message(Command("start", "help"))
+    @router.message(lambda message: message.text == "ℹ️ Помощь")
     async def help_command(message: Message) -> None:
         if not await require_owner(message):
             return
@@ -60,15 +82,20 @@ def build_router(config: Config, client: StatusClient) -> Router:
             "/status — доступность сайтов\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
+            "/addproject — добавить проект\n"
+            "/cancel — отменить ввод\n"
             "/help — справка"
+            "\n\nАвтоматически сообщаю только об изменениях и присылаю вечерний отчёт.",
+            reply_markup=MENU,
         )
 
     @router.message(Command("projects"))
+    @router.message(lambda message: message.text == "📂 Проекты")
     async def projects_command(message: Message) -> None:
         if not await require_owner(message):
             return
         summaries = await asyncio.gather(
-            *(project_summary(client, project) for project in PROJECTS)
+            *(project_summary(client, project) for project in registry.all())
         )
         await message.answer("\n\n".join(summaries), disable_web_page_preview=True)
 
@@ -87,17 +114,19 @@ def build_router(config: Config, client: StatusClient) -> Router:
         router.message.register(handler, Command(command))
 
     @router.message(Command("status"))
+    @router.message(lambda message: message.text == "📡 Статус")
     async def status_command(message: Message) -> None:
         if not await require_owner(message):
             return
-        await message.answer(await all_sites_summary(client))
+        await message.answer(await all_sites_summary(client, registry.all()))
 
     @router.message(Command("releases"))
+    @router.message(lambda message: message.text == "🚀 Релизы")
     async def releases_command(message: Message) -> None:
         if not await require_owner(message):
             return
         lines = ["<b>Последние релизы и сборки</b>"]
-        for project in PROJECTS:
+        for project in registry.all():
             if not project.repo:
                 continue
             runs = await client.workflow_runs(project.repo, limit=3)
@@ -116,12 +145,13 @@ def build_router(config: Config, client: StatusClient) -> Router:
         await message.answer("\n".join(lines), disable_web_page_preview=True)
 
     @router.message(Command("errors"))
+    @router.message(lambda message: message.text == "❌ Ошибки")
     async def errors_command(message: Message) -> None:
         if not await require_owner(message):
             return
         lines = ["<b>Последние ошибки автоматизаций</b>"]
         found = False
-        for project in PROJECTS:
+        for project in registry.all():
             if not project.repo:
                 continue
             runs = await client.workflow_runs(project.repo, status="failure", limit=3)
@@ -139,6 +169,91 @@ def build_router(config: Config, client: StatusClient) -> Router:
         if not found:
             lines.append("\n✅ Доступных ошибок не найдено")
         await message.answer("\n".join(lines), disable_web_page_preview=True)
+
+    @router.message(Command("cancel"))
+    async def cancel_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        await state.clear()
+        await message.answer("Добавление отменено.", reply_markup=MENU)
+
+    @router.message(Command("addproject"))
+    @router.message(lambda message: message.text == "➕ Добавить проект")
+    async def add_project_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        await state.clear()
+        await state.set_state(AddProject.key)
+        await message.answer(
+            "Введите короткий ключ проекта: 2–32 символа, например <code>myproject</code>.\n"
+            "Для отмены: /cancel"
+        )
+
+    @router.message(AddProject.key)
+    async def add_project_key(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        key = (message.text or "").strip().lower()
+        try:
+            validate_project(key, "Проект", "https://example.com", None)
+            if registry.by_key(key):
+                raise ValueError("Проект с таким ключом уже существует")
+        except ValueError as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}\nПопробуйте ещё раз.")
+            return
+        await state.update_data(key=key)
+        await state.set_state(AddProject.title)
+        await message.answer("Введите название проекта.")
+
+    @router.message(AddProject.title)
+    async def add_project_title(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        title = (message.text or "").strip()
+        if not 2 <= len(title) <= 80:
+            await message.answer("⚠️ Название должно содержать от 2 до 80 символов.")
+            return
+        await state.update_data(title=title)
+        await state.set_state(AddProject.url)
+        await message.answer("Введите HTTPS-адрес проекта, например https://example.com/")
+
+    @router.message(AddProject.url)
+    async def add_project_url(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        data = await state.get_data()
+        url = (message.text or "").strip()
+        try:
+            validate_project(data["key"], data["title"], url, None)
+        except ValueError as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}\nПопробуйте ещё раз.")
+            return
+        await state.update_data(url=url)
+        await state.set_state(AddProject.repo)
+        await message.answer(
+            "Введите имя GitHub-репозитория без ссылки или <code>-</code>, если его нет."
+        )
+
+    @router.message(AddProject.repo)
+    async def add_project_repo(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        data = await state.get_data()
+        repo_text = (message.text or "").strip()
+        repo = None if repo_text == "-" else repo_text
+        try:
+            project = validate_project(
+                data["key"], data["title"], data["url"], repo
+            )
+            registry.add(project)
+        except ValueError as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}\nПопробуйте ещё раз.")
+            return
+        await state.clear()
+        await message.answer(
+            f"✅ Проект <b>{html.escape(project.title)}</b> добавлен и включён в мониторинг.",
+            reply_markup=MENU,
+        )
 
     return router
 
@@ -165,13 +280,26 @@ async def main() -> None:
 
     async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
         client = StatusClient(session, config.github_owner, config.github_token)
+        registry = ProjectRegistry(config.data_dir)
         bot = Bot(
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )
         dispatcher = Dispatcher()
-        dispatcher.include_router(build_router(config, client))
+        dispatcher.include_router(build_router(config, client, registry))
         health_runner = await run_health_server(config.port)
+        monitor_task = asyncio.create_task(
+            monitor_loop(
+                bot,
+                config.owner_ids,
+                client,
+                registry,
+                config.data_dir,
+                config.monitor_interval_seconds,
+                config.evening_report_hour,
+                config.timezone,
+            )
+        )
 
         try:
             logger.info("Starting owner-only project report bot")
@@ -181,6 +309,8 @@ async def main() -> None:
                 handle_signals=True,
             )
         finally:
+            monitor_task.cancel()
+            await asyncio.gather(monitor_task, return_exceptions=True)
             await health_runner.cleanup()
             await bot.session.close()
 

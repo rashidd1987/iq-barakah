@@ -141,12 +141,14 @@ async def project_summary(client: StatusClient, project: Project) -> str:
     return "\n".join(lines)
 
 
-async def all_sites_summary(client: StatusClient) -> str:
+async def all_sites_summary(
+    client: StatusClient, projects: tuple[Project, ...] = PROJECTS
+) -> str:
     statuses = await asyncio.gather(
-        *(client.site_status(project) for project in PROJECTS)
+        *(client.site_status(project) for project in projects)
     )
     lines = ["<b>Состояние проектов</b>"]
-    for project, status in zip(PROJECTS, statuses, strict=True):
+    for project, status in zip(projects, statuses, strict=True):
         if status.ok:
             lines.append(
                 f"✅ {project.title}: {status.status_code}, {status.latency_ms} мс"

@@ -1,8 +1,12 @@
 import os
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
 from report_bot.config import load_config
+from report_bot.monitor import ProjectState, StateStore, transition_messages
+from report_bot.projects import ProjectRegistry, validate_project
 from report_bot.status import format_datetime, run_icon
 
 
@@ -40,6 +44,19 @@ class ConfigTests(unittest.TestCase):
             config = load_config()
         self.assertEqual(config.owner_ids, frozenset({140700248, 42}))
 
+    def test_rejects_too_frequent_monitoring(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "test-token",
+                "OWNER_TELEGRAM_IDS": "42",
+                "MONITOR_INTERVAL_SECONDS": "10",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "at least 60"):
+                load_config()
+
 
 class FormattingTests(unittest.TestCase):
     def test_run_icons(self) -> None:
@@ -49,6 +66,70 @@ class FormattingTests(unittest.TestCase):
 
     def test_invalid_datetime_is_safe(self) -> None:
         self.assertEqual(format_datetime("invalid"), "нет данных")
+
+
+class ProjectRegistryTests(unittest.TestCase):
+    def test_validates_https_and_persists_custom_project(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            project = validate_project(
+                "new_one", "Новый проект", "https://example.com/health", "private-repo"
+            )
+            registry.add(project)
+            reloaded = ProjectRegistry(directory)
+            self.assertEqual(reloaded.by_key("new_one"), project)
+
+    def test_rejects_insecure_url(self) -> None:
+        with self.assertRaisesRegex(ValueError, "https"):
+            validate_project("demo", "Demo", "http://example.com", None)
+
+
+class MonitorTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.registry_dir = tempfile.TemporaryDirectory()
+        self.registry = ProjectRegistry(self.registry_dir.name)
+        self.project = self.registry.by_key("iqbarakah")
+        assert self.project is not None
+
+    def tearDown(self) -> None:
+        self.registry_dir.cleanup()
+
+    def test_no_message_for_identical_state(self) -> None:
+        state = ProjectState(True, 200, 10, "completed", "success")
+        self.assertEqual(
+            transition_messages(
+                {self.project.key: state},
+                {self.project.key: state},
+                self.registry,
+            ),
+            [],
+        )
+
+    def test_reports_outage_and_recovery(self) -> None:
+        healthy = ProjectState(True, 200, None, None, None)
+        down = ProjectState(False, None, None, None, None)
+        outage = transition_messages(
+            {self.project.key: healthy},
+            {self.project.key: down},
+            self.registry,
+        )
+        recovery = transition_messages(
+            {self.project.key: down},
+            {self.project.key: healthy},
+            self.registry,
+        )
+        self.assertIn("Недоступен", outage[0])
+        self.assertIn("Восстановлен", recovery[0])
+
+    def test_state_store_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = StateStore(directory)
+            states = {
+                "demo": ProjectState(True, 401, 12, "completed", "failure")
+            }
+            store.save(states)
+            self.assertEqual(store.load(), states)
+            self.assertTrue(Path(directory, "monitor_state.json").exists())
 
 
 if __name__ == "__main__":
