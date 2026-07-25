@@ -16,6 +16,7 @@ class Config:
     evening_report_hour: int
     timezone: str
     github_token_expires_at: date | None
+    approval_api_secret: str
 
 
 def load_config() -> Config:
@@ -61,4 +62,5 @@ def load_config() -> Config:
         evening_report_hour=report_hour,
         timezone=os.environ.get("REPORT_TIMEZONE", "Europe/Moscow").strip(),
         github_token_expires_at=github_token_expires_at,
+        approval_api_secret=os.environ.get("APPROVAL_API_SECRET", "").strip(),
     )

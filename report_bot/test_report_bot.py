@@ -1,10 +1,11 @@
 import os
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
+from report_bot.approvals import ApprovalStore
 from report_bot.config import load_config
 from report_bot.monitor import (
     ProjectState,
@@ -184,6 +185,82 @@ class MonitorTests(unittest.TestCase):
         self.assertIsNone(
             token_expiry_reminder(date(2026, 11, 1), expires, {key})
         )
+
+
+class ApprovalStoreTests(unittest.TestCase):
+    def test_idempotent_request_returns_same_approval(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ApprovalStore(directory)
+            first, first_created = store.create(
+                idempotency_key="release:iqbarakah:42",
+                project="IQ Barakah",
+                action="Production deploy",
+                description="Deploy tested release",
+                risk="Container restart",
+            )
+            second, second_created = store.create(
+                idempotency_key="release:iqbarakah:42",
+                project="IQ Barakah",
+                action="Changed text is ignored",
+                description="Changed text is ignored",
+                risk="Changed text is ignored",
+            )
+            self.assertTrue(first_created)
+            self.assertFalse(second_created)
+            self.assertEqual(first.id, second.id)
+
+    def test_owner_can_approve_only_once(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ApprovalStore(directory)
+            approval, _ = store.create(
+                idempotency_key="release:mizanlife:43",
+                project="Mizan Life",
+                action="Production deploy",
+                description="Deploy tested release",
+                risk="Container restart",
+            )
+            decided = store.decide(approval.id, approved=True, owner_id=42)
+            repeated = store.decide(approval.id, approved=False, owner_id=99)
+            assert decided is not None and repeated is not None
+            self.assertEqual(decided.status, "approved")
+            self.assertEqual(repeated.status, "approved")
+            self.assertEqual(repeated.decided_by, 42)
+
+    def test_expired_request_cannot_be_approved(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ApprovalStore(directory)
+            created_at = datetime(2026, 7, 25, tzinfo=timezone.utc)
+            approval, _ = store.create(
+                idempotency_key="release:mizanos:44",
+                project="Mizan OS",
+                action="Production deploy",
+                description="Deploy tested release",
+                risk="Container restart",
+                ttl_minutes=5,
+                now=created_at,
+            )
+            decided = store.decide(
+                approval.id,
+                approved=True,
+                owner_id=42,
+                now=created_at + timedelta(minutes=6),
+            )
+            assert decided is not None
+            self.assertEqual(decided.status, "expired")
+            self.assertIsNone(decided.decided_by)
+
+    def test_approval_persists_across_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ApprovalStore(directory)
+            approval, _ = store.create(
+                idempotency_key="release:iqbarakah:45",
+                project="IQ Barakah",
+                action="Production deploy",
+                description="Deploy tested release",
+                risk="Container restart",
+            )
+            reloaded = ApprovalStore(directory)
+            self.assertEqual(reloaded.get(approval.id), approval)
 
 
 if __name__ == "__main__":

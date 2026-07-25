@@ -63,12 +63,27 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment: ${{ inputs.target }}
+    timeout-minutes: 90
     steps:
       - name: Require explicit production confirmation
         if: inputs.target == 'production' && inputs.confirm_production != 'RELEASE'
         run: |
           echo "Production release requires confirm_production=RELEASE."
           exit 1
+
+      - name: Request owner approval in Telegram
+        if: inputs.target == 'production'
+        env:
+          APPROVAL_API_URL: ${{ secrets.APPROVAL_API_URL }}
+          APPROVAL_API_SECRET: ${{ secrets.APPROVAL_API_SECRET }}
+        run: |
+          python3 .github/scripts/wait_for_telegram_approval.py \
+            --project "IQ Barakah" \
+            --action "Опубликовать PWA в production" \
+            --description "Загрузить проверенную сборку PWA на основной сайт" \
+            --risk "Пользователи сразу увидят новую версию; возможен откат релиза" \
+            --idempotency-key "pwa-production:${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}" \
+            --ttl-minutes 60
 
       - name: Download verified build
         uses: actions/download-artifact@v4
