@@ -1,6 +1,7 @@
 import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,6 +14,7 @@ from report_bot.monitor import (
     token_expiry_reminder,
     transition_messages,
 )
+from report_bot.main import approval_auth_ok
 from report_bot.projects import ProjectRegistry, validate_project
 from report_bot.status import format_datetime, run_icon
 
@@ -99,6 +101,16 @@ class FormattingTests(unittest.TestCase):
 
     def test_invalid_datetime_is_safe(self) -> None:
         self.assertEqual(format_datetime("invalid"), "нет данных")
+
+
+class ApprovalAuthTests(unittest.TestCase):
+    def test_valid_secret_is_accepted(self) -> None:
+        request = SimpleNamespace(headers={"Authorization": "Bearer safe-secret"})
+        self.assertTrue(approval_auth_ok(request, "safe-secret"))
+
+    def test_non_ascii_invalid_secret_is_rejected_without_error(self) -> None:
+        request = SimpleNamespace(headers={"Authorization": "Bearer неверный"})
+        self.assertFalse(approval_auth_ok(request, "safe-secret"))
 
 
 class ProjectRegistryTests(unittest.TestCase):
