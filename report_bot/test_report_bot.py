@@ -262,6 +262,22 @@ class ApprovalStoreTests(unittest.TestCase):
             reloaded = ApprovalStore(directory)
             self.assertEqual(reloaded.get(approval.id), approval)
 
+    def test_notification_is_marked_only_once(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ApprovalStore(directory)
+            approval, _ = store.create(
+                idempotency_key="release:iqbarakah:46",
+                project="IQ Barakah",
+                action="Production deploy",
+                description="Deploy tested release",
+                risk="Container restart",
+            )
+            notified = store.mark_notified(approval.id)
+            repeated = store.mark_notified(approval.id)
+            assert notified is not None and repeated is not None
+            self.assertIsNotNone(notified.notified_at)
+            self.assertEqual(repeated.notified_at, notified.notified_at)
+
 
 if __name__ == "__main__":
     unittest.main()

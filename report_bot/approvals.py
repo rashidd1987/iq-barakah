@@ -22,6 +22,7 @@ class Approval:
     expires_at: str
     decided_at: str | None = None
     decided_by: int | None = None
+    notified_at: str | None = None
 
 
 class ApprovalStore:
@@ -95,6 +96,25 @@ class ApprovalStore:
         self._save()
         return decided
 
+    def mark_notified(
+        self,
+        approval_id: str,
+        now: datetime | None = None,
+    ) -> Approval | None:
+        item = self.get(approval_id, now)
+        if item is None or item.notified_at is not None:
+            return item
+        current = now or datetime.now(timezone.utc)
+        notified = Approval(
+            **{
+                **asdict(item),
+                "notified_at": current.isoformat(),
+            }
+        )
+        self._items[approval_id] = notified
+        self._save()
+        return notified
+
     def _with_expiry(
         self, item: Approval, now: datetime | None = None
     ) -> Approval:
@@ -127,4 +147,3 @@ class ApprovalStore:
             encoding="utf-8",
         )
         temporary.replace(self.path)
-

@@ -415,13 +415,25 @@ async def run_health_server(
             risk=risk,
             ttl_minutes=ttl_minutes,
         )
-        if created:
+        if approval.status == "pending" and approval.notified_at is None:
+            delivered = False
             for owner_id in config.owner_ids:
-                await bot.send_message(
-                    owner_id,
-                    approval_text(approval),
-                    reply_markup=approval_keyboard(approval),
-                )
+                try:
+                    await bot.send_message(
+                        owner_id,
+                        approval_text(approval),
+                        reply_markup=approval_keyboard(approval),
+                    )
+                    delivered = True
+                except Exception:
+                    logger.exception(
+                        "Failed to deliver approval %s to owner %s",
+                        approval.id,
+                        owner_id,
+                    )
+            if not delivered:
+                raise web.HTTPServiceUnavailable(text="notification unavailable")
+            approval = approval_store.mark_notified(approval.id) or approval
         return web.json_response(
             {
                 "id": approval.id,
