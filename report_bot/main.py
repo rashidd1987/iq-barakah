@@ -298,6 +298,7 @@ async def main() -> None:
                 config.monitor_interval_seconds,
                 config.evening_report_hour,
                 config.timezone,
+                config.github_token_expires_at,
             )
         )
 

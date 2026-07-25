@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from datetime import date
 
 
 @dataclass(frozen=True)
@@ -14,6 +15,7 @@ class Config:
     monitor_interval_seconds: int
     evening_report_hour: int
     timezone: str
+    github_token_expires_at: date | None
 
 
 def load_config() -> Config:
@@ -41,6 +43,11 @@ def load_config() -> Config:
         raise RuntimeError("MONITOR_INTERVAL_SECONDS must be at least 60")
     if not 0 <= report_hour <= 23:
         raise RuntimeError("EVENING_REPORT_HOUR must be between 0 and 23")
+    raw_expiry = os.environ.get("GITHUB_TOKEN_EXPIRES_AT", "").strip()
+    try:
+        github_token_expires_at = date.fromisoformat(raw_expiry) if raw_expiry else None
+    except ValueError as exc:
+        raise RuntimeError("GITHUB_TOKEN_EXPIRES_AT must use YYYY-MM-DD") from exc
 
     return Config(
         bot_token=bot_token,
@@ -53,4 +60,5 @@ def load_config() -> Config:
         monitor_interval_seconds=monitor_interval,
         evening_report_hour=report_hour,
         timezone=os.environ.get("REPORT_TIMEZONE", "Europe/Moscow").strip(),
+        github_token_expires_at=github_token_expires_at,
     )
