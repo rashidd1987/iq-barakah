@@ -10,3 +10,4 @@ build:
 
 run:
   command: python -m report_bot.main
+  persistenceMount: /data
