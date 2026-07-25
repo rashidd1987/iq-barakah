@@ -58,21 +58,25 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  deploy:
-    name: Deploy ${{ inputs.target }}
+  request-approval:
+    name: Request production approval
+    if: inputs.target == 'production'
     needs: build
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target }}
-    timeout-minutes: 90
+    outputs:
+      approval_id: ${{ steps.request.outputs.approval_id }}
     steps:
       - name: Require explicit production confirmation
-        if: inputs.target == 'production' && inputs.confirm_production != 'RELEASE'
+        if: inputs.confirm_production != 'RELEASE'
         run: |
           echo "Production release requires confirm_production=RELEASE."
           exit 1
 
-      - name: Request owner approval in Telegram
-        if: inputs.target == 'production'
+      - name: Checkout approval client
+        uses: actions/checkout@v4
+
+      - name: Create shared approval
+        id: request
         env:
           APPROVAL_API_URL: ${{ secrets.APPROVAL_API_URL }}
           APPROVAL_API_SECRET: ${{ secrets.APPROVAL_API_SECRET }}
@@ -83,7 +87,37 @@ jobs:
             --description "Загрузить проверенную сборку PWA на основной сайт" \
             --risk "Пользователи сразу увидят новую версию; возможен откат релиза" \
             --idempotency-key "pwa-production:${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}" \
-            --ttl-minutes 60
+            --github-repository "${GITHUB_REPOSITORY#*/}" \
+            --github-run-id "${GITHUB_RUN_ID}" \
+            --ttl-minutes 60 \
+            --create-only
+
+  deploy:
+    name: Deploy ${{ inputs.target }}
+    needs: [build, request-approval]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (inputs.target != 'production' || needs.request-approval.result == 'success')
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    timeout-minutes: 90
+    steps:
+      - name: Require explicit production confirmation
+        if: inputs.target == 'production' && inputs.confirm_production != 'RELEASE'
+        run: |
+          echo "Production release requires confirm_production=RELEASE."
+          exit 1
+
+      - name: Synchronize GitHub approval with Telegram
+        if: inputs.target == 'production'
+        env:
+          APPROVAL_API_URL: ${{ secrets.APPROVAL_API_URL }}
+          APPROVAL_API_SECRET: ${{ secrets.APPROVAL_API_SECRET }}
+        run: |
+          python3 .github/scripts/record_approval_decision.py \
+            --approval-id "${{ needs.request-approval.outputs.approval_id }}" \
+            --status approved
 
       - name: Download verified build
         uses: actions/download-artifact@v4

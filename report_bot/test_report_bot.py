@@ -4,7 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from report_bot.approvals import ApprovalStore
 from report_bot.config import load_config
@@ -180,6 +180,26 @@ class WorkflowDispatchTests(unittest.IsolatedAsyncioTestCase):
             inputs={},
         )
         self.assertEqual(result, "unauthorized")
+
+    async def test_reviews_only_production_pending_deployment(self) -> None:
+        session = _FakeSession(200)
+        client = StatusClient(session, "owner", "token")
+        client._github_get = AsyncMock(
+            return_value=[
+                {"environment": {"id": 17, "name": "production"}},
+                {"environment": {"id": 18, "name": "preview"}},
+            ]
+        )
+        result = await client.review_pending_deployment(
+            "repo",
+            123,
+            approved=True,
+        )
+        self.assertEqual(result, "reviewed")
+        assert session.last_post is not None
+        _, kwargs = session.last_post
+        self.assertEqual(kwargs["json"]["environment_ids"], [17])
+        self.assertEqual(kwargs["json"]["state"], "approved")
 
 
 class ProjectRegistryTests(unittest.TestCase):
@@ -358,6 +378,37 @@ class ApprovalStoreTests(unittest.TestCase):
             assert notified is not None and repeated is not None
             self.assertIsNotNone(notified.notified_at)
             self.assertEqual(repeated.notified_at, notified.notified_at)
+
+    def test_github_context_messages_and_decision_source_persist(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = ApprovalStore(directory)
+            approval, _ = store.create(
+                idempotency_key="release:iqbarakah:47",
+                project="IQ Barakah",
+                action="Production deploy",
+                description="Deploy tested release",
+                risk="Container restart",
+                github_repository="iq-barakah",
+                github_run_id=123,
+            )
+            store.add_telegram_message(
+                approval.id,
+                chat_id=42,
+                message_id=99,
+            )
+            decided = store.decide(
+                approval.id,
+                approved=True,
+                owner_id=None,
+                source="github",
+            )
+            assert decided is not None
+            reloaded = ApprovalStore(directory).get(approval.id)
+            assert reloaded is not None
+            self.assertEqual(reloaded.telegram_messages, ((42, 99),))
+            self.assertEqual(reloaded.github_repository, "iq-barakah")
+            self.assertEqual(reloaded.github_run_id, 123)
+            self.assertEqual(reloaded.decision_source, "github")
 
 
 if __name__ == "__main__":

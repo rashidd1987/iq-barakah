@@ -66,13 +66,18 @@ def approval_text(approval: Approval) -> str:
         "rejected": "⛔ Отклонено",
         "expired": "⌛️ Срок запроса истёк",
     }[approval.status]
+    source = {
+        "telegram": " через Telegram",
+        "github": " через GitHub",
+        None: "",
+    }[approval.decision_source]
     return (
         "🔐 <b>Требуется ваше разрешение</b>\n\n"
         f"<b>Проект:</b> {html.escape(approval.project)}\n"
         f"<b>Действие:</b> {html.escape(approval.action)}\n"
         f"<b>Что произойдёт:</b> {html.escape(approval.description)}\n"
         f"<b>Риск:</b> {html.escape(approval.risk)}\n\n"
-        f"<b>Статус:</b> {status}\n"
+        f"<b>Статус:</b> {status}{source}\n"
         f"<code>{approval.id}</code>"
     )
 
@@ -117,6 +122,60 @@ def is_owner(message: Message, config: Config) -> bool:
     return bool(message.from_user and message.from_user.id in config.owner_ids)
 
 
+async def refresh_approval_messages(bot: Bot, approval: Approval) -> None:
+    for chat_id, message_id in approval.telegram_messages:
+        try:
+            await bot.edit_message_text(
+                approval_text(approval),
+                chat_id=chat_id,
+                message_id=message_id,
+                reply_markup=approval_keyboard(approval),
+            )
+        except Exception:
+            logger.warning(
+                "Could not refresh approval message %s/%s",
+                chat_id,
+                message_id,
+                exc_info=True,
+            )
+
+
+async def approval_reconciliation_loop(
+    bot: Bot,
+    client: StatusClient,
+    store: ApprovalStore,
+) -> None:
+    while True:
+        try:
+            for approval in store.pending():
+                if not approval.github_repository or not approval.github_run_id:
+                    continue
+                run = await client.workflow_run(
+                    approval.github_repository,
+                    approval.github_run_id,
+                )
+                if not run:
+                    continue
+                status = run.get("status")
+                conclusion = run.get("conclusion")
+                approved: bool | None = None
+                if status == "completed":
+                    approved = conclusion == "success"
+                if approved is None:
+                    continue
+                decided = store.decide(
+                    approval.id,
+                    approved=approved,
+                    owner_id=None,
+                    source="github",
+                )
+                if decided:
+                    await refresh_approval_messages(bot, decided)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Approval reconciliation iteration failed")
+        await asyncio.sleep(15)
 async def deny_untrusted(message: Message) -> None:
     user_id = message.from_user.id if message.from_user else None
     logger.warning("Rejected report bot request from Telegram user %s", user_id)
@@ -415,9 +474,14 @@ def build_router(
             risk="Безопасный тест: никаких внешних изменений",
             ttl_minutes=15,
         )
-        await message.answer(
+        sent = await message.answer(
             approval_text(approval),
             reply_markup=approval_keyboard(approval),
+        )
+        approval_store.add_telegram_message(
+            approval.id,
+            chat_id=sent.chat.id,
+            message_id=sent.message_id,
         )
 
     @router.callback_query(F.data.startswith("approval:"))
@@ -431,14 +495,57 @@ def build_router(
         if len(parts) != 3 or parts[1] not in {"approve", "reject"}:
             await callback.answer("Некорректный запрос", show_alert=True)
             return
-        approval = approval_store.decide(
-            parts[2],
-            approved=parts[1] == "approve",
-            owner_id=owner_id,
-        )
+        approval = approval_store.get(parts[2])
         if approval is None:
             await callback.answer("Запрос не найден", show_alert=True)
             return
+        wants_approval = parts[1] == "approve"
+        if (
+            approval.status == "pending"
+            and approval.github_repository
+            and approval.github_run_id
+        ):
+            review = "not_found"
+            for attempt in range(4):
+                review = await client.review_pending_deployment(
+                    approval.github_repository,
+                    approval.github_run_id,
+                    approved=wants_approval,
+                )
+                if review != "not_found" or attempt == 3:
+                    break
+                await asyncio.sleep(3)
+            if review == "unauthorized":
+                await callback.answer(
+                    "GitHub-токену нужно право Deployments: write",
+                    show_alert=True,
+                )
+                return
+            if review == "not_found":
+                await callback.answer(
+                    "GitHub ещё готовит запрос. Повторите через несколько секунд.",
+                    show_alert=True,
+                )
+                return
+            if review == "failed":
+                await callback.answer(
+                    "GitHub временно недоступен. Решение не применено.",
+                    show_alert=True,
+                )
+                return
+            if review == "already_started" and not wants_approval:
+                await callback.answer(
+                    "Релиз уже разрешён через GitHub; отклонить поздно.",
+                    show_alert=True,
+                )
+                return
+        approval = approval_store.decide(
+            parts[2],
+            approved=wants_approval,
+            owner_id=owner_id,
+            source="telegram",
+        )
+        assert approval is not None
         callback_answers = {
             "approved": "Разрешено",
             "rejected": "Отклонено",
@@ -446,11 +553,7 @@ def build_router(
             "pending": "Решение не сохранено",
         }
         await callback.answer(callback_answers[approval.status])
-        if callback.message:
-            await callback.message.edit_text(
-                approval_text(approval),
-                reply_markup=approval_keyboard(approval),
-            )
+        await refresh_approval_messages(callback.bot, approval)
 
     return router
 
@@ -490,6 +593,12 @@ async def run_health_server(
             description = str(payload["description"]).strip()
             risk = str(payload["risk"]).strip()
             ttl_minutes = int(payload.get("ttl_minutes", 60))
+            github_repository = payload.get("github_repository")
+            github_run_id = payload.get("github_run_id")
+            if github_repository is not None:
+                github_repository = str(github_repository).strip()
+            if github_run_id is not None:
+                github_run_id = int(github_run_id)
         except (
             KeyError,
             TypeError,
@@ -505,6 +614,11 @@ async def run_health_server(
             or not 2 <= len(description) <= 500
             or not 2 <= len(risk) <= 300
             or not 5 <= ttl_minutes <= 1440
+            or (
+                github_repository is not None
+                and not 2 <= len(github_repository) <= 100
+            )
+            or (github_run_id is not None and github_run_id <= 0)
         ):
             raise web.HTTPBadRequest(text="invalid request")
         approval, created = approval_store.create(
@@ -514,15 +628,25 @@ async def run_health_server(
             description=description,
             risk=risk,
             ttl_minutes=ttl_minutes,
+            github_repository=github_repository,
+            github_run_id=github_run_id,
         )
         if approval.status == "pending" and approval.notified_at is None:
             delivered = False
             for owner_id in config.owner_ids:
                 try:
-                    await bot.send_message(
+                    sent = await bot.send_message(
                         owner_id,
                         approval_text(approval),
                         reply_markup=approval_keyboard(approval),
+                    )
+                    approval = (
+                        approval_store.add_telegram_message(
+                            approval.id,
+                            chat_id=sent.chat.id,
+                            message_id=sent.message_id,
+                        )
+                        or approval
                     )
                     delivered = True
                 except Exception:
@@ -558,8 +682,44 @@ async def run_health_server(
             }
         )
 
+    async def decide_approval(request: web.Request) -> web.Response:
+        if not approval_auth_ok(request, config.approval_api_secret):
+            raise web.HTTPUnauthorized()
+        approval = approval_store.get(request.match_info["approval_id"])
+        if approval is None:
+            raise web.HTTPNotFound()
+        try:
+            payload = await request.json()
+            status = str(payload["status"])
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            json.JSONDecodeError,
+            aiohttp.ContentTypeError,
+        ):
+            raise web.HTTPBadRequest(text="invalid request") from None
+        if status not in {"approved", "rejected"}:
+            raise web.HTTPBadRequest(text="invalid request")
+        approval = approval_store.decide(
+            approval.id,
+            approved=status == "approved",
+            owner_id=None,
+            source="github",
+        )
+        assert approval is not None
+        await refresh_approval_messages(bot, approval)
+        return web.json_response(
+            {
+                "id": approval.id,
+                "status": approval.status,
+                "decided_at": approval.decided_at,
+            }
+        )
+
     app.router.add_post("/approvals", create_approval)
     app.router.add_get("/approvals/{approval_id}", get_approval)
+    app.router.add_post("/approvals/{approval_id}/decision", decide_approval)
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", port).start()
@@ -601,6 +761,9 @@ async def main() -> None:
                 config.github_token_expires_at,
             )
         )
+        approval_reconciliation_task = asyncio.create_task(
+            approval_reconciliation_loop(bot, client, approval_store)
+        )
 
         try:
             logger.info("Starting owner-only project report bot")
@@ -611,7 +774,12 @@ async def main() -> None:
             )
         finally:
             monitor_task.cancel()
-            await asyncio.gather(monitor_task, return_exceptions=True)
+            approval_reconciliation_task.cancel()
+            await asyncio.gather(
+                monitor_task,
+                approval_reconciliation_task,
+                return_exceptions=True,
+            )
             await health_runner.cleanup()
             await bot.session.close()
 

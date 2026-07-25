@@ -15,6 +15,11 @@ class SiteStatus:
     latency_ms: int | None
 
 
+DeploymentReviewResult = Literal[
+    "reviewed", "already_started", "unauthorized", "not_found", "failed"
+]
+
+
 class StatusClient:
     def __init__(
         self,
@@ -71,6 +76,14 @@ class StatusClient:
         runs = payload.get("workflow_runs")
         return runs if isinstance(runs, list) else None
 
+    async def workflow_run(
+        self, repository: str, run_id: int
+    ) -> dict[str, Any] | None:
+        payload = await self._github_get(
+            f"/repos/{self._github_owner}/{repository}/actions/runs/{run_id}"
+        )
+        return payload if isinstance(payload, dict) else None
+
     async def dispatch_workflow(
         self,
         name: str,
@@ -90,6 +103,56 @@ class StatusClient:
             ) as response:
                 if response.status == 204:
                     return "started"
+                if response.status in {401, 403}:
+                    return "unauthorized"
+                if response.status == 404:
+                    return "not_found"
+                return "failed"
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return "failed"
+
+    async def review_pending_deployment(
+        self,
+        repository: str,
+        run_id: int,
+        *,
+        approved: bool,
+    ) -> DeploymentReviewResult:
+        path = f"/repos/{self._github_owner}/{repository}/actions/runs/{run_id}"
+        payload = await self._github_get(f"{path}/pending_deployments")
+        if payload is None:
+            return "unauthorized"
+        if not isinstance(payload, list):
+            return "failed"
+        environment_ids = [
+            item.get("environment", {}).get("id")
+            for item in payload
+            if isinstance(item, dict)
+            and item.get("environment", {}).get("name") == "production"
+        ]
+        environment_ids = [
+            value for value in environment_ids if isinstance(value, int)
+        ]
+        if not environment_ids:
+            run = await self._github_get(path)
+            if isinstance(run, dict) and run.get("status") in {
+                "in_progress",
+                "completed",
+            }:
+                return "already_started"
+            return "not_found"
+        try:
+            async with self._session.post(
+                f"https://api.github.com{path}/pending_deployments",
+                headers=self._github_headers,
+                json={
+                    "environment_ids": environment_ids,
+                    "state": "approved" if approved else "rejected",
+                    "comment": "Решение владельца через Mizan Project Reports",
+                },
+            ) as response:
+                if response.status == 200:
+                    return "reviewed"
                 if response.status in {401, 403}:
                     return "unauthorized"
                 if response.status == 404:
