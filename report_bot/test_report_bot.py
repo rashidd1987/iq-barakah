@@ -1,11 +1,17 @@
 import os
+from datetime import date
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from report_bot.config import load_config
-from report_bot.monitor import ProjectState, StateStore, transition_messages
+from report_bot.monitor import (
+    ProjectState,
+    StateStore,
+    token_expiry_reminder,
+    transition_messages,
+)
 from report_bot.projects import ProjectRegistry, validate_project
 from report_bot.status import format_datetime, run_icon
 
@@ -55,6 +61,32 @@ class ConfigTests(unittest.TestCase):
             clear=True,
         ):
             with self.assertRaisesRegex(RuntimeError, "at least 60"):
+                load_config()
+
+    def test_loads_github_token_expiry(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "test-token",
+                "OWNER_TELEGRAM_IDS": "42",
+                "GITHUB_TOKEN_EXPIRES_AT": "2026-10-23",
+            },
+            clear=True,
+        ):
+            config = load_config()
+        self.assertEqual(config.github_token_expires_at, date(2026, 10, 23))
+
+    def test_rejects_invalid_github_token_expiry(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "test-token",
+                "OWNER_TELEGRAM_IDS": "42",
+                "GITHUB_TOKEN_EXPIRES_AT": "23.10.2026",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "YYYY-MM-DD"):
                 load_config()
 
 
@@ -130,6 +162,28 @@ class MonitorTests(unittest.TestCase):
             store.save(states)
             self.assertEqual(store.load(), states)
             self.assertTrue(Path(directory, "monitor_state.json").exists())
+
+    def test_token_expiry_reminder_is_sent_once_per_milestone(self) -> None:
+        expires = date(2026, 10, 23)
+        reminder = token_expiry_reminder(date(2026, 10, 16), expires, set())
+        self.assertIsNotNone(reminder)
+        assert reminder is not None
+        key, message = reminder
+        self.assertIn("7", message)
+        self.assertIsNone(
+            token_expiry_reminder(date(2026, 10, 16), expires, {key})
+        )
+
+    def test_expired_token_reminder_is_not_repeated(self) -> None:
+        expires = date(2026, 10, 23)
+        reminder = token_expiry_reminder(date(2026, 10, 24), expires, set())
+        self.assertIsNotNone(reminder)
+        assert reminder is not None
+        key, message = reminder
+        self.assertIn("истёк", message)
+        self.assertIsNone(
+            token_expiry_reminder(date(2026, 11, 1), expires, {key})
+        )
 
 
 if __name__ == "__main__":
