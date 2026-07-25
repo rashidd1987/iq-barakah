@@ -45,6 +45,7 @@ MENU = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
+        [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
         [KeyboardButton(text="➕ Добавить проект"), KeyboardButton(text="ℹ️ Помощь")],
     ],
     resize_keyboard=True,
@@ -95,6 +96,23 @@ def approval_keyboard(approval: Approval) -> InlineKeyboardMarkup | None:
     )
 
 
+def pwa_release_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🧪 Запустить подготовку",
+                    callback_data="release:pwa:start",
+                ),
+                InlineKeyboardButton(
+                    text="Отмена",
+                    callback_data="release:pwa:cancel",
+                ),
+            ]
+        ]
+    )
+
+
 def is_owner(message: Message, config: Config) -> bool:
     return bool(message.from_user and message.from_user.id in config.owner_ids)
 
@@ -132,6 +150,7 @@ def build_router(
             "/status — доступность сайтов\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
+            "/releasepwa — подготовить PWA-релиз\n"
             "/addproject — добавить проект\n"
             "/approvaltest — проверить запрос Да/Нет\n"
             "/cancel — отменить ввод\n"
@@ -220,6 +239,84 @@ def build_router(
         if not found:
             lines.append("\n✅ Доступных ошибок не найдено")
         await message.answer("\n".join(lines), disable_web_page_preview=True)
+
+    @router.message(Command("releasepwa"))
+    @router.message(lambda message: message.text == "🧪 Подготовить PWA-релиз")
+    async def prepare_pwa_release(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        await message.answer(
+            "🧪 <b>Подготовить PWA-релиз IQ Barakah?</b>\n\n"
+            "Облако выполнит TypeScript-проверку и соберёт PWA. "
+            "После успешной сборки бот отдельно спросит разрешение "
+            "на публикацию в production.\n\n"
+            "На этом шаге сайт не изменяется.",
+            reply_markup=pwa_release_keyboard(),
+        )
+
+    @router.callback_query(F.data.startswith("release:pwa:"))
+    async def pwa_release_callback(callback: CallbackQuery) -> None:
+        owner_id = callback.from_user.id
+        if owner_id not in config.owner_ids:
+            logger.warning("Rejected release callback from Telegram user %s", owner_id)
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        action = (callback.data or "").rsplit(":", 1)[-1]
+        if action == "cancel":
+            await callback.answer("Отменено")
+            if callback.message:
+                await callback.message.edit_text(
+                    "⚪️ Подготовка PWA-релиза отменена. Ничего не запускалось."
+                )
+            return
+        if action != "start":
+            await callback.answer("Некорректный запрос", show_alert=True)
+            return
+
+        await callback.answer("Проверяю очередь…")
+        runs = await client.workflow_runs("iq-barakah", limit=10)
+        if runs is None:
+            result_text = (
+                "❌ Не удалось проверить GitHub. Сборка не запущена. "
+                "Попробуйте позже."
+            )
+        elif any(
+            run.get("name") == "Release PWA"
+            and run.get("status") in {"queued", "in_progress", "waiting", "pending"}
+            for run in runs
+        ):
+            result_text = (
+                "⏳ Подготовка PWA уже выполняется. Второй запуск не создан."
+            )
+        else:
+            result = await client.dispatch_workflow(
+                "iq-barakah",
+                "release-pwa.yml",
+                ref="main",
+                inputs={
+                    "target": "production",
+                    "confirm_production": "RELEASE",
+                },
+            )
+            result_text = {
+                "started": (
+                    "✅ Подготовка PWA-релиза запущена в облаке.\n\n"
+                    "После тестов бот пришлёт отдельный запрос: "
+                    "публиковать production или остановить релиз."
+                ),
+                "unauthorized": (
+                    "🔒 GitHub не разрешил запуск workflow. "
+                    "Сборка не запущена."
+                ),
+                "not_found": (
+                    "❌ Workflow PWA не найден. Сборка не запущена."
+                ),
+                "failed": (
+                    "❌ GitHub временно недоступен. Сборка не запущена."
+                ),
+            }[result]
+        if callback.message:
+            await callback.message.edit_text(result_text)
 
     @router.message(Command("cancel"))
     async def cancel_command(message: Message, state: FSMContext) -> None:

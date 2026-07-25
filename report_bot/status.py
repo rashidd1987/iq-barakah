@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 import aiohttp
 
@@ -70,6 +70,33 @@ class StatusClient:
             return None
         runs = payload.get("workflow_runs")
         return runs if isinstance(runs, list) else None
+
+    async def dispatch_workflow(
+        self,
+        name: str,
+        workflow: str,
+        *,
+        ref: str,
+        inputs: dict[str, str],
+    ) -> Literal["started", "unauthorized", "not_found", "failed"]:
+        try:
+            async with self._session.post(
+                (
+                    f"https://api.github.com/repos/{self._github_owner}/{name}"
+                    f"/actions/workflows/{workflow}/dispatches"
+                ),
+                headers=self._github_headers,
+                json={"ref": ref, "inputs": inputs},
+            ) as response:
+                if response.status == 204:
+                    return "started"
+                if response.status in {401, 403}:
+                    return "unauthorized"
+                if response.status == 404:
+                    return "not_found"
+                return "failed"
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return "failed"
 
     async def _github_get(self, path: str) -> Any | None:
         try:

@@ -14,9 +14,9 @@ from report_bot.monitor import (
     token_expiry_reminder,
     transition_messages,
 )
-from report_bot.main import approval_auth_ok
+from report_bot.main import approval_auth_ok, pwa_release_keyboard
 from report_bot.projects import ProjectRegistry, validate_project
-from report_bot.status import format_datetime, run_icon
+from report_bot.status import StatusClient, format_datetime, run_icon
 
 
 class ConfigTests(unittest.TestCase):
@@ -111,6 +111,75 @@ class ApprovalAuthTests(unittest.TestCase):
     def test_non_ascii_invalid_secret_is_rejected_without_error(self) -> None:
         request = SimpleNamespace(headers={"Authorization": "Bearer неверный"})
         self.assertFalse(approval_auth_ok(request, "safe-secret"))
+
+
+class ReleaseControlTests(unittest.TestCase):
+    def test_pwa_release_confirmation_has_start_and_cancel(self) -> None:
+        keyboard = pwa_release_keyboard()
+        callbacks = {
+            button.callback_data
+            for row in keyboard.inline_keyboard
+            for button in row
+        }
+        self.assertEqual(
+            callbacks,
+            {"release:pwa:start", "release:pwa:cancel"},
+        )
+
+
+class _FakeResponse:
+    def __init__(self, status: int) -> None:
+        self.status = status
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback) -> None:
+        return None
+
+
+class _FakeSession:
+    def __init__(self, status: int) -> None:
+        self.status = status
+        self.last_post: tuple[str, dict[str, object]] | None = None
+
+    def post(self, url: str, **kwargs):
+        self.last_post = (url, kwargs)
+        return _FakeResponse(self.status)
+
+
+class WorkflowDispatchTests(unittest.IsolatedAsyncioTestCase):
+    async def test_dispatches_only_declared_workflow_inputs(self) -> None:
+        session = _FakeSession(204)
+        client = StatusClient(session, "owner", "token")
+        result = await client.dispatch_workflow(
+            "repo",
+            "release-pwa.yml",
+            ref="main",
+            inputs={"target": "production"},
+        )
+        self.assertEqual(result, "started")
+        assert session.last_post is not None
+        url, kwargs = session.last_post
+        self.assertEqual(
+            url,
+            "https://api.github.com/repos/owner/repo/actions/workflows/"
+            "release-pwa.yml/dispatches",
+        )
+        self.assertEqual(
+            kwargs["json"],
+            {"ref": "main", "inputs": {"target": "production"}},
+        )
+
+    async def test_reports_missing_actions_permission(self) -> None:
+        client = StatusClient(_FakeSession(403), "owner", "token")
+        result = await client.dispatch_workflow(
+            "repo",
+            "release-pwa.yml",
+            ref="main",
+            inputs={},
+        )
+        self.assertEqual(result, "unauthorized")
 
 
 class ProjectRegistryTests(unittest.TestCase):
