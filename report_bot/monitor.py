@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import date, datetime
 import json
 import logging
 from pathlib import Path
@@ -67,6 +67,70 @@ class ReportDateStore:
         temporary.replace(self.path)
 
 
+class ReminderStore:
+    def __init__(self, data_dir: str) -> None:
+        self.path = Path(data_dir) / "sent_reminders.json"
+
+    def load(self) -> set[str]:
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+            return {str(value) for value in raw}
+        except (FileNotFoundError, OSError, ValueError, TypeError, json.JSONDecodeError):
+            return set()
+
+    def save(self, values: set[str]) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(sorted(values), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        temporary.replace(self.path)
+
+
+def token_expiry_reminder(
+    today: date,
+    expires_at: date | None,
+    sent: set[str],
+) -> tuple[str, str] | None:
+    if expires_at is None:
+        return None
+    days_left = (expires_at - today).days
+    if days_left in {30, 14, 7, 3, 1}:
+        key = f"github-token:{expires_at.isoformat()}:{days_left}"
+        if key in sent:
+            return None
+        return (
+            key,
+            "🔐 <b>Скоро истекает GitHub-токен</b>\n\n"
+            f"Осталось дней: <b>{days_left}</b>.\n"
+            f"Дата окончания: <b>{expires_at.strftime('%d.%m.%Y')}</b>.\n\n"
+            "Обновите <code>GITHUB_READ_TOKEN</code> в Amvera, "
+            "чтобы отчёты по приватным проектам не остановились.",
+        )
+    if days_left == 0:
+        key = f"github-token:{expires_at.isoformat()}:today"
+        if key in sent:
+            return None
+        return (
+            key,
+            "🚨 <b>GitHub-токен истекает сегодня</b>\n\n"
+            "Обновите <code>GITHUB_READ_TOKEN</code> в Amvera.",
+        )
+    if days_left < 0:
+        key = f"github-token:{expires_at.isoformat()}:expired"
+        if key in sent:
+            return None
+        return (
+            key,
+            "🚨 <b>GitHub-токен истёк</b>\n\n"
+            f"Дата окончания: <b>{expires_at.strftime('%d.%m.%Y')}</b>.\n"
+            "Создайте новый read-only токен и обновите "
+            "<code>GITHUB_READ_TOKEN</code> в Amvera.",
+        )
+    return None
+
+
 async def capture_state(
     client: StatusClient, registry: ProjectRegistry
 ) -> dict[str, ProjectState]:
@@ -126,11 +190,14 @@ async def monitor_loop(
     interval_seconds: int,
     report_hour: int,
     timezone: str,
+    github_token_expires_at: date | None,
 ) -> None:
     store = StateStore(data_dir)
     report_store = ReportDateStore(data_dir)
     previous = store.load()
     last_report_date = report_store.load()
+    reminder_store = ReminderStore(data_dir)
+    sent_reminders = reminder_store.load()
     zone = ZoneInfo(timezone)
     while True:
         try:
@@ -143,6 +210,16 @@ async def monitor_loop(
             store.save(current)
 
             now = datetime.now(zone)
+            reminder = token_expiry_reminder(
+                now.date(), github_token_expires_at, sent_reminders
+            )
+            if reminder:
+                reminder_key, reminder_message = reminder
+                for owner_id in owner_ids:
+                    await bot.send_message(owner_id, reminder_message)
+                sent_reminders.add(reminder_key)
+                reminder_store.save(sent_reminders)
+
             if now.hour == report_hour and last_report_date != now.date():
                 summary = "🌙 <b>Вечерний отчёт</b>\n\n" + await all_sites_summary(
                     client, registry.all()
