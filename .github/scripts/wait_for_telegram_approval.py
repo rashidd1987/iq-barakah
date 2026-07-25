@@ -34,6 +34,27 @@ def api_request(
         return json.load(response)
 
 
+def api_request_with_retry(
+    url: str,
+    secret: str,
+    *,
+    method: str = "GET",
+    payload: dict[str, object] | None = None,
+    attempts: int = 6,
+) -> dict[str, object]:
+    for attempt in range(1, attempts + 1):
+        try:
+            return api_request(url, secret, method=method, payload=payload)
+        except HTTPError as exc:
+            if exc.code < 500 or attempt == attempts:
+                raise
+        except (URLError, TimeoutError):
+            if attempt == attempts:
+                raise
+        time.sleep(min(5 * attempt, 20))
+    raise RuntimeError("unreachable")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", required=True)
@@ -55,7 +76,7 @@ def main() -> int:
         return 2
 
     try:
-        approval = api_request(
+        approval = api_request_with_retry(
             f"{api_url}/approvals",
             secret,
             method="POST",
@@ -72,7 +93,7 @@ def main() -> int:
         print(f"Telegram approval requested: {approval_id}")
 
         while True:
-            status_payload = api_request(
+            status_payload = api_request_with_retry(
                 f"{api_url}/approvals/{approval_id}",
                 secret,
             )
