@@ -5,9 +5,8 @@ meta:
     version: "3.11"
 
 build:
-  requirementsPath: bot/requirements.txt
+  requirementsPath: report_bot/requirements.txt
   useCache: true
 
 run:
-  command: python bot/bot.py
-  persistenceMount: /data
+  command: python -m report_bot.main
