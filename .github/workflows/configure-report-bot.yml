@@ -37,6 +37,7 @@ jobs:
             {"command":"status","description":"Состояние автоматизаций"},
             {"command":"releases","description":"Последние релизы"},
             {"command":"errors","description":"Последние ошибки"},
+            {"command":"releasepwa","description":"Подготовить PWA-релиз"},
             {"command":"help","description":"Справка по командам"}
           ]'
 
