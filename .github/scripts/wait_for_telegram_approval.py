@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Request a one-time Telegram approval and wait for the owner's decision."""
+"""Create a Telegram approval request and optionally wait for a decision."""
 
 from __future__ import annotations
 
@@ -64,6 +64,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--idempotency-key", required=True)
     parser.add_argument("--ttl-minutes", type=int, default=60)
     parser.add_argument("--poll-seconds", type=int, default=10)
+    parser.add_argument("--github-repository")
+    parser.add_argument("--github-run-id", type=int)
+    parser.add_argument("--create-only", action="store_true")
     return parser.parse_args()
 
 
@@ -87,10 +90,18 @@ def main() -> int:
                 "description": args.description,
                 "risk": args.risk,
                 "ttl_minutes": args.ttl_minutes,
+                "github_repository": args.github_repository,
+                "github_run_id": args.github_run_id,
             },
         )
         approval_id = str(approval["id"])
         print(f"Telegram approval requested: {approval_id}")
+        github_output = os.environ.get("GITHUB_OUTPUT")
+        if github_output:
+            with open(github_output, "a", encoding="utf-8") as output:
+                output.write(f"approval_id={approval_id}\n")
+        if args.create_only:
+            return 0
 
         while True:
             status_payload = api_request_with_retry(
