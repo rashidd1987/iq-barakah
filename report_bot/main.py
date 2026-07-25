@@ -1,19 +1,29 @@
 import asyncio
+import hmac
 import html
+import json
 import logging
 import ssl
 
 import aiohttp
 import certifi
 from aiohttp import web
-from aiogram import Bot, Dispatcher, Router
+from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+)
 
+from report_bot.approvals import Approval, ApprovalStore
 from report_bot.config import Config, load_config
 from report_bot.monitor import monitor_loop
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
@@ -48,6 +58,43 @@ class AddProject(StatesGroup):
     repo = State()
 
 
+def approval_text(approval: Approval) -> str:
+    status = {
+        "pending": "⏳ Ожидает решения",
+        "approved": "✅ Разрешено",
+        "rejected": "⛔ Отклонено",
+        "expired": "⌛️ Срок запроса истёк",
+    }[approval.status]
+    return (
+        "🔐 <b>Требуется ваше разрешение</b>\n\n"
+        f"<b>Проект:</b> {html.escape(approval.project)}\n"
+        f"<b>Действие:</b> {html.escape(approval.action)}\n"
+        f"<b>Что произойдёт:</b> {html.escape(approval.description)}\n"
+        f"<b>Риск:</b> {html.escape(approval.risk)}\n\n"
+        f"<b>Статус:</b> {status}\n"
+        f"<code>{approval.id}</code>"
+    )
+
+
+def approval_keyboard(approval: Approval) -> InlineKeyboardMarkup | None:
+    if approval.status != "pending":
+        return None
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Да, разрешить",
+                    callback_data=f"approval:approve:{approval.id}",
+                ),
+                InlineKeyboardButton(
+                    text="⛔ Нет, отклонить",
+                    callback_data=f"approval:reject:{approval.id}",
+                ),
+            ]
+        ]
+    )
+
+
 def is_owner(message: Message, config: Config) -> bool:
     return bool(message.from_user and message.from_user.id in config.owner_ids)
 
@@ -58,7 +105,10 @@ async def deny_untrusted(message: Message) -> None:
 
 
 def build_router(
-    config: Config, client: StatusClient, registry: ProjectRegistry
+    config: Config,
+    client: StatusClient,
+    registry: ProjectRegistry,
+    approval_store: ApprovalStore,
 ) -> Router:
     router = Router(name="owner_reports")
 
@@ -83,6 +133,7 @@ def build_router(
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
             "/addproject — добавить проект\n"
+            "/approvaltest — проверить запрос Да/Нет\n"
             "/cancel — отменить ввод\n"
             "/help — справка"
             "\n\nАвтоматически сообщаю только об изменениях и присылаю вечерний отчёт.",
@@ -255,6 +306,55 @@ def build_router(
             reply_markup=MENU,
         )
 
+    @router.message(Command("approvaltest"))
+    async def approval_test_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        approval, _ = approval_store.create(
+            idempotency_key=f"manual-test:{message.chat.id}:{message.message_id}",
+            project="Mizan Approval Center",
+            action="Тест согласования",
+            description="Проверить кнопки без запуска production-действий",
+            risk="Безопасный тест: никаких внешних изменений",
+            ttl_minutes=15,
+        )
+        await message.answer(
+            approval_text(approval),
+            reply_markup=approval_keyboard(approval),
+        )
+
+    @router.callback_query(F.data.startswith("approval:"))
+    async def approval_callback(callback: CallbackQuery) -> None:
+        owner_id = callback.from_user.id
+        if owner_id not in config.owner_ids:
+            logger.warning("Rejected approval callback from Telegram user %s", owner_id)
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":", 2)
+        if len(parts) != 3 or parts[1] not in {"approve", "reject"}:
+            await callback.answer("Некорректный запрос", show_alert=True)
+            return
+        approval = approval_store.decide(
+            parts[2],
+            approved=parts[1] == "approve",
+            owner_id=owner_id,
+        )
+        if approval is None:
+            await callback.answer("Запрос не найден", show_alert=True)
+            return
+        callback_answers = {
+            "approved": "Разрешено",
+            "rejected": "Отклонено",
+            "expired": "Срок запроса истёк",
+            "pending": "Решение не сохранено",
+        }
+        await callback.answer(callback_answers[approval.status])
+        if callback.message:
+            await callback.message.edit_text(
+                approval_text(approval),
+                reply_markup=approval_keyboard(approval),
+            )
+
     return router
 
 
@@ -262,9 +362,92 @@ async def health(_: web.Request) -> web.Response:
     return web.json_response({"status": "ok", "service": "mizan-project-reports"})
 
 
-async def run_health_server(port: int) -> web.AppRunner:
+def approval_auth_ok(request: web.Request, secret: str) -> bool:
+    if not secret:
+        return False
+    supplied = request.headers.get("Authorization", "")
+    expected = f"Bearer {secret}"
+    return hmac.compare_digest(supplied, expected)
+
+
+async def run_health_server(
+    port: int,
+    config: Config,
+    bot: Bot,
+    approval_store: ApprovalStore,
+) -> web.AppRunner:
     app = web.Application()
     app.router.add_get("/health", health)
+
+    async def create_approval(request: web.Request) -> web.Response:
+        if not approval_auth_ok(request, config.approval_api_secret):
+            raise web.HTTPUnauthorized()
+        try:
+            payload = await request.json()
+            idempotency_key = str(payload["idempotency_key"]).strip()
+            project = str(payload["project"]).strip()
+            action = str(payload["action"]).strip()
+            description = str(payload["description"]).strip()
+            risk = str(payload["risk"]).strip()
+            ttl_minutes = int(payload.get("ttl_minutes", 60))
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            json.JSONDecodeError,
+            aiohttp.ContentTypeError,
+        ):
+            raise web.HTTPBadRequest(text="invalid request") from None
+        if (
+            not 8 <= len(idempotency_key) <= 160
+            or not 2 <= len(project) <= 80
+            or not 2 <= len(action) <= 120
+            or not 2 <= len(description) <= 500
+            or not 2 <= len(risk) <= 300
+            or not 5 <= ttl_minutes <= 1440
+        ):
+            raise web.HTTPBadRequest(text="invalid request")
+        approval, created = approval_store.create(
+            idempotency_key=idempotency_key,
+            project=project,
+            action=action,
+            description=description,
+            risk=risk,
+            ttl_minutes=ttl_minutes,
+        )
+        if created:
+            for owner_id in config.owner_ids:
+                await bot.send_message(
+                    owner_id,
+                    approval_text(approval),
+                    reply_markup=approval_keyboard(approval),
+                )
+        return web.json_response(
+            {
+                "id": approval.id,
+                "status": approval.status,
+                "expires_at": approval.expires_at,
+            },
+            status=201 if created else 200,
+        )
+
+    async def get_approval(request: web.Request) -> web.Response:
+        if not approval_auth_ok(request, config.approval_api_secret):
+            raise web.HTTPUnauthorized()
+        approval = approval_store.get(request.match_info["approval_id"])
+        if approval is None:
+            raise web.HTTPNotFound()
+        return web.json_response(
+            {
+                "id": approval.id,
+                "status": approval.status,
+                "expires_at": approval.expires_at,
+                "decided_at": approval.decided_at,
+            }
+        )
+
+    app.router.add_post("/approvals", create_approval)
+    app.router.add_get("/approvals/{approval_id}", get_approval)
     runner = web.AppRunner(app, access_log=None)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", port).start()
@@ -281,13 +464,18 @@ async def main() -> None:
     async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
         client = StatusClient(session, config.github_owner, config.github_token)
         registry = ProjectRegistry(config.data_dir)
+        approval_store = ApprovalStore(config.data_dir)
         bot = Bot(
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )
         dispatcher = Dispatcher()
-        dispatcher.include_router(build_router(config, client, registry))
-        health_runner = await run_health_server(config.port)
+        dispatcher.include_router(
+            build_router(config, client, registry, approval_store)
+        )
+        health_runner = await run_health_server(
+            config.port, config, bot, approval_store
+        )
         monitor_task = asyncio.create_task(
             monitor_loop(
                 bot,
