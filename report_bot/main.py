@@ -25,6 +25,12 @@ from aiogram.types import (
 
 from report_bot.approvals import Approval, ApprovalStore
 from report_bot.config import Config, load_config
+from report_bot.council import (
+    CouncilContext,
+    council_views,
+    executive_recommendation,
+    select_project,
+)
 from report_bot.monitor import monitor_loop
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
 from report_bot.status import (
@@ -43,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 MENU = ReplyKeyboardMarkup(
     keyboard=[
+        [KeyboardButton(text="🧠 Совет директоров")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -57,6 +64,10 @@ class AddProject(StatesGroup):
     title = State()
     url = State()
     repo = State()
+
+
+class OwnerCouncil(StatesGroup):
+    task = State()
 
 
 def approval_text(approval: Approval) -> str:
@@ -116,6 +127,35 @@ def pwa_release_keyboard() -> InlineKeyboardMarkup:
             ]
         ]
     )
+
+
+def council_keyboard(project_key: str) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton(
+                text="🔎 Проверить глубже",
+                callback_data=f"council:inspect:{project_key}",
+            )
+        ]
+    ]
+    if project_key == "iqbarakah":
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text="🧪 Рассмотреть PWA-релиз",
+                    callback_data="council:pwa:iqbarakah",
+                )
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text="Отмена",
+                callback_data=f"council:cancel:{project_key}",
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def is_owner(message: Message, config: Config) -> bool:
@@ -207,6 +247,7 @@ def build_router(
             "/mizanlife — Mizan Life\n"
             "/mizanos — Mizan OS\n"
             "/status — доступность сайтов\n"
+            "/council — совет ролей по задаче\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
             "/releasepwa — подготовить PWA-релиз\n"
@@ -217,6 +258,122 @@ def build_router(
             "\n\nАвтоматически сообщаю только об изменениях и присылаю вечерний отчёт.",
             reply_markup=MENU,
         )
+
+    @router.message(Command("council"))
+    @router.message(lambda message: message.text == "🧠 Совет директоров")
+    async def council_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        await state.clear()
+        await state.set_state(OwnerCouncil.task)
+        await message.answer(
+            "🧠 <b>Опишите задачу обычным текстом</b>\n\n"
+            "Например: «Проверь IQ Barakah и предложи, что улучшить перед релизом».\n\n"
+            "Совет сначала выполнит только read-only анализ. "
+            "Любое действие будет предложено отдельно и потребует вашего выбора.\n"
+            "Для отмены: /cancel"
+        )
+
+    @router.message(OwnerCouncil.task)
+    async def council_task(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        task = (message.text or "").strip()
+        if task == "/cancel":
+            await state.clear()
+            await message.answer("Совет отменён.", reply_markup=MENU)
+            return
+        if not 5 <= len(task) <= 800:
+            await message.answer(
+                "⚠️ Опишите задачу текстом от 5 до 800 символов."
+            )
+            return
+        project = select_project(task, registry.all())
+        site, runs = await asyncio.gather(
+            client.site_status(project),
+            (
+                client.workflow_runs(project.repo, limit=1)
+                if project.repo
+                else asyncio.sleep(0, result=None)
+            ),
+        )
+        latest = runs[0] if runs else {}
+        context = CouncilContext(
+            project=project,
+            site_ok=site.ok,
+            status_code=site.status_code,
+            latest_workflow=latest.get("name"),
+            latest_status=latest.get("conclusion") or latest.get("status"),
+        )
+        views = council_views(task, context)
+        lines = [
+            "🧠 <b>Совет директоров</b>",
+            f"<b>Проект:</b> {html.escape(project.title)}",
+            f"<b>Задача:</b> {html.escape(task)}",
+            "",
+        ]
+        for view in views:
+            lines.append(
+                f"<b>{html.escape(view.role)}</b> · {html.escape(view.focus)}\n"
+                f"{html.escape(view.recommendation)}"
+            )
+        lines.extend(["", "<b>Рекомендация совета</b>"])
+        lines.extend(
+            html.escape(item) for item in executive_recommendation(context)
+        )
+        lines.extend(
+            [
+                "",
+                "Выберите следующий шаг. Read-only проверка запускается сразу; "
+                "изменения и production потребуют отдельного разрешения.",
+            ]
+        )
+        await state.clear()
+        await message.answer(
+            "\n\n".join(lines),
+            reply_markup=council_keyboard(project.key),
+        )
+
+    @router.callback_query(F.data.startswith("council:"))
+    async def council_callback(callback: CallbackQuery) -> None:
+        owner_id = callback.from_user.id
+        if owner_id not in config.owner_ids:
+            logger.warning("Rejected council callback from Telegram user %s", owner_id)
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":", 2)
+        if len(parts) != 3:
+            await callback.answer("Некорректный запрос", show_alert=True)
+            return
+        action, project_key = parts[1], parts[2]
+        project = registry.by_key(project_key)
+        if project is None:
+            await callback.answer("Проект не найден", show_alert=True)
+            return
+        if action == "cancel":
+            await callback.answer("Отменено")
+            if callback.message:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            return
+        if action == "inspect":
+            await callback.answer("Проверяю…")
+            if callback.message:
+                await callback.message.answer(
+                    await project_summary(client, project),
+                    disable_web_page_preview=True,
+                )
+            return
+        if action == "pwa" and project.key == "iqbarakah":
+            await callback.answer("Показываю безопасный следующий шаг")
+            if callback.message:
+                await callback.message.answer(
+                    "🧪 <b>Разрешить подготовку PWA-релиза?</b>\n\n"
+                    "Будут выполнены только сборка и проверки. "
+                    "Публикация production потребует ещё одного отдельного решения.",
+                    reply_markup=pwa_release_keyboard(),
+                )
+            return
+        await callback.answer("Действие не разрешено", show_alert=True)
 
     @router.message(Command("projects"))
     @router.message(lambda message: message.text == "📂 Проекты")

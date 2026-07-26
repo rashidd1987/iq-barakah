@@ -8,14 +8,15 @@ from unittest.mock import AsyncMock, patch
 
 from report_bot.approvals import ApprovalStore
 from report_bot.config import load_config
+from report_bot.council import CouncilContext, council_views, select_project
 from report_bot.monitor import (
     ProjectState,
     StateStore,
     token_expiry_reminder,
     transition_messages,
 )
-from report_bot.main import approval_auth_ok, pwa_release_keyboard
-from report_bot.projects import ProjectRegistry, validate_project
+from report_bot.main import approval_auth_ok, council_keyboard, pwa_release_keyboard
+from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import StatusClient, format_datetime, run_icon
 
 
@@ -125,6 +126,59 @@ class ReleaseControlTests(unittest.TestCase):
             callbacks,
             {"release:pwa:start", "release:pwa:cancel"},
         )
+
+
+class OwnerCouncilTests(unittest.TestCase):
+    def test_selects_named_project_and_defaults_safely(self) -> None:
+        self.assertEqual(
+            select_project("Проверь Mizan Life", PROJECTS).key,
+            "mizanlife",
+        )
+        self.assertEqual(
+            select_project("Предложи следующий приоритет", PROJECTS).key,
+            "iqbarakah",
+        )
+
+    def test_council_contains_business_product_security_and_critic(self) -> None:
+        context = CouncilContext(
+            project=PROJECTS[0],
+            site_ok=True,
+            status_code=200,
+            latest_workflow="Quality checks",
+            latest_status="success",
+        )
+        roles = {view.role for view in council_views("Улучшить продукт", context)}
+        self.assertTrue(
+            {
+                "CEO · стратегия",
+                "CTO · технологии",
+                "CPO · продукт",
+                "CMO · маркетинг",
+                "CCO · клиентский опыт",
+                "CFO · экономика",
+                "CISO · служба безопасности",
+                "COO · операции",
+                "Data/DPO · данные",
+                "Красная команда · критик",
+            }.issubset(roles)
+        )
+
+    def test_council_keyboard_exposes_only_whitelisted_actions(self) -> None:
+        keyboard = council_keyboard("iqbarakah")
+        callbacks = {
+            button.callback_data
+            for row in keyboard.inline_keyboard
+            for button in row
+        }
+        self.assertEqual(
+            callbacks,
+            {
+                "council:inspect:iqbarakah",
+                "council:pwa:iqbarakah",
+                "council:cancel:iqbarakah",
+            },
+        )
+        self.assertFalse(any("shell" in callback for callback in callbacks))
 
 
 class _FakeResponse:

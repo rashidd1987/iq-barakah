@@ -35,6 +35,7 @@ jobs:
             {"command":"mizanlife","description":"Статус Mizan Life"},
             {"command":"mizanos","description":"Статус Mizan OS"},
             {"command":"status","description":"Состояние автоматизаций"},
+            {"command":"council","description":"Совет ролей по задаче"},
             {"command":"releases","description":"Последние релизы"},
             {"command":"errors","description":"Последние ошибки"},
             {"command":"releasepwa","description":"Подготовить PWA-релиз"},
