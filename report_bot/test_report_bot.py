@@ -17,7 +17,9 @@ from report_bot.monitor import (
 )
 from report_bot.main import (
     BOT_COMMANDS,
+    api_provider_keyboard,
     approval_auth_ok,
+    council_mode_keyboard,
     council_keyboard,
     pwa_release_keyboard,
 )
@@ -154,6 +156,32 @@ class ReleaseControlTests(unittest.TestCase):
 
 
 class OwnerCouncilTests(unittest.TestCase):
+    def test_council_modes_are_explicit(self) -> None:
+        callbacks = {
+            button.callback_data
+            for row in council_mode_keyboard().inline_keyboard
+            for button in row
+        }
+        self.assertEqual(
+            callbacks,
+            {
+                "councilmode:builtin",
+                "councilmode:api",
+                "councilmode:subscriptions",
+            },
+        )
+
+    def test_api_keyboard_only_contains_configured_providers(self) -> None:
+        callbacks = {
+            button.callback_data
+            for row in api_provider_keyboard(("openai", "xai")).inline_keyboard
+            for button in row
+        }
+        self.assertEqual(
+            callbacks,
+            {"aipick:openai", "aipick:xai", "aipick:cancel"},
+        )
+
     def test_council_is_registered_in_bot_commands(self) -> None:
         commands = [item.command for item in BOT_COMMANDS]
         self.assertIn("council", commands)

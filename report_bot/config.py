@@ -25,6 +25,19 @@ class AIProviderSecrets:
         )
         return tuple(name for name, secret in providers if secret)
 
+    def for_provider(self, provider: str) -> str:
+        if provider not in {
+            "openai",
+            "anthropic",
+            "gemini",
+            "perplexity",
+            "xai",
+            "deepseek",
+            "kimi",
+        }:
+            return ""
+        return getattr(self, provider)
+
 
 @dataclass(frozen=True)
 class Config:
