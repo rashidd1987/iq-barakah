@@ -103,6 +103,9 @@ jobs:
     environment: ${{ inputs.target }}
     timeout-minutes: 90
     steps:
+      - name: Checkout deployment scripts
+        uses: actions/checkout@v4
+
       - name: Require explicit production confirmation
         if: inputs.target == 'production' && inputs.confirm_production != 'RELEASE'
         run: |
