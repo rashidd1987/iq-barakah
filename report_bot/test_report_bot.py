@@ -98,6 +98,26 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "YYYY-MM-DD"):
                 load_config()
 
+    def test_loads_optional_ai_provider_secrets_without_requiring_them(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "test-token",
+                "OWNER_TELEGRAM_IDS": "42",
+                "OPENAI_API_KEY": "openai-secret",
+                "XAI_API_KEY": "xai-secret",
+                "KIMI_API_KEY": "kimi-secret",
+            },
+            clear=True,
+        ):
+            config = load_config()
+
+        self.assertEqual(
+            config.ai_provider_secrets.configured_providers(),
+            ("openai", "xai", "kimi"),
+        )
+        self.assertNotIn("openai-secret", repr(config.ai_provider_secrets))
+
 
 class FormattingTests(unittest.TestCase):
     def test_run_icons(self) -> None:

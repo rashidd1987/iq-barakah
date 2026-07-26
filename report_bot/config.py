@@ -1,6 +1,29 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
+
+
+@dataclass(frozen=True)
+class AIProviderSecrets:
+    openai: str = field(repr=False)
+    anthropic: str = field(repr=False)
+    gemini: str = field(repr=False)
+    perplexity: str = field(repr=False)
+    xai: str = field(repr=False)
+    deepseek: str = field(repr=False)
+    kimi: str = field(repr=False)
+
+    def configured_providers(self) -> tuple[str, ...]:
+        providers = (
+            ("openai", self.openai),
+            ("anthropic", self.anthropic),
+            ("gemini", self.gemini),
+            ("perplexity", self.perplexity),
+            ("xai", self.xai),
+            ("deepseek", self.deepseek),
+            ("kimi", self.kimi),
+        )
+        return tuple(name for name, secret in providers if secret)
 
 
 @dataclass(frozen=True)
@@ -17,6 +40,7 @@ class Config:
     timezone: str
     github_token_expires_at: date | None
     approval_api_secret: str
+    ai_provider_secrets: AIProviderSecrets
 
 
 def load_config() -> Config:
@@ -63,4 +87,13 @@ def load_config() -> Config:
         timezone=os.environ.get("REPORT_TIMEZONE", "Europe/Moscow").strip(),
         github_token_expires_at=github_token_expires_at,
         approval_api_secret=os.environ.get("APPROVAL_API_SECRET", "").strip(),
+        ai_provider_secrets=AIProviderSecrets(
+            openai=os.environ.get("OPENAI_API_KEY", "").strip(),
+            anthropic=os.environ.get("ANTHROPIC_API_KEY", "").strip(),
+            gemini=os.environ.get("GEMINI_API_KEY", "").strip(),
+            perplexity=os.environ.get("PERPLEXITY_API_KEY", "").strip(),
+            xai=os.environ.get("XAI_API_KEY", "").strip(),
+            deepseek=os.environ.get("DEEPSEEK_API_KEY", "").strip(),
+            kimi=os.environ.get("KIMI_API_KEY", "").strip(),
+        ),
     )
