@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -402,6 +403,34 @@ class ProjectKnowledgeTests(unittest.TestCase):
                 reloaded.resolve("проверь следующий риск", PROJECTS).key,
                 "mizanos",
             )
+
+    def test_migrates_placeholder_mizanos_brief(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "project_knowledge.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "active_project": "mizanos",
+                        "briefs": {
+                            "mizanos": (
+                                "Mizan OS — отдельное веб-приложение экосистемы "
+                                "Mizan. Подробный продуктовый паспорт ещё не "
+                                "заполнен владельцем. Нельзя делать выводы о "
+                                "назначении продукта только по названию; при "
+                                "необходимости нужно задать владельцу уточняющий "
+                                "вопрос."
+                            )
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            library = ProjectKnowledgeLibrary(directory)
+
+        self.assertIn("CRM служит единым центром", library.brief("mizanos"))
+        self.assertIn("Ready for manual launch", library.brief("mizanos"))
 
 
 class MonitorTests(unittest.TestCase):
