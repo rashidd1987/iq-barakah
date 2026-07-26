@@ -24,7 +24,14 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
-from report_bot.ai_gateway import AI_PROVIDERS_BY_KEY, ask_ai
+from report_bot.ai_gateway import (
+    AI_PROVIDERS_BY_KEY,
+    ask_ai,
+    choose_auto_provider,
+    choose_judge,
+    provider_titles,
+    synthesis_task,
+)
 from report_bot.approvals import Approval, ApprovalStore
 from report_bot.config import Config, load_config
 from report_bot.council import (
@@ -122,15 +129,62 @@ def api_provider_keyboard(configured: tuple[str, ...]) -> InlineKeyboardMarkup:
     rows = [
         [
             InlineKeyboardButton(
+                text="⭐ Автовыбор",
+                callback_data="aipick:auto",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="👥 Выбрать несколько",
+                callback_data="aipick:multi",
+            ),
+            InlineKeyboardButton(
+                text="🏛 Полный совет",
+                callback_data="aipick:all",
+            ),
+        ],
+    ]
+    rows.extend(
+        [
+            InlineKeyboardButton(
                 text=AI_PROVIDERS_BY_KEY[key].title,
                 callback_data=f"aipick:{key}",
             )
         ]
         for key in configured
         if key in AI_PROVIDERS_BY_KEY
-    ]
+    )
     rows.append(
         [InlineKeyboardButton(text="Отмена", callback_data="aipick:cancel")]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def multi_provider_keyboard(
+    configured: tuple[str, ...],
+    selected: tuple[str, ...],
+) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton(
+                text=(
+                    f"{'✅' if key in selected else '◻️'} "
+                    f"{AI_PROVIDERS_BY_KEY[key].title}"
+                ),
+                callback_data=f"aimulti:toggle:{key}",
+            )
+        ]
+        for key in configured
+        if key in AI_PROVIDERS_BY_KEY
+    ]
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=f"Продолжить ({len(selected)})",
+                callback_data="aimulti:done",
+            ),
+            InlineKeyboardButton(text="Отмена", callback_data="aimulti:cancel"),
+        ]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -414,6 +468,38 @@ def build_router(
             await state.clear()
             await callback.answer("Отменено")
             return
+        configured = config.ai_provider_secrets.configured_providers()
+        if provider_key == "multi":
+            await state.clear()
+            await state.update_data(mode="multi", selected=[])
+            await callback.answer()
+            if callback.message:
+                await callback.message.edit_reply_markup(
+                    reply_markup=multi_provider_keyboard(configured, ())
+                )
+            return
+        if provider_key == "all":
+            await state.set_state(ApiCouncil.task)
+            await state.update_data(mode="all", providers=list(configured))
+            await callback.answer()
+            if callback.message:
+                await callback.message.answer(
+                    f"🏛 <b>Полный совет: {len(configured)} моделей</b>\n\n"
+                    "Опишите задачу. Перед запуском я покажу количество "
+                    "API-запросов и попрошу подтверждение.\nДля отмены: /cancel"
+                )
+            return
+        if provider_key == "auto":
+            await state.set_state(ApiCouncil.task)
+            await state.update_data(mode="auto", providers=[])
+            await callback.answer()
+            if callback.message:
+                await callback.message.answer(
+                    "⭐ <b>Автовыбор модели</b>\n\n"
+                    "Опишите задачу. Бот выберет одну подходящую модель и "
+                    "покажет её до подтверждения.\nДля отмены: /cancel"
+                )
+            return
         provider = AI_PROVIDERS_BY_KEY.get(provider_key)
         if (
             provider is None
@@ -422,7 +508,7 @@ def build_router(
             await callback.answer("Провайдер не подключён", show_alert=True)
             return
         await state.set_state(ApiCouncil.task)
-        await state.update_data(provider=provider_key)
+        await state.update_data(mode="single", providers=[provider_key])
         await callback.answer()
         if callback.message:
             await callback.message.answer(
@@ -430,6 +516,61 @@ def build_router(
                 "Опишите задачу от 5 до 800 символов. После этого я ещё раз "
                 "попрошу подтвердить расход API-токенов.\nДля отмены: /cancel"
             )
+
+    @router.callback_query(F.data.startswith("aimulti:"))
+    async def api_multi_callback(callback: CallbackQuery, state: FSMContext) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":")
+        action = parts[1] if len(parts) > 1 else ""
+        configured = config.ai_provider_secrets.configured_providers()
+        data = await state.get_data()
+        selected = [
+            key for key in data.get("selected", []) if key in configured
+        ]
+        if action == "cancel":
+            await state.clear()
+            await callback.answer("Отменено")
+            return
+        if action == "toggle" and len(parts) == 3:
+            key = parts[2]
+            if key not in configured:
+                await callback.answer("Провайдер не подключён", show_alert=True)
+                return
+            if key in selected:
+                selected.remove(key)
+            else:
+                selected.append(key)
+            await state.update_data(selected=selected)
+            await callback.answer()
+            if callback.message:
+                await callback.message.edit_reply_markup(
+                    reply_markup=multi_provider_keyboard(
+                        configured, tuple(selected)
+                    )
+                )
+            return
+        if action == "done":
+            if not 2 <= len(selected) <= 4:
+                await callback.answer(
+                    "Выберите от 2 до 4 моделей", show_alert=True
+                )
+                return
+            await state.set_state(ApiCouncil.task)
+            await state.update_data(
+                mode="multi", providers=selected, selected=[]
+            )
+            await callback.answer()
+            if callback.message:
+                names = ", ".join(provider_titles(tuple(selected)))
+                await callback.message.answer(
+                    f"👥 <b>Выбраны:</b> {html.escape(names)}\n\n"
+                    "Опишите задачу. После этого потребуется подтверждение.\n"
+                    "Для отмены: /cancel"
+                )
+            return
+        await callback.answer("Некорректный выбор", show_alert=True)
 
     @router.message(SubscriptionCouncil.task)
     async def subscription_council_task(message: Message, state: FSMContext) -> None:
@@ -470,15 +611,35 @@ def build_router(
             await message.answer("⚠️ Опишите задачу текстом от 5 до 800 символов.")
             return
         data = await state.get_data()
-        provider_key = str(data.get("provider", ""))
-        provider = AI_PROVIDERS_BY_KEY.get(provider_key)
-        if provider is None:
+        mode = str(data.get("mode", "single"))
+        configured = config.ai_provider_secrets.configured_providers()
+        providers = tuple(
+            key for key in data.get("providers", []) if key in configured
+        )
+        if mode == "auto":
+            auto_provider = choose_auto_provider(task, configured)
+            providers = (auto_provider,) if auto_provider else ()
+        if not providers:
             await state.clear()
-            await message.answer("Провайдер не найден. Начните заново: /council")
+            await message.answer("Провайдеры не найдены. Начните заново: /council")
             return
-        await state.update_data(task=task)
+        names = ", ".join(provider_titles(providers))
+        judge_key = choose_judge(configured) if len(providers) > 1 else ""
+        request_count = len(providers) + (1 if judge_key else 0)
+        await state.update_data(
+            task=task,
+            providers=list(providers),
+            judge=judge_key,
+        )
+        judge_note = (
+            f"\nМодель-судья: {AI_PROVIDERS_BY_KEY[judge_key].title}."
+            if judge_key
+            else ""
+        )
         await message.answer(
-            f"⚡ <b>Запустить {html.escape(provider.title)} через API?</b>\n\n"
+            f"⚡ <b>Запустить AI-совет через API?</b>\n\n"
+            f"<b>Модели:</b> {html.escape(names)}\n"
+            f"<b>API-запросов:</b> {request_count}.{html.escape(judge_note)}\n"
             f"<b>Задача:</b> {html.escape(task)}\n\n"
             "Запрос будет передан внешнему AI-провайдеру и израсходует "
             "API-токены. Код и production автоматически не изменяются.",
@@ -487,7 +648,7 @@ def build_router(
                     [
                         InlineKeyboardButton(
                             text="✅ Запустить",
-                            callback_data=f"airun:{provider_key}",
+                            callback_data="airun:start",
                         ),
                         InlineKeyboardButton(
                             text="⛔ Отмена",
@@ -503,44 +664,86 @@ def build_router(
         if callback.from_user.id not in config.owner_ids:
             await callback.answer("Нет доступа", show_alert=True)
             return
-        provider_key = (callback.data or "").split(":", 1)[-1]
-        if provider_key == "cancel":
+        action = (callback.data or "").split(":", 1)[-1]
+        if action == "cancel":
             await state.clear()
             await callback.answer("Отменено")
             if callback.message:
                 await callback.message.edit_reply_markup(reply_markup=None)
             return
         data = await state.get_data()
-        if data.get("provider") != provider_key or not data.get("task"):
+        configured = config.ai_provider_secrets.configured_providers()
+        providers = tuple(
+            key for key in data.get("providers", []) if key in configured
+        )
+        if action != "start" or not providers or not data.get("task"):
             await callback.answer("Запрос устарел. Начните заново.", show_alert=True)
-            return
-        provider = AI_PROVIDERS_BY_KEY.get(provider_key)
-        if provider is None:
-            await callback.answer("Провайдер не найден", show_alert=True)
             return
         await callback.answer("AI анализирует задачу…")
         if callback.message:
             await callback.message.edit_reply_markup(reply_markup=None)
             await callback.message.answer(
-                f"⏳ Запрос отправлен в {html.escape(provider.title)}…"
+                f"⏳ Запрос отправлен моделям: "
+                f"{html.escape(', '.join(provider_titles(providers)))}…"
             )
-        try:
-            result = await ask_ai(
-                session,
-                config.ai_provider_secrets,
-                provider_key,
-                str(data["task"]),
-            )
-        except Exception:
-            logger.exception("AI council request failed for provider %s", provider_key)
+        responses = await asyncio.gather(
+            *(
+                ask_ai(
+                    session,
+                    config.ai_provider_secrets,
+                    provider_key,
+                    str(data["task"]),
+                )
+                for provider_key in providers
+            ),
+            return_exceptions=True,
+        )
+        successful = tuple(
+            (provider_key, response)
+            for provider_key, response in zip(providers, responses)
+            if isinstance(response, str) and response.strip()
+        )
+        failed = tuple(
+            provider_key
+            for provider_key, response in zip(providers, responses)
+            if isinstance(response, Exception)
+        )
+        if not successful:
             result = (
-                "⚠️ AI-провайдер не ответил. Ключ, баланс или выбранная "
-                "модель могут быть недоступны. Секрет в лог не выведен."
+                "⚠️ Ни один AI-провайдер не ответил. Проверьте баланс, "
+                "ключи и доступность выбранных моделей."
             )
+            result_title = "AI-совет"
+        elif len(successful) == 1:
+            result = successful[0][1]
+            result_title = AI_PROVIDERS_BY_KEY[successful[0][0]].title
+        else:
+            judge_key = str(data.get("judge", ""))
+            try:
+                result = await ask_ai(
+                    session,
+                    config.ai_provider_secrets,
+                    judge_key,
+                    synthesis_task(str(data["task"]), successful),
+                )
+                result_title = (
+                    f"Итог совета · судья "
+                    f"{AI_PROVIDERS_BY_KEY[judge_key].title}"
+                )
+            except Exception:
+                logger.exception("AI council synthesis failed")
+                result_title = "Ответы совета без синтеза"
+                result = "\n\n".join(
+                    f"{AI_PROVIDERS_BY_KEY[key].title}:\n{text[:900]}"
+                    for key, text in successful
+                )
+        if failed:
+            failed_names = ", ".join(provider_titles(failed))
+            result += f"\n\nНе ответили: {failed_names}."
         await state.clear()
         if callback.message:
             await callback.message.answer(
-                f"⚡ <b>{html.escape(provider.title)} · результат</b>\n\n"
+                f"⚡ <b>{html.escape(result_title)}</b>\n\n"
                 f"{html.escape(result[:3500])}",
                 reply_markup=MENU,
             )
