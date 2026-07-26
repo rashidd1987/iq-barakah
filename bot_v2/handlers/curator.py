@@ -1500,7 +1500,7 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
 
     # Сообщение 1 — Старт + Путь (тёплая аудитория)
     await message.answer(
-        "🚀 *Старт + Путь — тёплая аудитория*\n\n"
+        "🚀 <b>Старт + Путь — тёплая аудитория</b>\n\n"
         "Скопируй и отправь после личного разговора:\n\n"
         "———\n"
         "Ас-саляму алейкум!\n\n"
@@ -1508,7 +1508,7 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
         "Мне правда важно твоё мнение — пройди как обычный участник, посмотри изнутри как это работает.\n\n"
         f"👉 {link_full}\n"
         "———",
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🚀 Открыть бота — Старт + Путь", url=tg_full)],
         ]),
@@ -1516,7 +1516,7 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
 
     # Сообщение 2 — Только Старт (холодная аудитория)
     await message.answer(
-        "🌱 *Только Старт — холодная аудитория*\n\n"
+        "🌱 <b>Только Старт — холодная аудитория</b>\n\n"
         "Скопируй и отправь незнакомой аудитории:\n\n"
         "———\n"
         "Ас-саляму алейкум!\n\n"
@@ -1525,7 +1525,7 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
         "Прежде чем открыть первый шаг — пройди диагностику. 7 вопросов · 2 минуты · программа подстроится под твой уровень.\n\n"
         f"👉 {link_start}\n"
         "———",
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🌱 Открыть бота — Старт", url=tg_start)],
         ]),
