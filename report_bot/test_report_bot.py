@@ -15,7 +15,12 @@ from report_bot.monitor import (
     token_expiry_reminder,
     transition_messages,
 )
-from report_bot.main import approval_auth_ok, council_keyboard, pwa_release_keyboard
+from report_bot.main import (
+    BOT_COMMANDS,
+    approval_auth_ok,
+    council_keyboard,
+    pwa_release_keyboard,
+)
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import StatusClient, format_datetime, run_icon
 
@@ -129,6 +134,11 @@ class ReleaseControlTests(unittest.TestCase):
 
 
 class OwnerCouncilTests(unittest.TestCase):
+    def test_council_is_registered_in_bot_commands(self) -> None:
+        commands = [item.command for item in BOT_COMMANDS]
+        self.assertIn("council", commands)
+        self.assertEqual(len(commands), len(set(commands)))
+
     def test_selects_named_project_and_defaults_safely(self) -> None:
         self.assertEqual(
             select_project("Проверь Mizan Life", PROJECTS).key,

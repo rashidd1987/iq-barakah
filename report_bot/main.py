@@ -15,6 +15,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
+    BotCommand,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -46,6 +47,19 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+BOT_COMMANDS = (
+    BotCommand(command="projects", description="Все проекты"),
+    BotCommand(command="iqbarakah", description="Статус IQ Barakah"),
+    BotCommand(command="mizanlife", description="Статус Mizan Life"),
+    BotCommand(command="mizanos", description="Статус Mizan OS"),
+    BotCommand(command="status", description="Состояние автоматизаций"),
+    BotCommand(command="council", description="Совет ролей по задаче"),
+    BotCommand(command="releases", description="Последние релизы"),
+    BotCommand(command="errors", description="Последние ошибки"),
+    BotCommand(command="releasepwa", description="Подготовить PWA-релиз"),
+    BotCommand(command="help", description="Справка по командам"),
+)
 
 MENU = ReplyKeyboardMarkup(
     keyboard=[
@@ -898,6 +912,12 @@ async def main() -> None:
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
         )
+        try:
+            await bot.set_my_commands(BOT_COMMANDS)
+        except Exception:
+            logger.exception(
+                "Could not refresh Telegram command menu; bot will continue"
+            )
         dispatcher = Dispatcher()
         dispatcher.include_router(
             build_router(config, client, registry, approval_store)
