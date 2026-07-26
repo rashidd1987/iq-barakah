@@ -365,7 +365,9 @@ export default function ProfileScreen() {
         </View>
 
         <Pressable style={styles.logoutButton} onPress={logout}><Ionicons name="log-out-outline" size={19} color={colors.danger} /><Text style={styles.logoutText}>Выйти из аккаунта</Text></Pressable>
-        <Text style={styles.buildTag}>IQ Barakah · build {Application.nativeBuildVersion ?? '?'}</Text>
+        {Platform.OS !== 'web' && Application.nativeBuildVersion ? (
+          <Text style={styles.buildTag}>IQ Barakah · build {Application.nativeBuildVersion}</Text>
+        ) : null}
       </View>
     </ScrollView>
   )
