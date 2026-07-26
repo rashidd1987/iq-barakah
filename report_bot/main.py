@@ -24,6 +24,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
+from report_bot.ai_gateway import AI_PROVIDERS_BY_KEY, ask_ai
 from report_bot.approvals import Approval, ApprovalStore
 from report_bot.config import Config, load_config
 from report_bot.council import (
@@ -63,7 +64,7 @@ BOT_COMMANDS = (
 
 MENU = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🧠 Совет директоров")],
+        [KeyboardButton(text="🧠 Совет ИИ")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -82,6 +83,72 @@ class AddProject(StatesGroup):
 
 class OwnerCouncil(StatesGroup):
     task = State()
+
+
+class SubscriptionCouncil(StatesGroup):
+    task = State()
+
+
+class ApiCouncil(StatesGroup):
+    task = State()
+
+
+def council_mode_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🆓 Без расходов",
+                    callback_data="councilmode:builtin",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="⚡ Автономно через API",
+                    callback_data="councilmode:api",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💳 Использовать подписку",
+                    callback_data="councilmode:subscriptions",
+                )
+            ],
+        ]
+    )
+
+
+def api_provider_keyboard(configured: tuple[str, ...]) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton(
+                text=AI_PROVIDERS_BY_KEY[key].title,
+                callback_data=f"aipick:{key}",
+            )
+        ]
+        for key in configured
+        if key in AI_PROVIDERS_BY_KEY
+    ]
+    rows.append(
+        [InlineKeyboardButton(text="Отмена", callback_data="aipick:cancel")]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def subscription_links_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Открыть ChatGPT", url="https://chatgpt.com/"),
+                InlineKeyboardButton(text="Открыть Claude", url="https://claude.ai/new"),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="Открыть Gemini", url="https://gemini.google.com/app"
+                )
+            ],
+        ]
+    )
 
 
 def approval_text(approval: Approval) -> str:
@@ -237,6 +304,7 @@ async def deny_untrusted(message: Message) -> None:
 
 def build_router(
     config: Config,
+    session: aiohttp.ClientSession,
     client: StatusClient,
     registry: ProjectRegistry,
     approval_store: ApprovalStore,
@@ -261,7 +329,7 @@ def build_router(
             "/mizanlife — Mizan Life\n"
             "/mizanos — Mizan OS\n"
             "/status — доступность сайтов\n"
-            "/council — совет ролей по задаче\n"
+            "/council — бесплатный, API или подписной совет\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
             "/releasepwa — подготовить PWA-релиз\n"
@@ -274,19 +342,208 @@ def build_router(
         )
 
     @router.message(Command("council"))
-    @router.message(lambda message: message.text == "🧠 Совет директоров")
+    @router.message(lambda message: message.text in {"🧠 Совет ИИ", "🧠 Совет директоров"})
     async def council_command(message: Message, state: FSMContext) -> None:
         if not await require_owner(message):
             return
         await state.clear()
-        await state.set_state(OwnerCouncil.task)
         await message.answer(
-            "🧠 <b>Опишите задачу обычным текстом</b>\n\n"
-            "Например: «Проверь IQ Barakah и предложи, что улучшить перед релизом».\n\n"
-            "Совет сначала выполнит только read-only анализ. "
-            "Любое действие будет предложено отдельно и потребует вашего выбора.\n"
-            "Для отмены: /cancel"
+            "🧠 <b>Выберите режим совета</b>\n\n"
+            "🆓 Без расходов — встроенные роли и текущие проверки.\n"
+            "⚡ API — выбранная модель анализирует задачу в облаке; "
+            "перед расходом токенов потребуется подтверждение.\n"
+            "💳 Подписка — подготовлю промпт для ручного использования "
+            "ChatGPT, Claude или Gemini.\n\n"
+            "⭐ Для работы при выключенном компьютере выбирайте API.",
+            reply_markup=council_mode_keyboard(),
         )
+
+    @router.callback_query(F.data.startswith("councilmode:"))
+    async def council_mode_callback(
+        callback: CallbackQuery, state: FSMContext
+    ) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        mode = (callback.data or "").split(":", 1)[-1]
+        if mode == "builtin":
+            await state.set_state(OwnerCouncil.task)
+            text = (
+                "🆓 <b>Опишите задачу для встроенного совета</b>\n\n"
+                "Например: «Проверь IQ Barakah перед релизом».\n"
+                "Для отмены: /cancel"
+            )
+        elif mode == "subscriptions":
+            await state.set_state(SubscriptionCouncil.task)
+            text = (
+                "💳 <b>Опишите задачу</b>\n\n"
+                "Я подготовлю единый промпт, который вы сможете вручную "
+                "использовать в оплаченной подписке.\nДля отмены: /cancel"
+            )
+        elif mode == "api":
+            configured = config.ai_provider_secrets.configured_providers()
+            await callback.answer()
+            if callback.message:
+                if configured:
+                    await callback.message.answer(
+                        "⚡ <b>Выберите API-модель</b>\n\n"
+                        "Токены начнут расходоваться только после описания задачи "
+                        "и отдельного подтверждения.",
+                        reply_markup=api_provider_keyboard(configured),
+                    )
+                else:
+                    await callback.message.answer(
+                        "⚠️ Ни один AI API ещё не подключён. "
+                        "Добавьте ключи как секреты Amvera и перезапустите контейнер."
+                    )
+            return
+        else:
+            await callback.answer("Неизвестный режим", show_alert=True)
+            return
+        await callback.answer()
+        if callback.message:
+            await callback.message.answer(text)
+
+    @router.callback_query(F.data.startswith("aipick:"))
+    async def api_pick_callback(callback: CallbackQuery, state: FSMContext) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        provider_key = (callback.data or "").split(":", 1)[-1]
+        if provider_key == "cancel":
+            await state.clear()
+            await callback.answer("Отменено")
+            return
+        provider = AI_PROVIDERS_BY_KEY.get(provider_key)
+        if (
+            provider is None
+            or not config.ai_provider_secrets.for_provider(provider_key)
+        ):
+            await callback.answer("Провайдер не подключён", show_alert=True)
+            return
+        await state.set_state(ApiCouncil.task)
+        await state.update_data(provider=provider_key)
+        await callback.answer()
+        if callback.message:
+            await callback.message.answer(
+                f"⚡ <b>{html.escape(provider.title)}</b>\n\n"
+                "Опишите задачу от 5 до 800 символов. После этого я ещё раз "
+                "попрошу подтвердить расход API-токенов.\nДля отмены: /cancel"
+            )
+
+    @router.message(SubscriptionCouncil.task)
+    async def subscription_council_task(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        task = (message.text or "").strip()
+        if task == "/cancel":
+            await state.clear()
+            await message.answer("Отменено.", reply_markup=MENU)
+            return
+        if not 5 <= len(task) <= 800:
+            await message.answer("⚠️ Опишите задачу текстом от 5 до 800 символов.")
+            return
+        prompt = (
+            "Выступи как совет CEO, CTO, CPO, CMO, CCO, CFO, CISO и "
+            "критик. Дай вердикт, три варианта, рекомендацию, риски и "
+            f"следующий безопасный шаг.\n\nЗадача: {task}"
+        )
+        await state.clear()
+        await message.answer(
+            "💳 <b>Промпт для вашей подписки</b>\n\n"
+            f"<pre>{html.escape(prompt)}</pre>\n\n"
+            "Скопируйте промпт и откройте нужный сервис. Этот режим не "
+            "работает автономно при закрытом компьютере.",
+            reply_markup=subscription_links_keyboard(),
+        )
+
+    @router.message(ApiCouncil.task)
+    async def api_council_task(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        task = (message.text or "").strip()
+        if task == "/cancel":
+            await state.clear()
+            await message.answer("Отменено.", reply_markup=MENU)
+            return
+        if not 5 <= len(task) <= 800:
+            await message.answer("⚠️ Опишите задачу текстом от 5 до 800 символов.")
+            return
+        data = await state.get_data()
+        provider_key = str(data.get("provider", ""))
+        provider = AI_PROVIDERS_BY_KEY.get(provider_key)
+        if provider is None:
+            await state.clear()
+            await message.answer("Провайдер не найден. Начните заново: /council")
+            return
+        await state.update_data(task=task)
+        await message.answer(
+            f"⚡ <b>Запустить {html.escape(provider.title)} через API?</b>\n\n"
+            f"<b>Задача:</b> {html.escape(task)}\n\n"
+            "Запрос будет передан внешнему AI-провайдеру и израсходует "
+            "API-токены. Код и production автоматически не изменяются.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="✅ Запустить",
+                            callback_data=f"airun:{provider_key}",
+                        ),
+                        InlineKeyboardButton(
+                            text="⛔ Отмена",
+                            callback_data="airun:cancel",
+                        ),
+                    ]
+                ]
+            ),
+        )
+
+    @router.callback_query(F.data.startswith("airun:"))
+    async def api_run_callback(callback: CallbackQuery, state: FSMContext) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        provider_key = (callback.data or "").split(":", 1)[-1]
+        if provider_key == "cancel":
+            await state.clear()
+            await callback.answer("Отменено")
+            if callback.message:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            return
+        data = await state.get_data()
+        if data.get("provider") != provider_key or not data.get("task"):
+            await callback.answer("Запрос устарел. Начните заново.", show_alert=True)
+            return
+        provider = AI_PROVIDERS_BY_KEY.get(provider_key)
+        if provider is None:
+            await callback.answer("Провайдер не найден", show_alert=True)
+            return
+        await callback.answer("AI анализирует задачу…")
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
+            await callback.message.answer(
+                f"⏳ Запрос отправлен в {html.escape(provider.title)}…"
+            )
+        try:
+            result = await ask_ai(
+                session,
+                config.ai_provider_secrets,
+                provider_key,
+                str(data["task"]),
+            )
+        except Exception:
+            logger.exception("AI council request failed for provider %s", provider_key)
+            result = (
+                "⚠️ AI-провайдер не ответил. Ключ, баланс или выбранная "
+                "модель могут быть недоступны. Секрет в лог не выведен."
+            )
+        await state.clear()
+        if callback.message:
+            await callback.message.answer(
+                f"⚡ <b>{html.escape(provider.title)} · результат</b>\n\n"
+                f"{html.escape(result[:3500])}",
+                reply_markup=MENU,
+            )
 
     @router.message(OwnerCouncil.task)
     async def council_task(message: Message, state: FSMContext) -> None:
@@ -920,7 +1177,7 @@ async def main() -> None:
             )
         dispatcher = Dispatcher()
         dispatcher.include_router(
-            build_router(config, client, registry, approval_store)
+            build_router(config, session, client, registry, approval_store)
         )
         health_runner = await run_health_server(
             config.port, config, bot, approval_store
