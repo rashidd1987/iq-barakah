@@ -69,3 +69,19 @@ jobs:
           if [ -f ACTIVE/pwa_api/main.py ]; then
             python -m py_compile ACTIVE/pwa_api/main.py
           fi
+
+      - name: Install report bot dependencies
+        run: python -m pip install --disable-pip-version-check -r report_bot/requirements.txt
+
+      - name: Run report bot tests
+        run: python -m unittest discover -s report_bot -p "test_*.py"
+
+  release-safety:
+    name: Release safety
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify dual approval invariants
+        run: python -m unittest report_bot.test_release_safety
