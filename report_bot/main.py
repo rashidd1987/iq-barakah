@@ -40,6 +40,7 @@ from report_bot.council import (
     executive_recommendation,
     select_project,
 )
+from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.monitor import monitor_loop
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
 from report_bot.status import (
@@ -63,6 +64,9 @@ BOT_COMMANDS = (
     BotCommand(command="mizanos", description="Статус Mizan OS"),
     BotCommand(command="status", description="Состояние автоматизаций"),
     BotCommand(command="council", description="Совет ролей по задаче"),
+    BotCommand(command="library", description="Библиотека проектов"),
+    BotCommand(command="use", description="Выбрать активный проект"),
+    BotCommand(command="brief", description="Обновить паспорт проекта"),
     BotCommand(command="releases", description="Последние релизы"),
     BotCommand(command="errors", description="Последние ошибки"),
     BotCommand(command="releasepwa", description="Подготовить PWA-релиз"),
@@ -72,6 +76,7 @@ BOT_COMMANDS = (
 MENU = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🧠 Совет ИИ")],
+        [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -86,6 +91,7 @@ class AddProject(StatesGroup):
     title = State()
     url = State()
     repo = State()
+    brief = State()
 
 
 class OwnerCouncil(StatesGroup):
@@ -361,6 +367,7 @@ def build_router(
     session: aiohttp.ClientSession,
     client: StatusClient,
     registry: ProjectRegistry,
+    knowledge: ProjectKnowledgeLibrary,
     approval_store: ApprovalStore,
 ) -> Router:
     router = Router(name="owner_reports")
@@ -384,6 +391,9 @@ def build_router(
             "/mizanos — Mizan OS\n"
             "/status — доступность сайтов\n"
             "/council — бесплатный, API или подписной совет\n"
+            "/library — паспорта и активный проект\n"
+            "/use ключ — выбрать проект для коротких задач\n"
+            "/brief текст — обновить паспорт активного проекта\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
             "/releasepwa — подготовить PWA-релиз\n"
@@ -584,14 +594,17 @@ def build_router(
         if not 5 <= len(task) <= 800:
             await message.answer("⚠️ Опишите задачу текстом от 5 до 800 символов.")
             return
+        project = knowledge.resolve(task, registry.all())
         prompt = (
             "Выступи как совет CEO, CTO, CPO, CMO, CCO, CFO, CISO и "
             "критик. Дай вердикт, три варианта, рекомендацию, риски и "
-            f"следующий безопасный шаг.\n\nЗадача: {task}"
+            "следующий безопасный шаг.\n\n"
+            f"{knowledge.ai_task(project, task)}"
         )
         await state.clear()
         await message.answer(
             "💳 <b>Промпт для вашей подписки</b>\n\n"
+            f"<b>Проект:</b> {html.escape(project.title)}\n\n"
             f"<pre>{html.escape(prompt)}</pre>\n\n"
             "Скопируйте промпт и откройте нужный сервис. Этот режим не "
             "работает автономно при закрытом компьютере.",
@@ -623,11 +636,15 @@ def build_router(
             await state.clear()
             await message.answer("Провайдеры не найдены. Начните заново: /council")
             return
+        project = knowledge.resolve(task, registry.all())
+        ai_task = knowledge.ai_task(project, task)
         names = ", ".join(provider_titles(providers))
         judge_key = choose_judge(configured) if len(providers) > 1 else ""
         request_count = len(providers) + (1 if judge_key else 0)
         await state.update_data(
             task=task,
+            ai_task=ai_task,
+            project=project.key,
             providers=list(providers),
             judge=judge_key,
         )
@@ -639,6 +656,7 @@ def build_router(
         await message.answer(
             f"⚡ <b>Запустить AI-совет через API?</b>\n\n"
             f"<b>Модели:</b> {html.escape(names)}\n"
+            f"<b>Проект:</b> {html.escape(project.title)}\n"
             f"<b>API-запросов:</b> {request_count}.{html.escape(judge_note)}\n"
             f"<b>Задача:</b> {html.escape(task)}\n\n"
             "Запрос будет передан внешнему AI-провайдеру и израсходует "
@@ -676,7 +694,7 @@ def build_router(
         providers = tuple(
             key for key in data.get("providers", []) if key in configured
         )
-        if action != "start" or not providers or not data.get("task"):
+        if action != "start" or not providers or not data.get("ai_task"):
             await callback.answer("Запрос устарел. Начните заново.", show_alert=True)
             return
         await callback.answer("AI анализирует задачу…")
@@ -692,7 +710,7 @@ def build_router(
                     session,
                     config.ai_provider_secrets,
                     provider_key,
-                    str(data["task"]),
+                    str(data["ai_task"]),
                 )
                 for provider_key in providers
             ),
@@ -724,7 +742,7 @@ def build_router(
                     session,
                     config.ai_provider_secrets,
                     judge_key,
-                    synthesis_task(str(data["task"]), successful),
+                    synthesis_task(str(data["ai_task"]), successful),
                 )
                 result_title = (
                     f"Итог совета · судья "
@@ -762,7 +780,7 @@ def build_router(
                 "⚠️ Опишите задачу текстом от 5 до 800 символов."
             )
             return
-        project = select_project(task, registry.all())
+        project = knowledge.resolve(task, registry.all())
         site, runs = await asyncio.gather(
             client.site_status(project),
             (
@@ -859,6 +877,72 @@ def build_router(
         )
         await message.answer("\n\n".join(summaries), disable_web_page_preview=True)
 
+    @router.message(Command("library"))
+    @router.message(lambda message: message.text == "📚 Библиотека проектов")
+    async def library_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        lines = ["📚 <b>Библиотека проектов</b>"]
+        for project in registry.all():
+            marker = "✅" if project.key == knowledge.active_project else "▫️"
+            brief = knowledge.brief(project.key)
+            lines.append(
+                f"{marker} <b>{html.escape(project.title)}</b> "
+                f"(<code>{html.escape(project.key)}</code>)\n"
+                f"{html.escape(brief[:500])}"
+            )
+        lines.append(
+            "\nАктивный проект используется, когда в короткой задаче не указано "
+            "название. Переключение: <code>/use mizanlife</code>.\n"
+            "Обновление паспорта: <code>/brief описание проекта</code>."
+        )
+        await message.answer("\n\n".join(lines))
+
+    @router.message(Command("use"))
+    async def use_project_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) != 2:
+            await message.answer("Укажите ключ, например: <code>/use mizanlife</code>")
+            return
+        key = parts[1].strip().lower()
+        project = registry.by_key(key)
+        if project is None:
+            await message.answer("⚠️ Проект с таким ключом не найден.")
+            return
+        knowledge.set_active(project.key, registry.all())
+        await message.answer(
+            f"✅ Активный проект: <b>{html.escape(project.title)}</b>.\n"
+            "Теперь можно давать короткие задачи без повторения названия."
+        )
+
+    @router.message(Command("brief"))
+    async def update_brief_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) != 2:
+            await message.answer(
+                "После команды одним сообщением укажите: что это, для кого, "
+                "основные функции и чем проект не является.\n\n"
+                "Пример: <code>/brief Планировщик для предпринимателей...</code>"
+            )
+            return
+        project = registry.by_key(knowledge.active_project)
+        if project is None:
+            await message.answer("⚠️ Сначала выберите проект: /use ключ")
+            return
+        try:
+            knowledge.set_brief(project.key, parts[1])
+        except (ValueError, OSError) as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}")
+            return
+        await message.answer(
+            f"✅ Паспорт <b>{html.escape(project.title)}</b> обновлён.\n"
+            "Следующие AI-запросы будут использовать новое описание."
+        )
+
     for command, project in PROJECTS_BY_KEY.items():
         async def handler(
             message: Message,
@@ -866,6 +950,7 @@ def build_router(
         ) -> None:
             if not await require_owner(message):
                 return
+            knowledge.set_active(selected_project.key, registry.all())
             await message.answer(
                 await project_summary(client, selected_project),
                 disable_web_page_preview=True,
@@ -1080,16 +1165,43 @@ def build_router(
         repo_text = (message.text or "").strip()
         repo = None if repo_text == "-" else repo_text
         try:
-            project = validate_project(
-                data["key"], data["title"], data["url"], repo
-            )
-            registry.add(project)
+            validate_project(data["key"], data["title"], data["url"], repo)
         except ValueError as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}\nПопробуйте ещё раз.")
+            return
+        await state.update_data(repo=repo)
+        await state.set_state(AddProject.brief)
+        await message.answer(
+            "📚 <b>Коротко объясните проект одним сообщением</b>\n\n"
+            "Укажите: что это, для кого, основные функции и чем проект точно "
+            "не является. От 20 до 2000 символов.\n\n"
+            "Пример: «Сервис для владельцев малого бизнеса: ведёт клиентов и "
+            "задачи. Не является интернет-магазином»."
+        )
+
+    @router.message(AddProject.brief)
+    async def add_project_brief(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        brief = (message.text or "").strip()
+        data = await state.get_data()
+        try:
+            project = validate_project(
+                data["key"],
+                data["title"],
+                data["url"],
+                data.get("repo"),
+            )
+            knowledge.set_brief(project.key, brief)
+            registry.add(project)
+            knowledge.set_active(project.key, registry.all())
+        except (ValueError, OSError) as exc:
             await message.answer(f"⚠️ {html.escape(str(exc))}\nПопробуйте ещё раз.")
             return
         await state.clear()
         await message.answer(
-            f"✅ Проект <b>{html.escape(project.title)}</b> добавлен и включён в мониторинг.",
+            f"✅ Проект <b>{html.escape(project.title)}</b> добавлен.\n"
+            "Паспорт сохранён в библиотеке, а проект выбран активным.",
             reply_markup=MENU,
         )
 
@@ -1367,6 +1479,7 @@ async def main() -> None:
     async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
         client = StatusClient(session, config.github_owner, config.github_token)
         registry = ProjectRegistry(config.data_dir)
+        knowledge = ProjectKnowledgeLibrary(config.data_dir)
         approval_store = ApprovalStore(config.data_dir)
         bot = Bot(
             config.bot_token,
@@ -1380,7 +1493,14 @@ async def main() -> None:
             )
         dispatcher = Dispatcher()
         dispatcher.include_router(
-            build_router(config, session, client, registry, approval_store)
+            build_router(
+                config,
+                session,
+                client,
+                registry,
+                knowledge,
+                approval_store,
+            )
         )
         health_runner = await run_health_server(
             config.port, config, bot, approval_store
