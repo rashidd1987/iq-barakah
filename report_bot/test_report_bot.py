@@ -7,6 +7,11 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from report_bot.approvals import ApprovalStore
+from report_bot.ai_gateway import (
+    choose_auto_provider,
+    choose_judge,
+    synthesis_task,
+)
 from report_bot.config import load_config
 from report_bot.council import CouncilContext, council_views, select_project
 from report_bot.monitor import (
@@ -21,6 +26,7 @@ from report_bot.main import (
     approval_auth_ok,
     council_mode_keyboard,
     council_keyboard,
+    multi_provider_keyboard,
     pwa_release_keyboard,
 )
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
@@ -179,8 +185,46 @@ class OwnerCouncilTests(unittest.TestCase):
         }
         self.assertEqual(
             callbacks,
-            {"aipick:openai", "aipick:xai", "aipick:cancel"},
+            {
+                "aipick:auto",
+                "aipick:multi",
+                "aipick:all",
+                "aipick:openai",
+                "aipick:xai",
+                "aipick:cancel",
+            },
         )
+
+    def test_multi_provider_keyboard_tracks_selection(self) -> None:
+        keyboard = multi_provider_keyboard(
+            ("openai", "anthropic"), ("anthropic",)
+        )
+        labels = [
+            button.text for row in keyboard.inline_keyboard for button in row
+        ]
+        self.assertIn("◻️ GPT", labels)
+        self.assertIn("✅ Claude", labels)
+        self.assertIn("Продолжить (1)", labels)
+
+    def test_auto_provider_uses_task_and_safe_fallback(self) -> None:
+        configured = ("openai", "anthropic", "perplexity")
+        self.assertEqual(
+            choose_auto_provider("Исследуй рынок", configured),
+            "perplexity",
+        )
+        self.assertEqual(
+            choose_auto_provider("Проверь архитектуру API", configured),
+            "anthropic",
+        )
+        self.assertEqual(choose_judge(configured), "openai")
+
+    def test_synthesis_prompt_caps_individual_answers(self) -> None:
+        prompt = synthesis_task(
+            "Выбрать стратегию",
+            (("openai", "x" * 3000), ("anthropic", "ответ")),
+        )
+        self.assertIn("Исходная задача: Выбрать стратегию", prompt)
+        self.assertNotIn("x" * 2201, prompt)
 
     def test_council_is_registered_in_bot_commands(self) -> None:
         commands = [item.command for item in BOT_COMMANDS]

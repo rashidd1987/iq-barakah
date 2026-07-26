@@ -48,6 +48,49 @@ def provider_titles(keys: tuple[str, ...]) -> tuple[str, ...]:
     )
 
 
+def choose_auto_provider(task: str, configured: tuple[str, ...]) -> str:
+    normalized = task.casefold()
+    preferences: tuple[str, ...]
+    if any(word in normalized for word in ("найди", "исслед", "новост", "рынок")):
+        preferences = ("perplexity", "gemini", "openai")
+    elif any(
+        word in normalized
+        for word in ("код", "архитект", "ошиб", "безопас", "баг", "api")
+    ):
+        preferences = ("anthropic", "openai", "deepseek")
+    else:
+        preferences = ("openai", "gemini", "anthropic", "deepseek")
+    for key in preferences:
+        if key in configured:
+            return key
+    return configured[0] if configured else ""
+
+
+def choose_judge(configured: tuple[str, ...]) -> str:
+    for key in ("openai", "anthropic", "gemini", "deepseek", "xai", "kimi"):
+        if key in configured:
+            return key
+    return configured[0] if configured else ""
+
+
+def synthesis_task(
+    original_task: str,
+    results: tuple[tuple[str, str], ...],
+) -> str:
+    sections = []
+    for provider_key, result in results:
+        title = AI_PROVIDERS_BY_KEY[provider_key].title
+        sections.append(f"### {title}\n{result[:2200]}")
+    joined = "\n\n".join(sections)
+    return (
+        "Ты — независимый председатель совета. Синтезируй ответы моделей, "
+        "не голосуй по большинству. Укажи: общий вердикт, разногласия, "
+        "лучший вариант, риски и один следующий безопасный шаг. "
+        "Не утверждай, что действия уже выполнены.\n\n"
+        f"Исходная задача: {original_task}\n\n{joined}"
+    )
+
+
 async def ask_ai(
     session: aiohttp.ClientSession,
     secrets: AIProviderSecrets,

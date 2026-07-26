@@ -14,6 +14,14 @@ provider, enters a task, and must press a second confirmation button before
 the task leaves the service or consumes API tokens. The response is advisory:
 it cannot change code or production.
 
+Selection modes:
+
+- automatic selection uses one provider based on the task;
+- manual multi-select accepts two to four providers;
+- full council calls every configured provider;
+- multi-provider modes make one additional call to a configured judge, and
+  show the total number of calls before confirmation.
+
 Supported secrets:
 
 - `OPENAI_API_KEY`
