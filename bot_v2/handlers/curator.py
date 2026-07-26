@@ -1493,6 +1493,8 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
     curator_id = message.from_user.id
     link_start = f"https://t.me/iqbaraka_bot?start=ol_{curator_id}"
     link_full  = f"https://t.me/iqbaraka_bot?start=olp_{curator_id}"
+    tg_start   = f"tg://resolve?domain=iqbaraka_bot&start=ol_{curator_id}"
+    tg_full    = f"tg://resolve?domain=iqbaraka_bot&start=olp_{curator_id}"
 
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -1508,7 +1510,7 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
         "———",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚀 Проверить ссылку Старт + Путь", url=link_full)],
+            [InlineKeyboardButton(text="🚀 Открыть бота — Старт + Путь", url=tg_full)],
         ]),
     )
 
@@ -1525,6 +1527,6 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
         "———",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🌱 Проверить ссылку Старт", url=link_start)],
+            [InlineKeyboardButton(text="🌱 Открыть бота — Старт", url=tg_start)],
         ]),
     )
