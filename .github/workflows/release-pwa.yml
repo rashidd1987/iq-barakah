@@ -27,6 +27,8 @@ jobs:
   build:
     name: Build and verify PWA
     runs-on: ubuntu-latest
+    env:
+      PWA_BASE_PATH: ${{ inputs.target == 'preview' && '/pwav' || '/pwa' }}
     defaults:
       run:
         working-directory: ACTIVE/mobile
