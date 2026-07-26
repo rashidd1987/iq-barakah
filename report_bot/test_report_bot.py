@@ -29,6 +29,7 @@ from report_bot.main import (
     multi_provider_keyboard,
     pwa_release_keyboard,
 )
+from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import StatusClient, format_datetime, run_icon
 
@@ -372,6 +373,35 @@ class ProjectRegistryTests(unittest.TestCase):
     def test_rejects_insecure_url(self) -> None:
         with self.assertRaisesRegex(ValueError, "https"):
             validate_project("demo", "Demo", "http://example.com", None)
+
+
+class ProjectKnowledgeTests(unittest.TestCase):
+    def test_mizan_life_brief_prevents_insurance_guess(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            library = ProjectKnowledgeLibrary(directory)
+            project = library.resolve("конкуренты для мизан лайф", PROJECTS)
+            prompt = library.ai_task(project, "найди конкурентов")
+
+        self.assertEqual(project.key, "mizanlife")
+        self.assertIn("не является страхованием жизни", prompt.casefold())
+        self.assertIn("Задача владельца: найди конкурентов", prompt)
+
+    def test_persists_custom_brief_and_active_project(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            library = ProjectKnowledgeLibrary(directory)
+            library.set_brief(
+                "mizanos",
+                "Mizan OS — операционная система управления проектами владельца.",
+            )
+            library.set_active("mizanos", PROJECTS)
+
+            reloaded = ProjectKnowledgeLibrary(directory)
+            self.assertEqual(reloaded.active_project, "mizanos")
+            self.assertIn("управления проектами", reloaded.brief("mizanos"))
+            self.assertEqual(
+                reloaded.resolve("проверь следующий риск", PROJECTS).key,
+                "mizanos",
+            )
 
 
 class MonitorTests(unittest.TestCase):
