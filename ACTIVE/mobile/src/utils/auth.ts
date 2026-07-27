@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking'
 import { AppState } from 'react-native'
-import { api, setToken } from './api'
+import { ApiError, api, setToken } from './api'
 
 const BOT_USERNAME = process.env.EXPO_PUBLIC_BOT_USERNAME || 'iqbaraka_bot'
 
@@ -27,6 +27,7 @@ export async function loginWithTelegram(options: LoginOptions = {}): Promise<boo
 
   return new Promise<boolean>((resolve) => {
     let settled = false
+    let checking = false
     let timer: ReturnType<typeof setTimeout> | null = null
 
     const finish = (result: boolean) => {
@@ -38,17 +39,31 @@ export async function loginWithTelegram(options: LoginOptions = {}): Promise<boo
     }
 
     const checkOnce = async () => {
-      if (settled) return
+      if (settled || checking) return
+      checking = true
       try {
         const result = await api.tgCheck(session_id)
         if (result.status === 'ok' && result.access_token) {
-          await setToken(result.access_token)
+          try {
+            await setToken(result.access_token)
+          } catch {
+            onStatus?.('error')
+            finish(false)
+            return
+          }
           onStatus?.('success')
           finish(true)
           return
         }
-      } catch {
-        // transient network error while polling — keep trying until timeout
+      } catch (error) {
+        if (error instanceof ApiError && [403, 404, 410].includes(error.status)) {
+          onStatus?.('error')
+          finish(false)
+          return
+        }
+        // A temporary connection failure can recover on the next poll.
+      } finally {
+        checking = false
       }
       if (settled) return
       if (Date.now() >= deadline) {

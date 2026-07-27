@@ -5,6 +5,17 @@ const BASE = process.env.EXPO_PUBLIC_API_URL || 'https://pwa-api.iq-barakah.ru'
 
 const TOKEN_KEY = 'iq_jwt'
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly path: string,
+    body: string,
+  ) {
+    super(`API ${status} ${path}: ${body}`)
+    this.name = 'ApiError'
+  }
+}
+
 export async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN_KEY)
 }
@@ -28,7 +39,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(`API ${res.status} ${path}: ${body}`)
+    throw new ApiError(res.status, path, body)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
