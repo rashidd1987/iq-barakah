@@ -522,8 +522,10 @@ async def mobile_tg_check(session_id: str):
         user = await conn.fetchrow('SELECT id FROM users WHERE id=$1', row['tg_id'])
         if not user:
             raise HTTPException(404, 'Пользователь не найден в системе IQ Barakah')
+        # Выпускники сохраняются в participants с is_active=FALSE. Это означает
+        # завершение текущей программы, а не отзыв доступа к приложению.
         participant = await conn.fetchrow(
-            'SELECT id FROM participants WHERE user_id=$1 AND is_active=TRUE', row['tg_id']
+            'SELECT id FROM participants WHERE user_id=$1', row['tg_id']
         )
         if not participant:
             raise HTTPException(403, 'Программа ещё не активирована куратором')
@@ -536,7 +538,11 @@ async def mobile_participant(tg_id: int = Depends(verify_mobile_token)):
         raise HTTPException(500, 'База данных не подключена')
     async with db_pool.acquire() as conn:
         p = await conn.fetchrow(
-            'SELECT level, week, vakt_level, is_active FROM participants WHERE user_id=$1 AND is_active=TRUE',
+            '''SELECT level, week, vakt_level, is_active
+               FROM participants
+               WHERE user_id=$1
+               ORDER BY is_active DESC, id DESC
+               LIMIT 1''',
             tg_id
         )
     if not p:
