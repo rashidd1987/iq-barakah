@@ -10,6 +10,10 @@ module.exports = {
   ios: {
     ...staticConfig.expo.ios,
     bundleIdentifier: isPreview ? 'ru.iqbarakah.mobile.preview' : staticConfig.expo.ios.bundleIdentifier,
+    config: {
+      ...staticConfig.expo.ios.config,
+      usesNonExemptEncryption: false,
+    },
   },
   android: {
     ...staticConfig.expo.android,
