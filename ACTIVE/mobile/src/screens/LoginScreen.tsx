@@ -1,4 +1,5 @@
 import * as Application from 'expo-application'
+import { Ionicons } from '@expo/vector-icons'
 import React, { useMemo, useState } from 'react'
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +12,8 @@ const STATUS_LABEL: Record<LoginStatus, string> = {
   waiting_confirmation: 'Подтвердите вход в Telegram-боте',
   success: 'Готово!',
   timeout: 'Время ожидания истекло. Попробуйте снова.',
+  not_active: 'Доступ к программе ещё не активирован куратором.',
+  expired: 'Ссылка входа устарела. Нажмите кнопку ещё раз.',
   error: 'Не удалось войти. Попробуйте снова.',
 }
 
@@ -92,4 +95,3 @@ const createStyles = (colors: ThemeColors) => {
   buildTag: { marginTop: 16, color: colors.border, fontSize: 11 },
   })
 }
-import { Ionicons } from '@expo/vector-icons'
