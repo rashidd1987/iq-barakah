@@ -2,6 +2,7 @@
 """IQ BARAKAH — aiogram 3.x + asyncpg/PostgreSQL."""
 import asyncio
 import logging
+import os
 from urllib.parse import urlsplit, urlunsplit
 
 from aiogram import Bot, Dispatcher
@@ -16,7 +17,12 @@ from aiohttp import web
 
 from bot_v2.api.analyze import create_app as create_web_app
 from bot_v2.config import load_config
-from bot_v2.db import setup_db, ensure_database, create_tables
+from bot_v2.db import (
+    setup_db,
+    ensure_database,
+    create_tables,
+    ensure_pwa_database_access,
+)
 from bot_v2.handlers import setup_routers
 from bot_v2.middlewares import DbSessionMiddleware
 from bot_v2.services.jarwas import setup_jarwas
@@ -57,6 +63,15 @@ async def main():
     setup_db(config.database_url)
     await create_tables()
     logger.info("Database ready")
+
+    pwa_database_role = os.environ.get("PWA_DATABASE_ROLE", "").strip()
+    if pwa_database_role:
+        try:
+            await ensure_pwa_database_access(pwa_database_role)
+            logger.info("PWA database role access verified: %s", pwa_database_role)
+        except Exception as exc:
+            # PWA integration must not prevent the Telegram bot from starting.
+            logger.error("PWA database role access failed: %s", exc)
 
     # Загружаем дополнительных кураторов из БД
     from bot_v2.db.engine import get_session_factory

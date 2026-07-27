@@ -1,4 +1,5 @@
 import logging
+import re
 
 from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -8,6 +9,108 @@ logger = logging.getLogger(__name__)
 
 _engine = None
 _session_factory = None
+
+_ROLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+_PWA_SUPPORT_TABLES = (
+    """
+    CREATE TABLE IF NOT EXISTS pwa_users (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        tg_id BIGINT UNIQUE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pwa_tracker (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES pwa_users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        data JSONB NOT NULL DEFAULT '{}',
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, date)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pwa_wheel (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES pwa_users(id) ON DELETE CASCADE,
+        scores JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pwa_ship (
+        id SERIAL PRIMARY KEY,
+        user_id INT NOT NULL REFERENCES pwa_users(id) ON DELETE CASCADE,
+        type TEXT NOT NULL,
+        scores JSONB NOT NULL DEFAULT '{}',
+        avg FLOAT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pwa_analytics (
+        id BIGSERIAL PRIMARY KEY,
+        uid TEXT NOT NULL,
+        event TEXT NOT NULL,
+        screen TEXT,
+        ts TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS pwa_tg_sessions (
+        session_id TEXT PRIMARY KEY,
+        tg_id BIGINT,
+        tg_name TEXT,
+        confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS push_tokens (
+        user_id BIGINT PRIMARY KEY,
+        expo_token TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_pwa_tracker_user_date ON pwa_tracker(user_id, date)",
+    "CREATE INDEX IF NOT EXISTS idx_pwa_wheel_user ON pwa_wheel(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pwa_ship_user ON pwa_ship(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pwa_analytics_uid ON pwa_analytics(uid)",
+)
+
+_PWA_READ_TABLES = (
+    "users",
+    "participants",
+    "week_acks",
+    "task_completions",
+    "tracker_records",
+    "wheel_records",
+    "muhasaba_logs",
+    "diag_results",
+    "bot_payments",
+)
+
+_PWA_INSERT_UPDATE_TABLES = (
+    "week_acks",
+    "tracker_records",
+    "wheel_records",
+    "muhasaba_logs",
+    "push_tokens",
+)
+
+_PWA_OWNED_DATA_TABLES = (
+    "pwa_users",
+    "pwa_tracker",
+    "pwa_wheel",
+    "pwa_ship",
+    "pwa_analytics",
+    "pwa_tg_sessions",
+)
 
 
 def setup_db(database_url: str):
@@ -53,6 +156,62 @@ async def create_tables():
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_ensure_compat_columns)
+
+
+def _quote_identifier(value: str) -> str:
+    if not _ROLE_NAME_RE.fullmatch(value):
+        raise ValueError("Database role name contains unsupported characters")
+    return f'"{value}"'
+
+
+async def ensure_pwa_database_access(role_name: str) -> None:
+    """Grant the existing PWA role least-privilege access to the bot database."""
+    if _engine is None:
+        raise RuntimeError("Database engine is not initialized")
+
+    quoted_role = _quote_identifier(role_name)
+    async with _engine.begin() as conn:
+        current_database = await conn.scalar(text("SELECT current_database()"))
+        quoted_database = _quote_identifier(current_database)
+
+        for statement in _PWA_SUPPORT_TABLES:
+            await conn.execute(text(statement))
+
+        await conn.execute(
+            text(f"GRANT CONNECT ON DATABASE {quoted_database} TO {quoted_role}")
+        )
+        await conn.execute(text(f"GRANT USAGE ON SCHEMA public TO {quoted_role}"))
+
+        read_tables = ", ".join(_PWA_READ_TABLES)
+        insert_update_tables = ", ".join(_PWA_INSERT_UPDATE_TABLES)
+        owned_data_tables = ", ".join(_PWA_OWNED_DATA_TABLES)
+        await conn.execute(
+            text(f"GRANT SELECT ON TABLE {read_tables} TO {quoted_role}")
+        )
+        await conn.execute(
+            text(
+                "GRANT INSERT, UPDATE "
+                f"ON TABLE {insert_update_tables} TO {quoted_role}"
+            )
+        )
+        await conn.execute(
+            text(
+                "GRANT UPDATE ON TABLE users, participants "
+                f"TO {quoted_role}"
+            )
+        )
+        await conn.execute(
+            text(
+                "GRANT SELECT, INSERT, UPDATE, DELETE "
+                f"ON TABLE {owned_data_tables} TO {quoted_role}"
+            )
+        )
+        await conn.execute(
+            text(
+                "GRANT USAGE, SELECT ON ALL SEQUENCES "
+                f"IN SCHEMA public TO {quoted_role}"
+            )
+        )
 
 
 def _ensure_compat_columns(sync_conn):
