@@ -33,6 +33,7 @@ jobs:
     name: EAS ${{ inputs.platform }} ${{ inputs.profile }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.profile }}
+    timeout-minutes: 120
     defaults:
       run:
         working-directory: ACTIVE/mobile
@@ -53,6 +54,21 @@ jobs:
       - name: Check TypeScript
         run: npm run typecheck
 
+      - name: Request owner approval in Telegram
+        if: inputs.profile == 'production'
+        working-directory: ${{ github.workspace }}
+        env:
+          APPROVAL_API_URL: ${{ secrets.APPROVAL_API_URL }}
+          APPROVAL_API_SECRET: ${{ secrets.APPROVAL_API_SECRET }}
+        run: |
+          python3 .github/scripts/wait_for_telegram_approval.py \
+            --project "IQ Barakah" \
+            --action "Запустить production-сборку мобильного приложения" \
+            --description "Запустить облачную EAS-сборку выбранной мобильной платформы" \
+            --risk "Будет создан официальный release-кандидат для публикации" \
+            --idempotency-key "mobile-production:${GITHUB_RUN_ID}:${GITHUB_RUN_ATTEMPT}" \
+            --ttl-minutes 60
+
       - name: Set up Expo and EAS
         uses: expo/expo-github-action@v8
         with:
@@ -60,4 +76,4 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Start cloud build
-        run: eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive --no-wait
+        run: eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive

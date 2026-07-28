@@ -1,0 +1,119 @@
+name: Automatic Android preview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "ACTIVE/mobile/**"
+      - ".github/workflows/auto-preview-android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-preview-main
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Validate and build preview APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: preview
+    defaults:
+      run:
+        working-directory: ACTIVE/mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ACTIVE/mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript
+        run: npm run typecheck
+
+      - name: Set up Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android preview APK
+        run: eas build --platform android --profile preview --non-interactive
+
+      - name: Resolve installation page
+        id: artifact
+        if: success()
+        run: |
+          eas build:list \
+            --platform android \
+            --status finished \
+            --build-profile preview \
+            --git-commit-hash "$GITHUB_SHA" \
+            --limit 1 \
+            --json \
+            --non-interactive > "$RUNNER_TEMP/eas-build.json"
+
+          BUILD_URL="$(jq -r '.[0].buildDetailsPageUrl // empty' "$RUNNER_TEMP/eas-build.json")"
+          if [ -z "$BUILD_URL" ]; then
+            echo "EAS did not return the installation page for commit $GITHUB_SHA."
+            exit 1
+          fi
+          echo "build_url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Telegram about successful build
+        if: success()
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BUILD_URL: ${{ steps.artifact.outputs.build_url }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram notification secrets are not configured; skipping."
+            exit 0
+          fi
+
+          MESSAGE="✅ Новый APK IQ Barakah готов.
+
+          Установить: $BUILD_URL
+          Commit: ${GITHUB_SHA::7}"
+
+          curl --fail --silent --retry 3 --output /dev/null \
+            --request POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}" \
+            --data-urlencode "disable_web_page_preview=true"
+
+      - name: Notify Telegram about failed build
+        if: failure()
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram notification secrets are not configured; skipping."
+            exit 0
+          fi
+
+          MESSAGE="❌ Автоматическая сборка APK IQ Barakah завершилась ошибкой.
+
+          Проверить: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          Commit: ${GITHUB_SHA::7}"
+
+          curl --fail --silent --retry 3 --output /dev/null \
+            --request POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}" \
+            --data-urlencode "disable_web_page_preview=true"

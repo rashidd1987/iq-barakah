@@ -108,6 +108,23 @@ nav {
   border: 1px solid rgba(255,255,255,.25);
   font-size: 12px; font-weight: 600; color: white;
 }
+.lang-select {
+  height: 32px;
+  min-width: 48px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 16px;
+  background: rgba(255,255,255,.18);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
+  cursor: pointer;
+}
+.lang-select option {
+  color: #111827;
+  background: #fff;
+}
 
 /* ── CONTENT ── */
 .c { padding: 18px; display: flex; flex-direction: column; gap: 14px; }

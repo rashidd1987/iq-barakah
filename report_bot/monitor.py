@@ -1,0 +1,235 @@
+import asyncio
+from dataclasses import asdict, dataclass
+from datetime import date, datetime
+import json
+import logging
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from aiogram import Bot
+
+from report_bot.projects import ProjectRegistry
+from report_bot.status import StatusClient, all_sites_summary
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ProjectState:
+    site_ok: bool
+    status_code: int | None
+    workflow_id: int | None
+    workflow_status: str | None
+    workflow_conclusion: str | None
+
+
+class StateStore:
+    def __init__(self, data_dir: str) -> None:
+        self.path = Path(data_dir) / "monitor_state.json"
+
+    def load(self) -> dict[str, ProjectState]:
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+            return {key: ProjectState(**value) for key, value in raw.items()}
+        except (FileNotFoundError, OSError, ValueError, TypeError, json.JSONDecodeError):
+            return {}
+
+    def save(self, states: dict[str, ProjectState]) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(
+                {key: asdict(value) for key, value in states.items()},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        temporary.replace(self.path)
+
+
+class ReportDateStore:
+    def __init__(self, data_dir: str) -> None:
+        self.path = Path(data_dir) / "last_evening_report.txt"
+
+    def load(self):
+        try:
+            return datetime.fromisoformat(
+                self.path.read_text(encoding="utf-8").strip()
+            ).date()
+        except (FileNotFoundError, OSError, ValueError):
+            return None
+
+    def save(self, value) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(value.isoformat(), encoding="utf-8")
+        temporary.replace(self.path)
+
+
+class ReminderStore:
+    def __init__(self, data_dir: str) -> None:
+        self.path = Path(data_dir) / "sent_reminders.json"
+
+    def load(self) -> set[str]:
+        try:
+            raw = json.loads(self.path.read_text(encoding="utf-8"))
+            return {str(value) for value in raw}
+        except (FileNotFoundError, OSError, ValueError, TypeError, json.JSONDecodeError):
+            return set()
+
+    def save(self, values: set[str]) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(sorted(values), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        temporary.replace(self.path)
+
+
+def token_expiry_reminder(
+    today: date,
+    expires_at: date | None,
+    sent: set[str],
+) -> tuple[str, str] | None:
+    if expires_at is None:
+        return None
+    days_left = (expires_at - today).days
+    if days_left in {30, 14, 7, 3, 1}:
+        key = f"github-token:{expires_at.isoformat()}:{days_left}"
+        if key in sent:
+            return None
+        return (
+            key,
+            "🔐 <b>Скоро истекает GitHub-токен</b>\n\n"
+            f"Осталось дней: <b>{days_left}</b>.\n"
+            f"Дата окончания: <b>{expires_at.strftime('%d.%m.%Y')}</b>.\n\n"
+            "Обновите <code>GITHUB_READ_TOKEN</code> в Amvera, "
+            "чтобы отчёты по приватным проектам не остановились.",
+        )
+    if days_left == 0:
+        key = f"github-token:{expires_at.isoformat()}:today"
+        if key in sent:
+            return None
+        return (
+            key,
+            "🚨 <b>GitHub-токен истекает сегодня</b>\n\n"
+            "Обновите <code>GITHUB_READ_TOKEN</code> в Amvera.",
+        )
+    if days_left < 0:
+        key = f"github-token:{expires_at.isoformat()}:expired"
+        if key in sent:
+            return None
+        return (
+            key,
+            "🚨 <b>GitHub-токен истёк</b>\n\n"
+            f"Дата окончания: <b>{expires_at.strftime('%d.%m.%Y')}</b>.\n"
+            "Создайте новый read-only токен и обновите "
+            "<code>GITHUB_READ_TOKEN</code> в Amvera.",
+        )
+    return None
+
+
+async def capture_state(
+    client: StatusClient, registry: ProjectRegistry
+) -> dict[str, ProjectState]:
+    async def capture(project):
+        site = await client.site_status(project)
+        runs = await client.workflow_runs(project.repo, limit=1) if project.repo else None
+        latest = runs[0] if runs else {}
+        return project.key, ProjectState(
+            site_ok=site.ok,
+            status_code=site.status_code,
+            workflow_id=latest.get("id"),
+            workflow_status=latest.get("status"),
+            workflow_conclusion=latest.get("conclusion"),
+        )
+
+    return dict(await asyncio.gather(*(capture(project) for project in registry.all())))
+
+
+def transition_messages(
+    previous: dict[str, ProjectState],
+    current: dict[str, ProjectState],
+    registry: ProjectRegistry,
+) -> list[str]:
+    messages: list[str] = []
+    for project in registry.all():
+        before, after = previous.get(project.key), current.get(project.key)
+        if before is None or after is None:
+            continue
+        if before.site_ok != after.site_ok:
+            messages.append(
+                f"{'✅ Восстановлен' if after.site_ok else '🚨 Недоступен'}: "
+                f"<b>{project.title}</b>"
+            )
+        workflow_changed = (
+            after.workflow_id is not None
+            and (
+                before.workflow_id != after.workflow_id
+                or before.workflow_status != after.workflow_status
+                or before.workflow_conclusion != after.workflow_conclusion
+            )
+        )
+        if workflow_changed and after.workflow_status == "completed":
+            icon = "✅" if after.workflow_conclusion == "success" else "❌"
+            messages.append(
+                f"{icon} Сборка <b>{project.title}</b>: "
+                f"{after.workflow_conclusion or 'завершена'}"
+            )
+    return messages
+
+
+async def monitor_loop(
+    bot: Bot,
+    owner_ids: frozenset[int],
+    client: StatusClient,
+    registry: ProjectRegistry,
+    data_dir: str,
+    interval_seconds: int,
+    report_hour: int,
+    timezone: str,
+    github_token_expires_at: date | None,
+) -> None:
+    store = StateStore(data_dir)
+    report_store = ReportDateStore(data_dir)
+    previous = store.load()
+    last_report_date = report_store.load()
+    reminder_store = ReminderStore(data_dir)
+    sent_reminders = reminder_store.load()
+    zone = ZoneInfo(timezone)
+    while True:
+        try:
+            current = await capture_state(client, registry)
+            if previous:
+                for message in transition_messages(previous, current, registry):
+                    for owner_id in owner_ids:
+                        await bot.send_message(owner_id, message)
+            previous = current
+            store.save(current)
+
+            now = datetime.now(zone)
+            reminder = token_expiry_reminder(
+                now.date(), github_token_expires_at, sent_reminders
+            )
+            if reminder:
+                reminder_key, reminder_message = reminder
+                for owner_id in owner_ids:
+                    await bot.send_message(owner_id, reminder_message)
+                sent_reminders.add(reminder_key)
+                reminder_store.save(sent_reminders)
+
+            if now.hour == report_hour and last_report_date != now.date():
+                summary = "🌙 <b>Вечерний отчёт</b>\n\n" + await all_sites_summary(
+                    client, registry.all()
+                )
+                for owner_id in owner_ids:
+                    await bot.send_message(owner_id, summary)
+                last_report_date = now.date()
+                report_store.save(last_report_date)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Monitoring iteration failed")
+        await asyncio.sleep(interval_seconds)
