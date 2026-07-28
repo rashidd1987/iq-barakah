@@ -7758,6 +7758,8 @@ function closeSheetById(id) {
 
 // --- screens/wheel.js ---
 
+const API_BASE = 'https://pwa-api.iq-barakah.ru'
+
 const SECTORS = [
   { name: 'Вера (Иман)', color: '#2c5f2d', val: 7 },
   { name: 'Намаз',       color: '#3d7a3e', val: 6 },
@@ -7769,7 +7771,27 @@ const SECTORS = [
   { name: 'Умма',         color: '#4a9e8c', val: 5 },
 ]
 
-function renderWheel() {
+export async function renderWheel() {
+  try {
+    if (tg?.initData) {
+      const response = await fetch(`${API_BASE}/miniapp/wheel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ init_data: tg.initData }),
+      })
+      if (response.ok) {
+        const saved = await response.json()
+        if (saved.scores) {
+          SECTORS.forEach((sector) => {
+            const score = Number(saved.scores[sector.name])
+            if (Number.isFinite(score)) sector.val = Math.max(1, Math.min(10, score))
+          })
+        }
+      }
+    }
+  } catch {
+    // Keep the current values when offline. Saving still has Telegram fallback.
+  }
   drawWheel()
   buildSliders()
 }
@@ -7838,11 +7860,23 @@ function buildSliders() {
   })
 }
 
-function saveWheel() {
+export async function saveWheel() {
   haptic('success')
   const scores = Object.fromEntries(SECTORS.map(s => [s.name, s.val]))
-  sendData({ action: 'save_wheel', scores })
-  showToast(t('wheelSaved'))
+  try {
+    if (!tg?.initData) throw new Error('Telegram initData unavailable')
+    const response = await fetch(`${API_BASE}/miniapp/wheel/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ init_data: tg.initData, scores }),
+    })
+    if (!response.ok) throw new Error(`Wheel save failed: ${response.status}`)
+    showToast(t('wheelSaved'))
+  } catch {
+    // Older Telegram clients can still persist the wheel through web_app_data.
+    sendData({ action: 'save_wheel', scores })
+    showToast(t('wheelSaved'))
+  }
 }
 
 

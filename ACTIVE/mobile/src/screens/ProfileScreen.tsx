@@ -90,7 +90,7 @@ export default function ProfileScreen() {
     { icon: 'flame', label: 'Стрик 40 дней', unlocked: muhasabaStreak >= 40 },
     { icon: 'leaf', label: 'Первый шаг', unlocked: completedSteps >= 1 },
     { icon: 'book', label: '5 шагов пройдено', unlocked: completedSteps >= 5 },
-    { icon: 'trophy', label: 'ВАКТ завершён', unlocked: completedSteps >= 6 },
+    { icon: 'trophy', label: 'Старт завершён', unlocked: completedSteps >= 6 },
     { icon: 'analytics', label: 'Колесо заполнено', unlocked: wheelDone },
   ]
   const unlockedCount = achievements.filter((item) => item.unlocked).length

@@ -873,30 +873,35 @@ async def mobile_save_tracker(req: MobileTrackerReq, tg_id: int = Depends(verify
 class MobileWheelReq(BaseModel):
     scores: dict
 
-@app.get('/mobile/wheel')
-async def mobile_get_wheel(tg_id: int = Depends(verify_mobile_token)):
-    """Последняя оценка «Колеса баланса» — те же 8 сфер, что и в Mini App,
-    но сохраняются в реальную таблицу бота (wheel_records), а не в localStorage."""
+async def _load_latest_wheel(user_id: int) -> dict:
     if not db_pool:
         raise HTTPException(500, 'База данных не подключена')
     async with db_pool.acquire() as conn:
         row = await conn.fetchrow(
             'SELECT scores, created_at FROM wheel_records WHERE user_id=$1 ORDER BY created_at DESC LIMIT 1',
-            tg_id
+            user_id
         )
     if not row:
         return {'scores': None, 'created_at': None}
     return {'scores': row['scores'], 'created_at': row['created_at'].isoformat()}
 
-@app.post('/mobile/wheel')
-async def mobile_save_wheel(req: MobileWheelReq, tg_id: int = Depends(verify_mobile_token)):
+async def _save_wheel_record(user_id: int, scores: dict) -> None:
     if not db_pool:
         raise HTTPException(500, 'База данных не подключена')
     async with db_pool.acquire() as conn:
         await conn.execute(
             'INSERT INTO wheel_records (user_id, scores, created_at) VALUES ($1,$2,$3)',
-            tg_id, req.scores, datetime.utcnow()
+            user_id, scores, datetime.utcnow()
         )
+
+@app.get('/mobile/wheel')
+async def mobile_get_wheel(tg_id: int = Depends(verify_mobile_token)):
+    """Последняя общая оценка «Колеса баланса» для PWA и приложений."""
+    return await _load_latest_wheel(tg_id)
+
+@app.post('/mobile/wheel')
+async def mobile_save_wheel(req: MobileWheelReq, tg_id: int = Depends(verify_mobile_token)):
+    await _save_wheel_record(tg_id, req.scores)
     return {'ok': True}
 
 class MobileMuhasabaReq(BaseModel):
@@ -984,11 +989,9 @@ async def push_register(req: PushRegisterReq, tg_id: int = Depends(verify_mobile
     return {'ok': True}
 
 # ── Mini App read-only sync ─────────────────────────────────────────────────
-# The Mini App keeps its own tracker/wheel/muhasaba entirely client-side
-# (localStorage) — that's an intentional product decision, not something this
-# endpoint changes. Its only job: let the Mini App know the participant's REAL
-# current level/step from bot_v2's tables, so it doesn't show stale data after
-# the student progresses via the bot or the native app. Read-only, no writes.
+# The Mini App reads participant progress and the balance wheel from the same
+# bot_v2 tables as PWA/native clients. Tracker and muhasaba keep their existing
+# Telegram flows.
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '').strip()
 MINIAPP_LEVEL_OFFSET = {'А': 0, 'Б': 6, 'В': 14, 'Г': 22}
@@ -1037,16 +1040,19 @@ async def miniapp_token_check():
 class MiniappParticipantReq(BaseModel):
     init_data: str
 
-@app.post('/miniapp/participant')
-async def miniapp_participant(req: MiniappParticipantReq):
-    parsed = _verify_telegram_init_data(req.init_data)
+def _miniapp_user_id(init_data: str) -> int:
+    parsed = _verify_telegram_init_data(init_data)
     if not parsed:
         raise HTTPException(401, 'Недействительные данные Telegram')
     try:
         tg_user = json.loads(parsed.get('user', '{}'))
-        tg_id = int(tg_user['id'])
+        return int(tg_user['id'])
     except (KeyError, ValueError, json.JSONDecodeError):
         raise HTTPException(400, 'Нет данных пользователя Telegram')
+
+@app.post('/miniapp/participant')
+async def miniapp_participant(req: MiniappParticipantReq):
+    tg_id = _miniapp_user_id(req.init_data)
     if not db_pool:
         raise HTTPException(500, 'База данных не подключена')
     async with db_pool.acquire() as conn:
@@ -1063,3 +1069,19 @@ async def miniapp_participant(req: MiniappParticipantReq):
         'vakt_level': p['vakt_level'],
         'global_week': MINIAPP_LEVEL_OFFSET.get(p['level'], 0) + p['week'],
     }
+
+class MiniappWheelReq(BaseModel):
+    init_data: str
+
+class MiniappWheelSaveReq(MiniappWheelReq):
+    scores: dict
+
+@app.post('/miniapp/wheel')
+async def miniapp_get_wheel(req: MiniappWheelReq):
+    """Return the same latest wheel record used by PWA and native apps."""
+    return await _load_latest_wheel(_miniapp_user_id(req.init_data))
+
+@app.post('/miniapp/wheel/save')
+async def miniapp_save_wheel(req: MiniappWheelSaveReq):
+    await _save_wheel_record(_miniapp_user_id(req.init_data), req.scores)
+    return {'ok': True}
