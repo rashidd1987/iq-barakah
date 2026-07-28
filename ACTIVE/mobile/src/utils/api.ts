@@ -51,6 +51,8 @@ export const api = {
     request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }),
 
   tgInit: () => api.post<{ session_id: string }>('/mobile/auth/tg-init'),
   tgCheck: (sessionId: string) =>
@@ -65,6 +67,8 @@ export const api = {
   profile: () => api.get<MobileProfile>('/mobile/profile'),
   updateProfile: (body: { name: string; email: string | null; phone: string | null }) =>
     api.put<{ ok: boolean }>('/mobile/profile', body),
+  deleteAccount: (confirmation: string) =>
+    api.delete<{ ok: boolean; already_deleted: boolean }>('/mobile/account', { confirmation }),
 
   content: (level: string, week: number) =>
     api.get<{
