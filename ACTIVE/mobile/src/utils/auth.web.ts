@@ -13,18 +13,15 @@ interface LoginOptions {
 
 export async function loginWithTelegram(options: LoginOptions = {}): Promise<boolean> {
   const { onStatus, timeoutMs = 10 * 60 * 1000, pollIntervalMs = 2000 } = options
-  // Open synchronously while this function is still inside the user's click event.
-  // Browsers often block a popup opened only after the tg-init network request.
-  const telegramWindow = window.open('', '_blank')
-  const pendingSession = window.localStorage.getItem(PENDING_SESSION_KEY)
-  const session_id = pendingSession || (await api.tgInit()).session_id
+  const { session_id } = await api.tgInit()
   window.localStorage.setItem(PENDING_SESSION_KEY, session_id)
 
   onStatus?.('opening_telegram')
-  const telegramUrl = `https://t.me/${BOT_USERNAME}?start=pwa_${encodeURIComponent(session_id)}`
-  if (telegramWindow) {
-    telegramWindow.location.href = telegramUrl
-  } else if (!pendingSession) {
+  const telegramWindow = window.open(
+    `https://t.me/${BOT_USERNAME}?start=pwa_${encodeURIComponent(session_id)}`,
+    '_blank',
+  )
+  if (!telegramWindow) {
     window.location.assign(`https://t.me/${BOT_USERNAME}?start=pwa_${encodeURIComponent(session_id)}`)
     return false
   }

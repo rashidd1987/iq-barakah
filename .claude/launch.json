@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "router",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8766"],
+      "cwd": "ACTIVE",
+      "port": 8766
+    },
+    {
+      "name": "miniapp",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8765"],
+      "cwd": "/Users/rasidmamedov/Documents/IQ Barakah System/ACTIVE",
+      "port": 8765
+    },
+    {
+      "name": "pwa-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/rasidmamedov/Documents/IQ Barakah System/ACTIVE/pwa",
+      "port": 3001
+    },
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["expo", "start", "--web"],
+      "cwd": "/Users/rasidmamedov/Documents/IQ Barakah System/ACTIVE/mobile",
+      "port": 8081
+    }
+  ]
+}

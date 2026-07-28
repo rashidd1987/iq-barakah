@@ -6,7 +6,9 @@ meta:
 
 build:
   requirementsPath: bot_v2/requirements.txt
-  useCache: true
+  useCache: false
 
 run:
   command: python -m bot_v2.main
+  persistenceMount: /data
+  httpPort: 80

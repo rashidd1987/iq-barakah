@@ -559,8 +559,9 @@ MAIN_MENU = ReplyKeyboardMarkup(
     NAME, GENDER, OCCUPATION, AGE, SOURCE, READY,
     Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8,
     REG_CONSENT, REG_FIO, REG_BIRTHDATE, REG_GENDER, REG_ACTIVITY, REG_PHONE, PAY_EMAIL,
-    MUH_Q1, MUH_Q2, MUH_Q3
-) = range(24)
+    MUH_Q1, MUH_Q2, MUH_Q3,
+    ONBOARD_READY, ONBOARD_AUDIT,
+) = range(26)
 
 # ── ПРОФИЛЬНЫЕ ДАННЫЕ ────────────────────────────────────────────
 OCCUPATIONS = [
@@ -1097,6 +1098,165 @@ async def cmd_deactivate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Пользователь `{target_id}` не найден в программе.", parse_mode="Markdown")
 
 
+async def cmd_analyze(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Только для кураторов. /analyze <user_id> — AI-анализ участника."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Команда только для кураторов.")
+        return
+    if not _jarwas_client:
+        await update.message.reply_text("❌ ANTHROPIC_API_KEY не задан.")
+        return
+
+    args = update.message.text.split()[1:]
+    if not args:
+        await update.message.reply_text(
+            "Использование: `/analyze <user_id>`\n\n"
+            "Например: `/analyze 123456789`",
+            parse_mode="Markdown"
+        )
+        return
+    try:
+        target_uid = str(int(args[0]))
+    except ValueError:
+        await update.message.reply_text("❌ Неверный user_id.")
+        return
+
+    active  = get_active_users(ctx)
+    entry   = active.get(target_uid)
+    profile = ctx.bot_data.get("reg_profiles", {}).get(target_uid, {})
+
+    # Принимаем и активных участников, и тех кто только прошёл диагностику
+    if not entry and not profile:
+        await update.message.reply_text(
+            "❌ Пользователь не найден.\n\n"
+            "Убедись что он писал боту — его ID должен быть в системе."
+        )
+        return
+
+    # Собираем данные (active_users имеет приоритет, profile — fallback)
+    name       = ctx.bot_data.get("user_names", {}).get(target_uid,
+                    entry.get("name", profile.get("fio", "Участник")) if entry else profile.get("fio", "Участник"))
+    level      = entry.get("level") if entry else ctx.bot_data.get("user_diag_level", {}).get(target_uid)
+    week       = entry.get("week", 1) if entry else None
+    occupation = profile.get("activity", "не указана")
+    age        = profile.get("age", "не указан")
+    status     = "активный участник" if entry else "прошёл диагностику, не активирован"
+
+    # Дни молчания
+    last_raw = (entry or {}).get("last_active", "")
+    try:
+        last_dt = datetime.fromisoformat(last_raw)
+        if last_dt.tzinfo is None:
+            last_dt = last_dt.replace(tzinfo=timezone.utc)
+        silence_days = (datetime.now(timezone.utc) - last_dt).days
+    except Exception:
+        silence_days = 0
+
+    # Мухасаба — последние 3 записи
+    muh_logs = ctx.bot_data.get("muhasaba_logs", {}).get(target_uid, [])
+    muh_text = ""
+    for log in muh_logs[-3:]:
+        answers = log.get("answers", [])
+        row = " / ".join(str(a.get("a", ""))[:40] for a in answers if isinstance(a, dict))
+        if row:
+            muh_text += f"• {row}\n"
+    muh_text = muh_text.strip() or "нет записей"
+
+    await update.message.reply_text("🔍 Анализирую...")
+
+    level_str = f"{level}, Неделя: {week}" if week else f"{level} (не активирован)"
+    prompt = (
+        f"Проанализируй участника программы IQ Barakah и дай куратору рекомендацию.\n\n"
+        f"ДАННЫЕ УЧАСТНИКА:\n"
+        f"Имя: {name}\n"
+        f"Статус: {status}\n"
+        f"Уровень диагностики: {level_str}\n"
+        f"Деятельность: {occupation}\n"
+        f"Возраст: {age}\n"
+        f"Молчание в боте: {silence_days} дней\n\n"
+        f"МУХАСАБА (последние записи):\n{muh_text}\n\n"
+        f"Верни ТОЛЬКО валидный JSON без лишнего текста:\n"
+        f'{{"risk": "low|medium|high", "summary": "...", "issue": "...", "action": "..."}}'
+    )
+
+    try:
+        import json as _json
+        response = _jarwas_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=512,
+            system=[{
+                "type": "text",
+                "text": (
+                    "Ты — аналитик программы IQ Barakah. "
+                    "Отвечаешь ТОЛЬКО валидным JSON без markdown-блоков и лишнего текста. "
+                    "risk: low — всё хорошо, medium — нужно внимание, high — срочно связаться."
+                ),
+                "cache_control": {"type": "ephemeral"},
+            }],
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = response.content[0].text.strip()
+        # Убираем возможные ```json ... ``` обёртки
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        data = _json.loads(raw.strip())
+
+        risk = data.get("risk", "medium")
+        RISK_EMOJI = {"low": "🟢", "medium": "🟡", "high": "🔴"}
+        status_line = f"уровень {level} · неделя {week}" if week else f"диагностика: {level} · не активирован"
+        await update.message.reply_text(
+            f"🤖 *AI-анализ участника*\n\n"
+            f"👤 {name} · {status_line}\n"
+            f"{RISK_EMOJI.get(risk, '⚪')} Риск: *{risk.upper()}*\n\n"
+            f"📊 {data.get('summary', '')}\n\n"
+            f"⚠️ *Проблема:* {data.get('issue', '')}\n\n"
+            f"✅ *Действие:* {data.get('action', '')}",
+            parse_mode="Markdown",
+        )
+    except Exception as e:
+        logger.warning(f"cmd_analyze error: {e}")
+        await update.message.reply_text("❌ Ошибка AI-анализа. Попробуй позже.")
+
+
+async def cmd_registered(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Только для кураторов. /registered — все кто когда-либо регистрировался."""
+    if update.effective_user.id not in CURATOR_IDS:
+        await update.message.reply_text("⛔️ Команда только для кураторов.")
+        return
+
+    profiles  = ctx.bot_data.get("reg_profiles", {})
+    names     = ctx.bot_data.get("user_names", {})
+    active    = get_active_users(ctx)
+    diag_lvls = ctx.bot_data.get("user_diag_level", {})
+
+    if not profiles and not names:
+        await update.message.reply_text("Никто ещё не регистрировался.")
+        return
+
+    all_uids = set(profiles.keys()) | set(names.keys())
+    lines = [f"📋 *Все зарегистрированные ({len(all_uids)}):*\n"]
+
+    for uid in sorted(all_uids):
+        name       = names.get(uid, profiles.get(uid, {}).get("fio", "—"))
+        diag_level = diag_lvls.get(uid, "—")
+        is_active  = uid in active
+
+        if is_active:
+            entry = active[uid]
+            status = f"✅ активен · {entry.get('level','?')} нед {entry.get('week','?')}"
+        else:
+            status = f"⏳ не активирован · диагностика: {diag_level}"
+
+        lines.append(f"• `{uid}` — {name}\n  {status}")
+
+    # Telegram ограничивает сообщение ~4096 символов — режем на части
+    text = "\n".join(lines)
+    for i in range(0, len(text), 4000):
+        await update.message.reply_text(text[i:i+4000], parse_mode="Markdown")
+
+
 async def cmd_participants(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Только для кураторов. /participants — список всех активных."""
     if update.effective_user.id not in CURATOR_IDS:
@@ -1115,6 +1275,52 @@ async def cmd_participants(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             f"{LEVEL_NAMES[level]} | неделя {e['week']}/{max_w}"
         )
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
+async def cb_curator_quick_activate(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Куратор нажал 'Активировать' в уведомлении о диагностике."""
+    query = update.callback_query
+    await query.answer()
+
+    if query.from_user.id not in CURATOR_IDS:
+        await query.answer("⛔️ Только для кураторов.", show_alert=True)
+        return
+
+    _, uid_str, level = query.data.split(":")
+    uid = str(uid_str)
+
+    # Активируем
+    active = get_active_users(ctx)
+    name = ctx.bot_data.get("user_names", {}).get(uid, "Участник")
+    active[uid] = {
+        "level":       level,
+        "week":        1,
+        "name":        name,
+        "activated_at": datetime.now(timezone.utc).isoformat(),
+        "last_active": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Уведомляем участника
+    try:
+        brat_word = "сестра" if ctx.bot_data.get("user_genders", {}).get(uid, False) else "брат"
+        first_name = name.split()[0]
+        await ctx.bot.send_message(
+            chat_id=int(uid),
+            parse_mode="Markdown",
+            text=(
+                f"🌿 *{brat_word.capitalize()} {first_name}, тебя активировали!*\n\n"
+                f"Ты на уровне *{level}* — программа началась.\n\n"
+                f"В понедельник придёт первый урок. А пока — можешь задать любой вопрос Джарвасу 🤍"
+            )
+        )
+    except Exception as e:
+        logger.warning(f"cb_curator_quick_activate notify user {uid}: {e}")
+
+    # Обновляем кнопки в сообщении куратора
+    await query.message.edit_reply_markup(reply_markup=InlineKeyboardMarkup([[
+        InlineKeyboardButton(f"✅ Активирован на {level}", callback_data="noop"),
+        InlineKeyboardButton("💬 Написать", url=f"tg://user?id={uid}"),
+    ]]))
 
 
 async def cmd_send_now(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -1494,8 +1700,6 @@ async def _job_reminder(ctx: ContextTypes.DEFAULT_TYPE, reminder_key: str):
 
 # ── УВЕДОМЛЕНИЕ КУРАТОРА ─────────────────────────────────────────
 async def notify_curators(ctx, user, data: dict, result: dict):
-    occ_map = {k: l for l, k in OCCUPATIONS}
-    src_map  = {k: l for l, k in SOURCES}
     brat = "Сестра" if data.get("is_female") else "Брат"
     username = f"@{user.username}" if user.username else f"ID: {user.id}"
     text = (
@@ -1508,9 +1712,15 @@ async def notify_curators(ctx, user, data: dict, result: dict):
         f"📣 Источник: {data.get('source','—')}\n\n"
         f"📍 Рекомендован путь: *{result['path']}*"
     )
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("💬 Написать", url=f"tg://user?id={user.id}"),
+    ]])
     for cid in CURATOR_IDS:
         try:
-            await ctx.bot.send_message(chat_id=cid, text=text, parse_mode="Markdown")
+            await ctx.bot.send_message(
+                chat_id=cid, text=text,
+                parse_mode="Markdown", reply_markup=keyboard
+            )
         except Exception as e:
             logger.warning(f"Куратор {cid}: {e}")
 
@@ -1671,6 +1881,93 @@ async def cmd_mymuhasaba(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  ОНБОРДИНГ — тёплая воронка для новых пользователей
+# ══════════════════════════════════════════════════════════════════
+
+async def onboard_ready(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Шаг 2 — мост: современный язык → исламский фундамент (ният)."""
+    query = update.callback_query
+    await query.answer()
+    # Убираем кнопку у предыдущего сообщения, но оставляем текст видимым
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    text = (
+        "Смотри, в чём корень.\n\n"
+        "Любое дело, начатое на автопилоте — без секунды осознанности, — "
+        "превращается в пустую беготню. Делаешь и делаешь, а смысла "
+        "не чувствуешь.\n\n"
+        "Современные книги о продуктивности зовут это «фокусом». Учёные "
+        "изучают, как работает мозг в момент осознанного решения. А наша "
+        "религия знала это четырнадцать веков назад и назвала одним "
+        "словом — <b>ният</b>, намерение.\n\n"
+        "С этого и начинается курс ВАКТ. Не «поменяй всю жизнь за день» — "
+        "а одна маленькая привычка: короткая пауза перед делом. Три "
+        "секунды, которые возвращают тебе контроль и наполняют обычное "
+        "дело смыслом и баракатом — благодатью.\n\n"
+        "Но прежде чем что-то строить, давай честно посмотрим, где ты "
+        "сейчас и где у тебя утекают силы."
+    )
+    keyboard = [[InlineKeyboardButton(
+        "Посмотреть, где теряю силы", callback_data="onboard_audit"
+    )]]
+    await ctx.bot.send_message(
+        update.effective_chat.id, text,
+        reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+    )
+    return ONBOARD_AUDIT
+
+
+async def onboard_audit(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Шаг 3 — диагностика «Корабль Бараката» через миниапп."""
+    query = update.callback_query
+    await query.answer()
+    # Убираем кнопку у предыдущего сообщения
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    text = (
+        "Представь, что твоя жизнь — это корабль. Если он идёт не туда, "
+        "куда хочешь, — значит, где-то в трюме пробоина. В фокусе. "
+        "В здоровье. В семье. В связи с Аллахом.\n\n"
+        "Я подготовил короткую диагностику — <b>«Корабль Бараката»</b>. "
+        "Три минуты, простые вопросы.\n\n"
+        "В конце ты увидишь свою карту: где всё крепко, а где уходит сила. "
+        "И получишь свой следующий честный шаг — одно конкретное действие "
+        "именно на твоём уровне.\n\n"
+        "Открывай диагностику — и возвращайся. Я жду."
+    )
+    keyboard = [
+        [InlineKeyboardButton("🚢 Пройти диагностику", web_app=WebAppInfo(url=MINIAPP_URL))],
+        [InlineKeyboardButton("✅ Сразу познакомиться →", callback_data="onboard_to_name")],
+    ]
+    await ctx.bot.send_message(
+        update.effective_chat.id, text,
+        reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+    )
+    return ONBOARD_AUDIT
+
+
+async def onboard_to_name(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    """Переход из онбординга к регистрации (ввод имени)."""
+    query = update.callback_query
+    await query.answer()
+    # Убираем кнопки у сообщения с диагностикой
+    try:
+        await query.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await ctx.bot.send_message(
+        update.effective_chat.id,
+        "Отлично! Давай познакомимся 🤝\n\nКак тебя зовут? <i>(Имя и фамилия)</i>",
+        parse_mode="HTML"
+    )
+    return NAME
+
+
+# ══════════════════════════════════════════════════════════════════
 #  СТАТИЧЕСКИЕ ХЭНДЛЕРЫ (кнопки меню)
 # ══════════════════════════════════════════════════════════════════
 
@@ -1704,20 +2001,29 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         )
         return ConversationHandler.END
 
-    # Новый пользователь — красивое приветствие + сбор данных
+    # Новый пользователь — тёплый онбординг (3 шага перед регистрацией)
     ctx.user_data.clear()
     ctx.user_data["scores"] = []
     ctx.user_data["_diag_active"] = True
-    await update.message.reply_text(
-        "🌿 *Ассаляму алейкум!*\n\n"
-        "Ты попал в *IQ Barakah* — место, где наводят порядок "
-        "в душе, в делах и в семье.\n\n"
-        "Без лишних слов. По шагам. С поддержкой единомышленников.\n\n"
-        "Давай познакомимся 🤝\n\n"
-        "Как тебя зовут? _(Имя и фамилия)_",
-        parse_mode="Markdown"
+    text = (
+        "Ассаляму алейкум, брат / сестра! 🌿\n\n"
+        "Если ты здесь — значит, что-то в твоих днях идёт не так. Знакомо: "
+        "бежишь с утра до ночи, тушишь один пожар за другим, а вечером "
+        "падаешь без сил — и внутри пусто? Будто жизнь идёт, а ты в ней "
+        "не водитель, а пассажир.\n\n"
+        "Так живёт почти каждый. И это не лень и не слабость — просто "
+        "никто не показал, как по-другому.\n\n"
+        "Здесь не будет давления, упрёков и «соберись». Будет другое — "
+        "спокойные маленькие шаги, которые возвращают тебе твоё время "
+        "и твои силы. В твоём темпе, без надрыва.\n\n"
+        "Меня зовут Джарвас, и я буду рядом на этом пути.\n\n"
+        "Готов / готова сделать первый шаг?"
     )
-    return NAME
+    keyboard = [[InlineKeyboardButton("Готов / Готова", callback_data="onboard_ready")]]
+    await update.message.reply_text(
+        text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="HTML"
+    )
+    return ONBOARD_READY
 
 
 async def reg_got_consent(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -4299,7 +4605,7 @@ LEVEL_FULL_NAMES = {
     "Г": "Сезон 3 · Наследие",
 }
 
-def build_jarwas_system(level: str | None, week: int | None) -> str:
+def build_jarwas_system(level: str | None, week: int | None, user_profile: dict | None = None) -> str:
     """Формирует системный промпт Джарваса с учётом уровня участника."""
     if not level or level not in LEVEL_ORDER:
         # Гость или неизвестный — только о программе в целом, без деталей уроков
@@ -4332,13 +4638,236 @@ def build_jarwas_system(level: str | None, week: int | None) -> str:
             f"и не забегать вперёд."
         )
 
+    # Добавляем личный профиль участника если есть
+    if user_profile:
+        DIAG_LABELS = {"А": "Начинающий", "Б": "Развивающийся", "В": "Устойчивый", "В+": "Лидер (Джамаат)"}
+        profile_lines = []
+        fio = user_profile.get("fio", "")
+        first_name = fio.split()[0] if fio else ""
+        if first_name:
+            profile_lines.append(f"Имя: {first_name}")
+        activity = user_profile.get("activity", "")
+        if activity:
+            profile_lines.append(f"Деятельность: {activity}")
+        age = user_profile.get("age", "")
+        if age:
+            profile_lines.append(f"Возраст: {age}")
+        diag_lv = user_profile.get("diag_level", "")
+        if diag_lv:
+            label = DIAG_LABELS.get(diag_lv, diag_lv)
+            profile_lines.append(f"Результат диагностики: {label} ({diag_lv})")
+        if profile_lines:
+            context = (
+                "\n\nПРОФИЛЬ УЧАСТНИКА:\n"
+                + "\n".join(profile_lines)
+                + "\n"
+                + context
+            )
+
     return JARWAS_SYSTEM + context
+
+
+async def miniapp_data_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    """Обрабатывает данные от миниаппа (tg.sendData)."""
+    import json as _json
+    raw = update.message.web_app_data.data
+    try:
+        data = _json.loads(raw)
+    except Exception:
+        return
+
+    uid  = str(update.effective_user.id)
+    dtype = data.get("type")
+
+    # ── Мухасаба недели ──────────────────────────────────────────
+    if dtype == "review":
+        week = data.get("week", 0)
+
+        # Автоматически открываем следующую неделю
+        if data.get("auto_advance"):
+            active = get_active_users(ctx)
+            if uid in active:
+                entry = active[uid]
+                level = entry.get("level", "А")
+                max_w = LEVEL_WEEKS.get(level, 8)
+                cur_w = entry.get("week", 1)
+                if cur_w < max_w:
+                    entry["week"] = cur_w + 1
+                    logger.info(f"Авто-открытие недели: {uid} {level} {cur_w}→{cur_w+1}")
+
+        # Уведомляем куратора
+        name = ctx.bot_data.get("user_names", {}).get(uid,
+               update.effective_user.full_name or "Участник")
+        active = get_active_users(ctx)
+        entry  = active.get(uid, {})
+        level  = entry.get("level", "?")
+
+        RISK_EMOJIS = {"😔":"🔴","😐":"🟡","🙂":"🟢","😊":"🟢","🤩":"⭐"}
+        mood_risk = RISK_EMOJIS.get(data.get("emoji",""), "⚪")
+
+        for cid in CURATOR_IDS:
+            try:
+                await ctx.bot.send_message(
+                    chat_id=cid, parse_mode="Markdown",
+                    text=(
+                        f"📝 *Мухасаба недели — {name}*\n\n"
+                        f"📍 Уровень {level} · Неделя {week}\n"
+                        f"{mood_risk} Настроение: {data.get('emoji','—')}\n"
+                        f"📋 Задание: {data.get('task','—')}/5 · "
+                        f"Изменения: {data.get('useful','—')}/5\n\n"
+                        f"💬 {data.get('text','')}\n\n"
+                        + (f"💡 _{data.get('insight','')}_" if data.get('insight') else "")
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"miniapp_data curator notify: {e}")
+
+        await update.message.reply_text(
+            "🌿 Мухасаба принята! Следующая неделя открыта. Продолжай путь!"
+        )
+
+    # ── Отзыв о программе ────────────────────────────────────────
+    elif dtype == "feedback":
+        name = ctx.bot_data.get("user_names", {}).get(uid,
+               update.effective_user.full_name or "Участник")
+        stars = "⭐" * int(data.get("rating", 0))
+
+        for cid in CURATOR_IDS:
+            try:
+                await ctx.bot.send_message(
+                    chat_id=cid, parse_mode="Markdown",
+                    text=(
+                        f"⭐ *Отзыв о программе — {name}*\n\n"
+                        f"Оценка: {stars}\n\n"
+                        f"👍 *Понравилось:*\n{data.get('liked','—')}\n\n"
+                        f"🔧 *Улучшить:*\n{data.get('improve','—') or '—'}\n\n"
+                        f"💡 *Добавить:*\n{data.get('add','—') or '—'}"
+                    )
+                )
+            except Exception as e:
+                logger.warning(f"miniapp_data feedback curator: {e}")
+
+        await update.message.reply_text(
+            "🤍 Джазакаллаху хайран! Твой отзыв получен — мы читаем каждое слово."
+        )
+
+
+async def job_jarwas_fajr(ctx: ContextTypes.DEFAULT_TYPE):
+    """Джарвас — ежедневное Фаджр-напоминание (02:30 UTC = 05:30 МСК)."""
+    import random
+    active = get_active_users(ctx)
+    now = datetime.now(timezone.utc)
+
+    FAJR_MSGS = [
+        (
+            "🌅 *Ас-саляму алейкум!*\n\n"
+            "Фаджр — якорь дня. Тот, кто поднимается на рассвете — "
+            "контролирует своё утро, а утро задаёт весь день.\n\n"
+            "_Один намаз — и ты уже победил себя. БаракАллах фикум 🌿_"
+        ),
+        (
+            "🌙 *Ещё темно — но Аллах уже видит тебя.*\n\n"
+            "Эти минуты до рассвета — самые ценные в сутках. "
+            "Фаджр — это не просто намаз, это состояние.\n\n"
+            "_Вставай и начинай свой день с Аллаха. 🌿_"
+        ),
+        (
+            "⭐ *Рассвет близко...*\n\n"
+            "Помнишь? «Маленькое и постоянное — лучше большого и временного». "
+            "Один тихий намаз на рассвете — это и есть система.\n\n"
+            "_Да примет Аллах наш Фаджр. Ин ша Аллах 🌿_"
+        ),
+    ]
+
+    count = 0
+    for uid_str, entry in list(active.items()):
+        if not entry.get("level"):
+            continue
+        last_raw = entry.get("last_active")
+        if last_raw:
+            try:
+                last_dt = datetime.fromisoformat(last_raw)
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                if (now - last_dt).days > 14:
+                    continue
+            except Exception:
+                pass
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                parse_mode="Markdown",
+                text=random.choice(FAJR_MSGS),
+            )
+            count += 1
+        except Exception as e:
+            logger.warning(f"jarwas_fajr → {uid_str}: {e}")
+    if count:
+        logger.info(f"Джарвас Фаджр отправлен: {count} чел.")
+
+
+async def job_jarwas_friday(ctx: ContextTypes.DEFAULT_TYPE):
+    """Джарвас — пятничная рефлексия (17:00 UTC = 20:00 МСК)."""
+    import random
+    active = get_active_users(ctx)
+    now = datetime.now(timezone.utc)
+
+    FRIDAY_MSGS = [
+        (
+            "🕌 *Джума мубарак!*\n\n"
+            "Один вопрос от Джарваса на эту пятницу:\n\n"
+            "_Что на этой неделе ты сделал ради Аллаха — не ради результата, а ради Него?_\n\n"
+            "Запиши ответ — даже одно слово. Это и есть мухасаба. 🌿"
+        ),
+        (
+            "🌙 *Баракатной пятницы!*\n\n"
+            "Пятница — день рефлексии и благодарности. "
+            "Что из инструментов программы зацепило тебя на этой неделе?\n\n"
+            "_Даже маленькое и постоянное — уже победа. БаракАллах фикум 🌿_"
+        ),
+        (
+            "⭐ *Пятничное послание от Джарваса:*\n\n"
+            "Мы собираемся вместе в IQ Barakah каждую неделю — "
+            "как умма собирается на Джуму.\n\n"
+            "_Как ты? Что радовало тебя на этой неделе? "
+            "Напиши — я слушаю 🌿_"
+        ),
+    ]
+
+    count = 0
+    for uid_str, entry in list(active.items()):
+        if not entry.get("level"):
+            continue
+        last_raw = entry.get("last_active")
+        if last_raw:
+            try:
+                last_dt = datetime.fromisoformat(last_raw)
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
+                if (now - last_dt).days > 14:
+                    continue
+            except Exception:
+                pass
+        try:
+            await ctx.bot.send_message(
+                chat_id=int(uid_str),
+                parse_mode="Markdown",
+                text=random.choice(FRIDAY_MSGS),
+            )
+            count += 1
+        except Exception as e:
+            logger.warning(f"jarwas_friday → {uid_str}: {e}")
+    if count:
+        logger.info(f"Джарвас пятница отправлено: {count} чел.")
 
 
 async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Отвечает на свободные сообщения участников через AI Джарвас."""
     if not _jarwas_client:
-        return  # API ключ не задан — молчим
+        await update.message.reply_text(
+            "Джарвас временно недоступен. Напиши куратору — он поможет 🤍"
+        )
+        return
 
     # Не отвечать пока идёт диагностика или мухасаба
     if ctx.user_data.get("_diag_active") or ctx.user_data.get("_muh_active"):
@@ -4371,8 +4900,11 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     jarwas_usage["count"] += 1
 
-    # Строим персональный системный промпт
-    system = build_jarwas_system(level, week)
+    # Строим персональный системный промпт с профилем участника
+    profile = ctx.bot_data.get("reg_profiles", {}).get(uid, {})
+    diag_level_val = ctx.bot_data.get("user_diag_level", {}).get(uid)
+    user_profile = {**profile, "diag_level": diag_level_val} if (profile or diag_level_val) else None
+    system = build_jarwas_system(level, week, user_profile=user_profile)
 
     # Берём историю диалога (последние 6 сообщений = 3 обмена)
     history = ctx.user_data.setdefault("jarwas_history", [])
@@ -4395,7 +4927,7 @@ async def jarwas_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         response = _jarwas_client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=1024,
-            system=system,
+            system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             messages=history,
         )
         reply = response.content[0].text
@@ -4443,6 +4975,11 @@ def main():
             CallbackQueryHandler(cb_start_diag, pattern="^start_diag$"),
         ],
         states={
+            ONBOARD_READY: [CallbackQueryHandler(onboard_ready,   pattern="^onboard_ready$")],
+            ONBOARD_AUDIT: [
+                CallbackQueryHandler(onboard_audit,   pattern="^onboard_audit$"),
+                CallbackQueryHandler(onboard_to_name, pattern="^onboard_to_name$"),
+            ],
             NAME:       [MessageHandler(filters.TEXT & ~filters.COMMAND & ~MENU_BUTTONS, got_name)],
             GENDER:     [CallbackQueryHandler(got_gender,     pattern="^gender_")],
             OCCUPATION: [CallbackQueryHandler(got_occupation, pattern="^occ_")],
@@ -4532,6 +5069,7 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_check_payment,   pattern="^check_pay_"))
     app.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
     app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
+    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, miniapp_data_handler))
     app.add_handler(CallbackQueryHandler(restart_diag,       pattern="^restart$"))
     app.add_handler(CallbackQueryHandler(cb_contact_jamaat,  pattern="^contact_jamaat$"))
     app.add_handler(CallbackQueryHandler(cb_week_ack,        pattern="^week_ack$"))
@@ -4555,6 +5093,8 @@ def main():
     app.add_handler(CommandHandler("activate",     cmd_activate))
     app.add_handler(CommandHandler("deactivate",   cmd_deactivate))
     app.add_handler(CommandHandler("participants", cmd_participants))
+    app.add_handler(CommandHandler("analyze",     cmd_analyze))
+    app.add_handler(CommandHandler("registered",  cmd_registered))
     app.add_handler(CommandHandler("sendnow",      cmd_send_now))
     app.add_handler(CommandHandler("pair",         cmd_pair))
     app.add_handler(CommandHandler("unpair",       cmd_unpair))
@@ -4590,6 +5130,7 @@ def main():
     app.add_handler(CallbackQueryHandler(cb_cur_sendnow,      pattern="^cur_sendnow$"))
     app.add_handler(CallbackQueryHandler(cb_cur_msg_start,    pattern="^cur_msg_start$"))
     app.add_handler(CallbackQueryHandler(cb_cur_write,        pattern=r"^cur_write_"))
+    app.add_handler(CallbackQueryHandler(cb_curator_quick_activate, pattern=r"^cur_act:"))
 
     # Перехват сообщения куратора в режиме написания (должен быть ПОСЛЕ conv)
     app.add_handler(MessageHandler(
@@ -4697,6 +5238,21 @@ def main():
         time=time(16, 0, tzinfo=timezone.utc),
         days=(6,),
         name="progress_mirror",
+    )
+
+    # Джарвас — Фаджр-напоминание (02:30 UTC = 05:30 МСК), ежедневно
+    app.job_queue.run_daily(
+        job_jarwas_fajr,
+        time=time(2, 30, tzinfo=timezone.utc),
+        name="jarwas_fajr",
+    )
+
+    # Джарвас — пятничная рефлексия (17:00 UTC = 20:00 МСК)
+    app.job_queue.run_daily(
+        job_jarwas_friday,
+        time=time(17, 0, tzinfo=timezone.utc),
+        days=(4,),
+        name="jarwas_friday",
     )
 
     # Ежедневный бэкап pickle (03:30 UTC = 06:30 МСК)

@@ -18,13 +18,20 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)  # telegram_id
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     username: Mapped[str | None] = mapped_column(String(128))
-    is_female: Mapped[bool] = mapped_column(Boolean, default=False)
+    language_code: Mapped[str] = mapped_column(String(8), nullable=False, default="ru", server_default="ru")
+    is_female: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     email: Mapped[str | None] = mapped_column(String(256))
     phone: Mapped[str | None] = mapped_column(String(32))
     occupation: Mapped[str | None] = mapped_column(String(64))  # entrepreneur / employee / student / freelance
     age: Mapped[str | None] = mapped_column(String(8))
     source: Mapped[str | None] = mapped_column(String(64))      # maps / social / internet / etc.
     pd_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    referral_code: Mapped[str | None] = mapped_column(String(32), unique=True, index=True)  # уникальный код пользователя
+    referred_by: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"))     # кто пригласил
+    barakah_balance: Mapped[int] = mapped_column(Integer, default=0, server_default="0")    # текущий баланс Баракатов
+    charity_consent: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")  # согласие на благотворительность
+    utm_source: Mapped[str | None] = mapped_column(String(256))       # первый рекламный источник (utm__...), не перезаписывается
+    last_utm_source: Mapped[str | None] = mapped_column(String(256))  # последний utm при каждом /start
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -52,6 +59,7 @@ class Participant(Base):
     activated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     graduated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_active: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["User"] = relationship(back_populates="participant")
 
@@ -72,7 +80,7 @@ class DiagResult(Base):
 
 class Payment(Base):
     """Платёж через ЮKassa или Telegram Payments."""
-    __tablename__ = "payments"
+    __tablename__ = "bot_payments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
@@ -172,6 +180,36 @@ class WheelRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="wheel_records")
+
+
+class TaskCompletion(Base):
+    """Факт выполнения отдельного задания участником."""
+    __tablename__ = "task_completions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    level: Mapped[str] = mapped_column(String(4), nullable=False)      # А / Б / В / Г
+    week: Mapped[int] = mapped_column(Integer, nullable=False)
+    task_index: Mapped[int] = mapped_column(Integer, nullable=False)   # порядковый номер задания (0-based)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "level", "week", "task_index", name="uq_task_completion"),)
+
+
+class BarakahTransaction(Base):
+    """История начислений/списаний Баракатов."""
+    __tablename__ = "barakah_transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)           # + начисление, - списание
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)          # referral / spend / donate / expire
+    ref_user_id: Mapped[int | None] = mapped_column(BigInteger)            # кто оплатил (для referral)
+    payment_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("bot_payments.id"))
+    note: Mapped[str | None] = mapped_column(String(256))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship(foreign_keys=[user_id])
 
 
 class BotSetting(Base):

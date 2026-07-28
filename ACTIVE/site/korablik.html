@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверь свой потенциал — IQ Barakah</title>
+<meta name="description" content="8 вопросов — и ты увидишь, где ты сейчас и куда можешь прийти. Бесплатная диагностика IQ Barakah.">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Mulish:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:#E8C97A;--gold3:#FFF0B3;
+  --green:#1A3D08;--green2:#2A5C10;--green3:#3B7A18;
+  --green4:#EDF5E5;--dark:#060B04;--dark2:#0D1A08;
+  --text:#1A2810;--mid:#4A6030;--mid2:#7A8E6A;
+  --cream:#FAFDF6;--white:#fff;--border:#D8EAC8;
+  --shadow:rgba(26,61,8,.12)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Mulish',sans-serif;background:var(--dark);color:#fff;min-height:100vh;overflow-x:hidden}
+
+/* ── НАВ ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,11,4,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(201,168,76,.1)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:72px;max-width:1100px;margin:0 auto;padding:0 32px}
+.logo{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;letter-spacing:4px;color:rgba(201,168,76,.85);text-decoration:none}
+.nav-links{display:flex;gap:28px}
+.nav-links a{font-size:11px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.45);text-decoration:none;transition:.2s;text-transform:uppercase}
+.nav-links a:hover,.nav-links a.active{color:var(--gold2)}
+.nav-cta{padding:11px 22px;border-radius:999px;background:var(--green2);color:#fff;font-size:12px;font-weight:900;letter-spacing:.5px;text-decoration:none;transition:.2s}
+.nav-cta:hover{background:var(--green3)}
+.burger{display:none;background:none;border:none;color:rgba(255,255,255,.7);font-size:22px;cursor:pointer}
+.mobile-menu{display:none;flex-direction:column;gap:0;background:rgba(6,11,4,.98);border-bottom:1px solid rgba(201,168,76,.15)}
+.mobile-menu.active{display:flex}
+.mobile-menu a{padding:16px 24px;font-size:13px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.6);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.04);text-transform:uppercase}
+
+/* ── HERO ── */
+.quiz-hero{padding:120px 0 0;background:var(--dark);position:relative;overflow:hidden;text-align:center}
+.quiz-hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.15),transparent 55%),
+             radial-gradient(ellipse at 80% 80%,rgba(42,92,16,.2),transparent 50%)}
+#stars-c{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:.5}
+.quiz-hero-inner{position:relative;z-index:1;max-width:820px;margin:0 auto;padding:0 24px 60px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:12px}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(40px,6vw,64px);font-weight:700;
+  line-height:1.05;color:#fff;margin-bottom:14px}
+.sec-title em{font-style:italic;color:var(--gold2)}
+.sec-sub{font-size:clamp(15px,2vw,18px);color:rgba(255,255,255,.5);line-height:1.7;max-width:560px;margin:0 auto 40px}
+
+/* ── КАРТОЧКА КВИЗА ── */
+.qcard{position:relative;border-radius:32px;padding:48px 44px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(201,168,76,.18);
+  overflow:hidden;backdrop-filter:blur(12px)}
+.qcard::before{content:"";position:absolute;inset:0;border-radius:32px;pointer-events:none;
+  background:radial-gradient(ellipse at 50% -20%,rgba(201,168,76,.09),transparent 60%)}
+.qcard::after{content:"";position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.6),transparent)}
+#pcanvas{position:absolute;inset:0;pointer-events:none;border-radius:32px}
+
+/* прогресс */
+.qprog-wrap{margin-bottom:34px}
+.qprog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.qprog-lbl{font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.qprog-frac{font-size:10px;font-weight:800;color:rgba(255,255,255,.3)}
+.qprog-track{width:100%;height:3px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+.qprog-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold2));
+  transition:width .5s cubic-bezier(.22,1,.36,1);box-shadow:0 0 10px rgba(201,168,76,.5);width:0%}
+
+/* вопрос */
+.qtext{font-family:'Cormorant Garamond',serif;font-size:clamp(24px,4vw,38px);font-weight:600;
+  line-height:1.18;color:#fff;margin-bottom:30px;text-align:center;min-height:72px;
+  transition:opacity .22s,transform .22s}
+.qtext.exit{opacity:0;transform:translateY(-10px)}
+.qtext.enter{opacity:0;transform:translateY(10px)}
+.qtext.vis{opacity:1;transform:translateY(0)}
+
+/* варианты */
+.qopts{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:26px}
+.qopt{position:relative;overflow:hidden;padding:16px 42px 16px 16px;border-radius:16px;
+  border:1px solid rgba(201,168,76,.14);background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.75);font-family:'Mulish',sans-serif;font-size:14px;font-weight:600;
+  text-align:left;cursor:pointer;line-height:1.45;
+  transition:border-color .2s,background .2s,color .2s,transform .15s}
+.qopt:hover{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07);color:var(--gold2);transform:translateY(-2px)}
+.qopt.sel{border-color:var(--gold);background:rgba(201,168,76,.13);color:var(--gold2)}
+.qopt .rpl{position:absolute;border-radius:50%;background:rgba(201,168,76,.35);
+  transform:scale(0);animation:rplanim .55s ease-out forwards;pointer-events:none}
+@keyframes rplanim{to{transform:scale(4);opacity:0}}
+.qopt-chk{display:none;position:absolute;right:13px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;border-radius:50%;background:var(--gold);
+  align-items:center;justify-content:center;flex-shrink:0}
+.qopt-chk svg{width:11px;height:11px;stroke:#000;stroke-width:2.5;fill:none}
+.qopt.sel .qopt-chk{display:flex}
+@keyframes cflash{0%{box-shadow:0 0 0 rgba(201,168,76,0)}35%{box-shadow:0 0 55px rgba(201,168,76,.22),inset 0 0 35px rgba(201,168,76,.05)}100%{box-shadow:0 0 0 rgba(201,168,76,0)}}
+.qcard.flash{animation:cflash .6s ease-out}
+
+/* нав кнопки */
+.qnav{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.qbtn-back{padding:13px 22px;border-radius:999px;border:1px solid rgba(201,168,76,.2);
+  background:transparent;color:rgba(255,255,255,.4);font-family:'Mulish',sans-serif;
+  font-size:13px;font-weight:800;cursor:pointer;transition:.2s}
+.qbtn-back:hover{border-color:rgba(201,168,76,.5);color:var(--gold2)}
+.qbtn-back:disabled{opacity:.15;cursor:not-allowed}
+.qbtn-next{padding:14px 30px;border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#060B04;border:none;font-family:'Mulish',sans-serif;
+  font-size:14px;font-weight:900;cursor:pointer;
+  box-shadow:0 8px 28px rgba(201,168,76,.3);transition:.2s}
+.qbtn-next:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 36px rgba(201,168,76,.45)}
+.qbtn-next:disabled{opacity:.25;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* результат */
+.qresult{display:none;text-align:center}
+.ring-wrap{position:relative;width:200px;height:200px;margin:0 auto 20px}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:10}
+.ring-fg{fill:none;stroke:url(#rg);stroke-width:10;stroke-linecap:round;
+  stroke-dasharray:502;stroke-dashoffset:502;
+  transition:stroke-dashoffset 1.6s cubic-bezier(.22,1,.36,1);
+  filter:drop-shadow(0 0 8px rgba(201,168,76,.6))}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:700;color:var(--gold2);line-height:1}
+.ring-word{font-size:11px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,.4);text-transform:uppercase;margin-top:5px}
+
+/* сферы */
+.spheres{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px auto;max-width:580px}
+.sph{border-radius:16px;padding:14px 10px;text-align:center;border:1px solid rgba(201,168,76,.14);background:rgba(255,255,255,.03)}
+.sph-ic{font-size:20px;margin-bottom:6px}
+.sph-nm{font-size:10px;font-weight:800;letter-spacing:.8px;color:rgba(255,255,255,.45);margin-bottom:6px}
+.sph-bar{height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.sph-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold2));width:0%;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
+
+/* ползунок */
+.sldr-hint{display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:13px;font-weight:700;color:rgba(255,255,255,.4);margin:18px 0 12px}
+.sldr-arrow{animation:nudge 1.4s ease-in-out infinite;color:var(--gold);font-size:16px;display:inline-block}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+.sldr-lbls{display:flex;justify-content:space-between;font-size:11px;font-weight:800;
+  letter-spacing:1px;color:rgba(255,255,255,.25);margin:0 auto 10px;max-width:580px}
+input[type=range].gsldr{width:100%;max-width:580px;display:block;margin:0 auto;
+  -webkit-appearance:none;height:6px;border-radius:999px;outline:none;cursor:pointer;background:rgba(255,255,255,.1)}
+input[type=range].gsldr::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle,var(--gold2),var(--gold));
+  box-shadow:0 0 16px rgba(201,168,76,.7);border:2px solid rgba(255,255,255,.3);transition:.1s}
+input[type=range].gsldr::-webkit-slider-thumb:hover{transform:scale(1.15)}
+
+#mmsg{min-height:44px;margin:14px auto 0;max-width:520px;text-align:center;
+  font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:600;
+  color:var(--gold2);line-height:1.35;opacity:0;
+  transition:opacity .4s,transform .4s;transform:translateY(6px)}
+
+/* панели трансформации */
+.qpanels{display:grid;gap:14px;margin:22px auto;max-width:680px;text-align:left}
+.qpanel{border-radius:18px;padding:24px 26px;border:1px solid rgba(201,168,76,.14);
+  background:rgba(255,255,255,.03);transition:all .4s cubic-bezier(.22,1,.36,1)}
+.qpanel.pnow{border-left:3px solid rgba(201,168,76,.5)}
+.qpanel.pafter{border-left:3px solid var(--green3);opacity:0;transform:translateY(10px);pointer-events:none}
+.qpanel.pafter.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.qpbadge{display:inline-block;font-size:9px;font-weight:900;letter-spacing:2.5px;
+  text-transform:uppercase;padding:4px 10px;border-radius:999px;margin-bottom:10px}
+.bnow{background:rgba(201,168,76,.12);color:rgba(201,168,76,.8)}
+.bafter{background:rgba(59,122,24,.2);color:#8BC96A}
+.qpanel h3{font-family:'Cormorant Garamond',serif;font-size:clamp(20px,3vw,26px);
+  font-weight:700;color:#fff;margin-bottom:8px;line-height:1.2}
+.qpanel p{font-size:14px;line-height:1.8;color:rgba(255,255,255,.55)}
+
+/* подарок */
+.gift-block{position:relative;border-radius:24px;overflow:hidden;
+  background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.3);
+  padding:36px 32px;margin:24px auto 0;max-width:560px;text-align:center}
+.gift-block::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.12),transparent 60%);pointer-events:none}
+.gift-shine{position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+  background:conic-gradient(from 0deg,transparent 340deg,rgba(201,168,76,.07) 355deg,transparent 360deg);
+  animation:gspin 6s linear infinite;pointer-events:none}
+@keyframes gspin{to{transform:rotate(360deg)}}
+.gift-ic{font-size:46px;margin-bottom:12px;display:block;animation:gfloat 3s ease-in-out infinite}
+@keyframes gfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.gift-title{font-family:'Cormorant Garamond',serif;font-size:clamp(26px,4vw,40px);
+  font-weight:700;color:var(--gold2);line-height:1.1;margin-bottom:10px}
+.gift-sub{font-size:14px;color:rgba(255,255,255,.5);line-height:1.75;max-width:420px;margin:0 auto 24px}
+.gift-sub strong{color:var(--gold2);font-weight:800}
+.btn-gift{display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  width:100%;max-width:400px;padding:20px 28px;border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2),var(--gold3));
+  color:#060B04;border:none;font-family:'Mulish',sans-serif;
+  font-size:16px;font-weight:900;cursor:pointer;text-decoration:none;
+  box-shadow:0 14px 44px rgba(201,168,76,.4);transition:.2s;
+  animation:gpulse 2.4s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 14px 44px rgba(201,168,76,.4),0 0 0 0 rgba(201,168,76,.2)}
+  50%{box-shadow:0 14px 44px rgba(201,168,76,.5),0 0 0 12px rgba(201,168,76,0)}}
+.btn-gift:hover{transform:translateY(-3px)}
+.btn-gift-note{font-size:12px;color:rgba(255,255,255,.25);margin-top:10px}
+.name-block{margin:0 0 24px;padding:24px 28px;border-radius:20px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(201,168,76,.18);text-align:center}
+.name-block-title{font-family:'Cormorant Garamond',serif;font-size:clamp(18px,2.5vw,24px);
+  font-weight:600;color:#fff;margin-bottom:4px}
+.name-block-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:16px;line-height:1.6}
+.name-row{display:flex;gap:10px;max-width:420px;margin:0 auto}
+.name-input{flex:1;padding:13px 18px;border-radius:999px;
+  border:1px solid rgba(201,168,76,.25);background:rgba(255,255,255,.06);
+  color:#fff;font-family:'Mulish',sans-serif;font-size:15px;font-weight:600;
+  outline:none;transition:.2s}
+.name-input::placeholder{color:rgba(255,255,255,.25)}
+.name-input:focus{border-color:#C9A84C;background:rgba(201,168,76,.06)}
+.name-skip{font-size:12px;color:rgba(255,255,255,.25);margin-top:10px;
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;transition:.2s}
+.name-skip:hover{color:rgba(255,255,255,.45)}
+.btn-retry{display:block;margin:16px auto 0;padding:12px 20px;border-radius:999px;
+  border:1px solid rgba(201,168,76,.2);background:transparent;
+  color:rgba(255,255,255,.3);font-family:'Mulish',sans-serif;
+  font-size:13px;font-weight:800;cursor:pointer;transition:.2s}
+.btn-retry:hover{border-color:var(--gold);color:var(--gold2)}
+.qview,.qresult{transition:opacity .3s,transform .3s}
+.qview.hide{opacity:0;transform:scale(.97);pointer-events:none}
+
+/* wrap */
+.wrap{max-width:1100px;margin:0 auto;padding:0 32px}
+section{padding:80px 0}
+
+/* футер */
+footer{padding:34px 0;background:#040802;color:rgba(255,255,255,.35)}
+.foot{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px}
+
+/* стикер */
+.sticky{display:none;position:fixed;left:14px;right:14px;bottom:12px;z-index:50;
+  padding:14px 18px;border-radius:16px;background:var(--green);color:#fff;
+  text-align:center;text-decoration:none;font-size:14px;font-weight:800;
+  box-shadow:0 12px 34px rgba(26,61,8,.3)}
+
+/* мобайл */
+@media(max-width:780px){
+  .wrap{padding:0 18px}
+  .nav{height:64px}.logo{font-size:18px}.nav-links{display:none}.burger{display:block}
+  .nav-cta{padding:10px 16px;font-size:11px}
+  .qcard{padding:28px 20px}
+  .qopts{grid-template-columns:1fr}
+  .spheres{grid-template-columns:repeat(2,1fr)}
+  .ring-wrap{width:170px;height:170px}.ring-pct{font-size:42px}
+  .gift-block{padding:28px 20px}
+  section{padding:56px 0}
+  .foot{padding-bottom:52px}.sticky{display:block}
+}
+</style>
+
+<!-- Yandex.Metrika -->
+<script type="text/javascript">
+(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109552020','ym');
+ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:true,trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/109552020" style="position:absolute;left:-9999px" alt=""/></div></noscript>
+<script>function ymGoal(g){if(typeof ym!=='undefined')ym(109552020,'reachGoal',g);}</script>
+</head>
+<body>
+
+<!-- ── НАВ ── -->
+<nav>
+  <div class="wrap nav">
+    <a class="logo" href="index.html">IQ BARAKAH</a>
+    <div class="nav-links">
+      <a href="index.html">ГЛАВНАЯ</a>
+      <a href="put.html">ПУТЬ</a>
+      <a href="klyuch.html">СТАРТ</a>
+      <a href="jamat.html">ДЖАМААТ</a>
+      <a href="premium.html">ЛИДЕР УММЫ</a>
+    </div>
+    <div class="burger" onclick="toggleMenu()">☰</div>
+    <a class="nav-cta" href="index.html" onclick="ymGoal('nav_back_click')">← На главную</a>
+  </div>
+  <div class="mobile-menu" id="mmenu">
+    <a href="index.html">Главная</a>
+    <a href="put.html">Путь</a>
+    <a href="klyuch.html">Старт</a>
+    <a href="jamat.html">Джамаат</a>
+    <a href="premium.html">Лидер Уммы</a>
+  </div>
+</nav>
+
+<a class="sticky" href="#quiz">Проверить потенциал</a>
+
+<!-- ── HERO ── -->
+<section class="quiz-hero" id="quiz">
+  <canvas id="stars-c"></canvas>
+  <div class="quiz-hero-inner">
+    <div class="eyebrow">Бесплатно · 2 минуты</div>
+    <h2 class="sec-title">Проверь <em>свой потенциал</em></h2>
+    <p class="sec-sub">8 вопросов — и ты увидишь, где ты сейчас и куда можешь прийти</p>
+
+    <div class="qcard" id="qcard">
+      <canvas id="pcanvas"></canvas>
+      <svg width="0" height="0" style="position:absolute">
+        <defs>
+          <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#C9A84C"/>
+            <stop offset="100%" stop-color="#FFF0B3"/>
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <!-- ВОПРОСЫ -->
+      <div id="qview">
+        <div class="qprog-wrap">
+          <div class="qprog-top">
+            <span class="qprog-lbl" id="qlbl">Вопрос 1</span>
+            <span class="qprog-frac" id="qfrac">1 / 8</span>
+          </div>
+          <div class="qprog-track"><div class="qprog-fill" id="qpfill"></div></div>
+        </div>
+        <div class="qtext vis" id="qtext"></div>
+        <div class="qopts" id="qopts"></div>
+        <div class="qnav">
+          <button class="qbtn-back" id="qbback" disabled onclick="qBack()">← Назад</button>
+          <button class="qbtn-next" id="qbnext" disabled onclick="qNext()">Дальше →</button>
+        </div>
+      </div>
+
+      <!-- РЕЗУЛЬТАТ -->
+      <div class="qresult" id="qresult">
+        <div style="font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:6px">Твой потенциал</div>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 180 180" width="200" height="200" style="transform:rotate(-90deg)">
+            <circle class="ring-bg" cx="90" cy="90" r="80"/>
+            <circle class="ring-fg" id="rfg" cx="90" cy="90" r="80"/>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-pct" id="rpct">0%</div>
+            <div class="ring-word" id="rword"></div>
+          </div>
+        </div>
+        <div class="spheres" id="qspheres"></div>
+        <div class="sldr-hint">
+          <span>Потяни</span><span class="sldr-arrow">→</span><span>и увидишь свой потенциал</span>
+        </div>
+        <div class="sldr-lbls"><span>0%</span><span id="sval">0%</span><span>100%</span></div>
+        <input type="range" class="gsldr" id="gsldr" min="0" max="100" value="0" step="1">
+        <div id="mmsg"></div>
+        <div class="qpanels">
+          <div class="qpanel pnow" id="qpnow">
+            <span class="qpbadge bnow">Сейчас</span>
+            <h3 id="ntitle"></h3><p id="ntext"></p>
+          </div>
+          <div class="qpanel pafter" id="qpafter">
+            <span class="qpbadge bafter">После программы</span>
+            <h3 id="atitle"></h3><p id="atext"></p>
+          </div>
+        </div>
+        <div class="name-block">
+          <div class="name-block-title">Хочешь чтобы Джарвас обратился к тебе лично? 🌿</div>
+          <div class="name-block-sub">Необязательно — но с именем разговор становится другим.</div>
+          <div class="name-row">
+            <input class="name-input" id="name-input" type="text" placeholder="Твоё имя" maxlength="40" autocomplete="off">
+          </div>
+          <div class="name-skip" onclick="openBot()">Открыть без имени →</div>
+        </div>
+        <div class="gift-block">
+          <div class="gift-shine"></div>
+          <span class="gift-ic">🎁</span>
+          <div class="gift-title">Мы приготовили тебе подарок</div>
+          <p class="gift-sub">Там тебя уже ждут.<br>Поговорим честно — где ты остановился и куда можешь прийти.<br><strong>Бесплатно.</strong> Без давления. Просто честный разговор.</p>
+          <a class="btn-gift" id="gift-link" href="https://t.me/iqbaraka_bot" target="_blank" onclick="handleGiftClick(event);ymGoal('gift_btn_click')">
+            Нажми и получи подарок <span style="font-size:18px">→</span>
+          </a>
+          <p class="btn-gift-note">Открывает Telegram · @iqbaraka_bot</p>
+        </div>
+        <button class="btn-retry" onclick="qRetry()">Пройти снова</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;letter-spacing:3px;color:rgba(201,168,76,.7)">IQ BARAKAH</div>
+    <div>© 2025 · Система жизни для мусульман · <a href="https://iq-barakah.ru" style="color:inherit">iq-barakah.ru</a></div>
+  </div>
+</footer>
+
+<script>
+/* ── МЕНЮ ── */
+function toggleMenu(){document.getElementById('mmenu').classList.toggle('active')}
+document.querySelectorAll('.mobile-menu a').forEach(function(l){
+  l.addEventListener('click',function(){document.getElementById('mmenu').classList.remove('active')})
+});
+
+/* ── ЗВЁЗДЫ ── */
+(function(){
+  var c=document.getElementById('stars-c'),ctx=c.getContext('2d'),s=[];
+  function rs(){c.width=innerWidth;c.height=c.parentElement.offsetHeight||800}
+  rs();window.addEventListener('resize',rs);
+  for(var i=0;i<140;i++)s.push({x:Math.random()*9999,y:Math.random()*9999,
+    r:Math.random()*1.2+.2,a:Math.random(),da:(Math.random()-.5)*.007,g:Math.random()<.3});
+  (function d(){
+    var W=c.width,H=c.height;
+    ctx.clearRect(0,0,W,H);
+    s.forEach(function(p){
+      p.a+=p.da;if(p.a<0||p.a>1)p.da*=-1;
+      var x=p.x%W,y=p.y%H;
+      if(p.r>0){ctx.beginPath();ctx.arc(x,y,p.r,0,Math.PI*2);
+        ctx.fillStyle=p.g?'rgba(201,168,76,'+p.a+')':'rgba(255,255,255,'+(p.a*.6)+')';ctx.fill()}
+    });
+    requestAnimationFrame(d);
+  })();
+})();
+
+/* ── ЧАСТИЦЫ ── */
+var pc=document.getElementById('pcanvas'),px=pc.getContext('2d'),pts=[];
+function rsP(){var cd=document.getElementById('qcard');pc.width=cd.offsetWidth;pc.height=cd.offsetHeight}
+window.addEventListener('resize',rsP);setTimeout(rsP,100);
+function burst(x,y,n){n=n||16;for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,sp=Math.random()*3+.8;
+  pts.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,l:1,s:Math.random()*2.5+.5,g:Math.random()<.6})}}
+(function ap(){px.clearRect(0,0,pc.width,pc.height);pts=pts.filter(function(p){return p.l>0});
+  pts.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.l-=.025;
+    var r=Math.max(.01,p.s*p.l);px.beginPath();px.arc(p.x,p.y,r,0,Math.PI*2);
+    px.fillStyle=(p.g?'rgba(201,168,76,':'rgba(255,240,180,')+p.l+')';px.fill()});
+  requestAnimationFrame(ap)})();
+
+/* ── ДАННЫЕ КВИЗА ── */
+var QS=[
+  {q:'Как начинается твоё утро?',
+   opts:['Выключаю будильник несколько раз и еле встаю','Встаю, но не знаю что делать дальше','Встаю примерно в одно время, есть какой-то порядок','Встаю сразу — знаю зачем и что сделаю первым']},
+  {q:'Куда уходит твой день?',
+   opts:['К вечеру не понимаю куда делось время','Иногда успеваю важное, чаще нет','В основном справляюсь, бывают сбои','Сам решаю как проходит мой день']},
+  {q:'Есть ли у тебя цели — и движешься ли к ним?',
+   opts:['Цели есть, но я к ним не двигаюсь уже давно','Начинаю с энтузиазмом и через неделю бросаю','Двигаюсь, но то иду вперёд, то откатываюсь','Иду к целям стабильно, даже когда трудно']},
+  {q:'Что происходит, когда день пошёл не по плану?',
+   opts:['Всё бросаю и ухожу в телефон или сериал','Злюсь, тревожусь, но как-то дотягиваю до вечера','Немного выбиваюсь, но потом возвращаюсь в колею','Знаю что делать — есть своя точка опоры']},
+  {q:'Как обычно заканчивается твой день?',
+   opts:['Залипаю в телефон — и внезапно уже полночь','Ложусь с ощущением что день прошёл мимо','Думаю что успел, а что нет, но без чёткого итога','Подвожу итог дня и знаю что сделаю завтра утром']},
+  {q:'Как ты себя чувствуешь внутри?',
+   opts:['Постоянное беспокойство — что-то давит, но не знаю что','Бывают спокойные дни, но они редкие','В целом нормально, иногда накрывает','Есть внутренняя устойчивость, даже когда трудно']},
+  {q:'Как ты присутствуешь в жизни близких?',
+   opts:['Дома я физически есть, но мыслями где-то ещё','Стараюсь уделять время, но виновато залипаю в телефон','Хочу быть лучше для них — и медленно получается','Близкие чувствуют моё присутствие и заботу']},
+  {q:'Чего тебе сейчас не хватает больше всего?',
+   opts:['Просто чтобы перестать чувствовать себя выжатым','Вернуть ощущение что я управляю своей жизнью','Построить стабильный порядок в каждом дне','Жить с ощущением смысла — знать зачем я здесь']}
+];
+
+var SPHRS=[{ic:'🌅',nm:'Утро'},{ic:'🎯',nm:'Цели'},{ic:'❤️',nm:'Семья'},{ic:'🧘',nm:'Покой'}];
+
+var RS=[
+  {pct:22,word:'Начало пути',sp:[15,20,18,12],
+   nt:'Ты чувствуешь, что топчешься на месте',
+   np:'Утро начинается с телефона. Цели есть — движения нет. Дни похожи один на другой, и непонятно с чего начать. Это не слабость — это отсутствие системы.',
+   at:'Ты получаешь первый стабильный ритм',
+   ap:'Ясное утро. Конкретный план на день. Ощущение что жизнь — под контролем. Не идеально, но твёрдо и по-настоящему.'},
+  {pct:40,word:'Пробуждение',sp:[35,38,30,28],
+   nt:'Есть попытки, но нет системы',
+   np:'Ты стартуешь — и срываешься. Мотивация приходит волнами. Что-то важное постоянно откладывается. Ты знаешь что делать — но не держится.',
+   at:'Ты строишь первую рабочую систему',
+   ap:'Появляется якорь утра, вечерний разбор и точка опоры. Срывы случаются — но ты умеешь возвращаться без самобичевания.'},
+  {pct:58,word:'Рост',sp:[55,60,50,52],
+   nt:'Основа есть — но чего-то важного не хватает',
+   np:'Ты дисциплинирован, но что-то ускользает. Жизнь работает, но без ощущения смысла и полноты. Хороший день сменяется потерянным.',
+   at:'Ты соединяешь продуктивность со смыслом',
+   ap:'Время, семья, дело и внутренний мир начинают работать вместе. Каждый день — движение, а не список задач.'},
+  {pct:76,word:'Глубина',sp:[72,75,68,70],
+   nt:'Ты живёшь хорошо, но знаешь — можно больше',
+   np:'Система есть. Но ты чувствуешь плато. Следующий уровень требует другой глубины и окружения.',
+   at:'Ты выходишь на уровень где ведёшь других',
+   ap:'Более глубокая работа над характером, семьёй и служением. Ты становишься тем, кто создаёт среду роста вокруг себя.'}
+];
+
+var PANEL_STATES=[
+  {from:0,to:25,
+   nt:'Ты чувствуешь, что топчешься на месте',
+   np:'Утро начинается с телефона. До вечера непонятно куда ушёл день. Цели есть — но движения нет. Ты устаёшь не от работы, а от ощущения, что живёшь не свою жизнь. Каждый вечер обещаешь себе: с завтра всё по-другому. Но завтра — то же самое.',
+   at:'',ap:'',sa:false},
+  {from:25,to:50,
+   nt:'Есть попытки — но они не держатся',
+   np:'Ты стартуешь — и через неделю срываешься. Мотивация приходит волнами. Ты знаешь что делать, но что-то важное постоянно откладывается. Внутри ощущение: "я мог бы больше" — и это давит сильнее всего.',
+   at:'',ap:'',sa:false},
+  {from:50,to:70,
+   nt:'Ты уже видишь куда идти',
+   np:'Основа есть. Иногда получается хорошо. Но без системы это нестабильно — хороший день сменяется потерянным. Тебе не хватает не знаний, а ритма, который держит даже в трудный день.',
+   at:'Ты получаешь первый стабильный ритм',
+   ap:'Появляется якорь утра. Вечерний разбор, который занимает 5 минут. Ощущение что день прожит — не зря. Срывы случаются, но ты умеешь возвращаться без самобичевания. Это не идеально — это по-настоящему.',
+   sa:true},
+  {from:70,to:90,
+   nt:'Ты на пути — и это уже чувствуется',
+   np:'Что-то начало меняться. Утро стало якорем. Есть цели и движение к ним. Но ты знаешь — можно глубже. Семья, дело, смысл — всё это ещё не собрано в одно.',
+   at:'Жизнь начинает работать как система',
+   ap:'Время, семья, здоровье, дело и внутренний мир соединяются. Ты перестаёшь тушить пожары и начинаешь строить. Появляется ощущение, которое сложно описать словами — баракат в каждом дне. Не потому что всё идеально, а потому что ты живёшь осознанно.',
+   sa:true},
+  {from:90,to:100,
+   nt:'',np:'',
+   at:'Это ты — после программы',
+   ap:'Ты просыпаешься с намерением. Ведёшь день — а не плывёшь в нём. Семья чувствует твоё присутствие. Дело растёт. Внутри — покой, который не зависит от обстоятельств. Ты стал тем, кем хотел быть. И это только начало пути.',
+   sa:true}
+];
+
+var MILESTONES={
+  20:{txt:'Первый шаг сделан — это уже больше, чем у многих',col:'#E8C97A'},
+  40:{txt:'Ты видишь путь — осталось по нему пойти',col:'#E8C97A'},
+  60:{txt:'Больше половины потенциала уже в тебе',col:'#C9A84C'},
+  75:{txt:'Ты близко к тому, кем хочешь быть',col:'#FFF0B3'},
+  100:{txt:'Это ты — после программы. Начнём?',col:'#FFF0B3'}
+};
+
+var qAns=new Array(8).fill(null),qCur=0,lastMilestone=0,lastV=0;
+
+function qRender(){
+  var q=QS[qCur];
+  document.getElementById('qlbl').textContent='Вопрос '+(qCur+1);
+  document.getElementById('qfrac').textContent=(qCur+1)+' / '+QS.length;
+  document.getElementById('qpfill').style.width=((qCur+1)/QS.length*100)+'%';
+  var el=document.getElementById('qtext');
+  el.classList.remove('vis');el.classList.add('exit');
+  setTimeout(function(){
+    el.textContent=q.q;el.classList.remove('exit');el.classList.add('enter');
+    requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.remove('enter');el.classList.add('vis')})});
+  },200);
+  var html='';
+  q.opts.forEach(function(o,i){
+    var s=qAns[qCur]===i?' sel':'';
+    html+='<button class="qopt'+s+'" onclick="qPick('+i+',event)">'+o
+      +'<span class="qopt-chk"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg></span></button>';
+  });
+  document.getElementById('qopts').innerHTML=html;
+  document.getElementById('qbnext').disabled=qAns[qCur]===null;
+  document.getElementById('qbnext').textContent=qCur===QS.length-1?'Узнать потенциал →':'Дальше →';
+  document.getElementById('qbback').disabled=qCur===0;
+}
+
+function qPick(idx,e){
+  qAns[qCur]=idx;
+  var btn=e.currentTarget;
+  var rp=document.createElement('span');rp.className='rpl';
+  var rc=btn.getBoundingClientRect();
+  var sz=Math.max(rc.width,rc.height)*2;
+  rp.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+(e.clientX-rc.left-sz/2)+'px;top:'+(e.clientY-rc.top-sz/2)+'px';
+  btn.appendChild(rp);setTimeout(function(){rp.remove()},600);
+  rsP();var cr=document.getElementById('qcard').getBoundingClientRect();
+  burst(e.clientX-cr.left,e.clientY-cr.top);
+  var cd=document.getElementById('qcard');cd.classList.remove('flash');void cd.offsetWidth;cd.classList.add('flash');
+  setTimeout(function(){cd.classList.remove('flash')},650);
+  document.querySelectorAll('.qopt').forEach(function(b,i){b.classList.toggle('sel',i===idx)});
+  document.getElementById('qbnext').disabled=false;
+}
+
+function qBack(){if(qCur>0){qCur--;qRender();}}
+
+function qNext(){
+  if(qAns[qCur]===null)return;
+  if(qCur<QS.length-1){qCur++;qRender();}
+  else qShowResult();
+}
+
+function qShowResult(){
+  var total=qAns.reduce(function(s,v){return s+(v||0);},0);
+  var ratio=total/(QS.length*3);
+  var ri=ratio<.25?0:ratio<.5?1:ratio<.75?2:3;
+  var R=RS[ri];
+  var qv=document.getElementById('qview');
+  qv.classList.add('hide');
+  setTimeout(function(){
+    qv.style.display='none';
+    document.getElementById('rword').textContent=R.word;
+    document.getElementById('ntitle').textContent=R.nt;
+    document.getElementById('ntext').textContent=R.np;
+    document.getElementById('atitle').textContent=R.at;
+    document.getElementById('atext').textContent=R.ap;
+    var sh='';
+    SPHRS.forEach(function(s,i){
+      sh+='<div class="sph"><div class="sph-ic">'+s.ic+'</div><div class="sph-nm">'+s.nm+'</div>'
+        +'<div class="sph-bar"><div class="sph-fill" id="sf'+i+'"></div></div></div>';
+    });
+    document.getElementById('qspheres').innerHTML=sh;
+    var rv=document.getElementById('qresult');rv.style.display='block';
+    var levels=['a','b','c','d'];
+    document.getElementById('gift-link').href='https://t.me/iqbaraka_bot?start=quiz_anon_'+levels[ri]+'_'+R.pct;
+    window._quizLevel=levels[ri];
+    window._quizPct=R.pct;
+
+    window.buildBotUrl=function(name){
+      var n=(name||'').trim().slice(0,20);
+      if(n){
+        var tr={'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'zh','з':'z',
+          'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r','с':'s',
+          'т':'t','у':'u','ф':'f','х':'kh','ц':'ts','ч':'ch','ш':'sh','щ':'sch','ъ':'',
+          'ы':'y','ь':'','э':'e','ю':'yu','я':'ya'};
+        var nLat=n.toLowerCase().split('').map(function(c){return tr[c]!==undefined?tr[c]:c;}).join('');
+        nLat=nLat.replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+        if(nLat) return 'https://t.me/iqbaraka_bot?start=quiz_'+nLat+'_'+window._quizLevel+'_'+window._quizPct;
+      }
+      return 'https://t.me/iqbaraka_bot?start=quiz_anon_'+window._quizLevel+'_'+window._quizPct;
+    };
+
+    window.openBot=function(){
+      var name=document.getElementById('name-input')?document.getElementById('name-input').value:'';
+      window.open(window.buildBotUrl(name),'_blank');
+    };
+
+    window.handleGiftClick=function(e){
+      e.preventDefault();
+      window.openBot();
+    };
+
+    var ni=document.getElementById('name-input');
+    if(ni){ni.addEventListener('keydown',function(e){if(e.key==='Enter')window.openBot();});}
+
+    setTimeout(function(){SPHRS.forEach(function(_,i){var el=document.getElementById('sf'+i);if(el)el.style.width=R.sp[i]+'%';});},300);
+    var target=R.pct,circ=502;
+    var rfg=document.getElementById('rfg'),rpct=document.getElementById('rpct');
+    var sl=document.getElementById('gsldr');sl.value=0;
+    document.getElementById('sval').textContent='0%';
+    sl.style.background='rgba(255,255,255,.1)';
+    rsP();var cx=pc.width/2,cy=200;
+    for(var b=0;b<4;b++)setTimeout(function(){burst(cx,cy,22)},b*100);
+    var n=0,step=Math.max(1,Math.ceil(target/60));
+    var tm=setInterval(function(){
+      n=Math.min(n+step,target);rpct.textContent=n+'%';
+      rfg.style.strokeDashoffset=circ*(1-n/100);
+      sl.style.background='linear-gradient(90deg,rgba(201,168,76,.6) '+n+'%,rgba(255,255,255,.1) '+n+'%)';
+      if(n>=target)clearInterval(tm);
+    },28);
+    updatePanels(0,false);
+    lastMilestone=0;lastV=0;
+    sl.oninput=function(){
+      var v=parseInt(this.value);
+      document.getElementById('sval').textContent=v+'%';
+      var disp=Math.max(v,target);
+      rpct.textContent=disp+'%';
+      rfg.style.strokeDashoffset=circ*(1-disp/100);
+      this.style.background='linear-gradient(90deg,rgba(201,168,76,.6) '+v+'%,rgba(255,255,255,.1) '+v+'%)';
+      if(v%10===0){rsP();burst(pc.width/2,200,10);}
+      rpct.style.color=v>=70?'#FFF0B3':'';
+      SPHRS.forEach(function(_,i){
+        var c2=R.sp[i],m2=c2+(100-c2)*0.85;
+        var vl=Math.round(c2+(m2-c2)*v/100);
+        var el=document.getElementById('sf'+i);if(el)el.style.width=Math.min(vl,95)+'%';
+      });
+      var thr=[25,50,70,90],crossed=false;
+      for(var t=0;t<thr.length;t++){
+        if((v>=thr[t]&&lastV<thr[t])||(v<thr[t]&&lastV>=thr[t])){crossed=true;break;}
+      }
+      if(crossed)updatePanels(v,true);
+      lastV=v;
+      showMilestone(v);
+    };
+    ymGoal('potential_complete');ymGoal('potential_ri_'+ri);
+  },320);
+}
+
+function getPanelState(v){
+  for(var i=PANEL_STATES.length-1;i>=0;i--){if(v>=PANEL_STATES[i].from)return PANEL_STATES[i];}
+  return PANEL_STATES[0];
+}
+
+function updatePanels(v,animated){
+  var st=getPanelState(v);
+  var pn=document.getElementById('qpnow'),pa=document.getElementById('qpafter');
+  var nt=document.getElementById('ntitle'),np=document.getElementById('ntext');
+  var at=document.getElementById('atitle'),ap=document.getElementById('atext');
+  if(animated){
+    pn.style.transition='opacity .35s,transform .35s';
+    pn.style.opacity='0';pn.style.transform='translateY(8px)';
+    setTimeout(function(){
+      if(st.nt){nt.textContent=st.nt;np.textContent=st.np;pn.style.display='block';pn.style.opacity='1';pn.style.transform='translateY(0)';}
+      else{pn.style.opacity='0';setTimeout(function(){pn.style.display='none';},350);}
+      if(st.sa){at.textContent=st.at;ap.textContent=st.ap;pa.classList.add('show');pa.style.opacity='1';pa.style.transform='translateY(0)';}
+      else pa.classList.remove('show');
+    },200);
+  } else {
+    if(st.nt){nt.textContent=st.nt;np.textContent=st.np;pn.style.display='block';}
+    if(st.sa){at.textContent=st.at;ap.textContent=st.ap;pa.classList.add('show');}
+    else pa.classList.remove('show');
+  }
+}
+
+function showMilestone(v){
+  var keys=[20,40,60,75,100],hit=null;
+  for(var k=0;k<keys.length;k++){if(v>=keys[k]&&keys[k]>lastMilestone)hit=keys[k];}
+  if(v<lastMilestone-5)lastMilestone=0;
+  var el=document.getElementById('mmsg');
+  if(hit){
+    lastMilestone=hit;var m=MILESTONES[hit];
+    el.textContent=m.txt;el.style.color=m.col;
+    el.style.opacity='1';el.style.transform='translateY(0)';
+    rsP();burst(pc.width/2,180,14);
+  } else if(v<15){el.style.opacity='0';el.style.transform='translateY(6px)';lastMilestone=0;}
+}
+
+function qRetry(){
+  qAns=new Array(8).fill(null);qCur=0;
+  document.getElementById('qresult').style.display='none';
+  document.getElementById('rfg').style.strokeDashoffset=502;
+  document.getElementById('qpafter').classList.remove('show');
+  var qv=document.getElementById('qview');qv.style.display='block';qv.classList.remove('hide');
+  qRender();
+}
+
+qRender();
+</script>
+</body>
+</html>

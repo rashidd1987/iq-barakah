@@ -17,6 +17,9 @@ class ParticipantRepo:
         )
         return result.scalar_one_or_none()
 
+    async def get_by_user(self, user_id: int) -> Participant | None:
+        return await self.get(user_id)
+
     async def activate(self, user_id: int, level: str, week: int = 1, vakt_level: str | None = None) -> Participant:
         existing = await self.get(user_id)
         if existing:
@@ -55,6 +58,28 @@ class ParticipantRepo:
         if p:
             p.is_active = False
             await self.session.flush()
+
+    async def reset(self, user_id: int) -> Participant | None:
+        """Полный сброс: неделя 1, сбрасывает graduated_at, остаётся активным."""
+        p = await self.session.execute(
+            select(Participant).where(Participant.user_id == user_id)
+        )
+        p = p.scalar_one_or_none()
+        if p:
+            p.week = 1
+            p.graduated_at = None
+            p.is_active = True
+            p.activated_at = datetime.now(timezone.utc)
+            await self.session.flush()
+        return p
+
+    async def set_week(self, user_id: int, week: int) -> Participant | None:
+        """Установить произвольную неделю (для предпросмотра)."""
+        p = await self.get(user_id)
+        if p:
+            p.week = week
+            await self.session.flush()
+        return p
 
     async def all_active(self) -> list[Participant]:
         result = await self.session.execute(

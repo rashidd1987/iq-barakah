@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>IQ Barakah</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<!-- ══════════════ DIAGNOSTIC OVERLAY ══════════════ -->
+<div id="diag-overlay" class="hidden">
+  <div class="diag-panel">
+
+    <!-- QUIZ STEP -->
+    <div class="diag-step active" id="ds-quiz">
+      <div class="dq-header">
+        <div class="dq-prog-wrap">
+          <div class="dq-prog-top">
+            <span class="dq-prog-label">Потенциал</span>
+            <span class="dq-frac" id="dq-frac">1 / 8</span>
+          </div>
+          <div class="dq-prog-track"><div class="dq-prog-fill" id="dq-prog-fill" style="width:12.5%"></div></div>
+        </div>
+      </div>
+      <div class="dq-question" id="dq-text"></div>
+      <div class="dq-opts" id="dq-opts"></div>
+      <div class="dq-nav">
+        <button class="dq-back" id="dq-back">← Назад</button>
+        <button class="dq-next" id="dq-next" disabled>Дальше →</button>
+      </div>
+    </div>
+
+    <!-- RESULT STEP -->
+    <div class="diag-step" id="ds-result">
+      <div class="dr-top-label">Твой потенциал</div>
+
+      <!-- Ring -->
+      <div class="dr-ring-wrap">
+        <svg viewBox="0 0 180 180" width="170" height="170" style="transform:rotate(-90deg)">
+          <defs>
+            <linearGradient id="drg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#C9A84C"/>
+              <stop offset="100%" stop-color="#FFF0B3"/>
+            </linearGradient>
+          </defs>
+          <circle fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10" cx="90" cy="90" r="80"/>
+          <circle id="dr-ring-fg" fill="none" stroke="url(#drg)" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="502" stroke-dashoffset="502"
+            cx="90" cy="90" r="80" style="filter:drop-shadow(0 0 8px rgba(201,168,76,.6));transition:stroke-dashoffset 1.5s cubic-bezier(.22,1,.36,1)"/>
+        </svg>
+        <div class="dr-ring-center">
+          <div class="dr-pct" id="dr-pct">0%</div>
+          <div class="dr-word" id="dr-word"></div>
+        </div>
+      </div>
+
+      <!-- Spheres -->
+      <div class="dr-spheres" id="dr-spheres"></div>
+
+      <!-- Panels -->
+      <div class="dr-panels">
+        <div class="dr-panel dr-panel-now">
+          <span class="dr-badge dr-badge-now">Сейчас</span>
+          <div class="dr-panel-title" id="dr-now-title"></div>
+          <div class="dr-panel-text" id="dr-now-text"></div>
+        </div>
+        <div class="dr-panel dr-panel-after">
+          <span class="dr-badge dr-badge-after">После программы</span>
+          <div class="dr-panel-title" id="dr-after-title"></div>
+          <div class="dr-panel-text" id="dr-after-text"></div>
+        </div>
+      </div>
+
+      <button class="dq-next dr-start-btn" id="btn-finish-diag">Начать программу →</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="app">
+<div class="screens">
+
+<!-- HOME -->
+<div class="screen active" id="sc-home">
+  <div class="hdr">
+    <div class="hdr-top">
+      <div class="logo">IQ <em>Barakah</em></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pill" id="lvl-pill">🌱 IQ Barakah</div>
+        <div class="avatar-btn" id="ava">👤</div>
+      </div>
+    </div>
+    <div class="hdr-title" id="greet">Ас-саляму алейкум 👋</div>
+    <div class="hdr-sub" id="uname-sub">Загружаем данные...</div>
+  </div>
+  <div id="preview-banner" style="display:none;background:#1a3d1b;color:#fff;padding:10px 16px;align-items:center;gap:8px;font-size:13px;font-weight:700;">
+    👁 Режим просмотра куратора · Все уроки открыты
+  </div>
+  <div class="c">
+    <div id="streak-banner-slot"></div>
+    <div id="step-progress-slot"></div>
+    <div id="home-shortcut-slot"></div>
+    <div class="current-week" id="cw-banner">
+      <div class="cw-icon" id="cw-icon">📖</div>
+      <div class="cw-info">
+        <div class="t" id="cw-title" data-i18n="loading">Загрузка...</div>
+        <div class="s" id="cw-sub" data-i18n="openPath">Открыть карту пути →</div>
+      </div>
+      <div class="cw-arr">›</div>
+    </div>
+    <div class="card"><div class="cb">
+      <div class="ct" data-i18n="totalProgress">Общий прогресс</div>
+      <div class="ring-wrap">
+        <svg width="148" height="148" viewBox="0 0 148 148">
+          <circle cx="74" cy="74" r="62" fill="none" stroke="#e5e7eb" stroke-width="11"/>
+          <circle id="ring" cx="74" cy="74" r="62" fill="none" stroke="url(#rg)" stroke-width="11"
+            stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="311.7"
+            transform="rotate(-90 74 74)" style="transition:stroke-dashoffset 1s ease;"/>
+          <defs>
+            <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#2c5f2d"/><stop offset="100%" stop-color="#3d7a3e"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="ring-label">
+          <span class="pct" id="rpct">0%</span>
+          <span class="rs" data-i18n="completed">пройдено</span>
+        </div>
+      </div>
+      <!-- 7-day streak dots -->
+      <div class="streak-week" id="streak-week"></div>
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-e">🔥</div><div class="stat-v" id="sv-streak">0</div><div class="stat-l" data-i18n="streakDays">дней подряд</div></div>
+        <div class="stat"><div class="stat-e">✅</div><div class="stat-v" id="sv-weeks">0</div><div class="stat-l" data-i18n="weeksDone">недель сдано</div></div>
+        <div class="stat"><div class="stat-e">🙏</div><div class="stat-v" id="sv-deeds">0</div><div class="stat-l" data-i18n="goodDeeds">добрых дел</div></div>
+        <div class="stat"><div class="stat-e">⭐</div><div class="stat-v" id="sv-xp">0</div><div class="stat-l" data-i18n="barakahPoints">баракат-баллов</div></div>
+      </div>
+    </div></div>
+    <div data-i18n="goTo" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding:0 2px;">Перейти</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="act-item" data-screen="tracker"><div class="act-ic gr">📋</div><div class="act-tx"><div class="t" data-i18n="dayTracker">Трекер дня</div><div class="s" data-i18n="dayTrackerSub">Намаз, поминание Всевышнего, самоотчёт</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" data-screen="lessons"><div class="act-ic gr">📚</div><div class="act-tx"><div class="t" data-i18n="currentLesson">Текущий урок</div><div class="s" id="act-cur-week" data-i18n="openLessonsMap">Открыть карту уроков</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" data-screen="wheel"><div class="act-ic gd">🎯</div><div class="act-tx"><div class="t" data-i18n="lifeWheel">Колесо баланса</div><div class="s" data-i18n="lifeWheelSub">8 сфер жизни</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-muhasaba"><div class="act-ic bl">✍️</div><div class="act-tx"><div class="t" data-i18n="eveningMuhasaba">Вечерний самоотчёт <span class="gterm-info" onclick="window.showGlossaryTip&&showGlossaryTip('Мухасаба')">ℹ</span></div><div class="s" data-i18n="eveningMuhasabaSub">Мухасаба — три вопроса · 2 минуты</div></div><span style="color:var(--muted)">›</span></div>
+      <div class="act-item" id="btn-open-diag"><div class="act-ic pu">🎯</div><div class="act-tx"><div class="t" data-i18n="levelDiagnostic">Диагностика уровня</div><div class="s" data-i18n="levelDiagnosticSub">Пройти заново или сменить уровень</div></div><span style="color:var(--muted)">›</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TRACKER -->
+<div class="screen" id="sc-tracker">
+  <div class="hdr">
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge ba" data-i18n="tracker">Трекер</div></div>
+    <div class="hdr-title" id="tracker-date" data-i18n="today">Сегодня</div>
+    <div class="hdr-sub" data-i18n="markDone">Отмечайте выполненное</div>
+  </div>
+  <div class="c">
+    <div class="card"><div class="cb" style="padding-bottom:12px;">
+      <div class="month-cal-header" id="mcal-header" style="cursor:pointer;">
+        <button class="mcal-nav" id="mcal-prev">‹</button>
+        <div class="ct" id="mcal-title">Июнь 2026</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="mcal-toggle" id="mcal-toggle">▲</span>
+          <button class="mcal-nav" id="mcal-next">›</button>
+        </div>
+      </div>
+      <div id="mcal-body">
+        <div class="month-cal" id="month-cal"></div>
+      </div>
+      <div class="ct" style="margin-top:12px;" data-i18n="thisWeek">Эта неделя</div>
+      <div class="date-strip" id="week-strip"></div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="tracker-progress">
+        <div class="tp-text"><div class="t" data-i18n="dayProgress">Прогресс дня</div><div class="s" id="tp-sub">0 из 10 выполнено</div></div>
+        <div class="tp-count" id="tp-count">0/10</div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="tp-bar" style="width:0%"></div></div>
+    </div></div>
+    <div id="program-tasks-section" style="display:none;">
+      <div class="ptasks-card">
+        <div class="ptasks-header">
+          <div class="ptasks-header-left">
+            <div class="ptasks-icon">📋</div>
+            <div>
+              <div class="ptasks-title" id="program-tasks-label">Задания шага</div>
+              <div class="ptasks-sub" id="program-tasks-sub">0 из 0 выполнено</div>
+            </div>
+          </div>
+          <div class="ptasks-badge" id="program-tasks-badge">0%</div>
+        </div>
+        <div class="ptasks-pbar-wrap"><div class="ptasks-pbar" id="program-tasks-pbar" style="width:0%"></div></div>
+        <div id="program-tasks"></div>
+      </div>
+    </div>
+    <div class="habit-section-label">🕌 Намаз (5 раз в день) <span class="gterm-info" onclick="(function(){if(typeof showGlossaryTip!=='undefined')showGlossaryTip('Намаз')})()">ℹ</span></div>
+    <div class="card"><div class="cb" style="padding:14px;"><div class="namaz-grid" id="namaz-grid"></div></div></div>
+    <div class="habit-section-label" data-i18n="dailyPractices">☀️ Ежедневные практики</div>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="daily-habits"></div>
+    <div class="habit-section-label" data-i18n="weeklyPractices">📅 На этой неделе</div>
+    <div class="weekly-card" id="weekly-habits"></div>
+    <div class="habit-section-label" data-i18n="oneTime">🌱 Один раз</div>
+    <div class="weekly-card" id="onetime-habits"></div>
+
+    <!-- Report to curator -->
+    <button class="report-btn" id="btn-curator-report">
+      📊 Отправить отчёт куратору
+    </button>
+  </div>
+</div>
+
+<!-- LESSONS -->
+<div class="screen" id="sc-lessons">
+  <div class="hdr">
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge bg" data-i18n="program">Программа</div></div>
+    <div class="hdr-title" data-i18n="pathMap">Карта пути</div>
+    <div class="hdr-sub" data-i18n="pathMapSub">IQ Barakah Старт 6 шагов + IQ Barakah 24 шага · 3 сезона</div>
+    <div class="pbar" style="margin-top:12px;"><div class="pfill" id="lessons-pbar" style="width:0%"></div></div>
+  </div>
+  <div class="c">
+    <div class="chips">
+      <button class="chip on" data-phase="all" data-i18n="all">Все</button>
+      <button class="chip off" data-phase="vakt">IQ Barakah Старт</button>
+      <button class="chip off" data-phase="s1" data-i18n="season1">Сезон 1</button>
+      <button class="chip off" data-phase="s2" data-i18n="season2">Сезон 2</button>
+      <button class="chip off" data-phase="s3" data-i18n="season3">Сезон 3</button>
+    </div>
+    <div id="week-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- WHEEL -->
+<div class="screen" id="sc-wheel">
+  <div class="hdr">
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge ba" data-i18n="wheel">Баланс</div></div>
+    <div class="hdr-title" data-i18n="wheelTitle">Колесо жизни</div>
+    <div class="hdr-sub" data-i18n="wheelSub">Оцените каждую сферу от 1 до 10</div>
+  </div>
+  <div class="c">
+    <div class="card"><div class="cb" style="padding:10px 6px;">
+      <div class="wheel-wrap"><canvas id="wcanvas" width="290" height="290"></canvas></div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="ct" data-i18n="configureValues">Настройте значения</div>
+      <div id="sliders" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div></div>
+    <button class="btn btn-p" id="btn-save-wheel" data-i18n="saveScore">💾 Сохранить оценку</button>
+  </div>
+</div>
+
+<!-- SHIP -->
+<div class="screen" id="sc-ship">
+  <div class="hdr">
+    <div class="hdr-top"><div class="logo">IQ <em>Barakah</em></div><div class="badge ba" data-i18n="diagnostic">Диагностика</div></div>
+    <div class="hdr-title" data-i18n="shipTitle">Корабль Бараката</div>
+    <div class="hdr-sub" data-i18n="shipSub">15 отсеков · Найди пробоины · Получи разбор</div>
+  </div>
+  <div class="c">
+    <div class="ship-launcher">
+      <div class="ship-card ship-biz">
+        <div class="ship-card-head"><div class="ship-card-icon biz">⚓</div><div><div class="ship-card-title" data-i18n="businessDiagnostic">Бизнес-диагностика</div><div class="ship-card-sub" data-i18n="businessDiagnosticSub">Стратегия · Финансы · Команда · Продажи и ещё 11</div></div></div>
+        <div class="ship-card-result" id="ship-result-business"><div><div class="ship-result-score" id="ship-score-business">—</div><div class="ship-result-label" data-i18n="shipHealth">Здоровье корабля</div></div><div class="ship-result-date" id="ship-date-business"></div></div>
+        <button class="ship-card-btn biz" id="ship-btn-business">⚓ <span data-i18n="takeDiagnostic">Пройти диагностику</span></button>
+      </div>
+      <div class="ship-card ship-per">
+        <div class="ship-card-head"><div class="ship-card-icon per">🌙</div><div><div class="ship-card-title" data-i18n="personalLife">Личная жизнь</div><div class="ship-card-sub" data-i18n="personalLifeSub">Иман · Здоровье · Семья · Время и ещё 11</div></div></div>
+        <div class="ship-card-result" id="ship-result-personal"><div><div class="ship-result-score" id="ship-score-personal">—</div><div class="ship-result-label" data-i18n="shipHealth">Здоровье корабля</div></div><div class="ship-result-date" id="ship-date-personal"></div></div>
+        <button class="ship-card-btn per" id="ship-btn-personal">🌙 <span data-i18n="takeDiagnostic">Пройти диагностику</span></button>
+      </div>
+    </div>
+    <div class="ship-how">
+      <div class="ship-how-t" data-i18n="howItWorks">Как это работает</div>
+      <div class="ship-steps">
+        <div class="ship-step"><div class="ship-step-n">1</div><span data-i18n="shipStep1">Оцени каждый из 15 отсеков от 0 до 100</span></div>
+        <div class="ship-step"><div class="ship-step-n">2</div><span data-i18n="shipStep2">Увидишь где пробоины — критические и требующие внимания</span></div>
+        <div class="ship-step"><div class="ship-step-n">3</div><span data-i18n="shipStep3">Джарвас даст рекомендации по каждой слабой зоне</span></div>
+        <div class="ship-step"><div class="ship-step-n">4</div><span data-i18n="shipStep4">Результаты сохранятся — можно отслеживать прогресс раз в месяц</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /screens -->
+
+<nav>
+  <button class="nb active" id="nb-home" data-screen="home">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg></div>
+    <span data-i18n="home">Главная</span>
+  </button>
+  <button class="nb" id="nb-tracker" data-screen="tracker">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg></div>
+    <span data-i18n="tracker">Трекер</span>
+    <div class="badge-dot show" id="tracker-dot"></div>
+  </button>
+  <button class="nb" id="nb-lessons" data-screen="lessons">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M4 6h16M4 10h16M4 14h10M4 18h7"/></svg></div>
+    <span data-i18n="lessons">Уроки</span>
+  </button>
+  <button class="nb" id="nb-wheel" data-screen="wheel">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l5 3"/></svg></div>
+    <span data-i18n="wheel">Баланс</span>
+  </button>
+  <button class="nb" id="nb-ship" data-screen="ship">
+    <div class="ni"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path d="M3 17l3-10h12l3 10H3z"/><path d="M9 7V4m6 3V4M3 17c0 2.2 1.8 4 4 4h10c2.2 0 4-1.8 4-4"/><path d="M12 4v3"/></svg></div>
+    <span data-i18n="ship">Корабль</span>
+  </button>
+</nav>
+</div><!-- /app -->
+
+<!-- PROFILE MENU -->
+<div class="overlay" id="ov-profile"></div>
+<div class="sheet profile-sheet" id="sh-profile">
+  <div class="sh"></div>
+  <div class="profile-sheet-head">
+    <div>
+      <div class="sheet-title">Профиль</div>
+      <div class="sheet-sub">Быстрый доступ к IQ Barakah</div>
+    </div>
+    <button class="profile-close" id="btn-close-profile" type="button" aria-label="Закрыть">×</button>
+  </div>
+  <button class="profile-action" id="btn-add-home-screen" type="button">
+    <span class="profile-action-icon">📲</span>
+    <span class="profile-action-copy">
+      <span class="profile-action-title">Добавить на главный экран</span>
+      <span class="profile-action-sub">Открывать мини-приложение одним нажатием</span>
+    </span>
+    <span class="profile-action-arrow">›</span>
+  </button>
+  <div class="profile-action-status" id="home-screen-status">Проверяем доступность функции…</div>
+</div>
+
+<!-- LESSON SHEET -->
+<div class="overlay" id="ov-lesson"></div>
+<div class="sheet" id="sh-lesson">
+  <div class="sh"></div>
+  <div class="s-icon" id="sl-icon"></div>
+  <div class="s-title" id="sl-title"></div>
+  <div class="s-sub" id="sl-sub"></div>
+  <div id="sl-rows"></div>
+  <div class="s-btns" id="sl-btns"></div>
+</div>
+
+<!-- STEP TEST SHEET -->
+<div class="overlay" id="ov-steptest"></div>
+<div class="sheet" id="sh-steptest">
+  <div class="sh"></div>
+  <div class="s-icon" id="st-icon">📝</div>
+  <div class="s-title" id="st-title">Тест шага</div>
+  <div class="s-sub" id="st-sub">3 вопроса · Открывает следующий шаг</div>
+  <!-- Quiz step -->
+  <div id="st-quiz" class="st-step">
+    <div class="dq-prog-track" style="margin:8px 0 16px"><div class="dq-prog-fill" id="st-prog-fill" style="width:33%"></div></div>
+    <div class="st-frac" id="st-frac">1 / 3</div>
+    <div class="st-qtext" id="st-qtext"></div>
+    <div class="st-opts" id="st-opts"></div>
+  </div>
+  <!-- Result step -->
+  <div id="st-result" class="st-step" style="display:none">
+    <div style="text-align:center;padding:24px 0 8px">
+      <div style="font-size:48px">🎉</div>
+      <div style="font-size:20px;font-weight:700;margin:8px 0 4px" id="st-res-title">Шаг пройден!</div>
+      <div style="color:var(--muted);font-size:14px" id="st-res-sub">Следующий шаг открыт</div>
+    </div>
+    <div class="s-btns">
+      <button class="btn btn-p" id="st-next-btn">→ К следующему шагу</button>
+      <button class="btn btn-o" id="st-close-btn">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEW SHEET -->
+<div class="overlay" id="ov-review"></div>
+<div class="sheet" id="sh-review">
+  <div class="sh"></div>
+  <div class="s-icon">✍️</div>
+  <div class="s-title">Вечерний самоотчёт <span style="font-size:13px;color:var(--muted)">(мухасаба)</span></div>
+  <div class="s-sub" id="rv-week-lbl">Три вопроса честности перед собой</div>
+  <div class="ok-state" id="rv-ok">
+    <div class="ok-icon">🌿</div>
+    <div class="ok-t">БаракаЛлаху фик!</div>
+    <div class="ok-s">Отзыв принят. Куратор откроет следующий шаг.</div>
+    <button class="btn btn-p" id="rv-ok-btn" style="margin-top:8px;">К карте пути</button>
+  </div>
+  <div id="rv-form" class="rv-form">
+    <div class="card"><div class="cb">
+      <div class="ct">Как прошёл шаг?</div>
+      <div class="emoji-row" id="emoji-row">
+        <button class="em-btn" data-emoji="😔">😔</button>
+        <button class="em-btn" data-emoji="😐">😐</button>
+        <button class="em-btn" data-emoji="🙂">🙂</button>
+        <button class="em-btn" data-emoji="😊">😊</button>
+        <button class="em-btn" data-emoji="🤩">🤩</button>
+      </div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="ct">Оцените</div>
+      <div class="fl"><label>Насколько выполнили задание?</label><div class="rating-row" id="rt-task"></div></div>
+      <div class="fl" style="margin-top:12px;"><label>Насколько было полезно?</label><div class="rating-row" id="rt-useful"></div></div>
+    </div></div>
+    <div class="card"><div class="cb">
+      <div class="ct">Напишите</div>
+      <div class="fl"><label>Что получилось? Что было сложно?</label><textarea id="rv-text" rows="3" placeholder="Куратор обязательно ответит..."></textarea></div>
+      <div class="fl" style="margin-top:10px;"><label>Главный инсайт шага</label><textarea id="rv-insight" rows="2" placeholder="Что открылось для вас..."></textarea></div>
+    </div></div>
+    <button class="btn btn-p" id="rv-btn">Отправить отзыв</button>
+  </div>
+</div>
+
+<!-- ONBOARDING OVERLAY -->
+<div id="ob-overlay" class="ob-hidden">
+  <div class="ob-slide active" id="ob-s0">
+    <div class="ob-icon">🌱</div>
+    <div class="ob-title">Ас-саляму алейкум!</div>
+    <div class="ob-sub">Добро пожаловать в IQ Barakah — твою систему роста мусульманина</div>
+  </div>
+  <div class="ob-slide" id="ob-s1">
+    <div class="ob-icon">📋</div>
+    <div class="ob-title">Трекер каждый день</div>
+    <div class="ob-sub">Отмечай намаз, ежедневные практики и задания шага. Серия дней строит характер</div>
+  </div>
+  <div class="ob-slide" id="ob-s2">
+    <div class="ob-icon">📚</div>
+    <div class="ob-title">30 шагов программы</div>
+    <div class="ob-sub">Выполни задания шага → пройди тест → открывай следующий. Шаг за шагом к изменениям</div>
+  </div>
+  <div class="ob-slide" id="ob-s3">
+    <div class="ob-icon">🚢</div>
+    <div class="ob-title">Найди пробоины</div>
+    <div class="ob-sub">Корабль Бараката — диагностика 15 сфер жизни. Джарвас даст разбор и маршрут роста</div>
+  </div>
+  <div class="ob-dots">
+    <div class="ob-dot active" id="ob-d0"></div>
+    <div class="ob-dot" id="ob-d1"></div>
+    <div class="ob-dot" id="ob-d2"></div>
+    <div class="ob-dot" id="ob-d3"></div>
+  </div>
+  <div class="ob-btns">
+    <button class="ob-next" id="ob-next-btn">Дальше →</button>
+    <button class="ob-skip" id="ob-skip-btn">Пропустить</button>
+  </div>
+</div>
+
+<!-- STEP SUMMARY SHEET -->
+<div class="overlay" id="ov-summary"></div>
+<div class="sheet" id="sh-summary">
+  <div class="sh"></div>
+  <div class="s-icon">🏆</div>
+  <div class="s-title" id="sum-title">Шаг завершён!</div>
+  <div class="s-sub" id="sum-sub">Альхамдулиллях — ты сделал это</div>
+  <div class="summary-body" id="sum-body"></div>
+  <div class="s-btns">
+    <button class="btn btn-p" id="sum-next-btn">→ К следующему шагу</button>
+    <button class="btn btn-o" id="sum-close-btn">Закрыть</button>
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

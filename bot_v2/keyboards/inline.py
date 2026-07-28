@@ -1,40 +1,221 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.types import (
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot_v2.services.program import TARIFFS
+from urllib.parse import urlencode
+
+from bot_v2.services.program import TARIFFS, get_tariff_view
+from bot_v2.services.i18n import normalize_lang, t
 
 
-def kb_main_menu(miniapp_url: str, ship_url: str) -> InlineKeyboardMarkup:
+BTN_DIAG = "🔍 Диагностика"
+BTN_MINIAPP = "📱 Личный кабинет"
+BTN_PROGRAM = "📖 Мой путь"
+BTN_PAYMENT = "💳 Оплата"
+BTN_REMINDERS = "🔔 Напоминания"
+BTN_CURATOR = "💬 Связаться с куратором"
+BTN_MUHASABA = "🌙 Вечерний разбор"
+BTN_SITE = "🌐 Сайт"
+BTN_JARWAS = "🤖 Джарвас"
+BTN_HELP = "🙋 Нужна помощь"
+
+
+def _miniapp_url_with_params(base_url: str, lang: str, participant=None) -> str:
+    """Build miniapp URL with level/week/skill params if participant is active."""
+    params: dict = {"lang": normalize_lang(lang)}
+    if participant and participant.is_active and participant.level:
+        from bot_v2.services.program import LEVEL_WEEKS
+        level = participant.level
+        offsets = {"А": 0, "Б": 6, "В": 14, "Г": 22}
+        week_in_level = participant.week - offsets.get(level, 0)
+        week_in_level = max(1, min(week_in_level, LEVEL_WEEKS.get(level, 8)))
+        params["lvl"] = level
+        params["wk"] = week_in_level
+        params["skill"] = participant.vakt_level or "I"
+    sep = "&" if "?" in base_url else "?"
+    return f"{base_url}{sep}{urlencode(params)}"
+
+
+def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru", participant=None) -> InlineKeyboardMarkup:
+    lang = normalize_lang(lang)
     b = InlineKeyboardBuilder()
-    b.button(text="📱 Mini App", web_app=WebAppInfo(url=miniapp_url))
-    b.button(text="🚢 Диагностика бизнеса", web_app=WebAppInfo(url=ship_url))
-    b.button(text="🎓 Тарифы", callback_data="show_tariffs")
-    b.button(text="🤖 Джарвас — AI-ментор", callback_data="jarwas_start")
+    ship_sep = "&" if "?" in ship_url else "?"
+    b.button(text=t(lang, "menu.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant)))
+    b.button(text=t(lang, "menu.ship"), url=f"{ship_url}{ship_sep}lang={lang}")
+    b.button(text="🚢 Кораблик — диагностика жизни", callback_data="korablik_start")
+    b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
+    b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
+    b.button(text="❓ " + t(lang, "menu.howto"), callback_data="show_howto")
     b.adjust(1)
     return b.as_markup()
 
 
-def kb_tariffs() -> InlineKeyboardMarkup:
+def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant))), KeyboardButton(text="❓ " + t(lang, "bottom.howto"))],
+            [KeyboardButton(text=t(lang, "bottom.diag")),     KeyboardButton(text=t(lang, "bottom.payment"))],
+            [KeyboardButton(text=t(lang, "bottom.program")),  KeyboardButton(text=t(lang, "bottom.jarwas"))],
+            [KeyboardButton(text=t(lang, "bottom.help")), KeyboardButton(text=t(lang, "bottom.channel"))],
+        ],
+        resize_keyboard=True,
+        input_field_placeholder=t(lang, "bottom.placeholder"),
+    )
+
+
+def _url_with_lang(url: str, lang: str) -> str:
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}lang={normalize_lang(lang)}"
+
+
+def kb_onboarding_gender(lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=t(lang, "onboarding.gender_male")),
+                KeyboardButton(text=t(lang, "onboarding.gender_female")),
+            ]
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def kb_onboarding_occupation(lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=t(lang, "onboarding.occ_entrepreneur")),
+                KeyboardButton(text=t(lang, "onboarding.occ_employee")),
+            ],
+            [
+                KeyboardButton(text=t(lang, "onboarding.occ_student")),
+                KeyboardButton(text=t(lang, "onboarding.occ_freelance")),
+            ],
+            [KeyboardButton(text=t(lang, "onboarding.occ_other"))],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def kb_onboarding_source(lang: str = "ru") -> ReplyKeyboardMarkup:
+    lang = normalize_lang(lang)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=t(lang, "onboarding.src_social")),
+                KeyboardButton(text=t(lang, "onboarding.src_internet")),
+            ],
+            [
+                KeyboardButton(text=t(lang, "onboarding.src_telegram")),
+                KeyboardButton(text=t(lang, "onboarding.src_word")),
+            ],
+            [
+                KeyboardButton(text=t(lang, "onboarding.src_video")),
+                KeyboardButton(text=t(lang, "onboarding.src_other")),
+            ],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+
+def kb_onboard_step1(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    for t in TARIFFS:
-        b.button(text=t["name"], callback_data=f"tariff:{t['id']}")
-    b.button(text="← Назад", callback_data="back_main")
+    b.button(text=t(lang, "onboard.step1_btn"), callback_data="onboard_ready")
     b.adjust(1)
     return b.as_markup()
 
 
-def kb_tariff_detail(tariff_id: str) -> InlineKeyboardMarkup:
+def kb_onboard_step2(lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="💳 Оплатить", callback_data=f"pay:{tariff_id}")
-    b.button(text="← Назад", callback_data="show_tariffs")
+    b.button(text=t(lang, "onboard.step2_btn"), callback_data="onboard_audit")
     b.adjust(1)
     return b.as_markup()
 
 
-def kb_gender() -> InlineKeyboardMarkup:
+def kb_onboard_step3(miniapp_url: str, lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="👨 Брат", callback_data="gender_m")
-    b.button(text="👩 Сестра", callback_data="gender_f")
+    b.button(text="🚢 Пройти диагностику Кораблика", callback_data="korablik_start")
+    b.button(text=t(lang, "onboard.step3_skip_btn"), callback_data="onboard_to_fio")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_start_diag(lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=t(lang, "diag.button"), callback_data="start_diag")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_program_overview(
+    has_diag: bool = False,
+    recommended_tariff_id: str = "vakt",
+    lang: str = "ru",
+) -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    recommended = next((tariff for tariff in TARIFFS if tariff["id"] == recommended_tariff_id), TARIFFS[0])
+    names = {
+        "vakt": "🌱 IQ Barakah Старт",
+        "s1_full": "📗 IQ Barakah · Сезон 1",
+        "s3_full": "🏆 IQ Barakah · 3 сезона",
+        "jamaat": "👥 Поток",
+        "leader": "👑 Лидер Уммы",
+    }
+    name = names.get(recommended["id"], recommended["name"])
+    b.button(text=f"🌿 Рекомендовано: {name}", callback_data=f"tariff:{recommended['id']}")
+    b.button(text="🎓 Все тарифы", callback_data="show_tariffs")
+    if not has_diag:
+        b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_tariffs(lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    for tariff in TARIFFS:
+        tariff_view = get_tariff_view(tariff["id"], lang) or tariff
+        price = tariff["price"]
+        tid = tariff["id"]
+        if price:
+            price_str = f"{price:,}".replace(",", " ")
+            if tid == "s1_month":
+                label = f"{tariff_view['name']} · {price_str} ₽/мес"
+            elif tid == "s1_full":
+                label = f"⭐ {tariff_view['name']} · {price_str} ₽"
+            else:
+                label = f"{tariff_view['name']} · {price_str} ₽"
+        else:
+            label = f"{tariff_view['name']} · по запросу"
+        b.button(text=label, callback_data=f"tariff:{tariff['id']}")
+    b.button(text=t(lang, "tariffs.back"), callback_data="back_main")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_tariff_detail(tariff_id: str, lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=t(lang, "tariffs.pay"), callback_data=f"pay:{tariff_id}")
+    b.button(text=t(lang, "tariffs.back"), callback_data="show_tariffs")
+    b.adjust(1)
+    return b.as_markup()
+
+
+def kb_gender(lang: str = "ru") -> InlineKeyboardMarkup:
+    b = InlineKeyboardBuilder()
+    b.button(text=t(lang, "gender.male"), callback_data="gender_m")
+    b.button(text=t(lang, "gender.female"), callback_data="gender_f")
     b.adjust(2)
     return b.as_markup()
 
@@ -71,21 +252,25 @@ def kb_source() -> InlineKeyboardMarkup:
 
 def kb_week_ack() -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
-    b.button(text="✅ Выполнил задания — открыть следующую неделю", callback_data="week_ack")
+    b.button(text="✅ Шаг выполнен — пройти проверку", callback_data="week_ack")
     return b.as_markup()
 
 
 def kb_jarwas_actions(btn_type: str | None = None) -> InlineKeyboardMarkup:
+    return kb_jarwas_actions_i18n(btn_type, "ru")
+
+
+def kb_jarwas_actions_i18n(btn_type: str | None = None, lang: str = "ru") -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     if btn_type == "diag":
-        b.button(text="🎯 Пройти диагностику", callback_data="start_diag")
+        b.button(text=t(lang, "jarwas.diag"), callback_data="start_diag")
     elif btn_type == "buy_vakt":
-        b.button(text="🌱 Купить ВАКТ", callback_data="tariff:vakt")
+        b.button(text=t(lang, "jarwas.buy_vakt"), callback_data="tariff:vakt")
     elif btn_type == "buy_s1":
-        b.button(text="📗 Купить Сезон 1", callback_data="tariff:s1_full")
+        b.button(text=t(lang, "jarwas.buy_s1"), callback_data="tariff:s1_full")
     elif btn_type == "curator":
-        b.button(text="🤝 Написать куратору", callback_data="contact_curator")
-    b.button(text="❌ Закрыть чат с Джарвасом", callback_data="jarwas_end")
+        b.button(text=t(lang, "jarwas.curator"), callback_data="contact_curator")
+    b.button(text=t(lang, "jarwas.close"), callback_data="jarwas_end")
     b.adjust(1)
     return b.as_markup()
 
@@ -106,7 +291,18 @@ def kb_diag_answer(options: list[tuple[str, int]], q_idx: int) -> InlineKeyboard
     return b.as_markup()
 
 
-def kb_curator_notify(user_id: int, tariff_id: str) -> InlineKeyboardMarkup:
+def kb_curator_notify(user_id: int, tariff_id: str, username: str | None = None) -> InlineKeyboardMarkup:
     b = InlineKeyboardBuilder()
     b.button(text="✅ Активировать", callback_data=f"curator_activate:{user_id}:{tariff_id}")
+    chat_url = f"https://t.me/{username}" if username else f"tg://user?id={user_id}"
+    b.button(text="✍️ Написать", url=chat_url)
+    b.adjust(2)
     return b.as_markup()
+
+
+def kb_curator_contact(user_id: int, username: str | None = None) -> InlineKeyboardMarkup:
+    """Кнопка «Написать» для уведомлений без активации."""
+    chat_url = f"https://t.me/{username}" if username else f"tg://user?id={user_id}"
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Написать", url=chat_url)],
+    ])

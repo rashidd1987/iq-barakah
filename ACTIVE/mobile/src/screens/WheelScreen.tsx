@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons'
 import React, { useCallback, useMemo, useState } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
@@ -162,3 +161,4 @@ const createStyles = (colors: ThemeColors) => {
   saveButtonContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   })
 }
+import { Ionicons } from '@expo/vector-icons'

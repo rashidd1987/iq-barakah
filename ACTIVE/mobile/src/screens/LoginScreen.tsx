@@ -1,7 +1,7 @@
-import { Ionicons } from '@expo/vector-icons'
 import * as Application from 'expo-application'
+import { Ionicons } from '@expo/vector-icons'
 import React, { useMemo, useState } from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { makeShadow, radius, ThemeColors } from '../theme/colors'
@@ -12,6 +12,8 @@ const STATUS_LABEL: Record<LoginStatus, string> = {
   waiting_confirmation: 'Подтвердите вход в Telegram-боте',
   success: 'Готово!',
   timeout: 'Время ожидания истекло. Попробуйте снова.',
+  not_active: 'Доступ к программе ещё не активирован куратором.',
+  expired: 'Ссылка входа устарела. Нажмите кнопку ещё раз.',
   error: 'Не удалось войти. Попробуйте снова.',
 }
 
@@ -57,7 +59,9 @@ export default function LoginScreen() {
       </Text>
       </View>
 
-      <Text style={styles.buildTag}>build {Application.nativeBuildVersion ?? '?'}</Text>
+      {Platform.OS !== 'web' && Application.nativeBuildVersion ? (
+        <Text style={styles.buildTag}>build {Application.nativeBuildVersion}</Text>
+      ) : null}
     </View>
   )
 }

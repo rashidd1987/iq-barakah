@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons'
 import React, { useMemo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../context/ThemeContext'
@@ -37,3 +36,4 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   buttonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '600' },
 })
+import { Ionicons } from '@expo/vector-icons'

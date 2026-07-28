@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
@@ -207,3 +206,4 @@ const createStyles = (colors: ThemeColors) => {
   errorText: { flex: 1, color: colors.danger, fontSize: 12, lineHeight: 17 },
   })
 }
+import { Ionicons } from '@expo/vector-icons'

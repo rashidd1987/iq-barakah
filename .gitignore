@@ -4,13 +4,13 @@
 .venv*/
 __pycache__/
 *.py[cod]
-artifacts/
 *.pdf
 *.docx
 *.pptx
 *.zip
 *.doc
 graphify-out/
+artifacts/
 gstack-main/
 gstack-main.zip
 iq\ baraka.zip
@@ -33,3 +33,5 @@ IQ_Barakah_Landing.html
 ОБНОВЛЕНИЕ_НАВИГАЦИИ.md
 00_ИНСТРУКЦИЯ*.md
 iq\ baraka/
+.gstack/
+RashidShater.conf

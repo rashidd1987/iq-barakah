@@ -74,7 +74,7 @@ export default function HomeScreen({ navigation }: Props) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [participant, records] = await Promise.all([api.participant(), api.tracker(365)])
+      const [participant, records] = await Promise.all([api.participant(), api.tracker(30)])
       const globalWeek = globalWeekIndex(participant.level, participant.week)
       const skill = (['I', 'II', 'III'].includes(participant.vakt_level ?? '') ? participant.vakt_level : 'I') as
         | 'I'

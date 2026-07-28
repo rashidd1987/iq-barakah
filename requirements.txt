@@ -1,0 +1,2 @@
+-r bot_v2/requirements.txt
+.

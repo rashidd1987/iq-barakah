@@ -1,5 +1,4 @@
 const CACHE_NAME = 'iq-barakah-native-web-v2'
-const CACHE_PREFIX = 'iq-barakah-native-web-'
 const APP_SHELL = ['/pwa/', '/pwa/manifest.webmanifest', '/pwa/icon.png']
 
 self.addEventListener('install', (event) => {
@@ -10,11 +9,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
-          .map((key) => caches.delete(key)),
-      ),
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
     ),
   )
   self.clients.claim()

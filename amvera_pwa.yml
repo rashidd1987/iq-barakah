@@ -1,0 +1,14 @@
+meta:
+  environment: python
+  toolchain:
+    name: pip
+    version: "3.11"
+
+build:
+  requirementsPath: ACTIVE/pwa_api/requirements.txt
+  useCache: false
+
+run:
+  command: python pwa_run.py
+  persistenceMount: /data
+  containerPort: 80

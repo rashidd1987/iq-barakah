@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#2c5f2d"/>
+      <stop offset="100%" stop-color="#0d2410"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="70%" cy="15%" r="55%">
+      <stop offset="0%" stop-color="#c9a84c" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="192" height="192" rx="21.12" fill="url(#bg)"/>
+  <rect width="192" height="192" rx="21.12" fill="url(#glow)"/>
+  <!-- Moon crescent -->
+  <circle cx="100.32" cy="49.92" r="21.12" fill="#e8c96a" opacity="0.95"/>
+  <circle cx="115.00800000000001" cy="40.32" r="17.3184" fill="#0d2410"/>
+  <!-- IQ text -->
+  <text x="96" y="129.60000000000002" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" font-weight="900" font-size="49.92" fill="white" letter-spacing="-1">IQ</text>
+  <!-- Barakah text -->
+  <text x="96" y="165.12" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" font-weight="700" font-size="24.96" fill="#e8c96a" letter-spacing="0.5">BARAKAH</text>
+</svg>

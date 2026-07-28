@@ -1,6 +1,17 @@
 const BASE = process.env.EXPO_PUBLIC_API_URL || 'https://pwa-api.iq-barakah.ru'
 const TOKEN_KEY = 'iq_mobile_jwt'
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly path: string,
+    body: string,
+  ) {
+    super(`API ${status} ${path}: ${body}`)
+    this.name = 'ApiError'
+  }
+}
+
 export async function getToken(): Promise<string | null> {
   return window.localStorage.getItem(TOKEN_KEY)
 }
@@ -24,7 +35,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...options, headers })
   if (!res.ok) {
     const body = await res.text().catch(() => '')
-    throw new Error(`API ${res.status} ${path}: ${body}`)
+    throw new ApiError(res.status, path, body)
   }
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
@@ -36,6 +47,8 @@ export const api = {
     request<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
   put: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined }),
 
   tgInit: () => api.post<{ session_id: string }>('/mobile/auth/tg-init'),
   tgCheck: (sessionId: string) =>
@@ -49,6 +62,8 @@ export const api = {
   profile: () => api.get<MobileProfile>('/mobile/profile'),
   updateProfile: (body: { name: string; email: string | null; phone: string | null }) =>
     api.put<{ ok: boolean }>('/mobile/profile', body),
+  deleteAccount: (confirmation: string) =>
+    api.delete<{ ok: boolean; already_deleted: boolean }>('/mobile/account', { confirmation }),
   content: (level: string, week: number) =>
     api.get<{
       title: string
@@ -66,7 +81,6 @@ export const api = {
     api.post('/mobile/tracker', { date, habits }),
   registerPush: (expoToken: string, platform: string) =>
     api.post('/push/register', { expo_token: expoToken, platform }),
-  unregisterPush: () => api.post<{ ok: boolean }>('/push/unregister'),
   cohortCount: () => api.get<{ count: number }>('/mobile/cohort-count'),
   quiz: (level: string, week: number) =>
     api.get<Record<'I' | 'II' | 'III', QuizQuestion[]>>(

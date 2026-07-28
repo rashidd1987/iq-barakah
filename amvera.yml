@@ -5,9 +5,10 @@ meta:
     version: "3.11"
 
 build:
-  requirementsPath: bot/requirements.txt
-  useCache: true
+  requirementsPath: bot_v2/requirements.txt
+  useCache: false
 
 run:
-  command: python bot/bot.py
+  command: python -m bot_v2.main
   persistenceMount: /data
+  containerPort: 80

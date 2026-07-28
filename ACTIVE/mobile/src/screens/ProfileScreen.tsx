@@ -48,6 +48,9 @@ export default function ProfileScreen() {
   const [profileError, setProfileError] = useState(false)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -107,13 +110,9 @@ export default function ProfileScreen() {
           await lsSet(PUSH_ENABLED_KEY, false)
           return
         }
-      } else {
-        await api.unregisterPush()
       }
       setPushEnabled(value)
       await lsSet(PUSH_ENABLED_KEY, value)
-    } catch {
-      Alert.alert('Не удалось изменить уведомления', 'Проверьте интернет-соединение и попробуйте снова.')
     } finally {
       setTogglingPush(false)
     }
@@ -166,6 +165,23 @@ export default function ProfileScreen() {
       message: `Присоединяйтесь к программе IQ Barakah: ${profile.referral.link}`,
       url: profile.referral.link,
     })
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation.trim() !== 'УДАЛИТЬ') {
+      Alert.alert('Нужно подтверждение', 'Введите слово УДАЛИТЬ без кавычек.')
+      return
+    }
+    setDeletingAccount(true)
+    try {
+      await api.deleteAccount(deleteConfirmation)
+      await logout()
+      Alert.alert('Аккаунт удалён', 'Личные данные и прогресс удалены. Финансовые записи сохранены только в обезличенном виде.')
+    } catch {
+      Alert.alert('Не удалось удалить аккаунт', 'Данные не изменены. Проверьте подключение и попробуйте снова.')
+    } finally {
+      setDeletingAccount(false)
+    }
   }
 
   return (
@@ -369,7 +385,51 @@ export default function ProfileScreen() {
         </View>
 
         <Pressable style={styles.logoutButton} onPress={logout}><Ionicons name="log-out-outline" size={19} color={colors.danger} /><Text style={styles.logoutText}>Выйти из аккаунта</Text></Pressable>
-        <Text style={styles.buildTag}>IQ Barakah · build {Application.nativeBuildVersion ?? '?'}</Text>
+        <Pressable
+          style={styles.deleteAccountButton}
+          onPress={() => {
+            setShowDeleteAccount((value) => !value)
+            setDeleteConfirmation('')
+          }}
+          disabled={deletingAccount}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.danger} />
+          <Text style={styles.deleteAccountText}>{showDeleteAccount ? 'Отменить удаление' : 'Удалить аккаунт'}</Text>
+        </Pressable>
+        {showDeleteAccount && (
+          <View style={styles.deleteAccountPanel}>
+            <Text style={styles.deleteAccountTitle}>Удалить аккаунт безвозвратно?</Text>
+            <Text style={styles.deleteAccountHint}>
+              Будут удалены профиль, прогресс, трекер, мухасаба, колесо и push-токен.
+              Подтверждённые платежи останутся только как обезличенные финансовые записи.
+            </Text>
+            <TextInput
+              value={deleteConfirmation}
+              onChangeText={setDeleteConfirmation}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              placeholder="Введите УДАЛИТЬ"
+              placeholderTextColor={colors.muted}
+              editable={!deletingAccount}
+              style={styles.deleteAccountInput}
+            />
+            <Pressable
+              style={[
+                styles.deleteAccountConfirm,
+                (deleteConfirmation.trim() !== 'УДАЛИТЬ' || deletingAccount) && styles.buttonDisabled,
+              ]}
+              onPress={handleDeleteAccount}
+              disabled={deleteConfirmation.trim() !== 'УДАЛИТЬ' || deletingAccount}
+            >
+              <Text style={styles.deleteAccountConfirmText}>
+                {deletingAccount ? 'Удаляем…' : 'Удалить навсегда'}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+        {Platform.OS !== 'web' && Application.nativeBuildVersion ? (
+          <Text style={styles.buildTag}>IQ Barakah · build {Application.nativeBuildVersion}</Text>
+        ) : null}
       </View>
     </ScrollView>
   )
@@ -496,6 +556,16 @@ const createStyles = (colors: ThemeColors) => {
     settingsCard: { paddingHorizontal: 16, marginBottom: 24 }, settingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center' }, settingIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', marginRight: 12 }, settingCopy: { flex: 1 }, settingTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, settingSub: { color: colors.muted, fontSize: 11, marginTop: 3 }, separator: { height: 1, backgroundColor: colors.border, marginLeft: 52 },
     installHelp: { flexDirection: 'row', gap: 9, padding: 12, marginBottom: 12, borderRadius: 13, backgroundColor: colors.goldpale }, installHelpCopy: { flex: 1 }, installHelpTitle: { color: colors.text, fontSize: 12, fontWeight: '800' }, installHelpText: { color: colors.sub, fontSize: 11, lineHeight: 16, marginTop: 3 },
     achievementsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }, achievement: { width: '48%', minHeight: 74, padding: 11, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.button, ...shadow.card }, achievementLocked: { elevation: 0, shadowOpacity: 0, borderWidth: 1, borderColor: colors.border }, achievementIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.overlay, marginRight: 9 }, achievementIconUnlocked: { backgroundColor: colors.goldpale }, achievementLabel: { flex: 1, color: colors.text, fontSize: 11, lineHeight: 15, fontWeight: '700' }, achievementLabelLocked: { color: colors.muted },
-    logoutButton: { minHeight: 52, borderRadius: radius.button, borderWidth: 1, borderColor: colors.dangerSoft, backgroundColor: colors.card, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' }, logoutText: { color: colors.danger, fontSize: 14, fontWeight: '700' }, buildTag: { textAlign: 'center', color: colors.muted, fontSize: 10, marginTop: 14 },
+    logoutButton: { minHeight: 52, borderRadius: radius.button, borderWidth: 1, borderColor: colors.dangerSoft, backgroundColor: colors.card, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
+    logoutText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
+    deleteAccountButton: { minHeight: 46, flexDirection: 'row', gap: 7, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+    deleteAccountText: { color: colors.danger, fontSize: 12, fontWeight: '700' },
+    deleteAccountPanel: { padding: 15, marginTop: 8, borderRadius: radius.button, borderWidth: 1, borderColor: colors.dangerSoft, backgroundColor: colors.card },
+    deleteAccountTitle: { color: colors.danger, fontSize: 14, fontWeight: '800' },
+    deleteAccountHint: { color: colors.sub, fontSize: 11, lineHeight: 17, marginTop: 7 },
+    deleteAccountInput: { height: 46, borderWidth: 1, borderColor: colors.dangerSoft, borderRadius: 12, color: colors.text, backgroundColor: colors.cardRaised, paddingHorizontal: 12, fontSize: 13, fontWeight: '700', marginTop: 12 },
+    deleteAccountConfirm: { height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger, marginTop: 10 },
+    deleteAccountConfirmText: { color: colors.onPrimary, fontSize: 13, fontWeight: '800' },
+    buildTag: { textAlign: 'center', color: colors.muted, fontSize: 10, marginTop: 14 },
   })
 }
