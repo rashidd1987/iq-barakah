@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "IQ Barakah",
+    "description": "Образовательная программа малых и постоянных шагов: уроки, трекер, мухасаба и колесо баланса.",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,8 +9,12 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#1a3d1b",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "ru.iqbarakah.mobile"
+      "supportsTablet": false,
+      "icon": "./assets/ios-icon.png",
+      "bundleIdentifier": "ru.iqbarakah.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "ru.iqbarakah.mobile",

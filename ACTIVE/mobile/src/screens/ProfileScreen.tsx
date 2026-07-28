@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import * as Application from 'expo-application'
 import React, { useEffect, useMemo, useState } from 'react'
-import { Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
+import { Alert, Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import ScreenHeader from '../components/ScreenHeader'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -353,6 +353,18 @@ export default function ProfileScreen() {
             <View style={styles.settingIcon}><Ionicons name="compass-outline" size={21} color={colors.g2} /></View>
             <View style={styles.settingCopy}><Text style={styles.settingTitle}>Повторить диагностику</Text><Text style={styles.settingSub}>Обновить точку старта</Text></View>
             <Ionicons name="chevron-forward" size={19} color={colors.muted} />
+          </Pressable>
+          <View style={styles.separator} />
+          <Pressable style={styles.settingRow} onPress={() => Linking.openURL('https://iq-barakah.ru/privacy-policy.html')}>
+            <View style={styles.settingIcon}><Ionicons name="shield-checkmark-outline" size={21} color={colors.g2} /></View>
+            <View style={styles.settingCopy}><Text style={styles.settingTitle}>Конфиденциальность</Text><Text style={styles.settingSub}>Как мы защищаем ваши данные</Text></View>
+            <Ionicons name="open-outline" size={18} color={colors.muted} />
+          </Pressable>
+          <View style={styles.separator} />
+          <Pressable style={styles.settingRow} onPress={() => Linking.openURL('https://iq-barakah.ru/terms.html')}>
+            <View style={styles.settingIcon}><Ionicons name="document-text-outline" size={21} color={colors.g2} /></View>
+            <View style={styles.settingCopy}><Text style={styles.settingTitle}>Условия использования</Text><Text style={styles.settingSub}>Правила программы IQ Barakah</Text></View>
+            <Ionicons name="open-outline" size={18} color={colors.muted} />
           </Pressable>
         </View>
 
