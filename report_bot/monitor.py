@@ -4,12 +4,13 @@ from datetime import date, datetime
 import json
 import logging
 from pathlib import Path
+from typing import TypedDict
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 
 from report_bot.projects import ProjectRegistry
-from report_bot.status import StatusClient, all_sites_summary
+from report_bot.status import SiteStatus, StatusClient, all_sites_summary
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,21 @@ class ProjectState:
     workflow_id: int | None
     workflow_status: str | None
     workflow_conclusion: str | None
+    failure_streak: int = 0
+    success_streak: int = 0
+    error_reason: str | None = None
+
+
+OUTAGE_CONFIRMATIONS = 3
+RECOVERY_CONFIRMATIONS = 2
+
+
+class StableSiteState(TypedDict):
+    site_ok: bool
+    status_code: int | None
+    failure_streak: int
+    success_streak: int
+    error_reason: str | None
 
 
 class StateStore:
@@ -131,19 +147,58 @@ def token_expiry_reminder(
     return None
 
 
+def stabilize_site_status(
+    site: SiteStatus,
+    previous: ProjectState | None,
+) -> StableSiteState:
+    if previous is None:
+        return {
+            "site_ok": site.ok,
+            "status_code": site.status_code,
+            "failure_streak": 0 if site.ok else 1,
+            "success_streak": 1 if site.ok else 0,
+            "error_reason": site.error_reason,
+        }
+
+    if site.ok:
+        success_streak = previous.success_streak + 1
+        return {
+            "site_ok": previous.site_ok or success_streak >= RECOVERY_CONFIRMATIONS,
+            "status_code": site.status_code,
+            "failure_streak": 0,
+            "success_streak": success_streak,
+            "error_reason": None,
+        }
+
+    failure_streak = previous.failure_streak + 1
+    return {
+        "site_ok": (
+            previous.site_ok and failure_streak < OUTAGE_CONFIRMATIONS
+        ),
+        "status_code": site.status_code,
+        "failure_streak": failure_streak,
+        "success_streak": 0,
+        "error_reason": site.error_reason,
+    }
+
+
 async def capture_state(
-    client: StatusClient, registry: ProjectRegistry
+    client: StatusClient,
+    registry: ProjectRegistry,
+    previous: dict[str, ProjectState] | None = None,
 ) -> dict[str, ProjectState]:
+    previous = previous or {}
+
     async def capture(project):
         site = await client.site_status(project)
         runs = await client.workflow_runs(project.repo, limit=1) if project.repo else None
         latest = runs[0] if runs else {}
+        stable_site = stabilize_site_status(site, previous.get(project.key))
         return project.key, ProjectState(
-            site_ok=site.ok,
-            status_code=site.status_code,
             workflow_id=latest.get("id"),
             workflow_status=latest.get("status"),
             workflow_conclusion=latest.get("conclusion"),
+            **stable_site,
         )
 
     return dict(await asyncio.gather(*(capture(project) for project in registry.all())))
@@ -160,10 +215,19 @@ def transition_messages(
         if before is None or after is None:
             continue
         if before.site_ok != after.site_ok:
-            messages.append(
-                f"{'✅ Восстановлен' if after.site_ok else '🚨 Недоступен'}: "
-                f"<b>{project.title}</b>"
-            )
+            if after.site_ok:
+                messages.append(f"✅ Восстановлен: <b>{project.title}</b>")
+            else:
+                reason = after.error_reason or (
+                    f"HTTP {after.status_code}"
+                    if after.status_code is not None
+                    else "причина не определена"
+                )
+                messages.append(
+                    f"🚨 Недоступен: <b>{project.title}</b>\n"
+                    f"Причина: {reason} "
+                    f"({after.failure_streak} проверки подряд)"
+                )
         workflow_changed = (
             after.workflow_id is not None
             and (
@@ -201,7 +265,7 @@ async def monitor_loop(
     zone = ZoneInfo(timezone)
     while True:
         try:
-            current = await capture_state(client, registry)
+            current = await capture_state(client, registry, previous)
             if previous:
                 for message in transition_messages(previous, current, registry):
                     for owner_id in owner_ids:
