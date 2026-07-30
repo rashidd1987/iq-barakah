@@ -173,6 +173,9 @@ class MobileProfileUpdateReq(BaseModel):
 class MobileAccountDeleteReq(BaseModel):
     confirmation: str
 
+class MobileDiagnosticResultReq(BaseModel):
+    scores: List[int]
+
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 
 def make_token(user_id: int, email: str) -> str:
@@ -552,6 +555,63 @@ async def mobile_participant(tg_id: int = Depends(verify_mobile_token)):
     if not p:
         raise HTTPException(404, 'Участник не найден')
     return dict(p)
+
+def _diagnostic_levels(scores: List[int]) -> dict:
+    cleaned = [max(0, min(3, int(score))) for score in scores]
+    if not cleaned or len(cleaned) > 20:
+        raise HTTPException(400, 'Некорректный результат диагностики')
+    pct = round(sum(cleaned) / (len(cleaned) * 3) * 100)
+    if pct <= 25:
+        level_key = 'А'
+        vakt_level = 'I'
+    elif pct <= 50:
+        level_key = 'Б'
+        vakt_level = 'II'
+    else:
+        level_key = 'В'
+        vakt_level = 'III'
+    return {'scores': cleaned, 'pct': pct, 'level_key': level_key, 'vakt_level': vakt_level}
+
+@app.post('/mobile/diagnostic-result')
+async def mobile_save_diagnostic_result(
+    req: MobileDiagnosticResultReq,
+    tg_id: int = Depends(verify_mobile_token),
+):
+    """Сохраняет диагностику из PWA в общую историю бота и обновляет только
+    сложность уроков (participants.vakt_level). Программу А/Б/В не меняем:
+    она связана с оплатой и активацией куратором.
+    """
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    result = _diagnostic_levels(req.scores)
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            participant = await conn.fetchrow(
+                'SELECT id FROM participants WHERE user_id=$1 ORDER BY is_active DESC, id DESC LIMIT 1',
+                tg_id,
+            )
+            if not participant:
+                raise HTTPException(404, 'Участник не найден')
+            await conn.execute(
+                '''INSERT INTO diag_results (user_id, scores, level_key, pct, created_at)
+                   VALUES ($1, $2, $3, $4, $5)''',
+                tg_id,
+                result['scores'],
+                result['level_key'],
+                result['pct'],
+                datetime.utcnow(),
+            )
+            await conn.execute(
+                'UPDATE participants SET vakt_level=$1 WHERE id=$2',
+                result['vakt_level'],
+                participant['id'],
+            )
+    return {
+        'ok': True,
+        'pct': result['pct'],
+        'level_key': result['level_key'],
+        'vakt_level': result['vakt_level'],
+    }
 
 def _clean_optional(value: Optional[str], max_length: int) -> Optional[str]:
     if value is None:

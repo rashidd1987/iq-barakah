@@ -1,4 +1,4 @@
-const CACHE_NAME = 'iq-barakah-native-web-v2'
+const CACHE_NAME = 'iq-barakah-native-web-v4-diagnostic-20260730'
 const APP_SHELL = ['/pwa/', '/pwa/manifest.webmanifest', '/pwa/icon.png']
 
 self.addEventListener('install', (event) => {

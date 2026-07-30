@@ -182,9 +182,11 @@ export default function HomeScreen({ navigation }: Props) {
         <View style={styles.lessonCard}>
           <View style={styles.lessonEyebrowRow}>
             <Text style={styles.lessonEyebrow}>
-              {position ? `${LEVEL_ICONS[position.level] ?? '◆'} ${LEVEL_LABELS[position.level] ?? position.level}` : 'IQ BARAKAH'}
+              {position ? `Программа: ${LEVEL_ICONS[position.level] ?? '◆'} ${LEVEL_LABELS[position.level] ?? position.level}` : 'IQ BARAKAH'}
             </Text>
-            <Text style={styles.lessonDuration}>5 минут</Text>
+            <Text style={styles.lessonDuration}>
+              {position ? `Уровень диагностики: ${position.skill}` : '5 минут'}
+            </Text>
           </View>
           <Text style={styles.lessonTitle}>Шаг {currentWeek} · {lessonTitle || weekData?.title || 'Текущий урок'}</Text>
           <Text style={styles.lessonSubtitle}>{weekData?.sub || 'Продолжите свой путь'}</Text>
@@ -309,9 +311,9 @@ const createStyles = (colors: ThemeColors) => {
       padding: 20,
       ...shadow.card,
     },
-    lessonEyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    lessonEyebrow: { color: colors.gold, fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
-    lessonDuration: { color: colors.muted, fontSize: 12 },
+    lessonEyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    lessonEyebrow: { flex: 1, color: colors.gold, fontSize: 12, fontWeight: '800', letterSpacing: 0.6 },
+    lessonDuration: { flexShrink: 1, color: colors.muted, fontSize: 12, textAlign: 'right' },
     lessonTitle: { color: colors.text, fontSize: 23, fontWeight: '800', lineHeight: 29, marginTop: 18 },
     lessonSubtitle: { color: colors.sub, fontSize: 13, lineHeight: 19, marginTop: 6 },
     lessonProgressMeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, marginBottom: 8 },
