@@ -122,7 +122,9 @@ jobs:
         run: |
           python3 .github/scripts/record_approval_decision.py \
             --approval-id "${{ needs.request-approval.outputs.approval_id }}" \
-            --status approved
+            --status approved || {
+              echo "::warning::Could not synchronize Telegram approval; continuing because GitHub environment approval succeeded."
+            }
 
       - name: Download verified build
         uses: actions/download-artifact@v4
