@@ -1,9 +1,20 @@
 import importlib.util
+import sys
+import types
 import unittest
 from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+
+jarwas_stub = types.ModuleType("bot_v2.services.jarwas")
+jarwas_stub.setup_jarwas = lambda _api_key: None
+
+async def _ask_jarwas_muhasaba_stub(*_args, **_kwargs):
+    return ""
+
+jarwas_stub.ask_jarwas_muhasaba = _ask_jarwas_muhasaba_stub
+sys.modules["bot_v2.services.jarwas"] = jarwas_stub
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "main.py"
 SPEC = importlib.util.spec_from_file_location("pwa_api_wheel_contract", MODULE_PATH)

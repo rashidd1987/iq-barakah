@@ -33,6 +33,7 @@ _rate_store: Dict[str, List[float]] = defaultdict(list)
 RATE_LIMITS = {
     '/auth/login': (10, 60),     # 10 req / 60s
     '/auth/register': (5, 60),   # 5 req / 60s
+    '/mobile/account': (5, 3600),  # destructive action: 5 attempts / hour
     'default': (120, 60),        # 120 req / 60s
 }
 
@@ -168,6 +169,9 @@ class MobileProfileUpdateReq(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
+
+class MobileAccountDeleteReq(BaseModel):
+    confirmation: str
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -731,6 +735,99 @@ async def mobile_update_profile(
     if result == 'UPDATE 0':
         raise HTTPException(404, 'Пользователь не найден')
     return {'ok': True}
+
+DELETED_PAYMENTS_USER_ID = -1
+
+def _protected_account_ids() -> set[int]:
+    values = [
+        os.environ.get('CURATOR_ID', ''),
+        *os.environ.get('ACCOUNT_DELETION_PROTECTED_IDS', '').split(','),
+    ]
+    protected: set[int] = set()
+    for value in values:
+        try:
+            protected.add(int(value.strip()))
+        except (TypeError, ValueError):
+            continue
+    return protected
+
+@app.delete('/mobile/account')
+async def mobile_delete_account(
+    req: MobileAccountDeleteReq,
+    tg_id: int = Depends(verify_mobile_token),
+):
+    """Permanently remove a student's account and personal learning data.
+
+    Paid transaction rows are retained only as anonymised financial records:
+    they are reassigned to a non-login tombstone user and their receipt email is
+    erased. The operation is transactional so a foreign-key or database failure
+    cannot leave a partially deleted account.
+    """
+    confirmation = req.confirmation.strip().encode('utf-8')
+    if not hmac.compare_digest(confirmation, 'УДАЛИТЬ'.encode('utf-8')):
+        raise HTTPException(400, 'Введите УДАЛИТЬ для подтверждения')
+    if tg_id in _protected_account_ids():
+        raise HTTPException(403, 'Этот служебный аккаунт нельзя удалить из приложения')
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            user = await conn.fetchrow('SELECT id FROM users WHERE id=$1 FOR UPDATE', tg_id)
+            if not user:
+                return {'ok': True, 'already_deleted': True}
+
+            pwa_user = await conn.fetchrow('SELECT id FROM pwa_users WHERE tg_id=$1', tg_id)
+
+            # Keep legally relevant payment facts without retaining a link to
+            # the deleted Telegram account or its receipt email.
+            await conn.execute(
+                '''INSERT INTO users (id, name, language_code, barakah_balance, charity_consent)
+                   VALUES ($1, $2, 'ru', 0, FALSE)
+                   ON CONFLICT (id) DO NOTHING''',
+                DELETED_PAYMENTS_USER_ID,
+                'Удалённый пользователь',
+            )
+            await conn.execute(
+                'UPDATE bot_payments SET user_id=$1, email_used=NULL WHERE user_id=$2',
+                DELETED_PAYMENTS_USER_ID,
+                tg_id,
+            )
+
+            # Preserve other students but remove their relationship to the
+            # deleted referrer.
+            await conn.execute('UPDATE users SET referred_by=NULL WHERE referred_by=$1', tg_id)
+            await conn.execute(
+                'UPDATE barakah_transactions SET ref_user_id=NULL WHERE ref_user_id=$1',
+                tg_id,
+            )
+
+            await conn.execute('DELETE FROM push_tokens WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM pwa_tg_sessions WHERE tg_id=$1', tg_id)
+            await conn.execute('DELETE FROM pairs WHERE uid1=$1 OR uid2=$1', tg_id)
+            await conn.execute('DELETE FROM barakah_transactions WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM task_completions WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM wheel_records WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM tracker_records WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM week_acks WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM muhasaba_logs WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM diag_results WHERE user_id=$1', tg_id)
+            await conn.execute('DELETE FROM participants WHERE user_id=$1', tg_id)
+
+            if pwa_user:
+                await conn.execute(
+                    'DELETE FROM pwa_analytics WHERE uid=$1 OR uid=$2',
+                    str(tg_id),
+                    str(pwa_user['id']),
+                )
+                # pwa_tracker, pwa_wheel and pwa_ship cascade from pwa_users.
+                await conn.execute('DELETE FROM pwa_users WHERE id=$1', pwa_user['id'])
+            else:
+                await conn.execute('DELETE FROM pwa_analytics WHERE uid=$1', str(tg_id))
+
+            await conn.execute('DELETE FROM users WHERE id=$1', tg_id)
+
+    return {'ok': True, 'already_deleted': False}
 
 @app.get('/mobile/cohort-count')
 async def mobile_cohort_count(tg_id: int = Depends(verify_mobile_token)):
