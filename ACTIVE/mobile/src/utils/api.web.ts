@@ -64,6 +64,11 @@ export const api = {
     api.get<{ level: string; week: number; vakt_level: string | null; is_active: boolean }>(
       '/mobile/participant',
     ),
+  saveDiagnosticResult: (scores: number[]) =>
+    api.post<{ ok: boolean; pct: number; level_key: string; vakt_level: 'I' | 'II' | 'III' }>(
+      '/mobile/diagnostic-result',
+      { scores },
+    ),
   profile: () => api.get<MobileProfile>('/mobile/profile'),
   updateProfile: (body: { name: string; email: string | null; phone: string | null }) =>
     api.put<{ ok: boolean }>('/mobile/profile', body),

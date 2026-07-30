@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons'
 import React, { useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useTheme } from '../context/ThemeContext'
 import { makeShadow, radius, ThemeColors } from '../theme/colors'
+import { api } from '../utils/api'
 
 // Ported 1:1 from bot_v2/handlers/korablik.py (the "Кораблик" — 7-section ship
 // diagnostic) so the app onboarding matches what students already know from the bot.
@@ -146,6 +148,8 @@ export default function DiagnosticScreen({ onContinue }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors])
   const [step, setStep] = useState(0)
   const [scores, setScores] = useState<number[]>([])
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(false)
 
   const handleAnswer = (score: number) => {
     const next = [...scores, score]
@@ -156,6 +160,20 @@ export default function DiagnosticScreen({ onContinue }: Props) {
   }
 
   const finished = scores.length === QUESTIONS.length
+
+  const finishDiagnostic = async () => {
+    if (saving) return
+    setSaving(true)
+    setSaveError(false)
+    try {
+      await api.saveDiagnosticResult(scores)
+      onContinue()
+    } catch {
+      setSaveError(true)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (!finished) {
     const q = QUESTIONS[step]
@@ -204,8 +222,15 @@ export default function DiagnosticScreen({ onContinue }: Props) {
         })}
       </View>
       <Text style={styles.totalNote}>Итого: {total} из 21</Text>
-      <Pressable style={styles.continueButton} onPress={onContinue}>
-        <Text style={styles.continueButtonText}>Посмотреть, кем ты станешь</Text>
+      {saveError && (
+        <Text style={styles.saveError}>Не удалось сохранить уровень. Проверь интернет и попробуй ещё раз.</Text>
+      )}
+      <Pressable style={[styles.continueButton, saving && styles.continueButtonDisabled]} onPress={finishDiagnostic}>
+        {saving ? (
+          <ActivityIndicator color={colors.onPrimary} />
+        ) : (
+          <Text style={styles.continueButtonText}>Сохранить и продолжить</Text>
+        )}
       </Pressable>
     </ScrollView>
   )
@@ -259,6 +284,7 @@ const createStyles = (colors: ThemeColors) => {
   mapDesc: { fontSize: 13, color: colors.sub, lineHeight: 19 },
   mapStep: { fontSize: 12, color: colors.g2, fontWeight: '600', marginTop: 4 },
   totalNote: { fontSize: 12, color: colors.muted, textAlign: 'center', marginBottom: 24 },
+  saveError: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 12 },
   continueButton: {
     backgroundColor: colors.g2,
     paddingVertical: 14,
@@ -266,7 +292,7 @@ const createStyles = (colors: ThemeColors) => {
     borderRadius: radius.button,
     alignSelf: 'center',
   },
+  continueButtonDisabled: { opacity: 0.7 },
   continueButtonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600' },
   })
 }
-import { Ionicons } from '@expo/vector-icons'
