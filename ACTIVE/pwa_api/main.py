@@ -1147,6 +1147,30 @@ def _miniapp_user_id(init_data: str) -> int:
     except (KeyError, ValueError, json.JSONDecodeError):
         raise HTTPException(400, 'Нет данных пользователя Telegram')
 
+@app.post('/mobile/auth/telegram-webapp')
+async def mobile_telegram_webapp_auth(req: MiniappParticipantReq):
+    """Authorize the Expo PWA when it is opened as a Telegram WebApp.
+
+    The lower Telegram keyboard opens /pwa/ in Telegram's isolated WebView, so
+    the browser's localStorage token is not available there. This endpoint
+    validates Telegram initData and issues the same mobile JWT used by the
+    existing /mobile/* API, without creating a shadow PWA account.
+    """
+    tg_id = _miniapp_user_id(req.init_data)
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        user = await conn.fetchrow('SELECT id FROM users WHERE id=$1', tg_id)
+        if not user:
+            raise HTTPException(404, 'Пользователь не найден в системе IQ Barakah')
+        participant = await conn.fetchrow(
+            'SELECT id FROM participants WHERE user_id=$1',
+            tg_id,
+        )
+        if not participant:
+            raise HTTPException(403, 'Программа ещё не активирована куратором')
+    return {'status': 'ok', 'access_token': make_mobile_token(tg_id), 'token_type': 'bearer'}
+
 @app.post('/miniapp/participant')
 async def miniapp_participant(req: MiniappParticipantReq):
     tg_id = _miniapp_user_id(req.init_data)
