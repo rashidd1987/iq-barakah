@@ -21,6 +21,10 @@ interface LoginOptions {
   pollIntervalMs?: number
 }
 
+export async function loginWithTelegramWebApp(): Promise<boolean> {
+  return false
+}
+
 // Mirrors ACTIVE/pwa's tg-init -> bot confirm -> tg-check flow, using a native deep link
 // instead of a browser redirect so it opens the Telegram app directly.
 export async function loginWithTelegram(options: LoginOptions = {}): Promise<boolean> {
