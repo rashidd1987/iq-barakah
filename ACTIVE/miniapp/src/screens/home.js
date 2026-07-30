@@ -1,4 +1,4 @@
-import { getTgUser } from '../utils/tg.js'
+import { getTgUser, tg } from '../utils/tg.js'
 import { WEEKS, LEVEL_OFFSET, LEVEL_ICONS, LEVEL_LABELS } from '../data/weeks.js'
 import { lsGet, lsSet } from '../utils/storage.js'
 import { computeAllStats } from '../utils/stats.js'
@@ -12,6 +12,48 @@ export const U = {
   streak: 0,
   deeds: 0,
   xp: 0,
+}
+
+const PARTICIPANT_API_BASE = 'https://pwa-api.iq-barakah.ru'
+
+export async function syncParticipantProgress() {
+  const preview = new URLSearchParams(window.location.search).get('preview') === '1'
+  if (preview || !tg?.initData) return false
+
+  try {
+    const response = await fetch(`${PARTICIPANT_API_BASE}/miniapp/participant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ init_data: tg.initData }),
+    })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const participant = await response.json()
+    const globalWeek = Number(participant.global_week)
+    if (
+      participant.found === false
+      || !participant.level
+      || !Number.isInteger(globalWeek)
+      || globalWeek < 1
+    ) {
+      return false
+    }
+
+    U.level = participant.level
+    U.currentWeek = globalWeek
+    U.skill = ['I', 'II', 'III'].includes(participant.vakt_level)
+      ? participant.vakt_level
+      : 'I'
+
+    // Keep the old offline fallback working if Telegram/API is temporarily unavailable.
+    lsSet('level', U.level)
+    lsSet('currentWeek', U.currentWeek)
+    lsSet('skill', U.skill)
+    return true
+  } catch (error) {
+    console.warn('Mini App progress sync unavailable:', error?.message || 'unknown error')
+    return false
+  }
 }
 
 export function initOnboarding() {
@@ -46,8 +88,8 @@ export function initOnboarding() {
   skipBtn.onclick = finish
 }
 
-export function initHome() {
-  readUrlParams()
+export function initHome({ readPosition = true } = {}) {
+  if (readPosition) readUrlParams()
 
   const tgUser = getTgUser()
   if (tgUser) {

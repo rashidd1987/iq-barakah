@@ -2,7 +2,7 @@ import './style.css'
 import { initI18n } from './i18n.js'
 import { initTg, cloudGet, cloudSet, haptic, sendData } from './utils/tg.js'
 import { showGlossaryTip } from './components/sheets.js'
-import { initHome, initOnboarding, U } from './screens/home.js'
+import { initHome, initOnboarding, syncParticipantProgress, U } from './screens/home.js'
 import { setCurrentWeek } from './screens/lessons.js'
 import { renderTracker } from './screens/tracker.js'
 import { initNav, rerenderCurrentScreen } from './app.js'
@@ -24,6 +24,16 @@ initHomeScreenShortcut(U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0)
 
 // Sync currentWeek from user state into lessons module
 setCurrentWeek(U.currentWeek)
+
+// The URL/localStorage state renders immediately. The signed Telegram request then
+// replaces it with the database position used by PWA and native apps.
+syncParticipantProgress().then((synced) => {
+  if (!synced) return
+  // Do not let legacy URL params overwrite the position just loaded from the database.
+  initHome({ readPosition: false })
+  setCurrentWeek(U.currentWeek)
+  rerenderCurrentScreen()
+})
 
 // Nav
 initNav()
