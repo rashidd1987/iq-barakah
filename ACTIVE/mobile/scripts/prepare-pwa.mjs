@@ -6,6 +6,7 @@ const distDir = resolve(projectRoot, 'dist-pwa')
 const indexPath = resolve(distDir, 'index.html')
 const requestedBasePath = process.env.PWA_BASE_PATH || '/pwa'
 const basePath = `/${requestedBasePath.replace(/^\/+|\/+$/g, '')}`
+const releaseMarker = 'diagnostic-20260730'
 
 let html = await readFile(indexPath, 'utf8')
 html = html.replace(
@@ -15,7 +16,7 @@ html = html.replace(
     `<link rel="apple-touch-icon" href="${basePath}/icon.png">`,
     '<meta name="apple-mobile-web-app-capable" content="yes">',
     '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">',
-    `<script src="${basePath}/registerSW.js" defer></script>`,
+    `<script src="${basePath}/registerSW.js?v=${releaseMarker}" defer></script>`,
     '</head>',
   ].join(''),
 )
