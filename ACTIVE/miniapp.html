@@ -6613,6 +6613,48 @@ const U = {
   xp: 0,
 }
 
+const PARTICIPANT_API_BASE = 'https://pwa-api.iq-barakah.ru'
+
+export async function syncParticipantProgress() {
+  const preview = new URLSearchParams(window.location.search).get('preview') === '1'
+  if (preview || !tg?.initData) return false
+
+  try {
+    const response = await fetch(`${PARTICIPANT_API_BASE}/miniapp/participant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ init_data: tg.initData }),
+    })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+    const participant = await response.json()
+    const globalWeek = Number(participant.global_week)
+    if (
+      participant.found === false
+      || !participant.level
+      || !Number.isInteger(globalWeek)
+      || globalWeek < 1
+    ) {
+      return false
+    }
+
+    U.level = participant.level
+    U.currentWeek = globalWeek
+    U.skill = ['I', 'II', 'III'].includes(participant.vakt_level)
+      ? participant.vakt_level
+      : 'I'
+
+    // Keep the old offline fallback working if Telegram/API is temporarily unavailable.
+    lsSet('level', U.level)
+    lsSet('currentWeek', U.currentWeek)
+    lsSet('skill', U.skill)
+    return true
+  } catch (error) {
+    console.warn('Mini App progress sync unavailable:', error?.message || 'unknown error')
+    return false
+  }
+}
+
 function initOnboarding() {
   if (lsGet('ob_done', false)) return
   const overlay = document.getElementById('ob-overlay')
@@ -6645,8 +6687,8 @@ function initOnboarding() {
   skipBtn.onclick = finish
 }
 
-function initHome() {
-  readUrlParams()
+function initHome({ readPosition = true } = {}) {
+  if (readPosition) readUrlParams()
 
   const tgUser = getTgUser()
   if (tgUser) {
@@ -7999,6 +8041,16 @@ initHomeScreenShortcut(U.currentWeek > 0 ? Math.max(0, U.currentWeek - 1) : 0)
 
 // Sync currentWeek from user state into lessons module
 setCurrentWeek(U.currentWeek)
+
+// The URL/localStorage state renders immediately. The signed Telegram request then
+// replaces it with the database position used by PWA and native apps.
+syncParticipantProgress().then((synced) => {
+  if (!synced) return
+  // Do not let legacy URL params overwrite the position just loaded from the database.
+  initHome({ readPosition: false })
+  setCurrentWeek(U.currentWeek)
+  rerenderCurrentScreen()
+})
 
 // Nav
 initNav()

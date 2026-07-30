@@ -1,0 +1,100 @@
+name: Release Telegram Mini App
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Type RELEASE to publish the Telegram Mini App
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-miniapp-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify Mini App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build standalone Mini App
+        run: python3 ACTIVE/miniapp/build_standalone.py
+
+      - name: Verify shared progress integration
+        run: |
+          node --check ACTIVE/miniapp/src/screens/home.js
+          node --check ACTIVE/miniapp/src/main.js
+          grep -q '/miniapp/participant' ACTIVE/miniapp.html
+          grep -q 'syncParticipantProgress' ACTIVE/miniapp.html
+
+      - name: Upload immutable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: telegram-miniapp-${{ github.sha }}
+          path: ACTIVE/miniapp.html
+          if-no-files-found: error
+          retention-days: 30
+
+  deploy:
+    name: Deploy Mini App
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Require explicit confirmation
+        if: inputs.confirm_production != 'RELEASE'
+        run: |
+          echo "Production release requires confirm_production=RELEASE."
+          exit 1
+
+      - name: Download verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: telegram-miniapp-${{ github.sha }}
+          path: dist-miniapp
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Back up and upload only Mini App
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          case "$DEPLOY_PATH" in
+            */pwa|*/pwav) ;;
+            *)
+              echo "Unexpected DEPLOY_PATH; refusing to infer the site root."
+              exit 1
+              ;;
+          esac
+          SITE_ROOT="$(dirname "$DEPLOY_PATH")"
+          SSH="ssh -i ~/.ssh/deploy_key -p ${DEPLOY_PORT:-22}"
+          $SSH "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "test -f '${SITE_ROOT}/miniapp.html' && cp '${SITE_ROOT}/miniapp.html' '${SITE_ROOT}/miniapp.html.previous' || true"
+          rsync -az \
+            -e "$SSH" \
+            dist-miniapp/miniapp.html \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${SITE_ROOT}/miniapp.html"
+
+      - name: Verify public Mini App
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 5 \
+            https://iq-barakah.ru/miniapp.html |
+            grep -q 'syncParticipantProgress'

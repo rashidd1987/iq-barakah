@@ -1154,13 +1154,18 @@ async def miniapp_participant(req: MiniappParticipantReq):
         raise HTTPException(500, 'База данных не подключена')
     async with db_pool.acquire() as conn:
         p = await conn.fetchrow(
-            'SELECT level, week, vakt_level FROM participants WHERE user_id=$1 AND is_active=TRUE',
+            '''SELECT level, week, vakt_level, is_active
+               FROM participants
+               WHERE user_id=$1
+               ORDER BY is_active DESC, id DESC
+               LIMIT 1''',
             tg_id
         )
     if not p:
-        return {'active': False}
+        return {'found': False, 'active': False}
     return {
-        'active': True,
+        'found': True,
+        'active': p['is_active'],
         'level': p['level'],
         'week': p['week'],
         'vakt_level': p['vakt_level'],
