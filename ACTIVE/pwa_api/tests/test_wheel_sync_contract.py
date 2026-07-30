@@ -35,8 +35,16 @@ class _WheelConnection:
         self.saved = None
 
     async def fetchrow(self, query, user_id):
-        assert "FROM wheel_records" in query
         assert user_id == 140700248
+        if "FROM participants" in query:
+            self.participant_query = query
+            return {
+                "level": "А",
+                "week": 6,
+                "vakt_level": "II",
+                "is_active": False,
+            }
+        assert "FROM wheel_records" in query
         return {
             "scores": {"Вера (Иман)": 8, "Намаз": 7},
             "created_at": datetime(2026, 7, 28, 4, 24),
@@ -83,6 +91,29 @@ class WheelSyncContractTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(result, {"ok": True})
         self.assertEqual(self.connection.saved, scores)
+
+    async def test_inactive_participant_keeps_saved_progress(self):
+        with patch.object(
+            pwa_api,
+            "_verify_telegram_init_data",
+            return_value={"user": '{"id": 140700248}'},
+        ):
+            result = await pwa_api.miniapp_participant(
+                pwa_api.MiniappParticipantReq(init_data="valid")
+            )
+
+        self.assertEqual(
+            result,
+            {
+                "found": True,
+                "active": False,
+                "level": "А",
+                "week": 6,
+                "vakt_level": "II",
+                "global_week": 6,
+            },
+        )
+        self.assertNotIn("is_active=TRUE", self.connection.participant_query)
 
 
 if __name__ == "__main__":
