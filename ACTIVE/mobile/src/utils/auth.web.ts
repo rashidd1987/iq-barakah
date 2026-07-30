@@ -11,6 +11,55 @@ interface LoginOptions {
   pollIntervalMs?: number
 }
 
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp
+    }
+  }
+}
+
+interface TelegramWebApp {
+  initData?: string
+  ready?: () => void
+  expand?: () => void
+}
+
+async function ensureTelegramWebApp(): Promise<TelegramWebApp | null> {
+  if (window.Telegram?.WebApp) return window.Telegram.WebApp
+  if (document.querySelector('script[data-telegram-web-app]')) {
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    return window.Telegram?.WebApp ?? null
+  }
+
+  await new Promise<void>((resolve) => {
+    const script = document.createElement('script')
+    script.src = 'https://telegram.org/js/telegram-web-app.js'
+    script.async = true
+    script.dataset.telegramWebApp = 'true'
+    script.onload = () => resolve()
+    script.onerror = () => resolve()
+    document.head.appendChild(script)
+  })
+  return window.Telegram?.WebApp ?? null
+}
+
+export async function loginWithTelegramWebApp(): Promise<boolean> {
+  const webApp = await ensureTelegramWebApp()
+  const initData = webApp?.initData
+  if (!initData) return false
+
+  try {
+    webApp?.ready?.()
+    webApp?.expand?.()
+    const result = await api.telegramWebAppAuth(initData)
+    await setToken(result.access_token)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function loginWithTelegram(options: LoginOptions = {}): Promise<boolean> {
   const { onStatus, timeoutMs = 10 * 60 * 1000, pollIntervalMs = 2000 } = options
   const { session_id } = await api.tgInit()

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { loginWithTelegramWebApp } from '../utils/auth'
 import { clearToken, getToken } from '../utils/api'
 import { lsGet, lsSet } from '../utils/storage'
 
@@ -26,9 +27,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [onboarding, setOnboarding] = useState<OnboardingStage | null>(null)
 
   useEffect(() => {
-    getToken()
-      .then((token) => setIsLoggedIn(!!token))
-      .finally(() => setIsLoading(false))
+    let alive = true
+    async function bootstrapAuth() {
+      try {
+        let token = await getToken()
+        if (!token) {
+          const loggedViaWebApp = await loginWithTelegramWebApp()
+          if (loggedViaWebApp) token = await getToken()
+        }
+        if (alive) setIsLoggedIn(!!token)
+      } finally {
+        if (alive) setIsLoading(false)
+      }
+    }
+    void bootstrapAuth()
+    return () => { alive = false }
   }, [])
 
   useEffect(() => {

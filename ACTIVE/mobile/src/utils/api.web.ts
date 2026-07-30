@@ -55,6 +55,11 @@ export const api = {
     api.get<{ status: 'pending' | 'ok'; access_token?: string }>(
       `/mobile/auth/tg-check?session_id=${encodeURIComponent(sessionId)}`,
     ),
+  telegramWebAppAuth: (initData: string) =>
+    api.post<{ status: 'ok'; access_token: string; token_type: 'bearer' }>(
+      '/mobile/auth/telegram-webapp',
+      { init_data: initData },
+    ),
   participant: () =>
     api.get<{ level: string; week: number; vakt_level: string | null; is_active: boolean }>(
       '/mobile/participant',
