@@ -34,6 +34,7 @@ from report_bot.main import (
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import SiteStatus, StatusClient, format_datetime, run_icon
+from report_bot.tasks import TaskStore, parse_task_details
 
 
 class ConfigTests(unittest.TestCase):
@@ -703,6 +704,90 @@ class ApprovalStoreTests(unittest.TestCase):
             self.assertEqual(reloaded.github_repository, "iq-barakah")
             self.assertEqual(reloaded.github_run_id, 123)
             self.assertEqual(reloaded.decision_source, "github")
+
+
+class TaskStoreTests(unittest.TestCase):
+    def test_parses_compact_task_details(self) -> None:
+        title, due_date, criterion = parse_task_details(
+            "Проверить оплату | 2026-08-02 | Тестовая оплата проходит"
+        )
+        self.assertEqual(title, "Проверить оплату")
+        self.assertEqual(due_date, date(2026, 8, 2))
+        self.assertEqual(criterion, "Тестовая оплата проходит")
+
+    def test_rejects_invalid_task_details(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Формат"):
+            parse_task_details("Только название")
+        with self.assertRaisesRegex(ValueError, "ГГГГ-ММ-ДД"):
+            parse_task_details("Проверить оплату | завтра | Оплата проходит")
+
+    def test_task_lifecycle_and_journal_persist(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            created_at = datetime(2026, 7, 31, 8, 0, tzinfo=timezone.utc)
+            task = store.create(
+                project_key="iqbarakah",
+                title="Проверить оплату",
+                due_date=date(2026, 8, 1),
+                success_criterion="Тестовая оплата проходит",
+                created_by=42,
+                now=created_at,
+            )
+            completed = store.complete(
+                task.id,
+                completed_by=42,
+                now=created_at + timedelta(hours=1),
+            )
+            assert completed is not None
+            self.assertEqual(completed.status, "done")
+            self.assertEqual(
+                [event.event for event in store.events()],
+                ["created", "completed"],
+            )
+
+            reloaded = TaskStore(directory)
+            persisted = reloaded.get(task.id)
+            assert persisted is not None
+            self.assertEqual(persisted.status, "done")
+            self.assertEqual(persisted.completed_by, 42)
+            self.assertEqual(len(reloaded.events()), 2)
+
+    def test_complete_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="mizanlife",
+                title="Проверить главную",
+                due_date=date(2026, 8, 1),
+                success_criterion="Страница открывается",
+                created_by=42,
+            )
+            first = store.complete(task.id, completed_by=42)
+            repeated = store.complete(task.id, completed_by=99)
+            assert first is not None and repeated is not None
+            self.assertEqual(first.completed_at, repeated.completed_at)
+            self.assertEqual(repeated.completed_by, 42)
+            self.assertEqual(len(store.events()), 2)
+
+    def test_due_includes_overdue_and_today_only(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            for title, due_date in (
+                ("Просроченная задача", date(2026, 7, 30)),
+                ("Задача на сегодня", date(2026, 7, 31)),
+                ("Будущая задача", date(2026, 8, 1)),
+            ):
+                store.create(
+                    project_key="mizanos",
+                    title=title,
+                    due_date=due_date,
+                    success_criterion="Результат проверен",
+                    created_by=42,
+                )
+            self.assertEqual(
+                [task.title for task in store.due(date(2026, 7, 31))],
+                ["Просроченная задача", "Задача на сегодня"],
+            )
 
 
 if __name__ == "__main__":

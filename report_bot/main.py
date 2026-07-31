@@ -1,9 +1,11 @@
 import asyncio
+from datetime import datetime
 import hmac
 import html
 import json
 import logging
 import ssl
+from zoneinfo import ZoneInfo
 
 import aiohttp
 import certifi
@@ -50,6 +52,7 @@ from report_bot.status import (
     project_summary,
     run_icon,
 )
+from report_bot.tasks import OwnerTask, TaskStore, parse_task_details
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,6 +70,10 @@ BOT_COMMANDS = (
     BotCommand(command="library", description="Библиотека проектов"),
     BotCommand(command="use", description="Выбрать активный проект"),
     BotCommand(command="brief", description="Обновить паспорт проекта"),
+    BotCommand(command="tasks", description="Открытые поручения"),
+    BotCommand(command="today", description="Поручения на сегодня"),
+    BotCommand(command="newtask", description="Создать поручение"),
+    BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
     BotCommand(command="errors", description="Последние ошибки"),
     BotCommand(command="releasepwa", description="Подготовить PWA-релиз"),
@@ -77,6 +84,7 @@ MENU = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🧠 Совет ИИ")],
         [KeyboardButton(text="📚 Библиотека проектов")],
+        [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -104,6 +112,10 @@ class SubscriptionCouncil(StatesGroup):
 
 class ApiCouncil(StatesGroup):
     task = State()
+
+
+class TaskCreation(StatesGroup):
+    details = State()
 
 
 def council_mode_keyboard() -> InlineKeyboardMarkup:
@@ -270,6 +282,30 @@ def pwa_release_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def task_keyboard(task: OwnerTask) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Выполнено",
+                    callback_data=f"task:done:{task.id}",
+                )
+            ]
+        ]
+    )
+
+
+def task_text(task: OwnerTask, project_title: str) -> str:
+    return (
+        f"📌 <b>{html.escape(task.title)}</b>\n"
+        f"Проект: {html.escape(project_title)}\n"
+        f"Срок: <code>{task.due_date}</code>\n"
+        f"Ответственный: {html.escape(task.responsible)}\n"
+        f"Готово, когда: {html.escape(task.success_criterion)}\n"
+        f"ID: <code>{task.id}</code>"
+    )
+
+
 def council_keyboard(project_key: str) -> InlineKeyboardMarkup:
     rows = [
         [
@@ -369,6 +405,7 @@ def build_router(
     registry: ProjectRegistry,
     knowledge: ProjectKnowledgeLibrary,
     approval_store: ApprovalStore,
+    task_store: TaskStore,
 ) -> Router:
     router = Router(name="owner_reports")
 
@@ -394,6 +431,10 @@ def build_router(
             "/library — паспорта и активный проект\n"
             "/use ключ — выбрать проект для коротких задач\n"
             "/brief текст — обновить паспорт активного проекта\n"
+            "/tasks — открытые поручения\n"
+            "/today — поручения со сроком сегодня и просроченные\n"
+            "/newtask — создать поручение для активного проекта\n"
+            "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
             "/releasepwa — подготовить PWA-релиз\n"
@@ -404,6 +445,159 @@ def build_router(
             "\n\nАвтоматически сообщаю только об изменениях и присылаю вечерний отчёт.",
             reply_markup=MENU,
         )
+
+    async def send_tasks(
+        message: Message,
+        tasks: tuple[OwnerTask, ...],
+        *,
+        heading: str,
+    ) -> None:
+        if not tasks:
+            await message.answer(f"{heading}\n\n✅ Поручений нет.")
+            return
+        await message.answer(f"{heading}\n\nНайдено: {len(tasks)}")
+        for task in tasks[:20]:
+            project = registry.by_key(task.project_key)
+            title = project.title if project else task.project_key
+            await message.answer(
+                task_text(task, title),
+                reply_markup=task_keyboard(task),
+            )
+        if len(tasks) > 20:
+            await message.answer(
+                f"Показаны первые 20 из {len(tasks)} поручений."
+            )
+
+    @router.message(Command("tasks"))
+    @router.message(lambda message: message.text == "✅ Поручения")
+    async def tasks_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        await send_tasks(
+            message,
+            task_store.open(),
+            heading="✅ <b>Открытые поручения</b>",
+        )
+
+    @router.message(Command("today"))
+    async def today_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        await send_tasks(
+            message,
+            task_store.due(datetime.now(ZoneInfo(config.timezone)).date()),
+            heading="📅 <b>На сегодня и просроченные</b>",
+        )
+
+    async def create_task_from_details(
+        message: Message,
+        raw_details: str,
+    ) -> bool:
+        try:
+            title, due_date, criterion = parse_task_details(raw_details)
+            project = registry.by_key(knowledge.active_project)
+            if project is None:
+                raise ValueError("Сначала выберите проект: /use ключ")
+            owner_id = message.from_user.id if message.from_user else 0
+            task = task_store.create(
+                project_key=project.key,
+                title=title,
+                due_date=due_date,
+                success_criterion=criterion,
+                created_by=owner_id,
+            )
+        except (ValueError, OSError) as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}")
+            return False
+        await message.answer(
+            "✅ <b>Поручение создано</b>\n\n"
+            + task_text(task, project.title),
+            reply_markup=task_keyboard(task),
+        )
+        return True
+
+    @router.message(Command("newtask"))
+    @router.message(lambda message: message.text == "➕ Поручение")
+    async def new_task_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        raw = (message.text or "").split(maxsplit=1)
+        if len(raw) == 2 and raw[0].startswith("/newtask"):
+            await create_task_from_details(message, raw[1])
+            return
+        await state.set_state(TaskCreation.details)
+        active = registry.by_key(knowledge.active_project)
+        active_title = active.title if active else knowledge.active_project
+        await message.answer(
+            f"➕ <b>Новое поручение · {html.escape(active_title)}</b>\n\n"
+            "Отправьте одной строкой:\n"
+            "<code>Что сделать | ГГГГ-ММ-ДД | Как проверить готовность</code>\n\n"
+            "Пример:\n"
+            "<code>Проверить страницу оплаты | 2026-08-02 | "
+            "Тестовая оплата проходит без ошибки</code>\n\n"
+            "Для отмены: /cancel"
+        )
+
+    @router.message(TaskCreation.details)
+    async def task_details_received(
+        message: Message,
+        state: FSMContext,
+    ) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        if (message.text or "").strip() == "/cancel":
+            await state.clear()
+            await message.answer("Ввод поручения отменён.", reply_markup=MENU)
+            return
+        if await create_task_from_details(message, message.text or ""):
+            await state.clear()
+
+    @router.message(Command("done"))
+    async def done_task_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        parts = (message.text or "").split(maxsplit=1)
+        if len(parts) != 2:
+            await message.answer("Укажите ID: <code>/done ID</code>")
+            return
+        task = task_store.get(parts[1].strip())
+        if task is None:
+            await message.answer("⚠️ Поручение не найдено.")
+            return
+        completed = task_store.complete(
+            task.id,
+            completed_by=message.from_user.id if message.from_user else 0,
+        )
+        assert completed is not None
+        await message.answer(
+            "✅ Поручение выполнено:\n"
+            f"<b>{html.escape(completed.title)}</b>"
+        )
+
+    @router.callback_query(F.data.startswith("task:"))
+    async def task_callback(callback: CallbackQuery) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":", 2)
+        if len(parts) != 3 or parts[1] != "done":
+            await callback.answer("Неизвестное действие", show_alert=True)
+            return
+        task = task_store.get(parts[2])
+        if task is None:
+            await callback.answer("Поручение не найдено", show_alert=True)
+            return
+        completed = task_store.complete(
+            task.id,
+            completed_by=callback.from_user.id,
+        )
+        assert completed is not None
+        await callback.answer(
+            "Уже выполнено" if task.status == "done" else "Выполнено"
+        )
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
 
     @router.message(Command("council"))
     @router.message(lambda message: message.text in {"🧠 Совет ИИ", "🧠 Совет директоров"})
@@ -1481,6 +1675,7 @@ async def main() -> None:
         registry = ProjectRegistry(config.data_dir)
         knowledge = ProjectKnowledgeLibrary(config.data_dir)
         approval_store = ApprovalStore(config.data_dir)
+        task_store = TaskStore(config.data_dir)
         bot = Bot(
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -1500,6 +1695,7 @@ async def main() -> None:
                 registry,
                 knowledge,
                 approval_store,
+                task_store,
             )
         )
         health_runner = await run_health_server(
