@@ -49,6 +49,7 @@ BOTTOM_TEXTS = {
     "jarwas": {t("ru", "bottom.jarwas")},
     "help": {BTN_HELP, t("ru", "bottom.help")},
     "channel": {t("ru", "bottom.channel"), "📢 Канал", "📢 Channel", "📢 القناة", "📢 Kanal"},
+    "pwa": {t("ru", "bottom.pwa"), t("en", "bottom.pwa"), t("ar", "bottom.pwa"), t("tr", "bottom.pwa")},
 }
 
 
@@ -1152,6 +1153,21 @@ async def msg_channel_btn(message: Message, state: FSMContext):
         "📢 Канал IQ Barakah — статьи, новости и обновления программы:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Открыть канал @iqbaraka", url="https://t.me/iqbaraka")],
+        ])
+    )
+
+
+@router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["pwa"]))
+async def msg_pwa_btn(message: Message, state: FSMContext):
+    """📲 PWA-версия."""
+    await state.clear()
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    await message.answer(
+        "📲 *PWA-версия IQ Barakah*\n\n"
+        "Тот же трекер, уроки и вечерний самоотчёт — но отдельным приложением, без VPN.",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📲 Открыть PWA-версию", url="https://iq-barakah.ru/pwav/")],
         ])
     )
 
