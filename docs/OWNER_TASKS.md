@@ -18,6 +18,13 @@ Useful lists:
 
 - `/tasks` — all open tasks;
 - `/today` — tasks due today and overdue tasks.
+- `/morning` — an on-demand owner brief across projects, tasks, and approvals.
+
+The same brief is sent once a day at `MORNING_REPORT_HOUR` in
+`REPORT_TIMEZONE`. The default is 09:00 Europe/Moscow. It prioritizes confirmed
+site outages, failed workflows, pending owner decisions, overdue tasks, and
+tasks due today. The last-send date is stored separately, so a container restart
+does not duplicate the morning message.
 
 Only Telegram IDs from `OWNER_TELEGRAM_IDS` can read or change tasks.
 Completing the same task repeatedly is safe and does not duplicate journal
@@ -25,7 +32,6 @@ events.
 
 ## Scope of this release
 
-This is the persistence and manual-control foundation. Scheduled morning and
-evening briefs will read from the same store in a later release. This release
-does not modify GitHub release approvals, monitoring, production deployment,
-or project knowledge.
+This release does not modify GitHub release approvals, production deployment,
+or project knowledge. The morning brief reads approvals and tasks but cannot
+approve, complete, or execute them automatically.

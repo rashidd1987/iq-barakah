@@ -18,6 +18,7 @@ from report_bot.council import CouncilContext, council_views, select_project
 from report_bot.monitor import (
     ProjectState,
     StateStore,
+    morning_brief,
     stabilize_site_status,
     token_expiry_reminder,
     transition_messages,
@@ -82,6 +83,31 @@ class ConfigTests(unittest.TestCase):
             clear=True,
         ):
             with self.assertRaisesRegex(RuntimeError, "at least 60"):
+                load_config()
+
+    def test_loads_default_morning_report_hour(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "test-token",
+                "OWNER_TELEGRAM_IDS": "42",
+            },
+            clear=True,
+        ):
+            config = load_config()
+        self.assertEqual(config.morning_report_hour, 9)
+
+    def test_rejects_invalid_morning_report_hour(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "TELEGRAM_BOT_TOKEN": "test-token",
+                "OWNER_TELEGRAM_IDS": "42",
+                "MORNING_REPORT_HOUR": "24",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "MORNING_REPORT_HOUR"):
                 load_config()
 
     def test_loads_github_token_expiry(self) -> None:
@@ -788,6 +814,75 @@ class TaskStoreTests(unittest.TestCase):
                 [task.title for task in store.due(date(2026, 7, 31))],
                 ["Просроченная задача", "Задача на сегодня"],
             )
+
+
+class MorningBriefTests(unittest.TestCase):
+    def test_prioritizes_outage_decisions_and_overdue_tasks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            task_store = TaskStore(directory)
+            approval_store = ApprovalStore(directory)
+            task_store.create(
+                project_key="iqbarakah",
+                title="Проверить <оплату>",
+                due_date=date(2026, 7, 30),
+                success_criterion="Оплата проходит",
+                created_by=42,
+            )
+            approval_store.create(
+                idempotency_key="morning:test:1",
+                project="IQ Barakah",
+                action="Release",
+                description="Deploy",
+                risk="Users",
+            )
+            states = {
+                project.key: ProjectState(
+                    site_ok=project.key != "mizanlife",
+                    status_code=200 if project.key != "mizanlife" else 503,
+                    workflow_id=1,
+                    workflow_status="completed",
+                    workflow_conclusion="success",
+                )
+                for project in registry.all()
+            }
+
+            result = morning_brief(
+                states,
+                registry,
+                task_store,
+                approval_store,
+                date(2026, 7, 31),
+            )
+
+            self.assertIn("Утренний бриф собственника", result)
+            self.assertIn("🚨 Mizan Life: HTTP 503", result)
+            self.assertIn("Просрочено: <b>1</b>", result)
+            self.assertIn("Ждут решения: <b>1</b>", result)
+            self.assertIn("1. Восстановить: Mizan Life", result)
+            self.assertNotIn("<оплату>", result)
+
+    def test_reports_clear_day_without_false_alarm(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            states = {
+                project.key: ProjectState(
+                    site_ok=True,
+                    status_code=200,
+                    workflow_id=None,
+                    workflow_status=None,
+                    workflow_conclusion=None,
+                )
+                for project in registry.all()
+            }
+            result = morning_brief(
+                states,
+                registry,
+                TaskStore(directory),
+                ApprovalStore(directory),
+                date(2026, 7, 31),
+            )
+            self.assertIn("Критических отклонений нет", result)
 
 
 if __name__ == "__main__":
