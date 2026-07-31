@@ -1168,7 +1168,7 @@ async def msg_pwa_btn(message: Message, state: FSMContext):
         "Тот же трекер, уроки и вечерний самоотчёт — но отдельным приложением, без VPN.",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📲 Открыть веб-приложение", url="https://iq-barakah.ru/pwav/")],
+            [InlineKeyboardButton(text="📲 Открыть веб-приложение", url="https://iq-barakah.ru/pwa/")],
         ])
     )
 

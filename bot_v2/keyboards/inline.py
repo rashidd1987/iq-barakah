@@ -50,7 +50,7 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru", participant=
     b.button(text="🚢 Кораблик — диагностика жизни", callback_data="korablik_start")
     b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
     b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
-    b.button(text="📲 Веб-приложение (без VPN)", url="https://iq-barakah.ru/pwav/")
+    b.button(text="📲 Веб-приложение (без VPN)", url="https://iq-barakah.ru/pwa/")
     b.button(text="❓ " + t(lang, "menu.howto"), callback_data="show_howto")
     b.adjust(1)
     return b.as_markup()
