@@ -134,6 +134,7 @@ jobs:
 
       - name: Validate deployment target
         env:
+          DEPLOY_TARGET: ${{ inputs.target }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -150,9 +151,10 @@ jobs:
           case "${DEPLOY_PORT:-22}" in
             *[!0-9]*) echo "DEPLOY_PORT must be numeric."; exit 1 ;;
           esac
-          case "$DEPLOY_PATH" in
-            */pwa|*/pwa/) ;;
-            *) echo "DEPLOY_PATH must end with /pwa because this build uses /pwa asset URLs."; exit 1 ;;
+          case "${DEPLOY_TARGET}:${DEPLOY_PATH}" in
+            preview:*/pwav|preview:*/pwav/) ;;
+            production:*/pwa|production:*/pwa/) ;;
+            *) echo "DEPLOY_PATH must match the selected target (/pwav for preview, /pwa for production)."; exit 1 ;;
           esac
 
       - name: Configure SSH
