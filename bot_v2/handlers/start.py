@@ -1125,6 +1125,7 @@ async def msg_help_btn(message: Message, state: FSMContext, session: AsyncSessio
     await message.answer(
         "Я здесь. Чем помочь?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📖 Как проходить программу", callback_data="show_howto")],
             [InlineKeyboardButton(text="❓ Вопрос по программе", callback_data="help_program")],
             [InlineKeyboardButton(text="💸 Вопрос по оплате", callback_data="help_pay")],
             [InlineKeyboardButton(text="🔧 Техническая проблема", callback_data="help_tech")],
