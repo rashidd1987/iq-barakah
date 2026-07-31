@@ -18,6 +18,7 @@ from report_bot.council import CouncilContext, council_views, select_project
 from report_bot.monitor import (
     ProjectState,
     StateStore,
+    stabilize_site_status,
     token_expiry_reminder,
     transition_messages,
 )
@@ -32,7 +33,8 @@ from report_bot.main import (
 )
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
-from report_bot.status import StatusClient, format_datetime, run_icon
+from report_bot.status import SiteStatus, StatusClient, format_datetime, run_icon
+from report_bot.tasks import TaskStore, parse_task_details
 
 
 class ConfigTests(unittest.TestCase):
@@ -456,7 +458,15 @@ class MonitorTests(unittest.TestCase):
 
     def test_reports_outage_and_recovery(self) -> None:
         healthy = ProjectState(True, 200, None, None, None)
-        down = ProjectState(False, None, None, None, None)
+        down = ProjectState(
+            False,
+            None,
+            None,
+            None,
+            None,
+            failure_streak=3,
+            error_reason="тайм-аут ответа",
+        )
         outage = transition_messages(
             {self.project.key: healthy},
             {self.project.key: down},
@@ -468,7 +478,56 @@ class MonitorTests(unittest.TestCase):
             self.registry,
         )
         self.assertIn("Недоступен", outage[0])
+        self.assertIn("тайм-аут ответа", outage[0])
+        self.assertIn("3 проверки подряд", outage[0])
         self.assertIn("Восстановлен", recovery[0])
+
+    def test_single_failure_does_not_mark_healthy_project_down(self) -> None:
+        healthy = ProjectState(True, 200, None, None, None)
+        first = stabilize_site_status(
+            SiteStatus(False, None, None, "ошибка DNS"),
+            healthy,
+        )
+        after_first = ProjectState(
+            workflow_id=None,
+            workflow_status=None,
+            workflow_conclusion=None,
+            **first,
+        )
+        second = stabilize_site_status(
+            SiteStatus(False, None, None, "ошибка DNS"),
+            after_first,
+        )
+        self.assertTrue(first["site_ok"])
+        self.assertTrue(second["site_ok"])
+
+    def test_three_failures_mark_project_down_and_two_successes_restore_it(self) -> None:
+        state = ProjectState(True, 200, None, None, None)
+        for expected_ok in (True, True, False):
+            values = stabilize_site_status(
+                SiteStatus(False, None, None, "тайм-аут ответа"),
+                state,
+            )
+            self.assertEqual(values["site_ok"], expected_ok)
+            state = ProjectState(
+                workflow_id=None,
+                workflow_status=None,
+                workflow_conclusion=None,
+                **values,
+            )
+
+        for expected_ok in (False, True):
+            values = stabilize_site_status(
+                SiteStatus(True, 401, 120),
+                state,
+            )
+            self.assertEqual(values["site_ok"], expected_ok)
+            state = ProjectState(
+                workflow_id=None,
+                workflow_status=None,
+                workflow_conclusion=None,
+                **values,
+            )
 
     def test_state_store_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -479,6 +538,27 @@ class MonitorTests(unittest.TestCase):
             store.save(states)
             self.assertEqual(store.load(), states)
             self.assertTrue(Path(directory, "monitor_state.json").exists())
+
+    def test_state_store_loads_state_written_before_stability_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory, "monitor_state.json").write_text(
+                json.dumps(
+                    {
+                        "mizanos": {
+                            "site_ok": True,
+                            "status_code": 401,
+                            "workflow_id": None,
+                            "workflow_status": None,
+                            "workflow_conclusion": None,
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            state = StateStore(directory).load()["mizanos"]
+            self.assertEqual(state.failure_streak, 0)
+            self.assertEqual(state.success_streak, 0)
+            self.assertIsNone(state.error_reason)
 
     def test_token_expiry_reminder_is_sent_once_per_milestone(self) -> None:
         expires = date(2026, 10, 23)
@@ -624,6 +704,90 @@ class ApprovalStoreTests(unittest.TestCase):
             self.assertEqual(reloaded.github_repository, "iq-barakah")
             self.assertEqual(reloaded.github_run_id, 123)
             self.assertEqual(reloaded.decision_source, "github")
+
+
+class TaskStoreTests(unittest.TestCase):
+    def test_parses_compact_task_details(self) -> None:
+        title, due_date, criterion = parse_task_details(
+            "Проверить оплату | 2026-08-02 | Тестовая оплата проходит"
+        )
+        self.assertEqual(title, "Проверить оплату")
+        self.assertEqual(due_date, date(2026, 8, 2))
+        self.assertEqual(criterion, "Тестовая оплата проходит")
+
+    def test_rejects_invalid_task_details(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Формат"):
+            parse_task_details("Только название")
+        with self.assertRaisesRegex(ValueError, "ГГГГ-ММ-ДД"):
+            parse_task_details("Проверить оплату | завтра | Оплата проходит")
+
+    def test_task_lifecycle_and_journal_persist(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            created_at = datetime(2026, 7, 31, 8, 0, tzinfo=timezone.utc)
+            task = store.create(
+                project_key="iqbarakah",
+                title="Проверить оплату",
+                due_date=date(2026, 8, 1),
+                success_criterion="Тестовая оплата проходит",
+                created_by=42,
+                now=created_at,
+            )
+            completed = store.complete(
+                task.id,
+                completed_by=42,
+                now=created_at + timedelta(hours=1),
+            )
+            assert completed is not None
+            self.assertEqual(completed.status, "done")
+            self.assertEqual(
+                [event.event for event in store.events()],
+                ["created", "completed"],
+            )
+
+            reloaded = TaskStore(directory)
+            persisted = reloaded.get(task.id)
+            assert persisted is not None
+            self.assertEqual(persisted.status, "done")
+            self.assertEqual(persisted.completed_by, 42)
+            self.assertEqual(len(reloaded.events()), 2)
+
+    def test_complete_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="mizanlife",
+                title="Проверить главную",
+                due_date=date(2026, 8, 1),
+                success_criterion="Страница открывается",
+                created_by=42,
+            )
+            first = store.complete(task.id, completed_by=42)
+            repeated = store.complete(task.id, completed_by=99)
+            assert first is not None and repeated is not None
+            self.assertEqual(first.completed_at, repeated.completed_at)
+            self.assertEqual(repeated.completed_by, 42)
+            self.assertEqual(len(store.events()), 2)
+
+    def test_due_includes_overdue_and_today_only(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            for title, due_date in (
+                ("Просроченная задача", date(2026, 7, 30)),
+                ("Задача на сегодня", date(2026, 7, 31)),
+                ("Будущая задача", date(2026, 8, 1)),
+            ):
+                store.create(
+                    project_key="mizanos",
+                    title=title,
+                    due_date=due_date,
+                    success_criterion="Результат проверен",
+                    created_by=42,
+                )
+            self.assertEqual(
+                [task.title for task in store.due(date(2026, 7, 31))],
+                ["Просроченная задача", "Задача на сегодня"],
+            )
 
 
 if __name__ == "__main__":

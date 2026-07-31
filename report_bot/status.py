@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from datetime import datetime
+import socket
 from typing import Any, Literal
 
 import aiohttp
@@ -13,6 +14,7 @@ class SiteStatus:
     ok: bool
     status_code: int | None
     latency_ms: int | None
+    error_reason: str | None = None
 
 
 DeploymentReviewResult = Literal[
@@ -50,9 +52,39 @@ class StatusClient:
                     ok=200 <= response.status < 400 or response.status in {401, 403},
                     status_code=response.status,
                     latency_ms=latency_ms,
+                    error_reason=(
+                        None
+                        if 200 <= response.status < 400
+                        or response.status in {401, 403}
+                        else f"HTTP {response.status}"
+                    ),
                 )
-        except (aiohttp.ClientError, asyncio.TimeoutError):
-            return SiteStatus(ok=False, status_code=None, latency_ms=None)
+        except asyncio.TimeoutError:
+            return SiteStatus(
+                ok=False,
+                status_code=None,
+                latency_ms=None,
+                error_reason="тайм-аут ответа",
+            )
+        except aiohttp.ClientConnectorError as exc:
+            reason = (
+                "ошибка DNS"
+                if isinstance(exc.os_error, socket.gaierror)
+                else "ошибка соединения"
+            )
+            return SiteStatus(
+                ok=False,
+                status_code=None,
+                latency_ms=None,
+                error_reason=reason,
+            )
+        except aiohttp.ClientError:
+            return SiteStatus(
+                ok=False,
+                status_code=None,
+                latency_ms=None,
+                error_reason="сетевая ошибка",
+            )
 
     async def repo(self, name: str) -> dict[str, Any] | None:
         payload = await self._github_get(f"/repos/{self._github_owner}/{name}")
