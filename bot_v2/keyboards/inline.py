@@ -50,6 +50,7 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru", participant=
     b.button(text="🚢 Кораблик — диагностика жизни", callback_data="korablik_start")
     b.button(text=t(lang, "menu.tariffs"), callback_data="show_tariffs")
     b.button(text=t(lang, "menu.jarwas"), callback_data="jarwas_start")
+    b.button(text="📲 PWA-версия (без VPN)", url="https://iq-barakah.ru/pwav/")
     b.button(text="❓ " + t(lang, "menu.howto"), callback_data="show_howto")
     b.adjust(1)
     return b.as_markup()
@@ -57,12 +58,15 @@ def kb_main_menu(miniapp_url: str, ship_url: str, lang: str = "ru", participant=
 
 def kb_bottom_menu(miniapp_url: str, lang: str = "ru", participant=None) -> ReplyKeyboardMarkup:
     lang = normalize_lang(lang)
+    # Стабильный URL без lvl/wk — иначе кнопка "застревает" на прогрессе на момент создания клавиатуры
+    stable_url = _miniapp_url_with_params(miniapp_url, lang, participant=None)
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=_miniapp_url_with_params(miniapp_url, lang, participant))), KeyboardButton(text="❓ " + t(lang, "bottom.howto"))],
+            [KeyboardButton(text=t(lang, "bottom.miniapp"), web_app=WebAppInfo(url=stable_url)), KeyboardButton(text="❓ " + t(lang, "bottom.howto"))],
             [KeyboardButton(text=t(lang, "bottom.diag")),     KeyboardButton(text=t(lang, "bottom.payment"))],
             [KeyboardButton(text=t(lang, "bottom.program")),  KeyboardButton(text=t(lang, "bottom.jarwas"))],
             [KeyboardButton(text=t(lang, "bottom.help")), KeyboardButton(text=t(lang, "bottom.channel"))],
+            [KeyboardButton(text=t(lang, "bottom.pwa"))],
         ],
         resize_keyboard=True,
         input_field_placeholder=t(lang, "bottom.placeholder"),
