@@ -1160,15 +1160,15 @@ async def msg_channel_btn(message: Message, state: FSMContext):
 
 @router.message(StateFilter("*"), F.text.in_(BOTTOM_TEXTS["pwa"]))
 async def msg_pwa_btn(message: Message, state: FSMContext):
-    """📲 PWA-версия."""
+    """📲 Веб-приложение."""
     await state.clear()
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     await message.answer(
-        "📲 *PWA-версия IQ Barakah*\n\n"
+        "📲 *Веб-приложение IQ Barakah*\n\n"
         "Тот же трекер, уроки и вечерний самоотчёт — но отдельным приложением, без VPN.",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📲 Открыть PWA-версию", url="https://iq-barakah.ru/pwav/")],
+            [InlineKeyboardButton(text="📲 Открыть веб-приложение", url="https://iq-barakah.ru/pwav/")],
         ])
     )
 
