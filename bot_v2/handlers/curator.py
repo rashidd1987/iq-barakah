@@ -1506,7 +1506,8 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
         "Ас-саляму алейкум!\n\n"
         "Слушай, я тебе открыл полный доступ к IQ Barakah — Старт навсегда и Путь на месяц.\n\n"
         "Мне правда важно твоё мнение — пройди как обычный участник, посмотри изнутри как это работает.\n\n"
-        f"👉 {link_full}\n"
+        f"👉 {link_full}\n\n"
+        "📲 Приложение (не теряется в чатах): https://iq-barakah.ru/pwa/\n"
         "———",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -1523,7 +1524,8 @@ async def cmd_leader(message: Message, session: AsyncSession, config: Config):
         "Рашид лично открыл тебе IQ Barakah Старт — 6 шагов, которые меняют не расписание, а отношение ко времени.\n\n"
         "Без воды — только система. Ты здесь не случайно.\n\n"
         "Прежде чем открыть первый шаг — пройди диагностику. 7 вопросов · 2 минуты · программа подстроится под твой уровень.\n\n"
-        f"👉 {link_start}\n"
+        f"👉 {link_start}\n\n"
+        "📲 Приложение (не теряется в чатах): https://iq-barakah.ru/pwa/\n"
         "———",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
