@@ -19,6 +19,8 @@ Useful lists:
 - `/tasks` — all open tasks;
 - `/today` — tasks due today and overdue tasks.
 - `/morning` — an on-demand owner brief across projects, tasks, and approvals.
+- `/plan` — propose up to three concrete actions; only selected proposals become
+  tasks and repeated taps cannot create duplicates.
 
 The same brief is sent once a day at `MORNING_REPORT_HOUR` in
 `REPORT_TIMEZONE`. The default is 09:00 Europe/Moscow. It prioritizes confirmed

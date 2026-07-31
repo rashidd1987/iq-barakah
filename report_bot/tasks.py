@@ -101,6 +101,19 @@ class TaskStore:
     def get(self, task_id: str) -> OwnerTask | None:
         return self._tasks.get(task_id)
 
+    def find_open(self, project_key: str, title: str) -> OwnerTask | None:
+        normalized = title.strip().casefold()
+        return next(
+            (
+                task
+                for task in self._tasks.values()
+                if task.status == "open"
+                and task.project_key == project_key
+                and task.title.casefold() == normalized
+            ),
+            None,
+        )
+
     def open(self) -> tuple[OwnerTask, ...]:
         return tuple(
             sorted(

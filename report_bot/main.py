@@ -42,6 +42,7 @@ from report_bot.council import (
     executive_recommendation,
     select_project,
 )
+from report_bot.day_plan import DayPlanStore, build_day_plan
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.monitor import capture_state, monitor_loop, morning_brief
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
@@ -73,6 +74,7 @@ BOT_COMMANDS = (
     BotCommand(command="tasks", description="Открытые поручения"),
     BotCommand(command="today", description="Поручения на сегодня"),
     BotCommand(command="morning", description="Утренний бриф"),
+    BotCommand(command="plan", description="Предложить план дня"),
     BotCommand(command="newtask", description="Создать поручение"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
@@ -86,7 +88,7 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="🧠 Совет ИИ")],
         [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
-        [KeyboardButton(text="☀️ Утренний бриф")],
+        [KeyboardButton(text="☀️ Утренний бриф"), KeyboardButton(text="🎯 План дня")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -297,6 +299,19 @@ def task_keyboard(task: OwnerTask) -> InlineKeyboardMarkup:
     )
 
 
+def plan_suggestion_keyboard(suggestion_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="➕ Добавить в поручения",
+                    callback_data=f"dayplan:add:{suggestion_id}",
+                )
+            ]
+        ]
+    )
+
+
 def task_text(task: OwnerTask, project_title: str) -> str:
     return (
         f"📌 <b>{html.escape(task.title)}</b>\n"
@@ -410,6 +425,7 @@ def build_router(
     task_store: TaskStore,
 ) -> Router:
     router = Router(name="owner_reports")
+    day_plan_store = DayPlanStore(config.data_dir)
 
     async def require_owner(message: Message) -> bool:
         if is_owner(message, config):
@@ -436,6 +452,7 @@ def build_router(
             "/tasks — открытые поручения\n"
             "/today — поручения со сроком сегодня и просроченные\n"
             "/morning — утренний бриф по всем проектам\n"
+            "/plan — предложить до трёх действий на сегодня\n"
             "/newtask — создать поручение для активного проекта\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
@@ -502,6 +519,106 @@ def build_router(
         await message.answer(
             morning_brief(states, registry, task_store, approval_store, today)
         )
+
+    @router.message(Command("plan"))
+    @router.message(lambda message: message.text == "🎯 План дня")
+    async def day_plan_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        states = await capture_state(client, registry)
+        try:
+            suggestions = day_plan_store.replace(
+                today,
+                build_day_plan(
+                    states,
+                    registry,
+                    task_store,
+                    today,
+                    knowledge.active_project,
+                ),
+            )
+        except OSError:
+            logger.exception("Could not persist owner day plan")
+            await message.answer("⚠️ Не удалось сохранить план дня. Повторите позже.")
+            return
+        pending_count = len(approval_store.pending())
+        overdue_count = len(
+            [
+                task
+                for task in task_store.open()
+                if task.due_date < today.isoformat()
+            ]
+        )
+        await message.answer(
+            "🎯 <b>План дня</b>\n\n"
+            f"Предложений: <b>{len(suggestions)}</b>\n"
+            f"Просроченных поручений: <b>{overdue_count}</b>\n"
+            f"Решений ожидают: <b>{pending_count}</b>\n\n"
+            "Нажмите только те действия, которые хотите добавить. "
+            "Без нажатия ничего не запускается."
+        )
+        for index, suggestion in enumerate(suggestions, 1):
+            project = registry.by_key(suggestion.project_key)
+            project_title = project.title if project else suggestion.project_key
+            accepted = suggestion.accepted_task_id is not None
+            await message.answer(
+                f"<b>{index}. {html.escape(suggestion.title)}</b>\n"
+                f"Проект: {html.escape(project_title)}\n"
+                f"Почему: {html.escape(suggestion.reason)}\n"
+                f"Готово, когда: {html.escape(suggestion.success_criterion)}"
+                + ("\n\n✅ Уже добавлено в поручения" if accepted else ""),
+                reply_markup=(
+                    None
+                    if accepted
+                    else plan_suggestion_keyboard(suggestion.id)
+                ),
+            )
+
+    @router.callback_query(F.data.startswith("dayplan:"))
+    async def day_plan_callback(callback: CallbackQuery) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":", 2)
+        if len(parts) != 3 or parts[1] != "add":
+            await callback.answer("Некорректное действие", show_alert=True)
+            return
+        suggestion = day_plan_store.get(parts[2])
+        if suggestion is None:
+            await callback.answer(
+                "План устарел. Сформируйте новый: /plan", show_alert=True
+            )
+            return
+        if suggestion.accepted_task_id:
+            await callback.answer("Уже добавлено")
+            if callback.message:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            return
+        task = task_store.find_open(suggestion.project_key, suggestion.title)
+        try:
+            if task is None:
+                task = task_store.create(
+                    project_key=suggestion.project_key,
+                    title=suggestion.title,
+                    due_date=datetime.now(ZoneInfo(config.timezone)).date(),
+                    success_criterion=suggestion.success_criterion,
+                    created_by=callback.from_user.id,
+                )
+            day_plan_store.mark_accepted(suggestion.id, task.id)
+        except OSError:
+            logger.exception("Could not persist accepted day-plan suggestion")
+            await callback.answer("Не удалось сохранить поручение", show_alert=True)
+            return
+        await callback.answer("Добавлено в поручения")
+        if callback.message:
+            await callback.message.edit_reply_markup(reply_markup=None)
+            project = registry.by_key(task.project_key)
+            await callback.message.answer(
+                "✅ <b>Добавлено в поручения</b>\n\n"
+                + task_text(task, project.title if project else task.project_key),
+                reply_markup=task_keyboard(task),
+            )
 
     async def create_task_from_details(
         message: Message,

@@ -15,6 +15,7 @@ from report_bot.ai_gateway import (
 )
 from report_bot.config import load_config
 from report_bot.council import CouncilContext, council_views, select_project
+from report_bot.day_plan import DayPlanStore, build_day_plan
 from report_bot.monitor import (
     ProjectState,
     StateStore,
@@ -30,6 +31,7 @@ from report_bot.main import (
     council_mode_keyboard,
     council_keyboard,
     multi_provider_keyboard,
+    plan_suggestion_keyboard,
     pwa_release_keyboard,
 )
 from report_bot.knowledge import ProjectKnowledgeLibrary
@@ -189,6 +191,11 @@ class ReleaseControlTests(unittest.TestCase):
             callbacks,
             {"release:pwa:start", "release:pwa:cancel"},
         )
+
+    def test_day_plan_callback_is_compact(self) -> None:
+        callback = plan_suggestion_keyboard("safe-id").inline_keyboard[0][0]
+        self.assertEqual(callback.callback_data, "dayplan:add:safe-id")
+        self.assertLessEqual(len(callback.callback_data or ""), 64)
 
 
 class OwnerCouncilTests(unittest.TestCase):
@@ -883,6 +890,112 @@ class MorningBriefTests(unittest.TestCase):
                 date(2026, 7, 31),
             )
             self.assertIn("Критических отклонений нет", result)
+
+
+class DayPlanTests(unittest.TestCase):
+    def test_operational_failures_are_proposed_before_routine_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            states = {
+                project.key: ProjectState(
+                    site_ok=project.key != "mizanlife",
+                    status_code=503 if project.key == "mizanlife" else 200,
+                    workflow_id=1,
+                    workflow_status="completed",
+                    workflow_conclusion=(
+                        "failure" if project.key == "iqbarakah" else "success"
+                    ),
+                )
+                for project in registry.all()
+            }
+            result = build_day_plan(
+                states,
+                registry,
+                TaskStore(directory),
+                date(2026, 7, 31),
+                "iqbarakah",
+            )
+            self.assertEqual(len(result), 3)
+            self.assertEqual(result[0].project_key, "mizanlife")
+            self.assertIn("Восстановить доступность", result[0].title)
+            self.assertEqual(result[1].project_key, "iqbarakah")
+            self.assertIn("неуспешную сборку", result[1].title)
+
+    def test_existing_open_task_is_not_proposed_twice(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            task_store = TaskStore(directory)
+            title = "Проверить путь участника IQ Barakah от входа до текущего урока"
+            task_store.create(
+                project_key="iqbarakah",
+                title=title,
+                due_date=date(2026, 7, 31),
+                success_criterion="Проверено",
+                created_by=42,
+            )
+            states = {
+                project.key: ProjectState(
+                    site_ok=True,
+                    status_code=200,
+                    workflow_id=None,
+                    workflow_status=None,
+                    workflow_conclusion=None,
+                )
+                for project in registry.all()
+            }
+            result = build_day_plan(
+                states,
+                registry,
+                task_store,
+                date(2026, 7, 31),
+                "iqbarakah",
+            )
+            self.assertNotIn(title, [item.title for item in result])
+
+    def test_plan_store_reuses_id_and_preserves_acceptance(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            states = {
+                project.key: ProjectState(
+                    site_ok=True,
+                    status_code=200,
+                    workflow_id=None,
+                    workflow_status=None,
+                    workflow_conclusion=None,
+                )
+                for project in registry.all()
+            }
+            suggestions = build_day_plan(
+                states,
+                registry,
+                TaskStore(directory),
+                date(2026, 7, 31),
+                "iqbarakah",
+            )
+            store = DayPlanStore(directory)
+            first = store.replace(date(2026, 7, 31), suggestions)
+            accepted = store.mark_accepted(first[0].id, "task-1")
+            assert accepted is not None
+            repeated = store.replace(date(2026, 7, 31), suggestions)
+            self.assertEqual(repeated[0].id, first[0].id)
+            self.assertEqual(repeated[0].accepted_task_id, "task-1")
+            reloaded = DayPlanStore(directory).get(first[0].id)
+            assert reloaded is not None
+            self.assertEqual(reloaded.accepted_task_id, "task-1")
+
+    def test_find_open_uses_case_insensitive_exact_title(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="mizanos",
+                title="Проверить релиз",
+                due_date=date(2026, 7, 31),
+                success_criterion="Релиз проверен",
+                created_by=42,
+            )
+            self.assertEqual(
+                store.find_open("mizanos", "  проверить РЕЛИЗ  "), task
+            )
 
 
 if __name__ == "__main__":
