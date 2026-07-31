@@ -9,7 +9,7 @@ import { globalWeekIndex, TOTAL_STEPS } from '../data/weeks'
 import { makeShadow, radius, ThemeColors, ThemeMode, ThemePalette } from '../theme/colors'
 import { api, MobileProfile } from '../utils/api'
 import { registerForPushNotifications } from '../utils/push'
-import { getPwaInstallStatus, promptPwaInstall, PwaInstallStatus, subscribePwaInstallStatus } from '../utils/pwaInstall'
+import { getPwaInstallGuide, getPwaInstallStatus, promptPwaInstall, PwaInstallStatus, subscribePwaInstallStatus } from '../utils/pwaInstall'
 import { lsGet, lsSet } from '../utils/storage'
 
 const PUSH_ENABLED_KEY = 'push_enabled'
@@ -98,6 +98,7 @@ export default function ProfileScreen() {
   ]
   const unlockedCount = achievements.filter((item) => item.unlocked).length
   const progress = Math.min(100, Math.round((completedSteps / TOTAL_STEPS) * 100))
+  const installGuide = useMemo(() => getPwaInstallGuide(pwaInstallStatus), [pwaInstallStatus])
 
   const handlePushToggle = async (value: boolean) => {
     setTogglingPush(true)
@@ -122,7 +123,7 @@ export default function ProfileScreen() {
     if (pwaInstallStatus === 'installed') return
     if (pwaInstallStatus === 'installable') {
       const installed = await promptPwaInstall()
-      if (installed) setShowInstallHelp(false)
+      setShowInstallHelp(!installed)
       return
     }
     setShowInstallHelp(true)
@@ -337,22 +338,28 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Настройки</Text>
         <View style={[styles.card, styles.settingsCard]}>
-          {Platform.OS === 'web' && (
+          {Platform.OS === 'web' && pwaInstallStatus !== 'installed' && (
             <>
-              <Pressable style={styles.settingRow} onPress={handlePwaInstall} disabled={pwaInstallStatus === 'installed'}>
-                <View style={styles.settingIcon}><Ionicons name={pwaInstallStatus === 'installed' ? 'checkmark-circle-outline' : 'phone-portrait-outline'} size={21} color={colors.g2} /></View>
+              <Pressable style={styles.settingRow} onPress={handlePwaInstall}>
+                <View style={styles.settingIcon}><Ionicons name="phone-portrait-outline" size={21} color={colors.g2} /></View>
                 <View style={styles.settingCopy}>
-                  <Text style={styles.settingTitle}>{pwaInstallStatus === 'installed' ? 'Приложение установлено' : 'Установить на телефон'}</Text>
-                  <Text style={styles.settingSub}>{pwaInstallStatus === 'installed' ? 'IQ Barakah уже на главном экране' : 'Добавить отдельную иконку IQ Barakah'}</Text>
+                  <Text style={styles.settingTitle}>Установить на телефон</Text>
+                  <Text style={styles.settingSub}>{pwaInstallStatus === 'installable' ? 'Установить IQ Barakah одним нажатием' : 'Добавить отдельную иконку IQ Barakah'}</Text>
                 </View>
-                {pwaInstallStatus !== 'installed' && <Ionicons name="chevron-forward" size={19} color={colors.muted} />}
+                <Ionicons name="chevron-forward" size={19} color={colors.muted} />
               </Pressable>
-              {showInstallHelp && pwaInstallStatus !== 'installed' && (
+              {showInstallHelp && (
                 <View style={styles.installHelp}>
                   <Ionicons name="information-circle-outline" size={20} color={colors.gold} />
                   <View style={styles.installHelpCopy}>
-                    <Text style={styles.installHelpTitle}>{pwaInstallStatus === 'ios' ? 'Установка на iPhone' : 'Установка через браузер'}</Text>
-                    <Text style={styles.installHelpText}>{pwaInstallStatus === 'ios' ? 'Откройте эту страницу в Safari, нажмите «Поделиться» и выберите «На экран Домой».' : 'Откройте меню браузера и выберите «Установить приложение» или «Добавить на главный экран».'}</Text>
+                    <Text style={styles.installHelpTitle}>{installGuide.title}</Text>
+                    {installGuide.steps.map((step, index) => (
+                      <View key={step} style={styles.installStep}>
+                        <View style={styles.installStepNumber}><Text style={styles.installStepNumberText}>{index + 1}</Text></View>
+                        <Text style={styles.installHelpText}>{step}</Text>
+                      </View>
+                    ))}
+                    <Text style={styles.installHelpNote}>{installGuide.note}</Text>
                   </View>
                 </View>
               )}
@@ -554,7 +561,7 @@ const createStyles = (colors: ThemeColors) => {
     optionLabel: { color: colors.text, fontSize: 13, fontWeight: '700' }, optionLabelSelected: { color: colors.g2 }, optionSub: { color: colors.muted, fontSize: 10, lineHeight: 14, marginTop: 3 },
     modeTitle: { marginTop: 18 }, modeRow: { flexDirection: 'row', gap: 7 }, modeOption: { flex: 1, minHeight: 46, alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 12, backgroundColor: colors.cardRaised, borderWidth: 1, borderColor: colors.border }, modeSelected: { borderColor: colors.gold, backgroundColor: colors.overlay }, modeText: { color: colors.muted, fontSize: 10, fontWeight: '700' },
     settingsCard: { paddingHorizontal: 16, marginBottom: 24 }, settingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'center' }, settingIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', marginRight: 12 }, settingCopy: { flex: 1 }, settingTitle: { color: colors.text, fontSize: 14, fontWeight: '700' }, settingSub: { color: colors.muted, fontSize: 11, marginTop: 3 }, separator: { height: 1, backgroundColor: colors.border, marginLeft: 52 },
-    installHelp: { flexDirection: 'row', gap: 9, padding: 12, marginBottom: 12, borderRadius: 13, backgroundColor: colors.goldpale }, installHelpCopy: { flex: 1 }, installHelpTitle: { color: colors.text, fontSize: 12, fontWeight: '800' }, installHelpText: { color: colors.sub, fontSize: 11, lineHeight: 16, marginTop: 3 },
+    installHelp: { flexDirection: 'row', gap: 9, padding: 12, marginBottom: 12, borderRadius: 13, backgroundColor: colors.goldpale }, installHelpCopy: { flex: 1 }, installHelpTitle: { color: colors.text, fontSize: 12, fontWeight: '800', marginBottom: 8 }, installStep: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: 5 }, installStepNumber: { width: 19, height: 19, borderRadius: 10, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center', marginTop: 1 }, installStepNumberText: { color: colors.onPrimary, fontSize: 10, fontWeight: '900' }, installHelpText: { flex: 1, color: colors.sub, fontSize: 11, lineHeight: 16 }, installHelpNote: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 10 },
     achievementsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 }, achievement: { width: '48%', minHeight: 74, padding: 11, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.button, ...shadow.card }, achievementLocked: { elevation: 0, shadowOpacity: 0, borderWidth: 1, borderColor: colors.border }, achievementIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.overlay, marginRight: 9 }, achievementIconUnlocked: { backgroundColor: colors.goldpale }, achievementLabel: { flex: 1, color: colors.text, fontSize: 11, lineHeight: 15, fontWeight: '700' }, achievementLabelLocked: { color: colors.muted },
     logoutButton: { minHeight: 52, borderRadius: radius.button, borderWidth: 1, borderColor: colors.dangerSoft, backgroundColor: colors.card, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
     logoutText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
