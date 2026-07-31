@@ -49,6 +49,7 @@ class Config:
     port: int
     data_dir: str
     monitor_interval_seconds: int
+    morning_report_hour: int
     evening_report_hour: int
     timezone: str
     github_token_expires_at: date | None
@@ -76,9 +77,12 @@ def load_config() -> Config:
         raise RuntimeError("OWNER_TELEGRAM_IDS must not be empty")
 
     monitor_interval = int(os.environ.get("MONITOR_INTERVAL_SECONDS", "300"))
+    morning_hour = int(os.environ.get("MORNING_REPORT_HOUR", "9"))
     report_hour = int(os.environ.get("EVENING_REPORT_HOUR", "21"))
     if monitor_interval < 60:
         raise RuntimeError("MONITOR_INTERVAL_SECONDS must be at least 60")
+    if not 0 <= morning_hour <= 23:
+        raise RuntimeError("MORNING_REPORT_HOUR must be between 0 and 23")
     if not 0 <= report_hour <= 23:
         raise RuntimeError("EVENING_REPORT_HOUR must be between 0 and 23")
     raw_expiry = os.environ.get("GITHUB_TOKEN_EXPIRES_AT", "").strip()
@@ -96,6 +100,7 @@ def load_config() -> Config:
         port=int(os.environ.get("PORT", "8080")),
         data_dir=os.environ.get("REPORT_BOT_DATA_DIR", "/data").strip() or "/data",
         monitor_interval_seconds=monitor_interval,
+        morning_report_hour=morning_hour,
         evening_report_hour=report_hour,
         timezone=os.environ.get("REPORT_TIMEZONE", "Europe/Moscow").strip(),
         github_token_expires_at=github_token_expires_at,

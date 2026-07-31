@@ -43,7 +43,7 @@ from report_bot.council import (
     select_project,
 )
 from report_bot.knowledge import ProjectKnowledgeLibrary
-from report_bot.monitor import monitor_loop
+from report_bot.monitor import capture_state, monitor_loop, morning_brief
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
 from report_bot.status import (
     StatusClient,
@@ -72,6 +72,7 @@ BOT_COMMANDS = (
     BotCommand(command="brief", description="Обновить паспорт проекта"),
     BotCommand(command="tasks", description="Открытые поручения"),
     BotCommand(command="today", description="Поручения на сегодня"),
+    BotCommand(command="morning", description="Утренний бриф"),
     BotCommand(command="newtask", description="Создать поручение"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
@@ -85,6 +86,7 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="🧠 Совет ИИ")],
         [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
+        [KeyboardButton(text="☀️ Утренний бриф")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -433,6 +435,7 @@ def build_router(
             "/brief текст — обновить паспорт активного проекта\n"
             "/tasks — открытые поручения\n"
             "/today — поручения со сроком сегодня и просроченные\n"
+            "/morning — утренний бриф по всем проектам\n"
             "/newtask — создать поручение для активного проекта\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
@@ -487,6 +490,17 @@ def build_router(
             message,
             task_store.due(datetime.now(ZoneInfo(config.timezone)).date()),
             heading="📅 <b>На сегодня и просроченные</b>",
+        )
+
+    @router.message(Command("morning"))
+    @router.message(lambda message: message.text == "☀️ Утренний бриф")
+    async def morning_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        states = await capture_state(client, registry)
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        await message.answer(
+            morning_brief(states, registry, task_store, approval_store, today)
         )
 
     async def create_task_from_details(
@@ -1709,9 +1723,12 @@ async def main() -> None:
                 registry,
                 config.data_dir,
                 config.monitor_interval_seconds,
+                config.morning_report_hour,
                 config.evening_report_hour,
                 config.timezone,
                 config.github_token_expires_at,
+                task_store,
+                approval_store,
             )
         )
         approval_reconciliation_task = asyncio.create_task(

@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
+import html
 import json
 import logging
 from pathlib import Path
@@ -9,8 +10,10 @@ from zoneinfo import ZoneInfo
 
 from aiogram import Bot
 
+from report_bot.approvals import ApprovalStore
 from report_bot.projects import ProjectRegistry
 from report_bot.status import SiteStatus, StatusClient, all_sites_summary
+from report_bot.tasks import TaskStore
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +68,12 @@ class StateStore:
 
 
 class ReportDateStore:
-    def __init__(self, data_dir: str) -> None:
-        self.path = Path(data_dir) / "last_evening_report.txt"
+    def __init__(
+        self,
+        data_dir: str,
+        filename: str = "last_evening_report.txt",
+    ) -> None:
+        self.path = Path(data_dir) / filename
 
     def load(self):
         try:
@@ -245,6 +252,96 @@ def transition_messages(
     return messages
 
 
+def morning_brief(
+    states: dict[str, ProjectState],
+    registry: ProjectRegistry,
+    task_store: TaskStore,
+    approval_store: ApprovalStore,
+    today: date,
+) -> str:
+    projects = registry.all()
+    down = [
+        project
+        for project in projects
+        if (state := states.get(project.key)) is not None and not state.site_ok
+    ]
+    failed = [
+        project
+        for project in projects
+        if (state := states.get(project.key)) is not None
+        and state.workflow_status == "completed"
+        and state.workflow_conclusion == "failure"
+    ]
+    open_tasks = task_store.open()
+    overdue = [task for task in open_tasks if date.fromisoformat(task.due_date) < today]
+    due_today = [task for task in open_tasks if task.due_date == today.isoformat()]
+    pending = approval_store.pending()
+
+    lines = [
+        "☀️ <b>Утренний бриф собственника</b>",
+        f"📅 {today.strftime('%d.%m.%Y')}",
+        "",
+        "<b>Проекты</b>",
+    ]
+    for project in projects:
+        state = states.get(project.key)
+        if state is None:
+            lines.append(f"⚪️ {html.escape(project.title)}: нет данных")
+            continue
+        icon = "✅" if state.site_ok else "🚨"
+        status = (
+            f"HTTP {state.status_code}"
+            if state.status_code is not None
+            else state.error_reason or "нет ответа"
+        )
+        lines.append(f"{icon} {html.escape(project.title)}: {html.escape(status)}")
+
+    lines.extend(
+        [
+            "",
+            "<b>Поручения и решения</b>",
+            f"📌 Открыто: <b>{len(open_tasks)}</b>",
+            f"⏰ Просрочено: <b>{len(overdue)}</b>",
+            f"📅 На сегодня: <b>{len(due_today)}</b>",
+            f"🔐 Ждут решения: <b>{len(pending)}</b>",
+        ]
+    )
+
+    priorities: list[str] = []
+    if down:
+        priorities.append(
+            "Восстановить: "
+            + ", ".join(html.escape(project.title) for project in down)
+        )
+    if failed:
+        priorities.append(
+            "Разобрать ошибку сборки: "
+            + ", ".join(html.escape(project.title) for project in failed)
+        )
+    if pending:
+        priorities.append(f"Принять решение по {len(pending)} запросам")
+    if overdue:
+        priorities.append(f"Закрыть {len(overdue)} просроченных поручений")
+    if due_today:
+        priorities.append(
+            "Выполнить сегодня: "
+            + "; ".join(html.escape(task.title) for task in due_today[:2])
+        )
+    if not priorities:
+        priorities.append(
+            "Критических отклонений нет — выберите один главный результат дня"
+        )
+
+    lines.extend(["", "<b>Приоритеты</b>"])
+    lines.extend(
+        f"{index}. {priority}" for index, priority in enumerate(priorities[:3], 1)
+    )
+    lines.append(
+        "\nКоманды: /today — срочные, /tasks — все, /newtask — новое."
+    )
+    return "\n".join(lines)
+
+
 async def monitor_loop(
     bot: Bot,
     owner_ids: frozenset[int],
@@ -252,14 +349,19 @@ async def monitor_loop(
     registry: ProjectRegistry,
     data_dir: str,
     interval_seconds: int,
+    morning_hour: int,
     report_hour: int,
     timezone: str,
     github_token_expires_at: date | None,
+    task_store: TaskStore,
+    approval_store: ApprovalStore,
 ) -> None:
     store = StateStore(data_dir)
     report_store = ReportDateStore(data_dir)
+    morning_store = ReportDateStore(data_dir, "last_morning_report.txt")
     previous = store.load()
     last_report_date = report_store.load()
+    last_morning_date = morning_store.load()
     reminder_store = ReminderStore(data_dir)
     sent_reminders = reminder_store.load()
     zone = ZoneInfo(timezone)
@@ -283,6 +385,19 @@ async def monitor_loop(
                     await bot.send_message(owner_id, reminder_message)
                 sent_reminders.add(reminder_key)
                 reminder_store.save(sent_reminders)
+
+            if now.hour == morning_hour and last_morning_date != now.date():
+                summary = morning_brief(
+                    current,
+                    registry,
+                    task_store,
+                    approval_store,
+                    now.date(),
+                )
+                for owner_id in owner_ids:
+                    await bot.send_message(owner_id, summary)
+                last_morning_date = now.date()
+                morning_store.save(last_morning_date)
 
             if now.hour == report_hour and last_report_date != now.date():
                 summary = "🌙 <b>Вечерний отчёт</b>\n\n" + await all_sites_summary(
