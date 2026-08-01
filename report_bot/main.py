@@ -62,6 +62,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 BOT_COMMANDS = (
+    BotCommand(command="start", description="Главное меню"),
     BotCommand(command="projects", description="Все проекты"),
     BotCommand(command="iqbarakah", description="Статус IQ Barakah"),
     BotCommand(command="mizanlife", description="Статус Mizan Life"),
@@ -86,6 +87,7 @@ BOT_COMMANDS = (
 
 MENU = ReplyKeyboardMarkup(
     keyboard=[
+        [KeyboardButton(text="🏠 Старт")],
         [KeyboardButton(text="🧠 Совет ИИ")],
         [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
@@ -482,10 +484,12 @@ def build_router(
         return False
 
     @router.message(Command("start", "help"))
+    @router.message(lambda message: message.text == "🏠 Старт")
     @router.message(lambda message: message.text == "ℹ️ Помощь")
-    async def help_command(message: Message) -> None:
+    async def help_command(message: Message, state: FSMContext) -> None:
         if not await require_owner(message):
             return
+        await state.clear()
         await message.answer(
             "<b>Mizan Project Reports</b>\n\n"
             "/projects — все проекты\n"

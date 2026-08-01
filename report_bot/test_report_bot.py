@@ -26,6 +26,7 @@ from report_bot.monitor import (
 )
 from report_bot.main import (
     BOT_COMMANDS,
+    MENU,
     api_provider_keyboard,
     approval_auth_ok,
     council_mode_keyboard,
@@ -182,6 +183,13 @@ class ApprovalAuthTests(unittest.TestCase):
 
 
 class ReleaseControlTests(unittest.TestCase):
+    def test_start_is_available_in_commands_and_main_keyboard(self) -> None:
+        commands = [item.command for item in BOT_COMMANDS]
+        labels = [button.text for row in MENU.keyboard for button in row]
+        self.assertIn("start", commands)
+        self.assertEqual(labels.count("🏠 Старт"), 1)
+        self.assertEqual(MENU.keyboard[0][0].text, "🏠 Старт")
+
     def test_pwa_release_confirmation_has_start_and_cancel(self) -> None:
         keyboard = pwa_release_keyboard()
         callbacks = {
