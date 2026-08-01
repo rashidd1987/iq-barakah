@@ -8,7 +8,7 @@ import secrets
 from typing import Literal
 
 
-TaskStatus = Literal["open", "done"]
+TaskStatus = Literal["open", "done", "canceled"]
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,11 @@ class OwnerTask:
     created_by: int
     completed_at: str | None = None
     completed_by: int | None = None
+    completion_evidence: str | None = None
+    canceled_at: str | None = None
+    canceled_by: int | None = None
+    cancel_reason: str | None = None
+    rescheduled_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -32,6 +37,7 @@ class TaskEvent:
     task_id: str
     occurred_at: str
     actor_id: int
+    details: str | None = None
 
 
 def parse_task_details(value: str) -> tuple[str, date, str]:
@@ -132,11 +138,16 @@ class TaskStore:
         task_id: str,
         *,
         completed_by: int,
+        evidence: str | None = None,
         now: datetime | None = None,
     ) -> OwnerTask | None:
         task = self._tasks.get(task_id)
-        if task is None or task.status == "done":
+        if task is None or task.status != "open":
             return task
+        if evidence is not None and not 3 <= len(evidence.strip()) <= 500:
+            raise ValueError(
+                "Подтверждение результата должно содержать от 3 до 500 символов"
+            )
         current = now or datetime.now(timezone.utc)
         completed = OwnerTask(
             **{
@@ -144,6 +155,7 @@ class TaskStore:
                 "status": "done",
                 "completed_at": current.isoformat(),
                 "completed_by": completed_by,
+                "completion_evidence": evidence.strip() if evidence else None,
             }
         )
         self._tasks[task_id] = completed
@@ -158,6 +170,84 @@ class TaskStore:
             raise
         return completed
 
+    def reschedule(
+        self,
+        task_id: str,
+        *,
+        due_date: date,
+        reason: str,
+        actor_id: int,
+        now: datetime | None = None,
+    ) -> OwnerTask | None:
+        task = self._tasks.get(task_id)
+        if task is None or task.status != "open":
+            return task
+        reason = reason.strip()
+        if not 3 <= len(reason) <= 500:
+            raise ValueError("Причина переноса должна содержать от 3 до 500 символов")
+        current = now or datetime.now(timezone.utc)
+        previous_due = task.due_date
+        updated = OwnerTask(
+            **{
+                **asdict(task),
+                "due_date": due_date.isoformat(),
+                "rescheduled_count": task.rescheduled_count + 1,
+            }
+        )
+        self._tasks[task_id] = updated
+        self._events.append(
+            TaskEvent(
+                "rescheduled",
+                task_id,
+                current.isoformat(),
+                actor_id,
+                f"{previous_due} -> {due_date.isoformat()}: {reason}",
+            )
+        )
+        try:
+            self._save()
+        except OSError:
+            self._tasks[task_id] = task
+            self._events.pop()
+            raise
+        return updated
+
+    def cancel(
+        self,
+        task_id: str,
+        *,
+        reason: str,
+        canceled_by: int,
+        now: datetime | None = None,
+    ) -> OwnerTask | None:
+        task = self._tasks.get(task_id)
+        if task is None or task.status != "open":
+            return task
+        reason = reason.strip()
+        if not 3 <= len(reason) <= 500:
+            raise ValueError("Причина отмены должна содержать от 3 до 500 символов")
+        current = now or datetime.now(timezone.utc)
+        canceled = OwnerTask(
+            **{
+                **asdict(task),
+                "status": "canceled",
+                "canceled_at": current.isoformat(),
+                "canceled_by": canceled_by,
+                "cancel_reason": reason,
+            }
+        )
+        self._tasks[task_id] = canceled
+        self._events.append(
+            TaskEvent("canceled", task_id, current.isoformat(), canceled_by, reason)
+        )
+        try:
+            self._save()
+        except OSError:
+            self._tasks[task_id] = task
+            self._events.pop()
+            raise
+        return canceled
+
     def events(self) -> tuple[TaskEvent, ...]:
         return tuple(self._events)
 
@@ -165,11 +255,18 @@ class TaskStore:
         try:
             payload = json.loads(self._path.read_text(encoding="utf-8"))
             for item in payload.get("tasks", []):
+                item.setdefault("completion_evidence", None)
+                item.setdefault("canceled_at", None)
+                item.setdefault("canceled_by", None)
+                item.setdefault("cancel_reason", None)
+                item.setdefault("rescheduled_count", 0)
                 task = OwnerTask(**item)
                 self._tasks[task.id] = task
-            self._events = [
-                TaskEvent(**item) for item in payload.get("events", [])
-            ]
+            events = []
+            for item in payload.get("events", []):
+                item.setdefault("details", None)
+                events.append(TaskEvent(**item))
+            self._events = events
         except FileNotFoundError:
             return
         except (OSError, TypeError, ValueError, json.JSONDecodeError):
