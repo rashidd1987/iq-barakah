@@ -44,7 +44,7 @@ from report_bot.council import (
 )
 from report_bot.day_plan import DayPlanStore, build_day_plan
 from report_bot.knowledge import ProjectKnowledgeLibrary
-from report_bot.monitor import capture_state, monitor_loop, morning_brief
+from report_bot.monitor import capture_state, monitor_loop, morning_brief, weekly_task_report
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
 from report_bot.status import (
     StatusClient,
@@ -77,6 +77,7 @@ BOT_COMMANDS = (
     BotCommand(command="morning", description="Утренний бриф"),
     BotCommand(command="plan", description="Предложить план дня"),
     BotCommand(command="evening", description="Подвести итоги дня"),
+    BotCommand(command="weekly", description="Недельный отчёт"),
     BotCommand(command="newtask", description="Создать поручение"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
@@ -92,7 +93,7 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
         [KeyboardButton(text="☀️ Утренний бриф"), KeyboardButton(text="🎯 План дня")],
-        [KeyboardButton(text="🌙 Итоги дня")],
+        [KeyboardButton(text="🌙 Итоги дня"), KeyboardButton(text="📊 Неделя")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -506,6 +507,7 @@ def build_router(
             "/morning — утренний бриф по всем проектам\n"
             "/plan — предложить до трёх действий на сегодня\n"
             "/evening — подвести итоги по срочным поручениям\n"
+            "/weekly — отчёт по поручениям за 7 дней\n"
             "/newtask — создать поручение для активного проекта\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
@@ -700,6 +702,14 @@ def build_router(
             return
         await state.clear()
         await send_evening_review(message)
+
+    @router.message(Command("weekly"))
+    @router.message(lambda message: message.text == "📊 Неделя")
+    async def weekly_report_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        await message.answer(weekly_task_report(task_store, registry, today))
 
     @router.callback_query(F.data.startswith("review:"))
     async def task_review_callback(
@@ -2125,6 +2135,8 @@ async def main() -> None:
                 config.monitor_interval_seconds,
                 config.morning_report_hour,
                 config.evening_report_hour,
+                config.weekly_report_weekday,
+                config.weekly_report_hour,
                 config.timezone,
                 config.github_token_expires_at,
                 task_store,

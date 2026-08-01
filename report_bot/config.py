@@ -51,6 +51,8 @@ class Config:
     monitor_interval_seconds: int
     morning_report_hour: int
     evening_report_hour: int
+    weekly_report_weekday: int
+    weekly_report_hour: int
     timezone: str
     github_token_expires_at: date | None
     approval_api_secret: str
@@ -79,12 +81,18 @@ def load_config() -> Config:
     monitor_interval = int(os.environ.get("MONITOR_INTERVAL_SECONDS", "300"))
     morning_hour = int(os.environ.get("MORNING_REPORT_HOUR", "9"))
     report_hour = int(os.environ.get("EVENING_REPORT_HOUR", "21"))
+    weekly_weekday = int(os.environ.get("WEEKLY_REPORT_WEEKDAY", "0"))
+    weekly_hour = int(os.environ.get("WEEKLY_REPORT_HOUR", "9"))
     if monitor_interval < 60:
         raise RuntimeError("MONITOR_INTERVAL_SECONDS must be at least 60")
     if not 0 <= morning_hour <= 23:
         raise RuntimeError("MORNING_REPORT_HOUR must be between 0 and 23")
     if not 0 <= report_hour <= 23:
         raise RuntimeError("EVENING_REPORT_HOUR must be between 0 and 23")
+    if not 0 <= weekly_weekday <= 6:
+        raise RuntimeError("WEEKLY_REPORT_WEEKDAY must be between 0 and 6")
+    if not 0 <= weekly_hour <= 23:
+        raise RuntimeError("WEEKLY_REPORT_HOUR must be between 0 and 23")
     raw_expiry = os.environ.get("GITHUB_TOKEN_EXPIRES_AT", "").strip()
     try:
         github_token_expires_at = date.fromisoformat(raw_expiry) if raw_expiry else None
@@ -102,6 +110,8 @@ def load_config() -> Config:
         monitor_interval_seconds=monitor_interval,
         morning_report_hour=morning_hour,
         evening_report_hour=report_hour,
+        weekly_report_weekday=weekly_weekday,
+        weekly_report_hour=weekly_hour,
         timezone=os.environ.get("REPORT_TIMEZONE", "Europe/Moscow").strip(),
         github_token_expires_at=github_token_expires_at,
         approval_api_secret=os.environ.get("APPROVAL_API_SECRET", "").strip(),
