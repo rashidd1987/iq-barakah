@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import html
 import json
 import logging
@@ -342,6 +342,74 @@ def morning_brief(
     return "\n".join(lines)
 
 
+def weekly_task_report(
+    task_store: TaskStore,
+    registry: ProjectRegistry,
+    today: date,
+) -> str:
+    """Build a factual seven-day owner report from the append-only task journal."""
+    period_start = today - timedelta(days=6)
+    events = [
+        event
+        for event in task_store.events()
+        if period_start <= datetime.fromisoformat(event.occurred_at).date() <= today
+    ]
+    counts = {
+        event_name: sum(event.event == event_name for event in events)
+        for event_name in ("created", "completed", "rescheduled", "canceled")
+    }
+    open_tasks = task_store.open()
+    overdue = [task for task in open_tasks if task.due_date < today.isoformat()]
+    project_pressure: dict[str, int] = {}
+    for task in overdue:
+        project_pressure[task.project_key] = project_pressure.get(task.project_key, 0) + 1
+    for event in events:
+        if event.event != "rescheduled":
+            continue
+        task = task_store.get(event.task_id)
+        if task:
+            project_pressure[task.project_key] = project_pressure.get(task.project_key, 0) + 1
+
+    lines = [
+        "📊 <b>Недельный отчёт собственника</b>",
+        f"📅 {period_start.strftime('%d.%m')}–{today.strftime('%d.%m.%Y')}",
+        "",
+        "<b>Движение поручений</b>",
+        f"➕ Создано: <b>{counts['created']}</b>",
+        f"✅ Выполнено: <b>{counts['completed']}</b>",
+        f"➡️ Перенесено: <b>{counts['rescheduled']}</b>",
+        f"⛔ Отменено: <b>{counts['canceled']}</b>",
+        f"📌 Открыто сейчас: <b>{len(open_tasks)}</b>",
+        f"⏰ Просрочено сейчас: <b>{len(overdue)}</b>",
+        "",
+        "<b>Зоны внимания</b>",
+    ]
+    if project_pressure:
+        ranked = sorted(project_pressure.items(), key=lambda item: (-item[1], item[0]))
+        for project_key, pressure in ranked[:3]:
+            project = registry.by_key(project_key)
+            title = project.title if project else project_key
+            lines.append(f"• {html.escape(title)}: <b>{pressure}</b> сигналов")
+    else:
+        lines.append("✅ Просрочек и переносов за период нет")
+
+    if overdue:
+        lines.extend(["", "<b>Следующее действие</b>"])
+        for task in overdue[:3]:
+            project = registry.by_key(task.project_key)
+            title = project.title if project else task.project_key
+            lines.append(
+                f"• {html.escape(title)} — {html.escape(task.title)} "
+                f"(срок {date.fromisoformat(task.due_date).strftime('%d.%m')})"
+            )
+        lines.append("\nОткройте /evening, чтобы закрыть, перенести или отменить.")
+    elif counts["created"] == counts["completed"] == 0:
+        lines.append("\nЗа неделю поручений не было. Зафиксируйте следующий результат: /newtask")
+    else:
+        lines.append("\n✅ Просроченных поручений нет. Сформируйте следующий фокус: /plan")
+    return "\n".join(lines)
+
+
 async def monitor_loop(
     bot: Bot,
     owner_ids: frozenset[int],
@@ -351,6 +419,8 @@ async def monitor_loop(
     interval_seconds: int,
     morning_hour: int,
     report_hour: int,
+    weekly_weekday: int,
+    weekly_hour: int,
     timezone: str,
     github_token_expires_at: date | None,
     task_store: TaskStore,
@@ -359,9 +429,11 @@ async def monitor_loop(
     store = StateStore(data_dir)
     report_store = ReportDateStore(data_dir)
     morning_store = ReportDateStore(data_dir, "last_morning_report.txt")
+    weekly_store = ReportDateStore(data_dir, "last_weekly_report.txt")
     previous = store.load()
     last_report_date = report_store.load()
     last_morning_date = morning_store.load()
+    last_weekly_date = weekly_store.load()
     reminder_store = ReminderStore(data_dir)
     sent_reminders = reminder_store.load()
     zone = ZoneInfo(timezone)
@@ -413,6 +485,17 @@ async def monitor_loop(
                     await bot.send_message(owner_id, summary)
                 last_report_date = now.date()
                 report_store.save(last_report_date)
+
+            if (
+                now.weekday() == weekly_weekday
+                and now.hour == weekly_hour
+                and last_weekly_date != now.date()
+            ):
+                summary = weekly_task_report(task_store, registry, now.date())
+                for owner_id in owner_ids:
+                    await bot.send_message(owner_id, summary)
+                last_weekly_date = now.date()
+                weekly_store.save(last_weekly_date)
         except asyncio.CancelledError:
             raise
         except Exception:

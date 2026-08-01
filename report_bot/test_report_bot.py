@@ -20,6 +20,7 @@ from report_bot.monitor import (
     ProjectState,
     StateStore,
     morning_brief,
+    weekly_task_report,
     stabilize_site_status,
     token_expiry_reminder,
     transition_messages,
@@ -101,6 +102,8 @@ class ConfigTests(unittest.TestCase):
         ):
             config = load_config()
         self.assertEqual(config.morning_report_hour, 9)
+        self.assertEqual(config.weekly_report_weekday, 0)
+        self.assertEqual(config.weekly_report_hour, 9)
 
     def test_rejects_invalid_morning_report_hour(self) -> None:
         with patch.dict(
@@ -1063,6 +1066,59 @@ class MorningBriefTests(unittest.TestCase):
                 date(2026, 7, 31),
             )
             self.assertIn("Критических отклонений нет", result)
+
+
+class WeeklyTaskReportTests(unittest.TestCase):
+    def test_reports_real_events_and_project_pressure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            registry = ProjectRegistry(directory)
+            created = datetime(2026, 7, 27, 10, tzinfo=timezone.utc)
+            done = store.create(
+                project_key="iqbarakah",
+                title="Проверить релиз",
+                due_date=date(2026, 7, 28),
+                success_criterion="Проверка зелёная",
+                created_by=42,
+                now=created,
+            )
+            store.complete(
+                done.id,
+                completed_by=42,
+                evidence="CI прошёл успешно",
+                now=created + timedelta(days=1),
+            )
+            overdue = store.create(
+                project_key="mizanlife",
+                title="Проверить сценарий",
+                due_date=date(2026, 7, 29),
+                success_criterion="Сценарий работает",
+                created_by=42,
+                now=created,
+            )
+            store.reschedule(
+                overdue.id,
+                due_date=date(2026, 7, 30),
+                reason="Нужен повторный тест",
+                actor_id=42,
+                now=created + timedelta(days=2),
+            )
+
+            result = weekly_task_report(store, registry, date(2026, 8, 1))
+
+            self.assertIn("Создано: <b>2</b>", result)
+            self.assertIn("Выполнено: <b>1</b>", result)
+            self.assertIn("Перенесено: <b>1</b>", result)
+            self.assertIn("Просрочено сейчас: <b>1</b>", result)
+            self.assertIn("Mizan Life: <b>2</b> сигналов", result)
+
+    def test_does_not_invent_percentage_for_empty_week(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            result = weekly_task_report(
+                TaskStore(directory), ProjectRegistry(directory), date(2026, 8, 1)
+            )
+            self.assertIn("За неделю поручений не было", result)
+            self.assertNotIn("%", result)
 
 
 class DayPlanTests(unittest.TestCase):
