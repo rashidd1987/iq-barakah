@@ -84,6 +84,7 @@ BOT_COMMANDS = (
     BotCommand(command="plan", description="Предложить план дня"),
     BotCommand(command="evening", description="Подвести итоги дня"),
     BotCommand(command="weekly", description="Недельный отчёт"),
+    BotCommand(command="automation", description="Облачная автоматизация"),
     BotCommand(command="newtask", description="Создать поручение"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
@@ -100,6 +101,7 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
         [KeyboardButton(text="☀️ Утренний бриф"), KeyboardButton(text="🎯 План дня")],
         [KeyboardButton(text="🌙 Итоги дня"), KeyboardButton(text="📊 Неделя")],
+        [KeyboardButton(text="☁️ Автоматизация")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -299,6 +301,55 @@ def pwa_release_keyboard() -> InlineKeyboardMarkup:
                     text="Отмена",
                     callback_data="release:pwa:cancel",
                 ),
+            ]
+        ]
+    )
+
+
+def automation_center_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🤖 Android preview",
+                    callback_data="auto:pick:android:preview",
+                ),
+                InlineKeyboardButton(
+                    text="🍎 iOS preview",
+                    callback_data="auto:pick:ios:preview",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🚀 Android production",
+                    callback_data="auto:pick:android:production",
+                ),
+                InlineKeyboardButton(
+                    text="🚀 iOS production",
+                    callback_data="auto:pick:ios:production",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🧪 PWA-релиз",
+                    callback_data="auto:pwa",
+                )
+            ],
+        ]
+    )
+
+
+def automation_confirmation_keyboard(
+    platform: str, profile: str
+) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Запустить",
+                    callback_data=f"auto:run:{platform}:{profile}",
+                ),
+                InlineKeyboardButton(text="Отмена", callback_data="auto:cancel"),
             ]
         ]
     )
@@ -562,6 +613,7 @@ def build_router(
             "/plan — предложить до трёх действий на сегодня\n"
             "/evening — подвести итоги по срочным поручениям\n"
             "/weekly — отчёт по поручениям за 7 дней\n"
+            "/automation — облачные сборки с телефона\n"
             "/newtask — создать поручение для активного проекта\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
@@ -1761,6 +1813,106 @@ def build_router(
                 "failed": (
                     "❌ GitHub временно недоступен. Сборка не запущена."
                 ),
+            }[result]
+        if callback.message:
+            await callback.message.edit_text(result_text)
+
+    @router.message(Command("automation"))
+    @router.message(lambda message: message.text == "☁️ Автоматизация")
+    async def automation_center(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        await message.answer(
+            "☁️ <b>Центр автоматизации</b>\n\n"
+            "Выберите разрешённый облачный сценарий. Preview не публикуется "
+            "в магазин. Production после запуска отдельно запросит разрешение "
+            "в Telegram.\n\n"
+            "Mini App здесь пока отсутствует: сначала ему нужен такой же "
+            "защитный шлюз.",
+            reply_markup=automation_center_keyboard(),
+        )
+
+    @router.callback_query(F.data.startswith("auto:"))
+    async def automation_callback(callback: CallbackQuery) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":")
+        action = parts[1] if len(parts) > 1 else ""
+        if action == "cancel":
+            await callback.answer("Отменено")
+            if callback.message:
+                await callback.message.edit_text(
+                    "⚪️ Облачный запуск отменён. Ничего не запускалось."
+                )
+            return
+        if action == "pwa":
+            await callback.answer()
+            if callback.message:
+                await callback.message.edit_text(
+                    "🧪 <b>Подготовить PWA-релиз IQ Barakah?</b>\n\n"
+                    "Сначала пройдут проверки. Перед production бот запросит "
+                    "отдельное разрешение.",
+                    reply_markup=pwa_release_keyboard(),
+                )
+            return
+        if len(parts) != 4 or action not in {"pick", "run"}:
+            await callback.answer("Некорректный сценарий", show_alert=True)
+            return
+        platform, profile = parts[2], parts[3]
+        if platform not in {"android", "ios"} or profile not in {
+            "preview",
+            "production",
+        }:
+            await callback.answer("Сценарий не разрешён", show_alert=True)
+            return
+        if action == "pick":
+            await callback.answer()
+            warning = (
+                "После сборки появится release-кандидат; публикации в магазин "
+                "не произойдёт без отдельного действия."
+                if profile == "production"
+                else "Будет создана тестовая сборка; production не изменится."
+            )
+            if callback.message:
+                await callback.message.edit_text(
+                    "☁️ <b>Подтвердите облачный запуск</b>\n\n"
+                    f"Платформа: <b>{platform.upper()}</b>\n"
+                    f"Профиль: <b>{profile}</b>\n\n{warning}",
+                    reply_markup=automation_confirmation_keyboard(platform, profile),
+                )
+            return
+
+        await callback.answer("Проверяю очередь…")
+        runs = await client.workflow_runs("iq-barakah", limit=10)
+        if runs is None:
+            result_text = "❌ Не удалось проверить GitHub. Ничего не запущено."
+        elif any(
+            run.get("name") == "Build mobile release"
+            and run.get("status") in {"queued", "in_progress", "waiting", "pending"}
+            for run in runs
+        ):
+            result_text = "⏳ Мобильная сборка уже выполняется. Дубликат не создан."
+        else:
+            result = await client.dispatch_workflow(
+                "iq-barakah",
+                "release-mobile.yml",
+                ref="main",
+                inputs={"platform": platform, "profile": profile},
+            )
+            result_text = {
+                "started": (
+                    "✅ Облачная сборка запущена.\n\n"
+                    + (
+                        "Перед production бот пришлёт отдельный запрос "
+                        "«Разрешить / Отклонить»."
+                        if profile == "production"
+                        else "Результат появится в Expo/EAS; production не меняется."
+                    )
+                ),
+                "unauthorized": "🔒 GitHub не разрешил запуск. Ничего не запущено.",
+                "not_found": "❌ Workflow не найден. Ничего не запущено.",
+                "failed": "❌ GitHub временно недоступен. Ничего не запущено.",
             }[result]
         if callback.message:
             await callback.message.edit_text(result_text)
