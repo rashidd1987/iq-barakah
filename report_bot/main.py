@@ -44,7 +44,13 @@ from report_bot.council import (
 )
 from report_bot.day_plan import DayPlanStore, build_day_plan
 from report_bot.knowledge import ProjectKnowledgeLibrary
-from report_bot.monitor import capture_state, monitor_loop, morning_brief, weekly_task_report
+from report_bot.monitor import (
+    ProjectState,
+    capture_state,
+    monitor_loop,
+    morning_brief,
+    weekly_task_report,
+)
 from report_bot.projects import PROJECTS_BY_KEY, ProjectRegistry, validate_project
 from report_bot.status import (
     StatusClient,
@@ -324,6 +330,54 @@ def plan_suggestion_keyboard(suggestion_id: str) -> InlineKeyboardMarkup:
     )
 
 
+async def send_automatic_day_plan(
+    bot: Bot,
+    owner_ids: frozenset[int],
+    states: dict[str, ProjectState],
+    registry: ProjectRegistry,
+    task_store: TaskStore,
+    day_plan_store: DayPlanStore,
+    active_project: str,
+    today: date,
+) -> None:
+    """Send persisted suggestions; creating a task still requires owner action."""
+    suggestions = day_plan_store.replace(
+        today,
+        build_day_plan(
+            states,
+            registry,
+            task_store,
+            today,
+            active_project,
+        ),
+    )
+    heading = (
+        "🎯 <b>Предложения на сегодня</b>\n\n"
+        "Выберите только нужные действия. Без нажатия ничего не создаётся "
+        "и не запускается."
+    )
+    for owner_id in owner_ids:
+        await bot.send_message(owner_id, heading)
+        for index, suggestion in enumerate(suggestions, 1):
+            project = registry.by_key(suggestion.project_key)
+            title = project.title if project else suggestion.project_key
+            text = (
+                f"<b>{index}. {html.escape(suggestion.title)}</b>\n"
+                f"Проект: {html.escape(title)}\n"
+                f"Почему: {html.escape(suggestion.reason)}\n"
+                f"Готово, когда: {html.escape(suggestion.success_criterion)}"
+            )
+            await bot.send_message(
+                owner_id,
+                text,
+                reply_markup=(
+                    None
+                    if suggestion.accepted_task_id
+                    else plan_suggestion_keyboard(suggestion.id)
+                ),
+            )
+
+
 def task_review_keyboard(task: OwnerTask) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -474,9 +528,9 @@ def build_router(
     knowledge: ProjectKnowledgeLibrary,
     approval_store: ApprovalStore,
     task_store: TaskStore,
+    day_plan_store: DayPlanStore,
 ) -> Router:
     router = Router(name="owner_reports")
-    day_plan_store = DayPlanStore(config.data_dir)
 
     async def require_owner(message: Message) -> bool:
         if is_owner(message, config):
@@ -2100,6 +2154,7 @@ async def main() -> None:
         knowledge = ProjectKnowledgeLibrary(config.data_dir)
         approval_store = ApprovalStore(config.data_dir)
         task_store = TaskStore(config.data_dir)
+        day_plan_store = DayPlanStore(config.data_dir)
         bot = Bot(
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -2120,6 +2175,7 @@ async def main() -> None:
                 knowledge,
                 approval_store,
                 task_store,
+                day_plan_store,
             )
         )
         health_runner = await run_health_server(
@@ -2141,6 +2197,16 @@ async def main() -> None:
                 config.github_token_expires_at,
                 task_store,
                 approval_store,
+                lambda states, today: send_automatic_day_plan(
+                    bot,
+                    config.owner_ids,
+                    states,
+                    registry,
+                    task_store,
+                    day_plan_store,
+                    knowledge.active_project,
+                    today,
+                ),
             )
         )
         approval_reconciliation_task = asyncio.create_task(

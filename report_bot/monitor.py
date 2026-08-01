@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 import html
@@ -468,6 +469,9 @@ async def monitor_loop(
     github_token_expires_at: date | None,
     task_store: TaskStore,
     approval_store: ApprovalStore,
+    morning_plan_callback: Callable[
+        [dict[str, ProjectState], date], Awaitable[None]
+    ] | None = None,
 ) -> None:
     store = StateStore(data_dir)
     report_store = ReportDateStore(data_dir)
@@ -522,6 +526,8 @@ async def monitor_loop(
                     reminder_store.save(sent_reminders)
                 last_morning_date = now.date()
                 morning_store.save(last_morning_date)
+                if morning_plan_callback:
+                    await morning_plan_callback(current, now.date())
 
             if now.hour == report_hour and last_report_date != now.date():
                 summary = "🌙 <b>Вечерний отчёт</b>\n\n" + await all_sites_summary(

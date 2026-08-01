@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from datetime import date, datetime, timedelta, timezone
@@ -37,6 +38,7 @@ from report_bot.main import (
     multi_provider_keyboard,
     plan_suggestion_keyboard,
     pwa_release_keyboard,
+    send_automatic_day_plan,
     task_review_keyboard,
 )
 from report_bot.knowledge import ProjectKnowledgeLibrary
@@ -1170,6 +1172,43 @@ class WeeklyTaskReportTests(unittest.TestCase):
 
 
 class DayPlanTests(unittest.TestCase):
+    def test_automatic_plan_only_sends_suggestions_until_owner_accepts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            registry = ProjectRegistry(directory)
+            task_store = TaskStore(directory)
+            plan_store = DayPlanStore(directory)
+            states = {
+                project.key: ProjectState(
+                    site_ok=True,
+                    status_code=200,
+                    workflow_id=None,
+                    workflow_status=None,
+                    workflow_conclusion=None,
+                )
+                for project in registry.all()
+            }
+            bot = SimpleNamespace(send_message=AsyncMock())
+
+            asyncio.run(
+                send_automatic_day_plan(
+                    bot,
+                    frozenset({42}),
+                    states,
+                    registry,
+                    task_store,
+                    plan_store,
+                    "iqbarakah",
+                    date(2026, 8, 1),
+                )
+            )
+
+            self.assertEqual(task_store.open(), ())
+            self.assertEqual(bot.send_message.await_count, 4)
+            heading = bot.send_message.await_args_list[0].args[1]
+            self.assertIn("Без нажатия ничего не создаётся", heading)
+            for call in bot.send_message.await_args_list[1:]:
+                self.assertIsNotNone(call.kwargs["reply_markup"])
+
     def test_operational_failures_are_proposed_before_routine_checks(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             registry = ProjectRegistry(directory)
