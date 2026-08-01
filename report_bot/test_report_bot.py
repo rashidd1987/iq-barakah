@@ -31,6 +31,8 @@ from report_bot.main import (
     BOT_COMMANDS,
     MENU,
     api_provider_keyboard,
+    automation_center_keyboard,
+    automation_confirmation_keyboard,
     approval_auth_ok,
     council_mode_keyboard,
     council_keyboard,
@@ -207,6 +209,34 @@ class ReleaseControlTests(unittest.TestCase):
             callbacks,
             {"release:pwa:start", "release:pwa:cancel"},
         )
+
+    def test_automation_center_exposes_only_allowlisted_scenarios(self) -> None:
+        callbacks = {
+            button.callback_data
+            for row in automation_center_keyboard().inline_keyboard
+            for button in row
+        }
+        self.assertEqual(
+            callbacks,
+            {
+                "auto:pick:android:preview",
+                "auto:pick:ios:preview",
+                "auto:pick:android:production",
+                "auto:pick:ios:production",
+                "auto:pwa",
+            },
+        )
+        self.assertFalse(any("miniapp" in value for value in callbacks))
+
+    def test_automation_confirmation_preserves_exact_allowlisted_inputs(self) -> None:
+        keyboard = automation_confirmation_keyboard("android", "production")
+        callbacks = [
+            button.callback_data
+            for row in keyboard.inline_keyboard
+            for button in row
+        ]
+        self.assertEqual(callbacks, ["auto:run:android:production", "auto:cancel"])
+        self.assertTrue(all(len(value or "") <= 64 for value in callbacks))
 
     def test_day_plan_callback_is_compact(self) -> None:
         callback = plan_suggestion_keyboard("safe-id").inline_keyboard[0][0]
