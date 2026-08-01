@@ -403,6 +403,12 @@ async def monitor_loop(
                 summary = "🌙 <b>Вечерний отчёт</b>\n\n" + await all_sites_summary(
                     client, registry.all()
                 )
+                due_count = len(task_store.due(now.date()))
+                summary += (
+                    "\n\n<b>Контроль поручений</b>\n"
+                    f"Требуют итога: <b>{due_count}</b>\n"
+                    "Откройте /evening, чтобы выполнить, перенести или отменить."
+                )
                 for owner_id in owner_ids:
                     await bot.send_message(owner_id, summary)
                 last_report_date = now.date()

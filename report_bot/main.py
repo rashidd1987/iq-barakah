@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import date, datetime
 import hmac
 import html
 import json
@@ -75,6 +75,7 @@ BOT_COMMANDS = (
     BotCommand(command="today", description="Поручения на сегодня"),
     BotCommand(command="morning", description="Утренний бриф"),
     BotCommand(command="plan", description="Предложить план дня"),
+    BotCommand(command="evening", description="Подвести итоги дня"),
     BotCommand(command="newtask", description="Создать поручение"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
@@ -89,6 +90,7 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
         [KeyboardButton(text="☀️ Утренний бриф"), KeyboardButton(text="🎯 План дня")],
+        [KeyboardButton(text="🌙 Итоги дня")],
         [KeyboardButton(text="📂 Проекты"), KeyboardButton(text="📡 Статус")],
         [KeyboardButton(text="🚀 Релизы"), KeyboardButton(text="❌ Ошибки")],
         [KeyboardButton(text="🧪 Подготовить PWA-релиз")],
@@ -120,6 +122,13 @@ class ApiCouncil(StatesGroup):
 
 class TaskCreation(StatesGroup):
     details = State()
+
+
+class TaskReview(StatesGroup):
+    completion_evidence = State()
+    postpone_date = State()
+    postpone_reason = State()
+    cancel_reason = State()
 
 
 def council_mode_keyboard() -> InlineKeyboardMarkup:
@@ -312,6 +321,45 @@ def plan_suggestion_keyboard(suggestion_id: str) -> InlineKeyboardMarkup:
     )
 
 
+def task_review_keyboard(task: OwnerTask) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Выполнено",
+                    callback_data=f"review:done:{task.id}",
+                ),
+                InlineKeyboardButton(
+                    text="➡️ Перенести",
+                    callback_data=f"review:postpone:{task.id}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="⛔ Отменить",
+                    callback_data=f"review:cancel:{task.id}",
+                )
+            ],
+        ]
+    )
+
+
+def extract_task_evidence(message: Message) -> str:
+    text = (message.text or "").strip()
+    if text:
+        return text
+    caption = (message.caption or "").strip()
+    has_photo = bool(message.photo)
+    document = message.document
+    has_image_document = bool(
+        document and (document.mime_type or "").startswith("image/")
+    )
+    if has_photo or has_image_document:
+        reference = f"Скриншот Telegram, сообщение #{message.message_id}"
+        return f"{reference}: {caption}" if caption else reference
+    return ""
+
+
 def task_text(task: OwnerTask, project_title: str) -> str:
     return (
         f"📌 <b>{html.escape(task.title)}</b>\n"
@@ -453,6 +501,7 @@ def build_router(
             "/today — поручения со сроком сегодня и просроченные\n"
             "/morning — утренний бриф по всем проектам\n"
             "/plan — предложить до трёх действий на сегодня\n"
+            "/evening — подвести итоги по срочным поручениям\n"
             "/newtask — создать поручение для активного проекта\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
@@ -620,6 +669,230 @@ def build_router(
                 reply_markup=task_keyboard(task),
             )
 
+    async def send_evening_review(message: Message) -> None:
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        tasks = task_store.due(today)
+        if not tasks:
+            await message.answer(
+                "🌙 <b>Итоги дня</b>\n\n✅ Срочных открытых поручений нет."
+            )
+            return
+        await message.answer(
+            "🌙 <b>Итоги дня</b>\n\n"
+            f"Нужно разобрать поручений: <b>{len(tasks)}</b>.\n"
+            "Для каждого выберите результат. Без выбора данные не изменятся."
+        )
+        for task in tasks[:20]:
+            project = registry.by_key(task.project_key)
+            await message.answer(
+                task_text(task, project.title if project else task.project_key),
+                reply_markup=task_review_keyboard(task),
+            )
+
+    @router.message(Command("evening"))
+    @router.message(lambda message: message.text == "🌙 Итоги дня")
+    async def evening_review_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        await state.clear()
+        await send_evening_review(message)
+
+    @router.callback_query(F.data.startswith("review:"))
+    async def task_review_callback(
+        callback: CallbackQuery, state: FSMContext
+    ) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":", 2)
+        if len(parts) != 3 or parts[1] not in {"done", "postpone", "cancel"}:
+            await callback.answer("Некорректное действие", show_alert=True)
+            return
+        action, task_id = parts[1], parts[2]
+        task = task_store.get(task_id)
+        if task is None:
+            await callback.answer("Поручение не найдено", show_alert=True)
+            return
+        if task.status != "open":
+            await callback.answer("Поручение уже закрыто", show_alert=True)
+            if callback.message:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            return
+        await state.clear()
+        await state.update_data(review_task_id=task.id)
+        if action == "done":
+            await state.set_state(TaskReview.completion_evidence)
+            prompt = (
+                "✅ <b>Подтвердите результат</b>\n\n"
+                "Одним сообщением отправьте короткое доказательство: "
+                "что проверено, ссылку или описание результата.\n\n"
+                "Для отмены ввода: /cancel"
+            )
+        elif action == "postpone":
+            await state.set_state(TaskReview.postpone_date)
+            prompt = (
+                "➡️ <b>Новая дата</b>\n\n"
+                "Отправьте будущую дату в формате <code>ГГГГ-ММ-ДД</code>.\n"
+                "Для отмены ввода: /cancel"
+            )
+        else:
+            await state.set_state(TaskReview.cancel_reason)
+            prompt = (
+                "⛔ <b>Причина отмены</b>\n\n"
+                "Коротко объясните, почему поручение больше не нужно.\n"
+                "Для отмены ввода: /cancel"
+            )
+        await callback.answer()
+        if callback.message:
+            await callback.message.answer(prompt)
+
+    async def review_task_from_state(
+        message: Message, state: FSMContext
+    ) -> OwnerTask | None:
+        data = await state.get_data()
+        task = task_store.get(str(data.get("review_task_id", "")))
+        if task is None or task.status != "open":
+            await state.clear()
+            await message.answer("⚠️ Поручение уже закрыто или не найдено.")
+            return None
+        return task
+
+    @router.message(TaskReview.completion_evidence)
+    async def completion_evidence_received(
+        message: Message, state: FSMContext
+    ) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        evidence = extract_task_evidence(message)
+        if evidence == "/cancel":
+            await state.clear()
+            await message.answer("Подведение итога отменено.", reply_markup=MENU)
+            return
+        if not 3 <= len(evidence) <= 500:
+            await message.answer("⚠️ Подтверждение должно содержать от 3 до 500 символов.")
+            return
+        task = await review_task_from_state(message, state)
+        if task is None:
+            return
+        try:
+            completed = task_store.complete(
+                task.id,
+                completed_by=message.from_user.id if message.from_user else 0,
+                evidence=evidence,
+            )
+        except OSError:
+            logger.exception("Could not persist task completion evidence")
+            await message.answer("⚠️ Не удалось сохранить результат. Повторите позже.")
+            return
+        await state.clear()
+        assert completed is not None
+        await message.answer(
+            "✅ <b>Результат сохранён</b>\n\n"
+            f"{html.escape(completed.title)}\n"
+            f"Подтверждение: {html.escape(evidence)}",
+            reply_markup=MENU,
+        )
+
+    @router.message(TaskReview.postpone_date)
+    async def postpone_date_received(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        raw_date = (message.text or "").strip()
+        if raw_date == "/cancel":
+            await state.clear()
+            await message.answer("Перенос отменён.", reply_markup=MENU)
+            return
+        try:
+            new_due_date = date.fromisoformat(raw_date)
+        except ValueError:
+            await message.answer("⚠️ Дата должна быть в формате ГГГГ-ММ-ДД.")
+            return
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        if new_due_date <= today:
+            await message.answer("⚠️ Для переноса выберите дату позже сегодняшней.")
+            return
+        await state.update_data(postpone_date=new_due_date.isoformat())
+        await state.set_state(TaskReview.postpone_reason)
+        await message.answer(
+            "Почему переносим поручение? Отправьте причину от 3 до 500 символов."
+        )
+
+    @router.message(TaskReview.postpone_reason)
+    async def postpone_reason_received(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        reason = (message.text or "").strip()
+        if reason == "/cancel":
+            await state.clear()
+            await message.answer("Перенос отменён.", reply_markup=MENU)
+            return
+        task = await review_task_from_state(message, state)
+        if task is None:
+            return
+        data = await state.get_data()
+        try:
+            new_due_date = date.fromisoformat(str(data.get("postpone_date", "")))
+            updated = task_store.reschedule(
+                task.id,
+                due_date=new_due_date,
+                reason=reason,
+                actor_id=message.from_user.id if message.from_user else 0,
+            )
+        except ValueError as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}")
+            return
+        except OSError:
+            logger.exception("Could not persist task reschedule")
+            await message.answer("⚠️ Не удалось сохранить перенос. Повторите позже.")
+            return
+        await state.clear()
+        assert updated is not None
+        await message.answer(
+            "➡️ <b>Поручение перенесено</b>\n\n"
+            f"{html.escape(updated.title)}\n"
+            f"Новый срок: <code>{updated.due_date}</code>\n"
+            f"Причина: {html.escape(reason)}",
+            reply_markup=MENU,
+        )
+
+    @router.message(TaskReview.cancel_reason)
+    async def cancel_reason_received(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        reason = (message.text or "").strip()
+        if reason == "/cancel":
+            await state.clear()
+            await message.answer("Отмена поручения прервана.", reply_markup=MENU)
+            return
+        task = await review_task_from_state(message, state)
+        if task is None:
+            return
+        try:
+            canceled = task_store.cancel(
+                task.id,
+                reason=reason,
+                canceled_by=message.from_user.id if message.from_user else 0,
+            )
+        except ValueError as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}")
+            return
+        except OSError:
+            logger.exception("Could not persist task cancellation")
+            await message.answer("⚠️ Не удалось сохранить отмену. Повторите позже.")
+            return
+        await state.clear()
+        assert canceled is not None
+        await message.answer(
+            "⛔ <b>Поручение отменено</b>\n\n"
+            f"{html.escape(canceled.title)}\n"
+            f"Причина: {html.escape(reason)}",
+            reply_markup=MENU,
+        )
+
     async def create_task_from_details(
         message: Message,
         raw_details: str,
@@ -696,6 +969,9 @@ def build_router(
         if task is None:
             await message.answer("⚠️ Поручение не найдено.")
             return
+        if task.status != "open":
+            await message.answer("⚠️ Поручение уже закрыто.")
+            return
         completed = task_store.complete(
             task.id,
             completed_by=message.from_user.id if message.from_user else 0,
@@ -719,14 +995,17 @@ def build_router(
         if task is None:
             await callback.answer("Поручение не найдено", show_alert=True)
             return
+        if task.status != "open":
+            await callback.answer("Поручение уже закрыто", show_alert=True)
+            if callback.message:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            return
         completed = task_store.complete(
             task.id,
             completed_by=callback.from_user.id,
         )
         assert completed is not None
-        await callback.answer(
-            "Уже выполнено" if task.status == "done" else "Выполнено"
-        )
+        await callback.answer("Выполнено")
         if callback.message:
             await callback.message.edit_reply_markup(reply_markup=None)
 

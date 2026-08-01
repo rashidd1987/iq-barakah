@@ -30,9 +30,11 @@ from report_bot.main import (
     approval_auth_ok,
     council_mode_keyboard,
     council_keyboard,
+    extract_task_evidence,
     multi_provider_keyboard,
     plan_suggestion_keyboard,
     pwa_release_keyboard,
+    task_review_keyboard,
 )
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
@@ -196,6 +198,43 @@ class ReleaseControlTests(unittest.TestCase):
         callback = plan_suggestion_keyboard("safe-id").inline_keyboard[0][0]
         self.assertEqual(callback.callback_data, "dayplan:add:safe-id")
         self.assertLessEqual(len(callback.callback_data or ""), 64)
+
+    def test_evening_review_has_three_explicit_outcomes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            task = TaskStore(directory).create(
+                project_key="iqbarakah",
+                title="Проверить путь",
+                due_date=date(2026, 8, 1),
+                success_criterion="Путь проверен",
+                created_by=42,
+            )
+            callbacks = {
+                button.callback_data
+                for row in task_review_keyboard(task).inline_keyboard
+                for button in row
+            }
+            self.assertEqual(
+                callbacks,
+                {
+                    f"review:done:{task.id}",
+                    f"review:postpone:{task.id}",
+                    f"review:cancel:{task.id}",
+                },
+            )
+            self.assertTrue(all(len(value or "") <= 64 for value in callbacks))
+
+    def test_completion_evidence_accepts_screenshot_reference(self) -> None:
+        message = SimpleNamespace(
+            text=None,
+            caption="Экран после проверки",
+            photo=[SimpleNamespace(file_id="photo")],
+            document=None,
+            message_id=123,
+        )
+        self.assertEqual(
+            extract_task_evidence(message),
+            "Скриншот Telegram, сообщение #123: Экран после проверки",
+        )
 
 
 class OwnerCouncilTests(unittest.TestCase):
@@ -821,6 +860,132 @@ class TaskStoreTests(unittest.TestCase):
                 [task.title for task in store.due(date(2026, 7, 31))],
                 ["Просроченная задача", "Задача на сегодня"],
             )
+
+    def test_completion_evidence_persists_and_repeated_completion_is_safe(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="iqbarakah",
+                title="Проверить синхронизацию",
+                due_date=date(2026, 8, 1),
+                success_criterion="Прогресс совпадает",
+                created_by=42,
+            )
+            completed = store.complete(
+                task.id,
+                completed_by=42,
+                evidence="Миниапп и PWA показывают шаг 6",
+            )
+            repeated = store.complete(
+                task.id,
+                completed_by=99,
+                evidence="Другое подтверждение",
+            )
+            assert completed is not None and repeated is not None
+            self.assertEqual(
+                repeated.completion_evidence,
+                "Миниапп и PWA показывают шаг 6",
+            )
+            persisted = TaskStore(directory).get(task.id)
+            assert persisted is not None
+            self.assertEqual(persisted.completion_evidence, completed.completion_evidence)
+
+    def test_reschedule_requires_reason_and_updates_due_date(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="mizanlife",
+                title="Проверить сценарий",
+                due_date=date(2026, 8, 1),
+                success_criterion="Сценарий работает",
+                created_by=42,
+            )
+            with self.assertRaisesRegex(ValueError, "Причина переноса"):
+                store.reschedule(
+                    task.id,
+                    due_date=date(2026, 8, 3),
+                    reason="x",
+                    actor_id=42,
+                )
+            updated = store.reschedule(
+                task.id,
+                due_date=date(2026, 8, 3),
+                reason="Нужен доступ к тестовому аккаунту",
+                actor_id=42,
+            )
+            assert updated is not None
+            self.assertEqual(updated.due_date, "2026-08-03")
+            self.assertEqual(updated.rescheduled_count, 1)
+            self.assertEqual(store.events()[-1].event, "rescheduled")
+            self.assertNotIn(updated, store.due(date(2026, 8, 1)))
+
+    def test_cancel_is_idempotent_and_removes_task_from_open_lists(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="mizanos",
+                title="Старое поручение",
+                due_date=date(2026, 8, 1),
+                success_criterion="Проверено",
+                created_by=42,
+            )
+            canceled = store.cancel(
+                task.id,
+                reason="Задача больше не относится к релизу",
+                canceled_by=42,
+            )
+            repeated = store.cancel(
+                task.id,
+                reason="Повторная причина",
+                canceled_by=99,
+            )
+            assert canceled is not None and repeated is not None
+            self.assertEqual(repeated.status, "canceled")
+            self.assertEqual(repeated.cancel_reason, canceled.cancel_reason)
+            unchanged = store.complete(task.id, completed_by=99)
+            assert unchanged is not None
+            self.assertEqual(unchanged.status, "canceled")
+            self.assertEqual(len(store.events()), 2)
+            self.assertEqual(store.open(), ())
+            self.assertEqual(store.due(date(2026, 8, 1)), ())
+
+    def test_old_task_file_loads_with_backward_compatible_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "owner_tasks.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "tasks": [
+                            {
+                                "id": "old-task",
+                                "project_key": "iqbarakah",
+                                "title": "Старое поручение",
+                                "due_date": "2026-08-01",
+                                "success_criterion": "Проверено",
+                                "responsible": "Владелец",
+                                "status": "open",
+                                "created_at": "2026-07-31T10:00:00+00:00",
+                                "created_by": 42,
+                                "completed_at": None,
+                                "completed_by": None,
+                            }
+                        ],
+                        "events": [
+                            {
+                                "event": "created",
+                                "task_id": "old-task",
+                                "occurred_at": "2026-07-31T10:00:00+00:00",
+                                "actor_id": 42,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            loaded = TaskStore(directory).get("old-task")
+            assert loaded is not None
+            self.assertIsNone(loaded.completion_evidence)
+            self.assertEqual(loaded.rescheduled_count, 0)
 
 
 class MorningBriefTests(unittest.TestCase):
