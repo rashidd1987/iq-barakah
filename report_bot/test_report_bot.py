@@ -20,6 +20,7 @@ from report_bot.monitor import (
     ProjectState,
     StateStore,
     morning_brief,
+    overdue_task_reminder,
     weekly_task_report,
     stabilize_site_status,
     token_expiry_reminder,
@@ -1066,6 +1067,53 @@ class MorningBriefTests(unittest.TestCase):
                 date(2026, 7, 31),
             )
             self.assertIn("Критических отклонений нет", result)
+
+
+class OverdueTaskReminderTests(unittest.TestCase):
+    def test_reminds_once_on_milestones_and_escapes_task_text(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            registry = ProjectRegistry(directory)
+            task = store.create(
+                project_key="iqbarakah",
+                title="Проверить <релиз>",
+                due_date=date(2026, 7, 31),
+                success_criterion="CI зелёный",
+                created_by=42,
+            )
+
+            result = overdue_task_reminder(
+                date(2026, 8, 1), store, registry, set()
+            )
+
+            assert result is not None
+            keys, message = result
+            self.assertEqual(len(keys), 1)
+            self.assertIn(task.id, keys[0])
+            self.assertIn("<b>1</b> дн.", message)
+            self.assertIn("&lt;релиз&gt;", message)
+            self.assertIsNone(
+                overdue_task_reminder(date(2026, 8, 1), store, registry, set(keys))
+            )
+
+    def test_skips_non_milestone_and_completed_tasks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            registry = ProjectRegistry(directory)
+            task = store.create(
+                project_key="iqbarakah",
+                title="Проверить релиз",
+                due_date=date(2026, 7, 30),
+                success_criterion="CI зелёный",
+                created_by=42,
+            )
+            self.assertIsNone(
+                overdue_task_reminder(date(2026, 8, 1), store, registry, set())
+            )
+            store.complete(task.id, completed_by=42, evidence="CI зелёный")
+            self.assertIsNone(
+                overdue_task_reminder(date(2026, 8, 2), store, registry, set())
+            )
 
 
 class WeeklyTaskReportTests(unittest.TestCase):
