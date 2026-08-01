@@ -154,6 +154,49 @@ def token_expiry_reminder(
     return None
 
 
+def overdue_task_reminder(
+    today: date,
+    task_store: TaskStore,
+    registry: ProjectRegistry,
+    sent: set[str],
+) -> tuple[tuple[str, ...], str] | None:
+    """Return one deduplicated reminder for milestone-aged overdue tasks."""
+    milestones = {1, 3, 7, 14, 30}
+    selected = []
+    keys = []
+    for task in task_store.open():
+        days_overdue = (today - date.fromisoformat(task.due_date)).days
+        if days_overdue not in milestones:
+            continue
+        key = f"owner-task:{task.id}:{task.due_date}:{days_overdue}"
+        if key in sent:
+            continue
+        selected.append((task, days_overdue))
+        keys.append(key)
+    if not selected:
+        return None
+
+    lines = [
+        "⏰ <b>Контроль просроченных поручений</b>",
+        "",
+        f"Требуют решения: <b>{len(selected)}</b>",
+    ]
+    for task, days_overdue in selected[:5]:
+        project = registry.by_key(task.project_key)
+        title = project.title if project else task.project_key
+        lines.append(
+            f"• {html.escape(title)} — {html.escape(task.title)} "
+            f"(<b>{days_overdue}</b> дн.)"
+        )
+    if len(selected) > 5:
+        lines.append(f"• …и ещё {len(selected) - 5}")
+    lines.append(
+        "\nОткройте /evening: подтвердить результат, перенести или отменить. "
+        "Без вашего выбора бот ничего не изменит."
+    )
+    return tuple(keys), "\n".join(lines)
+
+
 def stabilize_site_status(
     site: SiteStatus,
     previous: ProjectState | None,
@@ -468,6 +511,15 @@ async def monitor_loop(
                 )
                 for owner_id in owner_ids:
                     await bot.send_message(owner_id, summary)
+                task_reminder = overdue_task_reminder(
+                    now.date(), task_store, registry, sent_reminders
+                )
+                if task_reminder:
+                    reminder_keys, reminder_message = task_reminder
+                    for owner_id in owner_ids:
+                        await bot.send_message(owner_id, reminder_message)
+                    sent_reminders.update(reminder_keys)
+                    reminder_store.save(sent_reminders)
                 last_morning_date = now.date()
                 morning_store.save(last_morning_date)
 
