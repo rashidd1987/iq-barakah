@@ -165,7 +165,7 @@ def overdue_task_reminder(
     milestones = {1, 3, 7, 14, 30}
     selected = []
     keys = []
-    for task in task_store.open():
+    for task in task_store.open_manual():
         days_overdue = (today - date.fromisoformat(task.due_date)).days
         if days_overdue not in milestones:
             continue
@@ -316,7 +316,7 @@ def morning_brief(
         and state.workflow_status == "completed"
         and state.workflow_conclusion == "failure"
     ]
-    open_tasks = task_store.open()
+    open_tasks = task_store.open_manual()
     overdue = [task for task in open_tasks if date.fromisoformat(task.due_date) < today]
     due_today = [task for task in open_tasks if task.due_date == today.isoformat()]
     pending = approval_store.pending()
@@ -402,7 +402,7 @@ def weekly_task_report(
         event_name: sum(event.event == event_name for event in events)
         for event_name in ("created", "completed", "rescheduled", "canceled")
     }
-    open_tasks = task_store.open()
+    open_tasks = task_store.open_manual()
     overdue = [task for task in open_tasks if task.due_date < today.isoformat()]
     project_pressure: dict[str, int] = {}
     for task in overdue:

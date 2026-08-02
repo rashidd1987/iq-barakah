@@ -85,7 +85,9 @@ BOT_COMMANDS = (
     BotCommand(command="evening", description="Подвести итоги дня"),
     BotCommand(command="weekly", description="Недельный отчёт"),
     BotCommand(command="automation", description="Облачная автоматизация"),
-    BotCommand(command="newtask", description="Создать поручение"),
+    BotCommand(command="newtask", description="Создать мою задачу"),
+    BotCommand(command="agenttask", description="Поручить задачу агенту"),
+    BotCommand(command="agenttasks", description="Задачи агента"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
     BotCommand(command="errors", description="Последние ошибки"),
@@ -98,7 +100,8 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="🏠 Старт")],
         [KeyboardButton(text="🧠 Совет ИИ")],
         [KeyboardButton(text="📚 Библиотека проектов")],
-        [KeyboardButton(text="✅ Поручения"), KeyboardButton(text="➕ Поручение")],
+        [KeyboardButton(text="👤 Мои задачи"), KeyboardButton(text="➕ Моя задача")],
+        [KeyboardButton(text="🤖 Поручить агенту"), KeyboardButton(text="📋 Задачи агента")],
         [KeyboardButton(text="☀️ Утренний бриф"), KeyboardButton(text="🎯 План дня")],
         [KeyboardButton(text="🌙 Итоги дня"), KeyboardButton(text="📊 Неделя")],
         [KeyboardButton(text="☁️ Автоматизация")],
@@ -132,6 +135,10 @@ class ApiCouncil(StatesGroup):
 
 
 class TaskCreation(StatesGroup):
+    details = State()
+
+
+class AgentTaskCreation(StatesGroup):
     details = State()
 
 
@@ -368,6 +375,38 @@ def task_keyboard(task: OwnerTask) -> InlineKeyboardMarkup:
     )
 
 
+def agent_task_keyboard(task: OwnerTask) -> InlineKeyboardMarkup:
+    if task.agent_status == "queued":
+        return InlineKeyboardMarkup(inline_keyboard=[])
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🚀 Передать Codex",
+                    callback_data=f"agent:pick:{task.id}",
+                )
+            ]
+        ]
+    )
+
+
+def agent_confirmation_keyboard(task_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Создать PR",
+                    callback_data=f"agent:run:{task_id}",
+                ),
+                InlineKeyboardButton(
+                    text="Отмена",
+                    callback_data=f"agent:cancel:{task_id}",
+                ),
+            ]
+        ]
+    )
+
+
 def plan_suggestion_keyboard(suggestion_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -469,11 +508,18 @@ def extract_task_evidence(message: Message) -> str:
 
 
 def task_text(task: OwnerTask, project_title: str) -> str:
+    owner = "Codex (только PR)" if task.kind == "agent" else task.responsible
+    status = ""
+    if task.kind == "agent":
+        status = (
+            "\nСтатус агента: "
+            + ("⏳ запущен" if task.agent_status == "queued" else "⚪️ ожидает запуска")
+        )
     return (
         f"📌 <b>{html.escape(task.title)}</b>\n"
         f"Проект: {html.escape(project_title)}\n"
         f"Срок: <code>{task.due_date}</code>\n"
-        f"Ответственный: {html.escape(task.responsible)}\n"
+        f"Ответственный: {html.escape(owner)}{status}\n"
         f"Готово, когда: {html.escape(task.success_criterion)}\n"
         f"ID: <code>{task.id}</code>"
     )
@@ -607,14 +653,16 @@ def build_router(
             "/library — паспорта и активный проект\n"
             "/use ключ — выбрать проект для коротких задач\n"
             "/brief текст — обновить паспорт активного проекта\n"
-            "/tasks — открытые поручения\n"
-            "/today — поручения со сроком сегодня и просроченные\n"
+            "/tasks — мои открытые задачи\n"
+            "/today — мои задачи на сегодня и просроченные\n"
             "/morning — утренний бриф по всем проектам\n"
             "/plan — предложить до трёх действий на сегодня\n"
             "/evening — подвести итоги по срочным поручениям\n"
             "/weekly — отчёт по поручениям за 7 дней\n"
             "/automation — облачные сборки с телефона\n"
-            "/newtask — создать поручение для активного проекта\n"
+            "/newtask — моя задача; бот будет напоминать\n"
+            "/agenttask — Codex готовит изменения в отдельном PR\n"
+            "/agenttasks — открытые задачи Codex\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
@@ -623,7 +671,9 @@ def build_router(
             "/approvaltest — проверить запрос Да/Нет\n"
             "/cancel — отменить ввод\n"
             "/help — справка"
-            "\n\nАвтоматически сообщаю только об изменениях и присылаю вечерний отчёт.",
+            "\n\nМои задачи выполняете вы; бот напоминает. "
+            "Задачи агенту выполняет Codex и создаёт PR; "
+            "main и production не изменяются.",
             reply_markup=MENU,
         )
 
@@ -634,7 +684,7 @@ def build_router(
         heading: str,
     ) -> None:
         if not tasks:
-            await message.answer(f"{heading}\n\n✅ Поручений нет.")
+            await message.answer(f"{heading}\n\n✅ Задач нет.")
             return
         await message.answer(f"{heading}\n\nНайдено: {len(tasks)}")
         for task in tasks[:20]:
@@ -642,7 +692,9 @@ def build_router(
             title = project.title if project else task.project_key
             await message.answer(
                 task_text(task, title),
-                reply_markup=task_keyboard(task),
+                reply_markup=(
+                    agent_task_keyboard(task) if task.kind == "agent" else task_keyboard(task)
+                ),
             )
         if len(tasks) > 20:
             await message.answer(
@@ -650,14 +702,15 @@ def build_router(
             )
 
     @router.message(Command("tasks"))
+    @router.message(lambda message: message.text == "👤 Мои задачи")
     @router.message(lambda message: message.text == "✅ Поручения")
     async def tasks_command(message: Message) -> None:
         if not await require_owner(message):
             return
         await send_tasks(
             message,
-            task_store.open(),
-            heading="✅ <b>Открытые поручения</b>",
+            task_store.open_manual(),
+            heading="👤 <b>Мои открытые задачи</b>",
         )
 
     @router.message(Command("today"))
@@ -668,6 +721,17 @@ def build_router(
             message,
             task_store.due(datetime.now(ZoneInfo(config.timezone)).date()),
             heading="📅 <b>На сегодня и просроченные</b>",
+        )
+
+    @router.message(Command("agenttasks"))
+    @router.message(lambda message: message.text == "📋 Задачи агента")
+    async def agent_tasks_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        await send_tasks(
+            message,
+            task_store.open_agent(),
+            heading="🤖 <b>Открытые задачи Codex</b>",
         )
 
     @router.message(Command("morning"))
@@ -707,7 +771,7 @@ def build_router(
         overdue_count = len(
             [
                 task
-                for task in task_store.open()
+                for task in task_store.open_manual()
                 if task.due_date < today.isoformat()
             ]
         )
@@ -1034,13 +1098,14 @@ def build_router(
             await message.answer(f"⚠️ {html.escape(str(exc))}")
             return False
         await message.answer(
-            "✅ <b>Поручение создано</b>\n\n"
+            "👤 <b>Моя задача создана</b>\n\n"
             + task_text(task, project.title),
             reply_markup=task_keyboard(task),
         )
         return True
 
     @router.message(Command("newtask"))
+    @router.message(lambda message: message.text == "➕ Моя задача")
     @router.message(lambda message: message.text == "➕ Поручение")
     async def new_task_command(message: Message, state: FSMContext) -> None:
         if not await require_owner(message):
@@ -1053,7 +1118,7 @@ def build_router(
         active = registry.by_key(knowledge.active_project)
         active_title = active.title if active else knowledge.active_project
         await message.answer(
-            f"➕ <b>Новое поручение · {html.escape(active_title)}</b>\n\n"
+            f"👤 <b>Моя новая задача · {html.escape(active_title)}</b>\n\n"
             "Отправьте одной строкой:\n"
             "<code>Что сделать | ГГГГ-ММ-ДД | Как проверить готовность</code>\n\n"
             "Пример:\n"
@@ -1076,6 +1141,158 @@ def build_router(
             return
         if await create_task_from_details(message, message.text or ""):
             await state.clear()
+
+    async def create_agent_task_from_details(
+        message: Message,
+        raw_details: str,
+    ) -> bool:
+        try:
+            title, due_date, criterion = parse_task_details(raw_details)
+            project = registry.by_key(knowledge.active_project)
+            if project is None:
+                raise ValueError("Сначала выберите проект: /use ключ")
+            if not project.repo:
+                raise ValueError(
+                    "У проекта не подключён GitHub-репозиторий. "
+                    "Создайте мою задачу: /newtask"
+                )
+            owner_id = message.from_user.id if message.from_user else 0
+            task = task_store.create(
+                project_key=project.key,
+                title=title,
+                due_date=due_date,
+                success_criterion=criterion,
+                created_by=owner_id,
+                responsible="Codex",
+                kind="agent",
+            )
+        except (ValueError, OSError) as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}")
+            return False
+        await message.answer(
+            "🤖 <b>Задача агенту подготовлена</b>\n\n"
+            + task_text(task, project.title)
+            + "\n\nАгент изменит только отдельную ветку и создаст PR. "
+            "main и production не изменяются.",
+            reply_markup=agent_task_keyboard(task),
+        )
+        return True
+
+    @router.message(Command("agenttask"))
+    @router.message(lambda message: message.text == "🤖 Поручить агенту")
+    async def new_agent_task_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        raw = (message.text or "").split(maxsplit=1)
+        if len(raw) == 2 and raw[0].startswith("/agenttask"):
+            await create_agent_task_from_details(message, raw[1])
+            return
+        active = registry.by_key(knowledge.active_project)
+        if active is None or not active.repo:
+            await message.answer(
+                "⚠️ У активного проекта нет GitHub-репозитория. "
+                "Бот не сможет его выполнить; создайте мою задачу: /newtask"
+            )
+            return
+        await state.set_state(AgentTaskCreation.details)
+        await message.answer(
+            f"🤖 <b>Поручить Codex · {html.escape(active.title)}</b>\n\n"
+            "Отправьте одной строкой:\n"
+            "<code>Что улучшить | ГГГГ-ММ-ДД | Как проверить готовность</code>\n\n"
+            "После этого бот ещё раз покажет условия и попросит запуск.\n"
+            "Для отмены: /cancel"
+        )
+
+    @router.message(AgentTaskCreation.details)
+    async def agent_task_details_received(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        if (message.text or "").strip() == "/cancel":
+            await state.clear()
+            await message.answer("Ввод задачи агенту отменён.", reply_markup=MENU)
+            return
+        if await create_agent_task_from_details(message, message.text or ""):
+            await state.clear()
+
+    agent_dispatch_locks: dict[str, asyncio.Lock] = {}
+
+    @router.callback_query(F.data.startswith("agent:"))
+    async def agent_task_callback(callback: CallbackQuery) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        parts = (callback.data or "").split(":", 2)
+        if len(parts) != 3 or parts[1] not in {"pick", "run", "cancel"}:
+            await callback.answer("Неизвестное действие", show_alert=True)
+            return
+        action, task_id = parts[1], parts[2]
+        task = task_store.get(task_id)
+        if task is None or task.kind != "agent" or task.status != "open":
+            await callback.answer("Задача агента не найдена", show_alert=True)
+            return
+        if action == "cancel":
+            await callback.answer("Запуск отменён")
+            if callback.message:
+                await callback.message.edit_text(
+                    "⚪️ Агент не запущен. Задача сохранена и её можно открыть снова."
+                )
+            return
+        project = registry.by_key(task.project_key)
+        if project is None or not project.repo:
+            await callback.answer("Репозиторий не подключён", show_alert=True)
+            return
+        if action == "pick":
+            await callback.answer()
+            if callback.message:
+                await callback.message.edit_text(
+                    "🤖 <b>Подтвердите запуск Codex</b>\n\n"
+                    f"Проект: {html.escape(project.title)}\n"
+                    f"Задача: {html.escape(task.title)}\n"
+                    f"Готово, когда: {html.escape(task.success_criterion)}\n\n"
+                    "Codex получит workspace-write, но не получит "
+                    "production-секреты или push в main. Результат — только PR.",
+                    reply_markup=agent_confirmation_keyboard(task.id),
+                )
+            return
+        lock = agent_dispatch_locks.setdefault(task.id, asyncio.Lock())
+        async with lock:
+            current = task_store.get(task.id)
+            if current is None or current.agent_status == "queued":
+                await callback.answer("Агент уже запущен", show_alert=True)
+                return
+            await callback.answer("Запускаю агента…")
+            result = await client.dispatch_workflow(
+                project.repo,
+                "codex-agent-task.yml",
+                ref="main",
+                inputs={
+                    "task_id": current.id,
+                    "task": current.title,
+                    "success_criterion": current.success_criterion,
+                },
+            )
+            if result == "started":
+                try:
+                    task_store.mark_agent_queued(
+                        current.id,
+                        actor_id=callback.from_user.id,
+                    )
+                except OSError:
+                    logger.exception("Could not persist dispatched agent task")
+                result_text = (
+                    "✅ <b>Codex запущен</b>\n\n"
+                    "Он проверит репозиторий, внесёт изменения, запустит "
+                    "проверки и создаст отдельный PR. main/production не изменяются."
+                )
+            else:
+                result_text = {
+                    "unauthorized": "🔒 GitHub не разрешил запуск. Ничего не изменено.",
+                    "not_found": "⚠️ Coding-worker ещё не установлен в этом репозитории.",
+                    "failed": "❌ GitHub временно недоступен. Ничего не изменено.",
+                }[result]
+            if callback.message:
+                await callback.message.edit_text(result_text)
 
     @router.message(Command("done"))
     async def done_task_command(message: Message) -> None:

@@ -1,0 +1,139 @@
+name: Codex agent task
+run-name: Agent task ${{ inputs.task_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      task_id:
+        description: Mizan Reports task identifier
+        required: true
+        type: string
+      task:
+        description: Owner-approved task
+        required: true
+        type: string
+      success_criterion:
+        description: Owner-approved completion criterion
+        required: true
+        type: string
+
+concurrency:
+  group: codex-agent-${{ inputs.task_id }}
+  cancel-in-progress: false
+
+jobs:
+  generate_patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    outputs:
+      has_patch: ${{ steps.patch.outputs.has_patch }}
+    steps:
+      - name: Checkout main without write credentials
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run Codex in workspace sandbox
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          codex-args: '["--ephemeral"]'
+          output-file: /tmp/codex-result.md
+          prompt: |
+            You are a coding worker operating in a pull-request-only workflow.
+
+            Owner-approved task:
+            ${{ inputs.task }}
+
+            Completion criterion:
+            ${{ inputs.success_criterion }}
+
+            Inspect the repository and implement the smallest safe change that
+            satisfies the task. Follow AGENTS.md files. Preserve unrelated work.
+            Never deploy, publish, access production, change payments, reveal
+            secrets, or run destructive commands. Do not push or create a pull
+            request yourself. Run relevant tests and leave only intended local
+            file changes for the workflow to package as a patch. If the request
+            is unsafe, unclear, or requires production access, make no changes
+            and explain why in the final response.
+
+      - name: Package local changes
+        id: patch
+        run: |
+          git add -N .
+          git diff --binary HEAD > codex.patch
+          if [ -s codex.patch ]; then
+            echo "has_patch=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_patch=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload patch
+        if: steps.patch.outputs.has_patch == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-agent-patch-${{ github.run_id }}
+          path: codex.patch
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload agent report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-agent-report-${{ github.run_id }}
+          path: /tmp/codex-result.md
+          if-no-files-found: warn
+          retention-days: 7
+
+  open_pr:
+    runs-on: ubuntu-latest
+    needs: generate_patch
+    if: needs.generate_patch.outputs.has_patch == 'true'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download patch
+        uses: actions/download-artifact@v4
+        with:
+          name: codex-agent-patch-${{ github.run_id }}
+
+      - name: Apply patch and open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AGENT_TASK_ID: ${{ inputs.task_id }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          git apply --index codex.patch
+          branch="codex/agent-task-$RUN_ID"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -m "Agent task $AGENT_TASK_ID"
+          git push origin "$branch"
+          {
+            echo "Created by Mizan Project Reports coding worker."
+            echo
+            echo "Task ID: \`$AGENT_TASK_ID\`"
+            echo "Workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$RUN_ID"
+            echo
+            echo "Review tests and changes before merging. No production deployment was performed."
+          } > pr-body.md
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "Agent task $AGENT_TASK_ID" \
+            --body-file pr-body.md
