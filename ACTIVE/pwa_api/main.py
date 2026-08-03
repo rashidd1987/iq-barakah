@@ -373,7 +373,8 @@ async def request_email_otp(
 
     try:
         await _deliver_email_otp(email, code)
-    except Exception:
+    except Exception as exc:
+        print(f'Email OTP delivery failed: {type(exc).__name__}')
         async with db_pool.acquire() as conn:
             await conn.execute(
                 'UPDATE pwa_email_otp_challenges SET consumed_at=NOW() WHERE challenge_id=$1',
