@@ -1,0 +1,51 @@
+name: Approve Reports bot deploy
+run-name: Approve Reports deploy ${{ inputs.commit_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact main commit to approve for Reports bot production
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: approve-reports-production-${{ inputs.commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  telegram-approval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - name: Checkout approval client
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha }}
+          persist-credentials: false
+
+      - name: Validate approved commit
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+        run: |
+          if [[ ! "$COMMIT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit_sha must be a full lowercase Git commit SHA" >&2
+            exit 1
+          fi
+
+      - name: Request owner approval in Telegram
+        env:
+          APPROVAL_API_URL: ${{ secrets.APPROVAL_API_URL }}
+          APPROVAL_API_SECRET: ${{ secrets.APPROVAL_API_SECRET }}
+          APPROVED_COMMIT_SHA: ${{ inputs.commit_sha }}
+        run: |
+          python3 .github/scripts/wait_for_telegram_approval.py \
+            --project "Mizan Project Reports" \
+            --action "Развернуть Reports-бот в production" \
+            --description "Точечно развернуть только report_bot из commit $APPROVED_COMMIT_SHA" \
+            --risk "Production Reports-бот будет перезапущен; другие продукты не затрагиваются" \
+            --idempotency-key "reports-production:$APPROVED_COMMIT_SHA" \
+            --ttl-minutes 60
