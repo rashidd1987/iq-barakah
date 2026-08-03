@@ -51,9 +51,18 @@ class EmailOtpContractTest(unittest.TestCase):
 
     def test_linking_requires_authenticated_target_user(self):
         source = MODULE_PATH.read_text(encoding="utf-8")
-        self.assertIn("current_user_id: Optional[int] = Depends(verify_optional_token)", source)
+        self.assertIn("current_identity: Optional[Tuple[str, int]] = Depends(verify_optional_identity)", source)
         self.assertIn("target_user_id", source)
         self.assertNotIn("FROM users WHERE email=$1", source)
+
+    def test_mobile_scope_returns_mobile_token_only_for_telegram_participant(self):
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        migration = (API_DIR / "migration.sql").read_text(encoding="utf-8")
+        self.assertIn("client_scope: Literal['pwa', 'mobile'] = 'pwa'", source)
+        self.assertIn("row['client_scope'] == 'mobile'", source)
+        self.assertIn("SELECT id FROM participants WHERE user_id=$1", source)
+        self.assertIn("_make_mobile_token(authenticated_user['tg_id'])", source)
+        self.assertIn("client_scope", migration)
 
 
 if __name__ == "__main__":

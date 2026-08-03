@@ -48,12 +48,16 @@ CREATE TABLE IF NOT EXISTS pwa_email_otp_challenges (
     email          TEXT NOT NULL,
     pending_name   TEXT,
     target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE,
+    client_scope   TEXT NOT NULL DEFAULT 'pwa',
     code_hash      TEXT NOT NULL,
     attempts       SMALLINT NOT NULL DEFAULT 0,
     expires_at     TIMESTAMP NOT NULL,
     consumed_at    TIMESTAMP,
     created_at     TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE pwa_email_otp_challenges
+    ADD COLUMN IF NOT EXISTS client_scope TEXT NOT NULL DEFAULT 'pwa';
 
 CREATE INDEX IF NOT EXISTS idx_pwa_tracker_user_date ON pwa_tracker(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_pwa_wheel_user ON pwa_wheel(user_id);

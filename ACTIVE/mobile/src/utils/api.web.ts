@@ -60,6 +60,18 @@ export const api = {
       '/mobile/auth/telegram-webapp',
       { init_data: initData },
     ),
+  requestEmailOtp: (email: string, name?: string) =>
+    api.post<{ challenge_id: string; expires_in: number }>('/auth/email/request', {
+      email,
+      name,
+      client_scope: 'mobile',
+    }),
+  verifyEmailOtp: (challengeId: string, code: string) =>
+    api.post<{
+      access_token: string
+      token_type: 'bearer'
+      user: { id: number; name: string; email: string; telegram_linked: boolean }
+    }>('/auth/email/verify', { challenge_id: challengeId, code }),
   participant: () =>
     api.get<{ level: string; week: number; vakt_level: string | null; is_active: boolean }>(
       '/mobile/participant',
