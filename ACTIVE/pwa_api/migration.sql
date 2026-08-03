@@ -43,8 +43,22 @@ CREATE TABLE IF NOT EXISTS pwa_analytics (
     ts         TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS pwa_email_otp_challenges (
+    challenge_id   TEXT PRIMARY KEY,
+    email          TEXT NOT NULL,
+    pending_name   TEXT,
+    target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE,
+    code_hash      TEXT NOT NULL,
+    attempts       SMALLINT NOT NULL DEFAULT 0,
+    expires_at     TIMESTAMP NOT NULL,
+    consumed_at    TIMESTAMP,
+    created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
 CREATE INDEX IF NOT EXISTS idx_pwa_tracker_user_date ON pwa_tracker(user_id, date);
 CREATE INDEX IF NOT EXISTS idx_pwa_wheel_user ON pwa_wheel(user_id);
 CREATE INDEX IF NOT EXISTS idx_pwa_ship_user ON pwa_ship(user_id);
 CREATE INDEX IF NOT EXISTS idx_pwa_analytics_uid ON pwa_analytics(uid);
 CREATE INDEX IF NOT EXISTS idx_pwa_analytics_event ON pwa_analytics(event);
+CREATE INDEX IF NOT EXISTS idx_pwa_email_otp_email
+    ON pwa_email_otp_challenges(email, created_at DESC);
