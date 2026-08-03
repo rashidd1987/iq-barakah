@@ -2,12 +2,13 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from collections import defaultdict
 from pathlib import Path
-import jwt, bcrypt, os, asyncpg, time, secrets, json, hashlib, hmac
+import jwt, bcrypt, os, asyncpg, time, secrets, json, hashlib, hmac, asyncio, smtplib, ssl
+from email.message import EmailMessage
 from urllib.parse import parse_qsl
 
 # Reused as-is from the bot (self-contained: only imports `anthropic`, no aiogram/DB
@@ -33,6 +34,8 @@ _rate_store: Dict[str, List[float]] = defaultdict(list)
 RATE_LIMITS = {
     '/auth/login': (10, 60),     # 10 req / 60s
     '/auth/register': (5, 60),   # 5 req / 60s
+    '/auth/email/request': (5, 300),
+    '/auth/email/verify': (10, 300),
     '/mobile/account': (5, 3600),  # destructive action: 5 attempts / hour
     'default': (120, 60),        # 120 req / 60s
 }
@@ -52,6 +55,7 @@ async def rate_limit_middleware(request: Request, call_next):
     return await call_next(request)
 
 security = HTTPBearer()
+optional_security = HTTPBearer(auto_error=False)
 db_pool: asyncpg.Pool = None
 
 async def _init_connection(conn: asyncpg.Connection):
@@ -125,6 +129,18 @@ async def _run_migrations():
             confirmed BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )''',
+        '''CREATE TABLE IF NOT EXISTS pwa_email_otp_challenges (
+            challenge_id TEXT PRIMARY KEY,
+            email TEXT NOT NULL,
+            pending_name TEXT,
+            target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE,
+            code_hash TEXT NOT NULL,
+            attempts SMALLINT NOT NULL DEFAULT 0,
+            expires_at TIMESTAMP NOT NULL,
+            consumed_at TIMESTAMP,
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )''',
+        'CREATE INDEX IF NOT EXISTS idx_pwa_email_otp_email ON pwa_email_otp_challenges(email, created_at DESC)',
         # Mobile app push tokens. Keyed by bot_v2 users.id (tg_id) — not pwa_users — since
         # the mobile app reads/writes bot_v2's real program tables directly (see /mobile/*).
         '''CREATE TABLE IF NOT EXISTS push_tokens (
@@ -152,6 +168,14 @@ class RegisterReq(BaseModel):
     name: str
     email: str
     password: str
+
+class EmailOtpRequestReq(BaseModel):
+    email: EmailStr
+    name: Optional[str] = None
+
+class EmailOtpVerifyReq(BaseModel):
+    challenge_id: str
+    code: str
 
 class TrackerReq(BaseModel):
     date: str
@@ -193,6 +217,55 @@ def verify_token(creds: HTTPAuthorizationCredentials = Depends(security)):
     except Exception:
         raise HTTPException(status_code=401, detail='Токен недействителен')
 
+def verify_optional_token(
+    creds: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+) -> Optional[int]:
+    if creds is None:
+        return None
+    return verify_token(creds)
+
+def _normalise_email(value: str) -> str:
+    return value.strip().lower()
+
+def _otp_secret() -> bytes:
+    value = os.environ.get('EMAIL_OTP_SECRET', '')
+    if len(value) < 32:
+        raise HTTPException(503, 'Вход по email временно недоступен')
+    return value.encode()
+
+def _hash_email_otp(challenge_id: str, email: str, code: str) -> str:
+    payload = f'{challenge_id}:{email}:{code}'.encode()
+    return hmac.new(_otp_secret(), payload, hashlib.sha256).hexdigest()
+
+def _send_email_otp_sync(recipient: str, code: str) -> None:
+    host = os.environ.get('EMAIL_SMTP_HOST', '').strip()
+    username = os.environ.get('EMAIL_SMTP_USER', '').strip()
+    password = os.environ.get('EMAIL_SMTP_PASSWORD', '')
+    sender = os.environ.get('EMAIL_FROM', username).strip()
+    if not host or not sender:
+        raise RuntimeError('email delivery is not configured')
+    try:
+        port = int(os.environ.get('EMAIL_SMTP_PORT', '465'))
+    except ValueError as exc:
+        raise RuntimeError('invalid email SMTP port') from exc
+
+    message = EmailMessage()
+    message['Subject'] = 'Код входа в IQ Barakah'
+    message['From'] = sender
+    message['To'] = recipient
+    message.set_content(
+        f'Код входа в IQ Barakah: {code}\n\n'
+        'Код действует 10 минут. Если вы не запрашивали вход, проигнорируйте письмо.'
+    )
+    context = ssl.create_default_context()
+    with smtplib.SMTP_SSL(host, port, context=context, timeout=15) as smtp:
+        if username and password:
+            smtp.login(username, password)
+        smtp.send_message(message)
+
+async def _deliver_email_otp(recipient: str, code: str) -> None:
+    await asyncio.to_thread(_send_email_otp_sync, recipient, code)
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.post('/auth/register')
@@ -220,6 +293,141 @@ async def login(req: LoginReq):
     if not user or not bcrypt.checkpw(req.password.encode(), user['password_hash'].encode()):
         raise HTTPException(401, 'Неверный email или пароль')
     return {'access_token': make_token(user['id'], req.email), 'token_type': 'bearer'}
+
+@app.post('/auth/email/request', status_code=202)
+async def request_email_otp(
+    req: EmailOtpRequestReq,
+    current_user_id: Optional[int] = Depends(verify_optional_token),
+):
+    """Request passwordless login or link a verified email to the current account."""
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+
+    email = _normalise_email(str(req.email))
+    name = (req.name or '').strip()[:256] or None
+    challenge_id = secrets.token_urlsafe(24)
+    code = f'{secrets.randbelow(1_000_000):06d}'
+    code_hash = _hash_email_otp(challenge_id, email, code)
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            if current_user_id is not None:
+                owner = await conn.fetchrow('SELECT id FROM pwa_users WHERE id=$1', current_user_id)
+                if not owner:
+                    raise HTTPException(401, 'Аккаунт не найден')
+                conflict = await conn.fetchrow(
+                    'SELECT id FROM pwa_users WHERE email=$1 AND id<>$2', email, current_user_id
+                )
+                if conflict:
+                    raise HTTPException(409, 'Этот email уже связан с другим аккаунтом')
+            await conn.execute(
+                '''UPDATE pwa_email_otp_challenges SET consumed_at=NOW()
+                   WHERE email=$1 AND consumed_at IS NULL''',
+                email,
+            )
+            await conn.execute(
+                '''INSERT INTO pwa_email_otp_challenges
+                   (challenge_id, email, pending_name, target_user_id, code_hash, expires_at)
+                   VALUES ($1,$2,$3,$4,$5,$6)''',
+                challenge_id, email, name, current_user_id, code_hash, expires_at,
+            )
+
+    try:
+        await _deliver_email_otp(email, code)
+    except Exception:
+        async with db_pool.acquire() as conn:
+            await conn.execute(
+                'UPDATE pwa_email_otp_challenges SET consumed_at=NOW() WHERE challenge_id=$1',
+                challenge_id,
+            )
+        raise HTTPException(503, 'Не удалось отправить код. Попробуйте позже.')
+    return {'challenge_id': challenge_id, 'expires_in': 600}
+
+@app.post('/auth/email/verify')
+async def verify_email_otp(req: EmailOtpVerifyReq):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    challenge_id = req.challenge_id.strip()
+    code = req.code.strip()
+    if not challenge_id or len(code) != 6 or not code.isdigit():
+        raise HTTPException(400, 'Введите шестизначный код')
+
+    failure: Optional[HTTPException] = None
+    authenticated_user = None
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            row = await conn.fetchrow(
+                '''SELECT challenge_id, email, pending_name, target_user_id, code_hash,
+                          attempts, expires_at, consumed_at
+                   FROM pwa_email_otp_challenges
+                   WHERE challenge_id=$1 FOR UPDATE''',
+                challenge_id,
+            )
+            now = datetime.utcnow()
+            if not row or row['consumed_at'] is not None:
+                failure = HTTPException(400, 'Код недействителен или уже использован')
+            elif row['expires_at'] <= now:
+                await conn.execute(
+                    'UPDATE pwa_email_otp_challenges SET consumed_at=$2 WHERE challenge_id=$1',
+                    challenge_id, now,
+                )
+                failure = HTTPException(400, 'Срок действия кода истёк')
+            elif row['attempts'] >= 5:
+                await conn.execute(
+                    'UPDATE pwa_email_otp_challenges SET consumed_at=$2 WHERE challenge_id=$1',
+                    challenge_id, now,
+                )
+                failure = HTTPException(429, 'Слишком много попыток. Запросите новый код.')
+            elif not hmac.compare_digest(
+                row['code_hash'], _hash_email_otp(challenge_id, row['email'], code)
+            ):
+                attempts = row['attempts'] + 1
+                await conn.execute(
+                    '''UPDATE pwa_email_otp_challenges
+                       SET attempts=$2, consumed_at=CASE WHEN $2>=5 THEN $3 ELSE consumed_at END
+                       WHERE challenge_id=$1''',
+                    challenge_id, attempts, now,
+                )
+                failure = HTTPException(400, 'Неверный код')
+            else:
+                if row['target_user_id'] is not None:
+                    authenticated_user = await conn.fetchrow(
+                        '''UPDATE pwa_users SET email=$1 WHERE id=$2
+                           RETURNING id, email, name, tg_id''',
+                        row['email'], row['target_user_id'],
+                    )
+                else:
+                    authenticated_user = await conn.fetchrow(
+                        'SELECT id, email, name, tg_id FROM pwa_users WHERE email=$1',
+                        row['email'],
+                    )
+                    if not authenticated_user:
+                        authenticated_user = await conn.fetchrow(
+                            '''INSERT INTO pwa_users (name, email, password_hash, created_at)
+                               VALUES ($1,$2,$3,$4) RETURNING id, email, name, tg_id''',
+                            row['pending_name'] or 'Участник', row['email'], '', now,
+                        )
+                if not authenticated_user:
+                    failure = HTTPException(401, 'Аккаунт не найден')
+                else:
+                    await conn.execute(
+                        'UPDATE pwa_email_otp_challenges SET consumed_at=$2 WHERE challenge_id=$1',
+                        challenge_id, now,
+                    )
+
+    if failure is not None:
+        raise failure
+    return {
+        'access_token': make_token(authenticated_user['id'], authenticated_user['email']),
+        'token_type': 'bearer',
+        'user': {
+            'id': authenticated_user['id'],
+            'name': authenticated_user['name'],
+            'email': authenticated_user['email'],
+            'telegram_linked': authenticated_user['tg_id'] is not None,
+        },
+    }
 
 @app.get('/me')
 async def me(user_id: int = Depends(verify_token)):
