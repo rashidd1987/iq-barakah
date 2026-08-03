@@ -64,6 +64,11 @@ class EmailOtpContractTest(unittest.TestCase):
         self.assertIn("_make_mobile_token(authenticated_user['tg_id'])", source)
         self.assertIn("client_scope", migration)
 
+    def test_mobile_profile_exposes_persisted_email_login_state(self):
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        self.assertIn("email_login_enabled", source)
+        self.assertIn("WHERE tg_id=$1 AND LOWER(email)=LOWER($2)", source)
+
 
 if __name__ == "__main__":
     unittest.main()

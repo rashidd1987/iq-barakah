@@ -152,6 +152,7 @@ export interface MobileProfile {
     email: string | null
     phone: string | null
     auth_provider: 'telegram'
+    email_login_enabled: boolean
     member_since: string | null
   }
   program: {

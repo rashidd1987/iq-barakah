@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { globalWeekIndex, TOTAL_STEPS } from '../data/weeks'
 import { makeShadow, radius, ThemeColors, ThemeMode, ThemePalette } from '../theme/colors'
-import { api, MobileProfile } from '../utils/api'
+import { api, MobileProfile, setToken } from '../utils/api'
 import { registerForPushNotifications } from '../utils/push'
 import { getPwaInstallGuide, getPwaInstallStatus, promptPwaInstall, PwaInstallStatus, subscribePwaInstallStatus } from '../utils/pwaInstall'
 import { lsGet, lsSet } from '../utils/storage'
@@ -54,12 +54,18 @@ export default function ProfileScreen() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
+  const [emailChallengeId, setEmailChallengeId] = useState<string | null>(null)
+  const [emailCode, setEmailCode] = useState('')
+  const [emailLinking, setEmailLinking] = useState(false)
+  const [emailLinkMessage, setEmailLinkMessage] = useState<string | null>(null)
+  const [emailLoginEnabled, setEmailLoginEnabled] = useState(false)
 
   useEffect(() => {
     api.profile().then((data) => {
       setProfile(data)
       setName(data.personal.name)
       setEmail(data.personal.email ?? '')
+      setEmailLoginEnabled(data.personal.email_login_enabled)
       setPhone(data.personal.phone ?? '')
       setLevel(data.program.level)
       setWeek(data.program.week)
@@ -151,11 +157,56 @@ export default function ProfileScreen() {
         },
       } : current)
       setEditing(false)
+      setEmailChallengeId(null)
+      setEmailCode('')
+      setEmailLinkMessage(null)
+      setEmailLoginEnabled(false)
       Alert.alert('Сохранено', 'Данные профиля обновлены.')
     } catch {
       Alert.alert('Не удалось сохранить', 'Проверьте email и подключение к интернету.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleEmailLinkRequest = async () => {
+    const value = email.trim().toLowerCase()
+    if (!value || !value.includes('@')) {
+      Alert.alert('Сначала добавьте email', 'Укажите email в профиле и сохраните изменения.')
+      return
+    }
+    setEmailLinking(true)
+    setEmailLinkMessage(null)
+    try {
+      const result = await api.requestEmailOtp(value, name.trim())
+      setEmailChallengeId(result.challenge_id)
+      setEmailCode('')
+      setEmailLinkMessage('Код отправлен на почту. Он действует 10 минут.')
+    } catch {
+      setEmailLinkMessage('Не удалось отправить код. Проверьте адрес и попробуйте позже.')
+    } finally {
+      setEmailLinking(false)
+    }
+  }
+
+  const handleEmailLinkVerify = async () => {
+    if (!emailChallengeId || !/^\d{6}$/.test(emailCode.trim())) {
+      setEmailLinkMessage('Введите шестизначный код из письма.')
+      return
+    }
+    setEmailLinking(true)
+    setEmailLinkMessage(null)
+    try {
+      const result = await api.verifyEmailOtp(emailChallengeId, emailCode.trim())
+      await setToken(result.access_token)
+      setEmailChallengeId(null)
+      setEmailCode('')
+      setEmailLoginEnabled(true)
+      setEmailLinkMessage('Email подтверждён. Теперь по нему можно входить без Telegram.')
+    } catch {
+      setEmailLinkMessage('Код неверный или устарел. Запросите новый.')
+    } finally {
+      setEmailLinking(false)
     }
   }
 
@@ -222,6 +273,51 @@ export default function ProfileScreen() {
           {profileError && <Text style={styles.inlineError}>Не удалось загрузить данные. Потяните экран для повторной попытки.</Text>}
           <ProfileField label="ФИО" value={name} editing={editing} onChangeText={setName} colors={colors} />
           <ProfileField label="Email" value={email} editing={editing} onChangeText={setEmail} keyboardType="email-address" colors={colors} placeholder="Добавить email" />
+          {!editing && email.trim() && !emailLoginEnabled ? (
+            <View style={styles.emailLinkPanel}>
+              <View style={styles.emailLinkHeading}>
+                <Ionicons name="mail-outline" size={18} color={colors.g2} />
+                <View style={styles.authCopy}>
+                  <Text style={styles.fieldLabel}>ВХОД ПО EMAIL</Text>
+                  <Text style={styles.emailLinkHint}>Подтвердите адрес кодом, чтобы входить без Telegram.</Text>
+                </View>
+              </View>
+              {emailChallengeId ? (
+                <TextInput
+                  value={emailCode}
+                  onChangeText={(value) => setEmailCode(value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Код из письма"
+                  placeholderTextColor={colors.muted}
+                  keyboardType="number-pad"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  editable={!emailLinking}
+                  style={styles.emailCodeInput}
+                />
+              ) : null}
+              <Pressable
+                style={[styles.emailLinkButton, emailLinking && styles.buttonDisabled]}
+                onPress={emailChallengeId ? handleEmailLinkVerify : handleEmailLinkRequest}
+                disabled={emailLinking}
+              >
+                <Text style={styles.emailLinkButtonText}>
+                  {emailLinking ? 'Проверяем…' : emailChallengeId ? 'Подтвердить код' : 'Подтвердить email'}
+                </Text>
+              </Pressable>
+              {emailChallengeId ? (
+                <Pressable onPress={handleEmailLinkRequest} disabled={emailLinking}>
+                  <Text style={styles.emailLinkRetry}>Отправить новый код</Text>
+                </Pressable>
+              ) : null}
+              {emailLinkMessage ? <Text style={styles.emailLinkMessage}>{emailLinkMessage}</Text> : null}
+            </View>
+          ) : null}
+          {!editing && email.trim() && emailLoginEnabled ? (
+            <View style={styles.emailLinkedRow}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.g2} />
+              <Text style={styles.emailLinkedText}>Вход по email включён</Text>
+            </View>
+          ) : null}
           <ProfileField label="Телефон" value={phone} editing={editing} onChangeText={setPhone} keyboardType="phone-pad" colors={colors} placeholder="Добавить телефон" />
           <View style={styles.authRow}>
             <Ionicons name="paper-plane-outline" size={18} color={colors.g2} />
@@ -525,6 +621,16 @@ const createStyles = (colors: ThemeColors) => {
     fieldValue: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: 4 },
     authRow: { minHeight: 65, flexDirection: 'row', alignItems: 'center', gap: 10 },
     authCopy: { flex: 1 },
+    emailLinkPanel: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+    emailLinkHeading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+    emailLinkHint: { color: colors.sub, fontSize: 11, lineHeight: 16, marginTop: 3 },
+    emailCodeInput: { height: 46, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 12, color: colors.text, backgroundColor: colors.cardRaised, fontSize: 16, marginBottom: 9 },
+    emailLinkButton: { minHeight: 44, borderRadius: 12, backgroundColor: colors.g2, alignItems: 'center', justifyContent: 'center' },
+    emailLinkButtonText: { color: colors.onPrimary, fontSize: 13, fontWeight: '800' },
+    emailLinkRetry: { color: colors.g2, fontSize: 11, fontWeight: '700', textAlign: 'center', marginTop: 10 },
+    emailLinkMessage: { color: colors.sub, fontSize: 11, lineHeight: 16, marginTop: 9, textAlign: 'center' },
+    emailLinkedRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
+    emailLinkedText: { color: colors.g2, fontSize: 12, fontWeight: '700' },
     primaryButton: { height: 48, borderRadius: 14, backgroundColor: colors.g2, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
     primaryButtonText: { color: colors.onPrimary, fontSize: 14, fontWeight: '800' },
     buttonDisabled: { opacity: 0.55 },

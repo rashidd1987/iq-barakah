@@ -894,6 +894,15 @@ async def mobile_profile(tg_id: int = Depends(verify_mobile_token)):
             if not user:
                 raise HTTPException(404, 'Пользователь не найден')
 
+            email_login_enabled = bool(await conn.fetchval(
+                '''SELECT EXISTS(
+                       SELECT 1 FROM pwa_users
+                       WHERE tg_id=$1 AND LOWER(email)=LOWER($2)
+                   )''',
+                tg_id,
+                user['email'] or '',
+            ))
+
             referral_code = user['referral_code']
             if not referral_code:
                 referral_code = f"{tg_id}{secrets.token_hex(3).upper()}"
@@ -973,6 +982,7 @@ async def mobile_profile(tg_id: int = Depends(verify_mobile_token)):
             'email': user['email'],
             'phone': user['phone'],
             'auth_provider': 'telegram',
+            'email_login_enabled': email_login_enabled,
             'member_since': user['created_at'].isoformat() if user['created_at'] else None,
         },
         'program': {
