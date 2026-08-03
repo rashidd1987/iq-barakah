@@ -4,7 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal, Tuple
 from collections import defaultdict
 from pathlib import Path
 import jwt, bcrypt, os, asyncpg, time, secrets, json, hashlib, hmac, asyncio, smtplib, ssl
@@ -134,12 +134,14 @@ async def _run_migrations():
             email TEXT NOT NULL,
             pending_name TEXT,
             target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE,
+            client_scope TEXT NOT NULL DEFAULT 'pwa',
             code_hash TEXT NOT NULL,
             attempts SMALLINT NOT NULL DEFAULT 0,
             expires_at TIMESTAMP NOT NULL,
             consumed_at TIMESTAMP,
             created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )''',
+        "ALTER TABLE pwa_email_otp_challenges ADD COLUMN IF NOT EXISTS client_scope TEXT NOT NULL DEFAULT 'pwa'",
         'CREATE INDEX IF NOT EXISTS idx_pwa_email_otp_email ON pwa_email_otp_challenges(email, created_at DESC)',
         # Mobile app push tokens. Keyed by bot_v2 users.id (tg_id) — not pwa_users — since
         # the mobile app reads/writes bot_v2's real program tables directly (see /mobile/*).
@@ -172,6 +174,7 @@ class RegisterReq(BaseModel):
 class EmailOtpRequestReq(BaseModel):
     email: EmailStr
     name: Optional[str] = None
+    client_scope: Literal['pwa', 'mobile'] = 'pwa'
 
 class EmailOtpVerifyReq(BaseModel):
     challenge_id: str
@@ -217,12 +220,26 @@ def verify_token(creds: HTTPAuthorizationCredentials = Depends(security)):
     except Exception:
         raise HTTPException(status_code=401, detail='Токен недействителен')
 
-def verify_optional_token(
+def verify_optional_identity(
     creds: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
-) -> Optional[int]:
+) -> Optional[Tuple[str, int]]:
     if creds is None:
         return None
-    return verify_token(creds)
+    try:
+        payload = jwt.decode(creds.credentials, SECRET, algorithms=[ALGORITHM])
+        if payload.get('scope') == 'mobile':
+            return ('mobile', int(payload['tg_id']))
+        return ('pwa', int(payload['sub']))
+    except Exception:
+        raise HTTPException(status_code=401, detail='Токен недействителен')
+
+def _make_mobile_token(tg_id: int) -> str:
+    payload = {
+        'tg_id': tg_id,
+        'scope': 'mobile',
+        'exp': datetime.utcnow() + timedelta(days=TOKEN_EXPIRE_DAYS),
+    }
+    return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
 
 def _normalise_email(value: str) -> str:
     return value.strip().lower()
@@ -297,7 +314,7 @@ async def login(req: LoginReq):
 @app.post('/auth/email/request', status_code=202)
 async def request_email_otp(
     req: EmailOtpRequestReq,
-    current_user_id: Optional[int] = Depends(verify_optional_token),
+    current_identity: Optional[Tuple[str, int]] = Depends(verify_optional_identity),
 ):
     """Request passwordless login or link a verified email to the current account."""
     if not db_pool:
@@ -312,7 +329,28 @@ async def request_email_otp(
 
     async with db_pool.acquire() as conn:
         async with conn.transaction():
-            if current_user_id is not None:
+            current_user_id = None
+            if current_identity is not None:
+                identity_scope, identity_id = current_identity
+                if identity_scope == 'mobile':
+                    owner = await conn.fetchrow(
+                        'SELECT id FROM pwa_users WHERE tg_id=$1', identity_id
+                    )
+                    if not owner:
+                        telegram_user = await conn.fetchrow(
+                            'SELECT name FROM users WHERE id=$1', identity_id
+                        )
+                        if not telegram_user:
+                            raise HTTPException(401, 'Аккаунт не найден')
+                        placeholder = f'tg_{identity_id}@iq-barakah.ru'
+                        owner = await conn.fetchrow(
+                            '''INSERT INTO pwa_users (name, email, password_hash, tg_id, created_at)
+                               VALUES ($1,$2,$3,$4,$5) RETURNING id''',
+                            telegram_user['name'], placeholder, '', identity_id, datetime.utcnow(),
+                        )
+                    current_user_id = owner['id']
+                else:
+                    current_user_id = identity_id
                 owner = await conn.fetchrow('SELECT id FROM pwa_users WHERE id=$1', current_user_id)
                 if not owner:
                     raise HTTPException(401, 'Аккаунт не найден')
@@ -328,14 +366,15 @@ async def request_email_otp(
             )
             await conn.execute(
                 '''INSERT INTO pwa_email_otp_challenges
-                   (challenge_id, email, pending_name, target_user_id, code_hash, expires_at)
-                   VALUES ($1,$2,$3,$4,$5,$6)''',
-                challenge_id, email, name, current_user_id, code_hash, expires_at,
+                   (challenge_id, email, pending_name, target_user_id, client_scope, code_hash, expires_at)
+                   VALUES ($1,$2,$3,$4,$5,$6,$7)''',
+                challenge_id, email, name, current_user_id, req.client_scope, code_hash, expires_at,
             )
 
     try:
         await _deliver_email_otp(email, code)
-    except Exception:
+    except Exception as exc:
+        print(f'Email OTP delivery failed: {type(exc).__name__}', flush=True)
         async with db_pool.acquire() as conn:
             await conn.execute(
                 'UPDATE pwa_email_otp_challenges SET consumed_at=NOW() WHERE challenge_id=$1',
@@ -358,7 +397,7 @@ async def verify_email_otp(req: EmailOtpVerifyReq):
     async with db_pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                '''SELECT challenge_id, email, pending_name, target_user_id, code_hash,
+                '''SELECT challenge_id, email, pending_name, target_user_id, client_scope, code_hash,
                           attempts, expires_at, consumed_at
                    FROM pwa_email_otp_challenges
                    WHERE challenge_id=$1 FOR UPDATE''',
@@ -418,8 +457,20 @@ async def verify_email_otp(req: EmailOtpVerifyReq):
 
     if failure is not None:
         raise failure
+    if row['client_scope'] == 'mobile':
+        if authenticated_user['tg_id'] is None:
+            raise HTTPException(403, 'Сначала привяжите Telegram к аккаунту')
+        async with db_pool.acquire() as conn:
+            participant = await conn.fetchrow(
+                'SELECT id FROM participants WHERE user_id=$1', authenticated_user['tg_id']
+            )
+        if not participant:
+            raise HTTPException(403, 'Доступ к программе ещё не активирован куратором')
+        access_token = _make_mobile_token(authenticated_user['tg_id'])
+    else:
+        access_token = make_token(authenticated_user['id'], authenticated_user['email'])
     return {
-        'access_token': make_token(authenticated_user['id'], authenticated_user['email']),
+        'access_token': access_token,
         'token_type': 'bearer',
         'user': {
             'id': authenticated_user['id'],
@@ -685,12 +736,7 @@ def _load_quiz(level: str, week: int) -> Optional[dict]:
     return quiz
 
 def make_mobile_token(tg_id: int) -> str:
-    payload = {
-        'tg_id': tg_id,
-        'scope': 'mobile',
-        'exp': datetime.utcnow() + timedelta(days=TOKEN_EXPIRE_DAYS),
-    }
-    return jwt.encode(payload, SECRET, algorithm=ALGORITHM)
+    return _make_mobile_token(tg_id)
 
 def verify_mobile_token(creds: HTTPAuthorizationCredentials = Depends(security)) -> int:
     try:
@@ -848,6 +894,15 @@ async def mobile_profile(tg_id: int = Depends(verify_mobile_token)):
             if not user:
                 raise HTTPException(404, 'Пользователь не найден')
 
+            email_login_enabled = bool(await conn.fetchval(
+                '''SELECT EXISTS(
+                       SELECT 1 FROM pwa_users
+                       WHERE tg_id=$1 AND LOWER(email)=LOWER($2)
+                   )''',
+                tg_id,
+                user['email'] or '',
+            ))
+
             referral_code = user['referral_code']
             if not referral_code:
                 referral_code = f"{tg_id}{secrets.token_hex(3).upper()}"
@@ -927,6 +982,7 @@ async def mobile_profile(tg_id: int = Depends(verify_mobile_token)):
             'email': user['email'],
             'phone': user['phone'],
             'auth_provider': 'telegram',
+            'email_login_enabled': email_login_enabled,
             'member_since': user['created_at'].isoformat() if user['created_at'] else None,
         },
         'program': {
