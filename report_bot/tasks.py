@@ -9,6 +9,8 @@ from typing import Literal
 
 
 TaskStatus = Literal["open", "done", "canceled"]
+TaskKind = Literal["manual", "agent"]
+AgentStatus = Literal["ready", "queued"]
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,9 @@ class OwnerTask:
     canceled_by: int | None = None
     cancel_reason: str | None = None
     rescheduled_count: int = 0
+    kind: TaskKind = "manual"
+    agent_status: AgentStatus | None = None
+    agent_dispatched_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -74,9 +79,12 @@ class TaskStore:
         success_criterion: str,
         created_by: int,
         responsible: str = "Владелец",
+        kind: TaskKind = "manual",
         now: datetime | None = None,
     ) -> OwnerTask:
         current = now or datetime.now(timezone.utc)
+        if kind not in {"manual", "agent"}:
+            raise ValueError("Неизвестный тип задачи")
         task = OwnerTask(
             id=secrets.token_urlsafe(6),
             project_key=project_key,
@@ -87,6 +95,8 @@ class TaskStore:
             status="open",
             created_at=current.isoformat(),
             created_by=created_by,
+            kind=kind,
+            agent_status="ready" if kind == "agent" else None,
         )
         if not 3 <= len(task.title) <= 300:
             raise ValueError("Описание задачи должно содержать от 3 до 300 символов")
@@ -128,10 +138,50 @@ class TaskStore:
             )
         )
 
+    def open_manual(self) -> tuple[OwnerTask, ...]:
+        return tuple(task for task in self.open() if task.kind == "manual")
+
+    def open_agent(self) -> tuple[OwnerTask, ...]:
+        return tuple(task for task in self.open() if task.kind == "agent")
+
     def due(self, on_date: date) -> tuple[OwnerTask, ...]:
         return tuple(
-            task for task in self.open() if date.fromisoformat(task.due_date) <= on_date
+            task
+            for task in self.open_manual()
+            if date.fromisoformat(task.due_date) <= on_date
         )
+
+    def mark_agent_queued(
+        self,
+        task_id: str,
+        *,
+        actor_id: int,
+        now: datetime | None = None,
+    ) -> OwnerTask | None:
+        task = self._tasks.get(task_id)
+        if task is None or task.status != "open" or task.kind != "agent":
+            return task
+        if task.agent_status == "queued":
+            return task
+        current = now or datetime.now(timezone.utc)
+        updated = OwnerTask(
+            **{
+                **asdict(task),
+                "agent_status": "queued",
+                "agent_dispatched_at": current.isoformat(),
+            }
+        )
+        self._tasks[task_id] = updated
+        self._events.append(
+            TaskEvent("agent_queued", task_id, current.isoformat(), actor_id)
+        )
+        try:
+            self._save()
+        except OSError:
+            self._tasks[task_id] = task
+            self._events.pop()
+            raise
+        return updated
 
     def complete(
         self,
@@ -260,6 +310,9 @@ class TaskStore:
                 item.setdefault("canceled_by", None)
                 item.setdefault("cancel_reason", None)
                 item.setdefault("rescheduled_count", 0)
+                item.setdefault("kind", "manual")
+                item.setdefault("agent_status", None)
+                item.setdefault("agent_dispatched_at", None)
                 task = OwnerTask(**item)
                 self._tasks[task.id] = task
             events = []

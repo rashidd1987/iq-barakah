@@ -905,6 +905,53 @@ class TaskStoreTests(unittest.TestCase):
                 ["Просроченная задача", "Задача на сегодня"],
             )
 
+    def test_agent_tasks_are_separate_and_do_not_trigger_owner_reminders(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            manual = store.create(
+                project_key="iqbarakah",
+                title="Позвонить партнёру",
+                due_date=date(2026, 8, 1),
+                success_criterion="Договорённость зафиксирована",
+                created_by=42,
+            )
+            agent = store.create(
+                project_key="iqbarakah",
+                title="Добавить regression-тест",
+                due_date=date(2026, 8, 1),
+                success_criterion="Тест проходит в CI",
+                created_by=42,
+                responsible="Codex",
+                kind="agent",
+            )
+            self.assertEqual(store.open_manual(), (manual,))
+            self.assertEqual(store.open_agent(), (agent,))
+            self.assertEqual(store.due(date(2026, 8, 2)), (manual,))
+
+    def test_agent_dispatch_is_idempotent_and_persists(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = TaskStore(directory)
+            task = store.create(
+                project_key="iqbarakah",
+                title="Исправить отчёт",
+                due_date=date(2026, 8, 3),
+                success_criterion="Все тесты проходят",
+                created_by=42,
+                kind="agent",
+            )
+            queued = store.mark_agent_queued(task.id, actor_id=42)
+            repeated = store.mark_agent_queued(task.id, actor_id=99)
+            assert queued is not None and repeated is not None
+            self.assertEqual(queued.agent_status, "queued")
+            self.assertEqual(repeated.agent_dispatched_at, queued.agent_dispatched_at)
+            self.assertEqual(
+                [event.event for event in store.events()],
+                ["created", "agent_queued"],
+            )
+            persisted = TaskStore(directory).get(task.id)
+            assert persisted is not None
+            self.assertEqual(persisted.agent_status, "queued")
+
     def test_completion_evidence_persists_and_repeated_completion_is_safe(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = TaskStore(directory)
@@ -1030,6 +1077,8 @@ class TaskStoreTests(unittest.TestCase):
             assert loaded is not None
             self.assertIsNone(loaded.completion_evidence)
             self.assertEqual(loaded.rescheduled_count, 0)
+            self.assertEqual(loaded.kind, "manual")
+            self.assertIsNone(loaded.agent_status)
 
 
 class MorningBriefTests(unittest.TestCase):
