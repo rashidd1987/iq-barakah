@@ -10,10 +10,15 @@ from pathlib import Path
 import jwt, bcrypt, os, asyncpg, time, secrets, json, hashlib, hmac, asyncio, smtplib, ssl
 from email.message import EmailMessage
 from urllib.parse import parse_qsl
+from urllib.error import HTTPError, URLError
+from urllib.request import Request as UrlRequest, urlopen
+import base64
+import uuid
 
 # Reused as-is from the bot (self-contained: only imports `anthropic`, no aiogram/DB
 # deps) so the muhasaba AI reflection is identical whether answered in the bot or here.
 from bot_v2.services.jarwas import ask_jarwas_muhasaba, setup_jarwas
+from bot_v2.services.program import get_tariff_view
 setup_jarwas(os.environ.get('ANTHROPIC_API_KEY', ''))
 
 SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
@@ -37,6 +42,7 @@ RATE_LIMITS = {
     '/auth/email/request': (5, 300),
     '/auth/email/verify': (10, 300),
     '/mobile/account': (5, 3600),  # destructive action: 5 attempts / hour
+    '/mobile/payments': (10, 60),
     'default': (120, 60),        # 120 req / 60s
 }
 
@@ -202,6 +208,9 @@ class MobileAccountDeleteReq(BaseModel):
 
 class MobileDiagnosticResultReq(BaseModel):
     scores: List[int]
+
+class MobilePaymentCreateReq(BaseModel):
+    tariff_id: Literal['vakt', 's1_month']
 
 # ── Auth helpers ──────────────────────────────────────────────────────────────
 
@@ -872,6 +881,259 @@ def _clean_optional(value: Optional[str], max_length: int) -> Optional[str]:
         return None
     cleaned = value.strip()
     return cleaned[:max_length] or None
+
+# The bot owns tariff names and base prices. PWA only exposes the two tariffs
+# that are eligible for self-service checkout.
+PAYMENT_TARIFFS = {
+    tariff_id: get_tariff_view(tariff_id, 'ru')
+    for tariff_id in ('vakt', 's1_month')
+}
+
+def _yookassa_credentials() -> Tuple[str, str]:
+    shop_id = os.environ.get('YOOKASSA_SHOP_ID', '').strip()
+    secret_key = os.environ.get('YOOKASSA_SECRET_KEY', '').strip()
+    if not shop_id or not secret_key:
+        raise HTTPException(503, 'Оплата временно недоступна')
+    return shop_id, secret_key
+
+def _yookassa_request_sync(
+    method: str,
+    path: str,
+    payload: Optional[dict] = None,
+    idempotency_key: Optional[str] = None,
+) -> dict:
+    shop_id, secret_key = _yookassa_credentials()
+    auth = base64.b64encode(f'{shop_id}:{secret_key}'.encode()).decode()
+    body = json.dumps(payload).encode() if payload is not None else None
+    headers = {'Authorization': f'Basic {auth}', 'Content-Type': 'application/json'}
+    if idempotency_key:
+        headers['Idempotence-Key'] = idempotency_key
+    request = UrlRequest(
+        f'https://api.yookassa.ru/v3{path}',
+        data=body,
+        headers=headers,
+        method=method,
+    )
+    try:
+        with urlopen(request, timeout=15) as response:
+            return json.loads(response.read().decode())
+    except HTTPError as exc:
+        # Do not return or log credentials/payment data from the provider response.
+        print(f'YooKassa HTTP error: {exc.code}', flush=True)
+        raise RuntimeError('payment provider rejected request') from exc
+    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
+        print(f'YooKassa connection error: {type(exc).__name__}', flush=True)
+        raise RuntimeError('payment provider unavailable') from exc
+
+async def _yookassa_request(
+    method: str,
+    path: str,
+    payload: Optional[dict] = None,
+    idempotency_key: Optional[str] = None,
+) -> dict:
+    return await asyncio.to_thread(
+        _yookassa_request_sync, method, path, payload, idempotency_key
+    )
+
+async def _payment_price(conn: asyncpg.Connection, tg_id: int, tariff_id: str) -> Tuple[int, Optional[str]]:
+    tariff = PAYMENT_TARIFFS[tariff_id]
+    price = int(tariff['price'])
+    offer = None
+    now = int(time.time())
+    if tariff_id == 'vakt':
+        expires = await conn.fetchval(
+            "SELECT value FROM bot_settings WHERE key=$1", f'korablik_offer:{tg_id}'
+        )
+        try:
+            if expires and int(expires) > now:
+                price, offer = 999, 'Специальная цена после диагностики'
+        except (TypeError, ValueError):
+            pass
+    elif tariff_id == 's1_month':
+        expires = await conn.fetchval(
+            "SELECT value FROM bot_settings WHERE key=$1", f's1_offer_at:{tg_id}'
+        )
+        try:
+            if expires and int(expires) > now:
+                price, offer = 3_500, 'Специальная цена после IQ Barakah Старт'
+        except (TypeError, ValueError):
+            pass
+    return price, offer
+
+@app.get('/mobile/payments/catalog')
+async def mobile_payment_catalog(tg_id: int = Depends(verify_mobile_token)):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    _yookassa_credentials()
+    async with db_pool.acquire() as conn:
+        rows = []
+        for tariff_id, tariff in PAYMENT_TARIFFS.items():
+            price, offer = await _payment_price(conn, tg_id, tariff_id)
+            paid = bool(await conn.fetchval(
+                '''SELECT EXISTS(SELECT 1 FROM bot_payments
+                   WHERE user_id=$1 AND tariff_id=$2 AND status='paid')''',
+                tg_id, tariff_id,
+            ))
+            rows.append({
+                'id': tariff_id,
+                'name': tariff['name'],
+                'description': tariff['description'],
+                'price': price,
+                'offer': offer,
+                'paid': paid,
+            })
+    return {'tariffs': rows, 'currency': 'RUB'}
+
+@app.post('/mobile/payments', status_code=201)
+async def mobile_create_payment(
+    req: MobilePaymentCreateReq,
+    tg_id: int = Depends(verify_mobile_token),
+):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    _yookassa_credentials()
+    tariff = PAYMENT_TARIFFS[req.tariff_id]
+
+    async with db_pool.acquire() as conn:
+        async with conn.transaction():
+            # One creator per user/tariff at a time, including across API replicas.
+            await conn.execute(
+                'SELECT pg_advisory_xact_lock(hashtext($1))',
+                f'iqb-payment:{tg_id}:{req.tariff_id}',
+            )
+            if await conn.fetchval(
+                '''SELECT EXISTS(SELECT 1 FROM bot_payments
+                   WHERE user_id=$1 AND tariff_id=$2 AND status='paid')''',
+                tg_id, req.tariff_id,
+            ):
+                raise HTTPException(409, 'Этот тариф уже оплачен')
+
+            pending = await conn.fetchrow(
+                '''SELECT id, yoo_payment_id FROM bot_payments
+                   WHERE user_id=$1 AND tariff_id=$2 AND status='pending'
+                     AND created_at > NOW() - INTERVAL '15 minutes'
+                   ORDER BY created_at DESC LIMIT 1''',
+                tg_id, req.tariff_id,
+            )
+            if pending and pending['yoo_payment_id']:
+                try:
+                    existing = await _yookassa_request(
+                        'GET', f"/payments/{pending['yoo_payment_id']}"
+                    )
+                    confirmation_url = (existing.get('confirmation') or {}).get('confirmation_url')
+                    if existing.get('status') == 'pending' and confirmation_url:
+                        return {
+                            'payment_id': pending['yoo_payment_id'],
+                            'confirmation_url': confirmation_url,
+                            'status': 'pending',
+                            'reused': True,
+                        }
+                except RuntimeError:
+                    pass
+
+            price, _ = await _payment_price(conn, tg_id, req.tariff_id)
+            user = await conn.fetchrow(
+                '''SELECT u.name, COALESCE(NULLIF(u.email, ''), NULLIF(p.email, '')) AS email
+                   FROM users u LEFT JOIN pwa_users p ON p.tg_id=u.id
+                   WHERE u.id=$1''',
+                tg_id,
+            )
+            if not user:
+                raise HTTPException(404, 'Пользователь не найден')
+
+            local_payment_id = await conn.fetchval(
+                '''INSERT INTO bot_payments (user_id, tariff_id, amount, email_used, status)
+                   VALUES ($1,$2,$3,$4,'pending') RETURNING id''',
+                tg_id, req.tariff_id, price, user['email'],
+            )
+            description = f"{tariff['name']} — IQ Barakah"
+            return_url = os.environ.get(
+                'PAYMENT_RETURN_URL', 'https://iq-barakah.ru/pwa/?payment=return'
+            ).strip()
+            payload = {
+                'amount': {'value': f'{price}.00', 'currency': 'RUB'},
+                'capture': True,
+                'confirmation': {'type': 'redirect', 'return_url': return_url},
+                'description': description,
+                'metadata': {
+                    'local_payment_id': str(local_payment_id),
+                    'tariff_id': req.tariff_id,
+                    'user_id': str(tg_id),
+                    'source': 'pwa',
+                },
+                'receipt': {
+                    'customer': {'email': user['email'] or 'noreply@iq-barakah.ru'},
+                    'items': [{
+                        'description': description[:128],
+                        'quantity': '1.00',
+                        'amount': {'value': f'{price}.00', 'currency': 'RUB'},
+                        'vat_code': 1,
+                        'payment_mode': 'full_payment',
+                        'payment_subject': 'service',
+                    }],
+                },
+            }
+            try:
+                created = await _yookassa_request(
+                    'POST', '/payments', payload, str(uuid.uuid4())
+                )
+            except RuntimeError:
+                await conn.execute(
+                    "UPDATE bot_payments SET status='failed' WHERE id=$1", local_payment_id
+                )
+                raise HTTPException(502, 'Не удалось создать платёж. Попробуйте позже.')
+
+            provider_id = created.get('id')
+            confirmation_url = (created.get('confirmation') or {}).get('confirmation_url')
+            if not provider_id or not confirmation_url:
+                await conn.execute(
+                    "UPDATE bot_payments SET status='failed' WHERE id=$1", local_payment_id
+                )
+                raise HTTPException(502, 'Платёжный сервис вернул неполный ответ')
+            await conn.execute(
+                'UPDATE bot_payments SET yoo_payment_id=$1 WHERE id=$2',
+                provider_id, local_payment_id,
+            )
+    return {
+        'payment_id': provider_id,
+        'confirmation_url': confirmation_url,
+        'status': created.get('status', 'pending'),
+        'reused': False,
+    }
+
+@app.get('/mobile/payments/{payment_id}')
+async def mobile_payment_status(
+    payment_id: str,
+    tg_id: int = Depends(verify_mobile_token),
+):
+    if not db_pool:
+        raise HTTPException(500, 'База данных не подключена')
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            '''SELECT status, tariff_id, amount FROM bot_payments
+               WHERE yoo_payment_id=$1 AND user_id=$2''',
+            payment_id, tg_id,
+        )
+        if not row:
+            raise HTTPException(404, 'Платёж не найден')
+        participant = await conn.fetchrow(
+            'SELECT level, is_active FROM participants WHERE user_id=$1', tg_id
+        )
+    provider_status = None
+    if row['status'] == 'pending':
+        try:
+            provider_status = (await _yookassa_request('GET', f'/payments/{payment_id}')).get('status')
+        except RuntimeError:
+            pass
+    return {
+        'payment_id': payment_id,
+        'tariff_id': row['tariff_id'],
+        'amount': int(row['amount']),
+        'status': row['status'],
+        'provider_status': provider_status,
+        'activated': bool(participant and participant['is_active']),
+        'level': participant['level'] if participant else None,
+    }
 
 @app.get('/mobile/profile')
 async def mobile_profile(tg_id: int = Depends(verify_mobile_token)):
