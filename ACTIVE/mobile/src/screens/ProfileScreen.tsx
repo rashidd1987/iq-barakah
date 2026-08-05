@@ -3,6 +3,7 @@ import * as Application from 'expo-application'
 import React, { useEffect, useMemo, useState } from 'react'
 import { Alert, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import ScreenHeader from '../components/ScreenHeader'
+import PaymentPanel from '../components/PaymentPanel'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { globalWeekIndex, TOTAL_STEPS } from '../data/weeks'
@@ -333,6 +334,8 @@ export default function ProfileScreen() {
             </Pressable>
           )}
         </View>
+
+        {Platform.OS === 'web' ? <PaymentPanel /> : null}
 
         <Text style={styles.sectionTitle}>Результаты за всё время</Text>
         <View style={[styles.card, styles.journeyCard]}>

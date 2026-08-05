@@ -86,6 +86,11 @@ export const api = {
     api.put<{ ok: boolean }>('/mobile/profile', body),
   deleteAccount: (confirmation: string) =>
     api.delete<{ ok: boolean; already_deleted: boolean }>('/mobile/account', { confirmation }),
+  paymentCatalog: () => api.get<PaymentCatalog>('/mobile/payments/catalog'),
+  createPayment: (tariffId: PaymentTariff['id']) =>
+    api.post<PaymentCreateResult>('/mobile/payments', { tariff_id: tariffId }),
+  paymentStatus: (paymentId: string) =>
+    api.get<PaymentStatus>(`/mobile/payments/${encodeURIComponent(paymentId)}`),
   content: (level: string, week: number) =>
     api.get<{
       title: string
@@ -184,4 +189,35 @@ export interface MobileProfile {
     basis: 'paid_non_refunded'
   }
   payments: { paid_total: number; payments_count: number }
+}
+
+export interface PaymentTariff {
+  id: 'vakt' | 's1_month'
+  name: string
+  description: string
+  price: number
+  offer: string | null
+  paid: boolean
+}
+
+export interface PaymentCatalog {
+  tariffs: PaymentTariff[]
+  currency: 'RUB'
+}
+
+export interface PaymentCreateResult {
+  payment_id: string
+  confirmation_url: string
+  status: string
+  reused: boolean
+}
+
+export interface PaymentStatus {
+  payment_id: string
+  tariff_id: PaymentTariff['id']
+  amount: number
+  status: 'pending' | 'paid' | 'failed' | 'refunded'
+  provider_status: 'pending' | 'succeeded' | 'canceled' | null
+  activated: boolean
+  level: string | null
 }
