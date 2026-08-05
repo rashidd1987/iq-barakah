@@ -144,8 +144,8 @@ interface Props {
 }
 
 export default function DiagnosticScreen({ onContinue }: Props) {
-  const { colors } = useTheme()
-  const styles = useMemo(() => createStyles(colors), [colors])
+  const { colors, isDark } = useTheme()
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark])
   const [step, setStep] = useState(0)
   const [scores, setScores] = useState<number[]>([])
   const [saving, setSaving] = useState(false)
@@ -236,7 +236,7 @@ export default function DiagnosticScreen({ onContinue }: Props) {
   )
 }
 
-const createStyles = (colors: ThemeColors) => {
+const createStyles = (colors: ThemeColors, isDark: boolean) => {
   const shadow = makeShadow(colors)
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
@@ -257,7 +257,17 @@ const createStyles = (colors: ThemeColors) => {
     marginBottom: 16,
   },
   stepCounter: { fontSize: 13, fontWeight: '600', color: colors.muted, textAlign: 'center', marginBottom: 12 },
-  question: { fontSize: 20, fontWeight: '700', color: colors.g1, textAlign: 'center', marginBottom: 32, lineHeight: 28 },
+  question: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: isDark ? colors.goldpale : colors.g1,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 30,
+    textShadowColor: isDark ? 'rgba(0, 0, 0, 0.35)' : 'transparent',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: isDark ? 2 : 0,
+  },
   options: { gap: 12 },
   optionCard: {
     backgroundColor: colors.card,
