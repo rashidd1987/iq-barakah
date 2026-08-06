@@ -6,6 +6,10 @@ const isPreview = process.env.APP_VARIANT === 'preview'
 
 module.exports = {
   ...staticConfig.expo,
+  plugins: [
+    ...staticConfig.expo.plugins,
+    'expo-video',
+  ],
   name: isPreview ? 'IQ Barakah Preview' : staticConfig.expo.name,
   ios: {
     ...staticConfig.expo.ios,
