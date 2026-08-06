@@ -977,7 +977,7 @@ async def mobile_payment_catalog(tg_id: int = Depends(verify_mobile_token)):
             rows.append({
                 'id': tariff_id,
                 'name': tariff['name'],
-                'description': tariff['description'],
+                'description': tariff['desc'],
                 'price': price,
                 'offer': offer,
                 'paid': paid,
