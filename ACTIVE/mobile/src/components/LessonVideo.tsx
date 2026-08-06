@@ -12,7 +12,7 @@ type Props = {
 export default function LessonVideo({ title, url }: Props) {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const player = useVideoPlayer({ uri: url, useCaching: true })
+  const player = useVideoPlayer({ uri: url, useCaching: false })
 
   return (
     <View style={styles.card}>
@@ -27,7 +27,7 @@ export default function LessonVideo({ title, url }: Props) {
         playsInline
         style={styles.video}
       />
-      <Text style={styles.hint}>Просмотр видео не меняет прогресс урока.</Text>
+      <Text style={styles.hint}>Видео доступно только внутри авторизованного урока.</Text>
     </View>
   )
 }

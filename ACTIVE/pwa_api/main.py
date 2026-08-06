@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, EmailStr
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any, Literal, Tuple
@@ -15,6 +15,14 @@ from urllib.request import Request as UrlRequest, urlopen
 import base64
 import uuid
 
+from ACTIVE.pwa_api.video_security import (
+    parse_byte_range,
+    validate_video_id,
+    verify_video_signature,
+    video_file_path,
+    video_signature,
+)
+
 # Reused as-is from the bot (self-contained: only imports `anthropic`, no aiogram/DB
 # deps) so the muhasaba AI reflection is identical whether answered in the bot or here.
 from bot_v2.services.jarwas import ask_jarwas_muhasaba, setup_jarwas
@@ -25,6 +33,17 @@ SECRET = os.environ.get('JWT_SECRET', 'change-me-in-production')
 DATABASE_URL = os.environ.get('DATABASE_URL', '')
 ALGORITHM = 'HS256'
 TOKEN_EXPIRE_DAYS = 30
+VIDEO_SIGNING_SECRET = os.environ.get('VIDEO_SIGNING_SECRET', '').strip()
+VIDEO_STORAGE_DIR = Path(os.environ.get('VIDEO_STORAGE_DIR', '/data/lesson_videos'))
+
+def _bounded_video_ttl() -> int:
+    try:
+        configured = int(os.environ.get('VIDEO_URL_TTL_SECONDS', '7200'))
+    except ValueError:
+        configured = 7200
+    return max(300, min(configured, 14_400))
+
+VIDEO_URL_TTL_SECONDS = _bounded_video_ttl()
 
 app = FastAPI(title='IQ Barakah PWA API')
 app.add_middleware(
@@ -1465,12 +1484,87 @@ async def mobile_activity_feed(limit: int = 20, tg_id: int = Depends(verify_mobi
         for r in rows
     ]
 
+def _protected_lesson_video(request: Request, lesson: dict, tg_id: int) -> Optional[dict]:
+    descriptor = lesson.get('video')
+    if not isinstance(descriptor, dict) or not descriptor.get('id'):
+        return None
+    if not VIDEO_SIGNING_SECRET:
+        # Fail closed: a deployment without the dedicated secret never exposes a file.
+        return None
+    video_id = str(descriptor['id'])
+    try:
+        validate_video_id(video_id)
+    except ValueError:
+        return None
+    expires_at = int(time.time()) + VIDEO_URL_TTL_SECONDS
+    signature = video_signature(VIDEO_SIGNING_SECRET, video_id, tg_id, expires_at)
+    url = request.url_for('mobile_lesson_video', video_id=video_id).include_query_params(
+        uid=tg_id, exp=expires_at, sig=signature
+    )
+    return {'url': str(url), 'title': str(descriptor.get('title') or 'Видео к уроку')}
+
+
 @app.get('/mobile/content/{level}/{week}')
-async def mobile_content(level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
+async def mobile_content(request: Request, level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
     lesson = _load_lesson_content(level, week)
     if not lesson:
         raise HTTPException(404, 'Урок не найден')
-    return lesson
+    response = dict(lesson)
+    response.pop('video', None)
+    protected_video = _protected_lesson_video(request, lesson, tg_id)
+    if protected_video:
+        response['video'] = protected_video
+    return response
+
+
+async def _video_chunks(path: Path, start: int, end: int, chunk_size: int = 1024 * 1024):
+    with path.open('rb') as source:
+        source.seek(start)
+        remaining = end - start + 1
+        while remaining > 0:
+            chunk = source.read(min(chunk_size, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+            yield chunk
+
+
+@app.api_route('/mobile/videos/{video_id}', methods=['GET', 'HEAD'], name='mobile_lesson_video')
+async def mobile_lesson_video(request: Request, video_id: str, uid: int, exp: int, sig: str):
+    now = int(time.time())
+    if not verify_video_signature(VIDEO_SIGNING_SECRET, video_id, uid, exp, sig, now):
+        raise HTTPException(403, 'Ссылка на видео недействительна или истекла')
+    try:
+        path = video_file_path(VIDEO_STORAGE_DIR, video_id)
+    except ValueError:
+        raise HTTPException(404, 'Видео не найдено')
+    if not path.is_file():
+        raise HTTPException(404, 'Видео не найдено')
+
+    file_size = path.stat().st_size
+    try:
+        byte_range = parse_byte_range(request.headers.get('range'), file_size)
+    except ValueError:
+        return Response(status_code=416, headers={'Content-Range': f'bytes */{file_size}'})
+    start, end = byte_range or (0, file_size - 1)
+    status_code = 206 if byte_range else 200
+    headers = {
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'private, no-store, max-age=0',
+        'Content-Disposition': 'inline',
+        'Content-Length': str(end - start + 1),
+        'X-Content-Type-Options': 'nosniff',
+    }
+    if byte_range:
+        headers['Content-Range'] = f'bytes {start}-{end}/{file_size}'
+    if request.method == 'HEAD':
+        return Response(status_code=status_code, media_type='video/mp4', headers=headers)
+    return StreamingResponse(
+        _video_chunks(path, start, end),
+        status_code=status_code,
+        media_type='video/mp4',
+        headers=headers,
+    )
 
 @app.get('/mobile/quiz/{level}/{week}')
 async def mobile_quiz(level: str, week: int, tg_id: int = Depends(verify_mobile_token)):
