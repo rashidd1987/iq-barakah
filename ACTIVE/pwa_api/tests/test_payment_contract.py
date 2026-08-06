@@ -84,6 +84,12 @@ class PaymentContractTests(unittest.TestCase):
         self.assertIn('/mobile/payments', paths)
         self.assertIn('/mobile/payments/{payment_id}', paths)
 
+    def test_self_service_tariffs_have_catalog_fields(self):
+        for tariff in pwa_api.PAYMENT_TARIFFS.values():
+            self.assertIsInstance(tariff['name'], str)
+            self.assertIsInstance(tariff['desc'], str)
+            self.assertIsInstance(tariff['price'], int)
+
 
 if __name__ == '__main__':
     unittest.main()
