@@ -28,6 +28,32 @@ def video_file_path(storage_dir: Path, video_id: str) -> Path:
     return candidate
 
 
+def s3_video_key(prefix: str, video_id: str) -> str:
+    """Build a predictable object key without accepting paths from lesson JSON."""
+    validate_video_id(video_id)
+    clean_prefix = (prefix or "lesson-videos").strip("/")
+    if not clean_prefix or any(part in {"", ".", ".."} for part in clean_prefix.split("/")):
+        raise ValueError("invalid video key prefix")
+    return f"{clean_prefix}/{video_id}.mp4"
+
+
+def s3_presigned_video_url(client, bucket: str, prefix: str, video_id: str, ttl_seconds: int) -> str:
+    if not bucket:
+        raise ValueError("video bucket is not configured")
+    key = s3_video_key(prefix, video_id)
+    return client.generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": bucket,
+            "Key": key,
+            "ResponseContentType": "video/mp4",
+            "ResponseContentDisposition": "inline",
+        },
+        ExpiresIn=ttl_seconds,
+        HttpMethod="GET",
+    )
+
+
 def video_signature(secret: str, video_id: str, user_id: int, expires_at: int) -> str:
     validate_video_id(video_id)
     if not secret:

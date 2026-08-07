@@ -17,6 +17,7 @@ import uuid
 
 from ACTIVE.pwa_api.video_security import (
     parse_byte_range,
+    s3_presigned_video_url,
     validate_video_id,
     verify_video_signature,
     video_file_path,
@@ -34,7 +35,15 @@ DATABASE_URL = os.environ.get('DATABASE_URL', '')
 ALGORITHM = 'HS256'
 TOKEN_EXPIRE_DAYS = 30
 VIDEO_SIGNING_SECRET = os.environ.get('VIDEO_SIGNING_SECRET', '').strip()
+VIDEO_STORAGE_BACKEND = os.environ.get('VIDEO_STORAGE_BACKEND', 'local').strip().lower()
 VIDEO_STORAGE_DIR = Path(os.environ.get('VIDEO_STORAGE_DIR', '/data/lesson_videos'))
+VIDEO_S3_ENDPOINT_URL = os.environ.get('VIDEO_S3_ENDPOINT_URL', '').strip()
+VIDEO_S3_REGION = os.environ.get('VIDEO_S3_REGION', 'ru-central1').strip()
+VIDEO_S3_BUCKET = os.environ.get('VIDEO_S3_BUCKET', '').strip()
+VIDEO_S3_KEY_PREFIX = os.environ.get('VIDEO_S3_KEY_PREFIX', 'lesson-videos').strip()
+VIDEO_S3_ACCESS_KEY_ID = os.environ.get('VIDEO_S3_ACCESS_KEY_ID', '').strip()
+VIDEO_S3_SECRET_ACCESS_KEY = os.environ.get('VIDEO_S3_SECRET_ACCESS_KEY', '').strip()
+_video_s3_client = None
 
 def _bounded_video_ttl() -> int:
     try:
@@ -1484,23 +1493,56 @@ async def mobile_activity_feed(limit: int = 20, tg_id: int = Depends(verify_mobi
         for r in rows
     ]
 
+def _s3_video_url(video_id: str) -> str:
+    global _video_s3_client
+    if not all((VIDEO_S3_ENDPOINT_URL, VIDEO_S3_BUCKET, VIDEO_S3_ACCESS_KEY_ID, VIDEO_S3_SECRET_ACCESS_KEY)):
+        raise ValueError('S3 video storage is not fully configured')
+    if _video_s3_client is None:
+        import boto3
+        from botocore.config import Config
+
+        _video_s3_client = boto3.client(
+            's3',
+            endpoint_url=VIDEO_S3_ENDPOINT_URL,
+            region_name=VIDEO_S3_REGION,
+            aws_access_key_id=VIDEO_S3_ACCESS_KEY_ID,
+            aws_secret_access_key=VIDEO_S3_SECRET_ACCESS_KEY,
+            config=Config(signature_version='s3v4'),
+        )
+    return s3_presigned_video_url(
+        _video_s3_client,
+        VIDEO_S3_BUCKET,
+        VIDEO_S3_KEY_PREFIX,
+        video_id,
+        VIDEO_URL_TTL_SECONDS,
+    )
+
+
 def _protected_lesson_video(request: Request, lesson: dict, tg_id: int) -> Optional[dict]:
     descriptor = lesson.get('video')
     if not isinstance(descriptor, dict) or not descriptor.get('id'):
-        return None
-    if not VIDEO_SIGNING_SECRET:
-        # Fail closed: a deployment without the dedicated secret never exposes a file.
         return None
     video_id = str(descriptor['id'])
     try:
         validate_video_id(video_id)
     except ValueError:
         return None
-    expires_at = int(time.time()) + VIDEO_URL_TTL_SECONDS
-    signature = video_signature(VIDEO_SIGNING_SECRET, video_id, tg_id, expires_at)
-    url = request.url_for('mobile_lesson_video', video_id=video_id).include_query_params(
-        uid=tg_id, exp=expires_at, sig=signature
-    )
+    if VIDEO_STORAGE_BACKEND == 's3':
+        try:
+            url = _s3_video_url(video_id)
+        except Exception:
+            # Fail closed. Never fall back silently to a public URL or another backend.
+            return None
+    elif VIDEO_STORAGE_BACKEND == 'local':
+        if not VIDEO_SIGNING_SECRET:
+            return None
+        expires_at = int(time.time()) + VIDEO_URL_TTL_SECONDS
+        signature = video_signature(VIDEO_SIGNING_SECRET, video_id, tg_id, expires_at)
+        url = request.url_for('mobile_lesson_video', video_id=video_id).include_query_params(
+            uid=tg_id, exp=expires_at, sig=signature
+        )
+    else:
+        return None
     return {'url': str(url), 'title': str(descriptor.get('title') or 'Видео к уроку')}
 
 

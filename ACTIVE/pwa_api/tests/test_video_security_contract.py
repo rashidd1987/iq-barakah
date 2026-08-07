@@ -34,6 +34,26 @@ class VideoSecurityContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             video_security.parse_byte_range("bytes=0-1,4-5", 100)
 
+    def test_s3_key_does_not_accept_paths_from_content(self):
+        self.assertEqual(video_security.s3_video_key('private/lessons', 'a-01-intro'), 'private/lessons/a-01-intro.mp4')
+        with self.assertRaises(ValueError):
+            video_security.s3_video_key('../public', 'a-01-intro')
+
+    def test_s3_presign_uses_private_get_object_contract(self):
+        class FakeClient:
+            def generate_presigned_url(self, method, **kwargs):
+                self.method = method
+                self.kwargs = kwargs
+                return 'https://storage.example/signed'
+
+        client = FakeClient()
+        url = video_security.s3_presigned_video_url(client, 'iq-videos', 'lessons', 'a-01-intro', 900)
+        self.assertEqual(url, 'https://storage.example/signed')
+        self.assertEqual(client.method, 'get_object')
+        self.assertEqual(client.kwargs['Params']['Bucket'], 'iq-videos')
+        self.assertEqual(client.kwargs['Params']['Key'], 'lessons/a-01-intro.mp4')
+        self.assertEqual(client.kwargs['ExpiresIn'], 900)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,6 +26,7 @@ class VideoStreamContractTests(unittest.TestCase):
         self.patches = [
             patch.object(pwa_api, 'VIDEO_STORAGE_DIR', self.root),
             patch.object(pwa_api, 'VIDEO_SIGNING_SECRET', 'video-test-secret'),
+            patch.object(pwa_api, 'VIDEO_STORAGE_BACKEND', 'local'),
         ]
         for active_patch in self.patches:
             active_patch.start()
@@ -88,6 +89,20 @@ class VideoStreamContractTests(unittest.TestCase):
         self.assertEqual(video['title'], 'Введение')
         self.assertIn('/mobile/videos/a-01-intro?', video['url'])
         self.assertNotIn('video-test-secret', video['url'])
+
+    def test_s3_mode_returns_provider_presigned_url_without_local_proxy(self):
+        token = pwa_api.make_mobile_token(42)
+        headers = {'Authorization': f'Bearer {token}'}
+        with (
+            patch.object(pwa_api, 'VIDEO_STORAGE_BACKEND', 's3'),
+            patch.object(pwa_api, '_s3_video_url', return_value='https://storage.example/signed'),
+            patch.object(pwa_api, '_load_lesson_content', return_value={
+                'title': 'Урок', 'video': {'id': 'a-01-intro'}
+            }),
+        ):
+            response = self.client.get('/mobile/content/%D0%90/1', headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['video']['url'], 'https://storage.example/signed')
 
 
 if __name__ == '__main__':
