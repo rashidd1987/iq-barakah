@@ -46,7 +46,7 @@ from report_bot.main import (
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import SiteStatus, StatusClient, format_datetime, run_icon
-from report_bot.tasks import TaskStore, parse_task_details
+from report_bot.tasks import TaskStore, format_user_date, parse_task_details
 
 
 class ConfigTests(unittest.TestCase):
@@ -825,16 +825,23 @@ class ApprovalStoreTests(unittest.TestCase):
 class TaskStoreTests(unittest.TestCase):
     def test_parses_compact_task_details(self) -> None:
         title, due_date, criterion = parse_task_details(
-            "Проверить оплату | 2026-08-02 | Тестовая оплата проходит"
+            "Проверить оплату | 02.08.2026 | Тестовая оплата проходит"
         )
         self.assertEqual(title, "Проверить оплату")
         self.assertEqual(due_date, date(2026, 8, 2))
         self.assertEqual(criterion, "Тестовая оплата проходит")
+        self.assertEqual(format_user_date(due_date), "02.08.2026")
+
+    def test_keeps_legacy_iso_date_input_compatible(self) -> None:
+        _, due_date, _ = parse_task_details(
+            "Проверить оплату | 2026-08-02 | Тестовая оплата проходит"
+        )
+        self.assertEqual(due_date, date(2026, 8, 2))
 
     def test_rejects_invalid_task_details(self) -> None:
         with self.assertRaisesRegex(ValueError, "Формат"):
             parse_task_details("Только название")
-        with self.assertRaisesRegex(ValueError, "ГГГГ-ММ-ДД"):
+        with self.assertRaisesRegex(ValueError, "ДД\\.ММ\\.ГГГГ"):
             parse_task_details("Проверить оплату | завтра | Оплата проходит")
 
     def test_task_lifecycle_and_journal_persist(self) -> None:
