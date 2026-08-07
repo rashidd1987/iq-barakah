@@ -13,6 +13,22 @@ TaskKind = Literal["manual", "agent"]
 AgentStatus = Literal["ready", "queued"]
 
 
+def parse_user_date(value: str) -> date:
+    """Parse the owner-facing DD.MM.YYYY format with ISO compatibility."""
+    raw = value.strip()
+    for date_format in ("%d.%m.%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw, date_format).date()
+        except ValueError:
+            continue
+    raise ValueError("Срок укажите в формате ДД.ММ.ГГГГ")
+
+
+def format_user_date(value: date | str) -> str:
+    parsed = date.fromisoformat(value) if isinstance(value, str) else value
+    return parsed.strftime("%d.%m.%Y")
+
+
 @dataclass(frozen=True)
 class OwnerTask:
     id: str
@@ -49,17 +65,14 @@ def parse_task_details(value: str) -> tuple[str, date, str]:
     parts = [part.strip() for part in value.split("|")]
     if len(parts) != 3:
         raise ValueError(
-            "Формат: задача | ГГГГ-ММ-ДД | критерий готовности"
+            "Формат: задача | ДД.ММ.ГГГГ | критерий готовности"
         )
     title, due_raw, criterion = parts
     if not 3 <= len(title) <= 300:
         raise ValueError("Описание задачи должно содержать от 3 до 300 символов")
     if not 3 <= len(criterion) <= 500:
         raise ValueError("Критерий готовности должен содержать от 3 до 500 символов")
-    try:
-        due_date = date.fromisoformat(due_raw)
-    except ValueError:
-        raise ValueError("Срок укажите в формате ГГГГ-ММ-ДД") from None
+    due_date = parse_user_date(due_raw)
     return title, due_date, criterion
 
 

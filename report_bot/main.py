@@ -59,7 +59,13 @@ from report_bot.status import (
     project_summary,
     run_icon,
 )
-from report_bot.tasks import OwnerTask, TaskStore, parse_task_details
+from report_bot.tasks import (
+    OwnerTask,
+    TaskStore,
+    format_user_date,
+    parse_task_details,
+    parse_user_date,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -518,7 +524,7 @@ def task_text(task: OwnerTask, project_title: str) -> str:
     return (
         f"📌 <b>{html.escape(task.title)}</b>\n"
         f"Проект: {html.escape(project_title)}\n"
-        f"Срок: <code>{task.due_date}</code>\n"
+        f"Срок: <code>{format_user_date(task.due_date)}</code>\n"
         f"Ответственный: {html.escape(owner)}{status}\n"
         f"Готово, когда: {html.escape(task.success_criterion)}\n"
         f"ID: <code>{task.id}</code>"
@@ -916,7 +922,7 @@ def build_router(
             await state.set_state(TaskReview.postpone_date)
             prompt = (
                 "➡️ <b>Новая дата</b>\n\n"
-                "Отправьте будущую дату в формате <code>ГГГГ-ММ-ДД</code>.\n"
+                "Отправьте будущую дату в формате <code>ДД.ММ.ГГГГ</code>.\n"
                 "Для отмены ввода: /cancel"
             )
         else:
@@ -989,9 +995,9 @@ def build_router(
             await message.answer("Перенос отменён.", reply_markup=MENU)
             return
         try:
-            new_due_date = date.fromisoformat(raw_date)
+            new_due_date = parse_user_date(raw_date)
         except ValueError:
-            await message.answer("⚠️ Дата должна быть в формате ГГГГ-ММ-ДД.")
+            await message.answer("⚠️ Дата должна быть в формате ДД.ММ.ГГГГ.")
             return
         today = datetime.now(ZoneInfo(config.timezone)).date()
         if new_due_date <= today:
@@ -1037,7 +1043,7 @@ def build_router(
         await message.answer(
             "➡️ <b>Поручение перенесено</b>\n\n"
             f"{html.escape(updated.title)}\n"
-            f"Новый срок: <code>{updated.due_date}</code>\n"
+            f"Новый срок: <code>{format_user_date(updated.due_date)}</code>\n"
             f"Причина: {html.escape(reason)}",
             reply_markup=MENU,
         )
@@ -1120,9 +1126,9 @@ def build_router(
         await message.answer(
             f"👤 <b>Моя новая задача · {html.escape(active_title)}</b>\n\n"
             "Отправьте одной строкой:\n"
-            "<code>Что сделать | ГГГГ-ММ-ДД | Как проверить готовность</code>\n\n"
+            "<code>Что сделать | ДД.ММ.ГГГГ | Как проверить готовность</code>\n\n"
             "Пример:\n"
-            "<code>Проверить страницу оплаты | 2026-08-02 | "
+            "<code>Проверить страницу оплаты | 02.08.2026 | "
             "Тестовая оплата проходит без ошибки</code>\n\n"
             "Для отмены: /cancel"
         )
@@ -1198,7 +1204,7 @@ def build_router(
         await message.answer(
             f"🤖 <b>Поручить Codex · {html.escape(active.title)}</b>\n\n"
             "Отправьте одной строкой:\n"
-            "<code>Что улучшить | ГГГГ-ММ-ДД | Как проверить готовность</code>\n\n"
+            "<code>Что улучшить | ДД.ММ.ГГГГ | Как проверить готовность</code>\n\n"
             "После этого бот ещё раз покажет условия и попросит запуск.\n"
             "Для отмены: /cancel"
         )
