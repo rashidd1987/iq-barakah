@@ -1,4 +1,5 @@
 import asyncio
+from io import BytesIO
 from datetime import date, datetime
 import hmac
 import html
@@ -24,6 +25,7 @@ from aiogram.types import (
     KeyboardButton,
     Message,
     ReplyKeyboardMarkup,
+    BufferedInputFile,
 )
 
 from report_bot.ai_gateway import (
@@ -43,6 +45,7 @@ from report_bot.council import (
     select_project,
 )
 from report_bot.day_plan import DayPlanStore, build_day_plan
+from report_bot.ideas import IdeaStore
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.monitor import (
     ProjectState,
@@ -66,6 +69,7 @@ from report_bot.tasks import (
     parse_task_details,
     parse_user_date,
 )
+from report_bot.voice import extract_voice_task, transcribe_voice
 
 logging.basicConfig(
     level=logging.INFO,
@@ -94,6 +98,9 @@ BOT_COMMANDS = (
     BotCommand(command="newtask", description="Создать мою задачу"),
     BotCommand(command="agenttask", description="Поручить задачу агенту"),
     BotCommand(command="agenttasks", description="Задачи агента"),
+    BotCommand(command="newidea", description="Сохранить идею"),
+    BotCommand(command="ideas", description="База идей"),
+    BotCommand(command="ideasexport", description="Экспорт идей для ИИ"),
     BotCommand(command="done", description="Завершить поручение"),
     BotCommand(command="releases", description="Последние релизы"),
     BotCommand(command="errors", description="Последние ошибки"),
@@ -108,6 +115,7 @@ MENU = ReplyKeyboardMarkup(
         [KeyboardButton(text="📚 Библиотека проектов")],
         [KeyboardButton(text="👤 Мои задачи"), KeyboardButton(text="➕ Моя задача")],
         [KeyboardButton(text="🤖 Поручить агенту"), KeyboardButton(text="📋 Задачи агента")],
+        [KeyboardButton(text="💡 Новая идея"), KeyboardButton(text="📒 База идей")],
         [KeyboardButton(text="☀️ Утренний бриф"), KeyboardButton(text="🎯 План дня")],
         [KeyboardButton(text="🌙 Итоги дня"), KeyboardButton(text="📊 Неделя")],
         [KeyboardButton(text="☁️ Автоматизация")],
@@ -146,6 +154,10 @@ class TaskCreation(StatesGroup):
 
 class AgentTaskCreation(StatesGroup):
     details = State()
+
+
+class IdeaCreation(StatesGroup):
+    text = State()
 
 
 class TaskReview(StatesGroup):
@@ -413,6 +425,33 @@ def agent_confirmation_keyboard(task_id: str) -> InlineKeyboardMarkup:
     )
 
 
+def voice_intent_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💡 Сохранить идею", callback_data="voice:idea")],
+            [
+                InlineKeyboardButton(text="👤 Моя задача", callback_data="voice:manual"),
+                InlineKeyboardButton(text="🤖 Задача Codex", callback_data="voice:agent"),
+            ],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="voice:cancel")],
+        ]
+    )
+
+
+def voice_task_confirmation_keyboard(kind: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Создать",
+                    callback_data=f"voicecreate:{kind}",
+                ),
+                InlineKeyboardButton(text="❌ Отмена", callback_data="voicecreate:cancel"),
+            ]
+        ]
+    )
+
+
 def plan_suggestion_keyboard(suggestion_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -632,6 +671,7 @@ def build_router(
     approval_store: ApprovalStore,
     task_store: TaskStore,
     day_plan_store: DayPlanStore,
+    idea_store: IdeaStore,
 ) -> Router:
     router = Router(name="owner_reports")
 
@@ -669,6 +709,9 @@ def build_router(
             "/newtask — моя задача; бот будет напоминать\n"
             "/agenttask — Codex готовит изменения в отдельном PR\n"
             "/agenttasks — открытые задачи Codex\n"
+            "/newidea — сохранить идею\n"
+            "/ideas — последние идеи\n"
+            "/ideasexport — файлы для любой ИИ\n"
             "/done ID — отметить поручение выполненным\n"
             "/releases — последние релизы\n"
             "/errors — последние ошибки\n"
@@ -682,6 +725,268 @@ def build_router(
             "main и production не изменяются.",
             reply_markup=MENU,
         )
+
+    async def save_idea(message: Message, text: str, source: str) -> bool:
+        try:
+            owner_id = message.from_user.id if message.from_user else 0
+            idea = idea_store.create(
+                text=text,
+                project_key=knowledge.active_project,
+                source=source,
+                created_by=owner_id,
+            )
+        except (ValueError, OSError) as exc:
+            await message.answer(f"⚠️ {html.escape(str(exc))}")
+            return False
+        await message.answer(
+            "💡 <b>Идея сохранена постоянно</b>\n\n"
+            f"Проект: {html.escape(idea.project_key)}\n"
+            f"{html.escape(idea.text)}\n\nID: <code>{idea.id}</code>",
+            reply_markup=MENU,
+        )
+        return True
+
+    @router.message(Command("newidea"))
+    @router.message(lambda message: message.text == "💡 Новая идея")
+    async def new_idea_command(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            return
+        raw = (message.text or "").split(maxsplit=1)
+        if len(raw) == 2 and raw[0].startswith("/newidea"):
+            await save_idea(message, raw[1], "text")
+            return
+        await state.set_state(IdeaCreation.text)
+        await message.answer(
+            "💡 <b>Новая идея</b>\n\n"
+            "Отправьте текст или голосовое сообщение.\n"
+            "Для отмены: /cancel"
+        )
+
+    @router.message(IdeaCreation.text, F.text)
+    async def idea_text_received(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        if (message.text or "").strip() == "/cancel":
+            await state.clear()
+            await message.answer("Ввод идеи отменён.", reply_markup=MENU)
+            return
+        if await save_idea(message, message.text or "", "text"):
+            await state.clear()
+
+    @router.message(Command("ideas"))
+    @router.message(lambda message: message.text == "📒 База идей")
+    async def ideas_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        ideas = idea_store.all()
+        if not ideas:
+            await message.answer("📒 База идей пока пуста.", reply_markup=MENU)
+            return
+        await message.answer(f"📒 <b>База идей</b>\n\nВсего: {len(ideas)}")
+        for idea in ideas[:20]:
+            created = datetime.fromisoformat(idea.created_at).strftime("%d.%m.%Y")
+            await message.answer(
+                f"💡 <b>{created} · {html.escape(idea.project_key)}</b>\n"
+                f"{html.escape(idea.text)}\nID: <code>{idea.id}</code>"
+            )
+        if len(ideas) > 20:
+            await message.answer(f"Показаны 20 из {len(ideas)}. Все: /ideasexport")
+
+    @router.message(Command("ideasexport"))
+    async def ideas_export_command(message: Message) -> None:
+        if not await require_owner(message):
+            return
+        if not idea_store.all():
+            await message.answer("📒 База идей пока пуста.")
+            return
+        stamp = datetime.now(ZoneInfo(config.timezone)).strftime("%Y-%m-%d")
+        await message.answer_document(
+            BufferedInputFile(
+                idea_store.export_markdown().encode("utf-8"),
+                filename=f"mizan-ideas-{stamp}.md",
+            ),
+            caption="🧠 Markdown: загрузите этот файл в любую ИИ.",
+        )
+        await message.answer_document(
+            BufferedInputFile(
+                idea_store.export_json().encode("utf-8"),
+                filename=f"mizan-ideas-{stamp}.json",
+            ),
+            caption="🛠 JSON: для автоматизаций и переноса.",
+        )
+
+    @router.message(F.voice)
+    async def voice_received(message: Message, state: FSMContext) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        voice = message.voice
+        if voice is None:
+            return
+        if voice.file_size and voice.file_size > 20 * 1024 * 1024:
+            await message.answer("⚠️ Голосовое сообщение больше 20 МБ.")
+            return
+        await message.answer("🎙 Распознаю голос…")
+        try:
+            destination = BytesIO()
+            downloaded = await message.bot.download(voice, destination=destination)
+            if downloaded is None:
+                raise RuntimeError("Не удалось скачать голосовое сообщение")
+            transcript = await transcribe_voice(
+                session,
+                config.ai_provider_secrets.openai,
+                destination.getvalue(),
+            )
+        except (ValueError, RuntimeError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
+            logger.warning("Voice transcription failed: %s", type(exc).__name__)
+            await message.answer(f"⚠️ {html.escape(str(exc))}", reply_markup=MENU)
+            return
+        await state.clear()
+        await state.update_data(
+            voice_transcript=transcript,
+            voice_project_key=knowledge.active_project,
+        )
+        await message.answer(
+            "🎙 <b>Текст голосового</b>\n\n"
+            f"{html.escape(transcript)}\n\n"
+            "Что сделать с этой записью?",
+            reply_markup=voice_intent_keyboard(),
+        )
+
+    @router.callback_query(F.data.startswith("voice:"))
+    async def voice_intent_callback(
+        callback: CallbackQuery,
+        state: FSMContext,
+    ) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        action = (callback.data or "").split(":", 1)[-1]
+        if action not in {"idea", "manual", "agent", "cancel"}:
+            await callback.answer("Неизвестное действие", show_alert=True)
+            return
+        data = await state.get_data()
+        transcript = str(data.get("voice_transcript", "")).strip()
+        project_key = str(data.get("voice_project_key", knowledge.active_project))
+        if not transcript:
+            await callback.answer("Черновик уже истёк", show_alert=True)
+            return
+        if action == "cancel":
+            await state.clear()
+            await callback.answer("Отменено")
+            if callback.message:
+                await callback.message.edit_text("❌ Голосовая запись не сохранена.")
+            return
+        if action == "idea":
+            try:
+                idea = idea_store.create(
+                    text=transcript,
+                    project_key=project_key,
+                    source="voice",
+                    created_by=callback.from_user.id,
+                )
+            except (ValueError, OSError) as exc:
+                await callback.answer(str(exc), show_alert=True)
+                return
+            await state.clear()
+            await callback.answer("Идея сохранена")
+            if callback.message:
+                await callback.message.edit_text(
+                    "💡 <b>Идея сохранена постоянно</b>\n\n"
+                    f"{html.escape(idea.text)}\nID: <code>{idea.id}</code>"
+                )
+            return
+        if action == "agent":
+            project = registry.by_key(project_key)
+            if project is None or not project.repo:
+                await callback.answer(
+                    "У проекта нет GitHub-репозитория",
+                    show_alert=True,
+                )
+                return
+        await callback.answer("Готовлю черновик…")
+        try:
+            draft = await extract_voice_task(
+                session,
+                config.ai_provider_secrets.openai,
+                transcript,
+                today=datetime.now(ZoneInfo(config.timezone)).date(),
+            )
+        except (ValueError, RuntimeError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
+            logger.warning("Voice task extraction failed: %s", type(exc).__name__)
+            if callback.message:
+                await callback.message.answer(f"⚠️ {html.escape(str(exc))}")
+            return
+        await state.update_data(
+            voice_task_kind=action,
+            voice_task_title=draft.title,
+            voice_task_due=draft.due_date.isoformat(),
+            voice_task_criterion=draft.success_criterion,
+        )
+        responsible = "Codex" if action == "agent" else "Вы"
+        if callback.message:
+            await callback.message.edit_text(
+                "📋 <b>Проверьте черновик</b>\n\n"
+                f"Задача: {html.escape(draft.title)}\n"
+                f"Срок: <code>{format_user_date(draft.due_date)}</code>\n"
+                f"Готово, когда: {html.escape(draft.success_criterion)}\n"
+                f"Исполнитель: {responsible}\n\n"
+                "Без нажатия задача не создастся.",
+                reply_markup=voice_task_confirmation_keyboard(action),
+            )
+
+    @router.callback_query(F.data.startswith("voicecreate:"))
+    async def voice_task_create_callback(
+        callback: CallbackQuery,
+        state: FSMContext,
+    ) -> None:
+        if callback.from_user.id not in config.owner_ids:
+            await callback.answer("Нет доступа", show_alert=True)
+            return
+        kind = (callback.data or "").split(":", 1)[-1]
+        if kind == "cancel":
+            await state.clear()
+            await callback.answer("Отменено")
+            if callback.message:
+                await callback.message.edit_text("❌ Задача не создана.")
+            return
+        if kind not in {"manual", "agent"}:
+            await callback.answer("Неизвестный тип", show_alert=True)
+            return
+        data = await state.get_data()
+        if data.get("voice_task_kind") != kind:
+            await callback.answer("Черновик уже истёк", show_alert=True)
+            return
+        project_key = str(data.get("voice_project_key", ""))
+        project = registry.by_key(project_key)
+        if project is None or (kind == "agent" and not project.repo):
+            await callback.answer("Проект больше недоступен", show_alert=True)
+            return
+        try:
+            task = task_store.create(
+                project_key=project.key,
+                title=str(data["voice_task_title"]),
+                due_date=date.fromisoformat(str(data["voice_task_due"])),
+                success_criterion=str(data["voice_task_criterion"]),
+                created_by=callback.from_user.id,
+                responsible="Codex" if kind == "agent" else "Владелец",
+                kind=kind,
+            )
+        except (KeyError, ValueError, OSError) as exc:
+            await callback.answer(str(exc), show_alert=True)
+            return
+        await state.clear()
+        await callback.answer("Задача создана")
+        if callback.message:
+            await callback.message.edit_text(
+                ("🤖" if kind == "agent" else "👤")
+                + " <b>Задача создана из голоса</b>\n\n"
+                + task_text(task, project.title),
+                reply_markup=(
+                    agent_task_keyboard(task) if kind == "agent" else task_keyboard(task)
+                ),
+            )
 
     async def send_tasks(
         message: Message,
@@ -2530,6 +2835,7 @@ async def main() -> None:
         approval_store = ApprovalStore(config.data_dir)
         task_store = TaskStore(config.data_dir)
         day_plan_store = DayPlanStore(config.data_dir)
+        idea_store = IdeaStore(config.data_dir)
         bot = Bot(
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -2551,6 +2857,7 @@ async def main() -> None:
                 approval_store,
                 task_store,
                 day_plan_store,
+                idea_store,
             )
         )
         health_runner = await run_health_server(
