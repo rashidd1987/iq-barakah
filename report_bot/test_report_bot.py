@@ -50,7 +50,7 @@ from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import SiteStatus, StatusClient, format_datetime, run_icon
 from report_bot.tasks import TaskStore, format_user_date, parse_task_details
-from report_bot.voice import extract_voice_task
+from report_bot.voice import MissingVoiceTaskDate, extract_voice_task
 
 
 class ConfigTests(unittest.TestCase):
@@ -520,13 +520,15 @@ class VoiceTaskExtractionTests(unittest.IsolatedAsyncioTestCase):
                 ]
             }
         )
-        with self.assertRaisesRegex(ValueError, "не найден срок"):
+        with self.assertRaisesRegex(MissingVoiceTaskDate, "не найден срок") as context:
             await extract_voice_task(
                 session,
                 "secret",
                 "Проверить регистрацию",
                 today=date(2026, 8, 8),
             )
+        self.assertEqual(context.exception.title, "Проверить регистрацию")
+        self.assertEqual(context.exception.success_criterion, "Регистрация работает")
 
 
 class WorkflowDispatchTests(unittest.IsolatedAsyncioTestCase):
@@ -980,6 +982,14 @@ class TaskStoreTests(unittest.TestCase):
             "Проверить оплату | 2026-08-02 | Тестовая оплата проходит"
         )
         self.assertEqual(due_date, date(2026, 8, 2))
+
+    def test_accepts_owner_date_with_spaces_or_slashes(self) -> None:
+        for raw_date in ("10 08 2026", "10/08/2026"):
+            with self.subTest(raw_date=raw_date):
+                _, due_date, _ = parse_task_details(
+                    f"Проверить оплату | {raw_date} | Оплата проходит"
+                )
+                self.assertEqual(due_date, date(2026, 8, 10))
 
     def test_rejects_invalid_task_details(self) -> None:
         with self.assertRaisesRegex(ValueError, "Формат"):

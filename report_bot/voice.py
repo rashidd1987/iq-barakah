@@ -15,6 +15,13 @@ class VoiceTaskDraft:
     success_criterion: str
 
 
+class MissingVoiceTaskDate(ValueError):
+    def __init__(self, title: str, success_criterion: str) -> None:
+        super().__init__("В голосовом сообщении не найден срок")
+        self.title = title
+        self.success_criterion = success_criterion
+
+
 async def transcribe_voice(
     session: aiohttp.ClientSession,
     api_key: str,
@@ -97,17 +104,18 @@ async def extract_voice_task(
         title = str(parsed.get("title", "")).strip()
         criterion = str(parsed.get("success_criterion", "")).strip()
         due_raw = parsed.get("due_date")
-        if not due_raw:
-            raise ValueError(
-                "В голосовом сообщении не найден срок. Назовите дату и отправьте снова."
-            )
-        due = date.fromisoformat(str(due_raw))
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
         raise RuntimeError("ИИ вернул некорректный черновик задачи") from exc
     if not 3 <= len(title) <= 300:
         raise ValueError("Не удалось определить короткое название задачи")
     if not 3 <= len(criterion) <= 500:
         raise ValueError("Не удалось определить критерий готовности")
+    if not due_raw:
+        raise MissingVoiceTaskDate(title, criterion)
+    try:
+        due = date.fromisoformat(str(due_raw))
+    except ValueError as exc:
+        raise RuntimeError("ИИ вернул некорректную дату") from exc
     if due < today:
         raise ValueError("Срок из голосового сообщения уже прошёл")
     return VoiceTaskDraft(title, due, criterion)
