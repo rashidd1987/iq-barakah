@@ -17,6 +17,7 @@ from report_bot.ai_gateway import (
 from report_bot.config import load_config
 from report_bot.council import CouncilContext, council_views, select_project
 from report_bot.day_plan import DayPlanStore, build_day_plan
+from report_bot.ideas import IdeaStore
 from report_bot.monitor import (
     ProjectState,
     StateStore,
@@ -42,11 +43,14 @@ from report_bot.main import (
     pwa_release_keyboard,
     send_automatic_day_plan,
     task_review_keyboard,
+    voice_intent_keyboard,
+    voice_task_confirmation_keyboard,
 )
 from report_bot.knowledge import ProjectKnowledgeLibrary
 from report_bot.projects import PROJECTS, ProjectRegistry, validate_project
 from report_bot.status import SiteStatus, StatusClient, format_datetime, run_icon
 from report_bot.tasks import TaskStore, format_user_date, parse_task_details
+from report_bot.voice import extract_voice_task
 
 
 class ConfigTests(unittest.TestCase):
@@ -243,6 +247,23 @@ class ReleaseControlTests(unittest.TestCase):
         self.assertEqual(callback.callback_data, "dayplan:add:safe-id")
         self.assertLessEqual(len(callback.callback_data or ""), 64)
 
+    def test_voice_flow_requires_explicit_intent_and_creation(self) -> None:
+        intents = {
+            button.callback_data
+            for row in voice_intent_keyboard().inline_keyboard
+            for button in row
+        }
+        self.assertEqual(
+            intents,
+            {"voice:idea", "voice:manual", "voice:agent", "voice:cancel"},
+        )
+        confirmations = {
+            button.callback_data
+            for row in voice_task_confirmation_keyboard("agent").inline_keyboard
+            for button in row
+        }
+        self.assertEqual(confirmations, {"voicecreate:agent", "voicecreate:cancel"})
+
     def test_evening_review_has_three_explicit_outcomes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             task = TaskStore(directory).create(
@@ -422,6 +443,90 @@ class _FakeSession:
     def post(self, url: str, **kwargs):
         self.last_post = (url, kwargs)
         return _FakeResponse(self.status)
+
+
+class _JsonResponse:
+    def __init__(self, payload: dict, status: int = 200) -> None:
+        self.payload = payload
+        self.status = status
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback) -> None:
+        return None
+
+    async def json(self, content_type=None):
+        return self.payload
+
+
+class _JsonSession:
+    def __init__(self, payload: dict, status: int = 200) -> None:
+        self.response = _JsonResponse(payload, status)
+        self.last_post: tuple[str, dict[str, object]] | None = None
+
+    def post(self, url: str, **kwargs):
+        self.last_post = (url, kwargs)
+        return self.response
+
+
+class VoiceTaskExtractionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_extracts_explicit_voice_task_draft(self) -> None:
+        session = _JsonSession(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "title": "Проверить регистрацию",
+                                    "due_date": "2026-08-10",
+                                    "success_criterion": "Регистрация проходит без ошибок",
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+        draft = await extract_voice_task(
+            session,
+            "secret",
+            "Проверить регистрацию до десятого августа",
+            today=date(2026, 8, 8),
+        )
+        self.assertEqual(draft.due_date, date(2026, 8, 10))
+        self.assertEqual(draft.title, "Проверить регистрацию")
+        assert session.last_post is not None
+        _, kwargs = session.last_post
+        self.assertNotIn("secret", str(kwargs.get("json")))
+
+    async def test_rejects_voice_task_without_due_date(self) -> None:
+        session = _JsonSession(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "title": "Проверить регистрацию",
+                                    "due_date": None,
+                                    "success_criterion": "Регистрация работает",
+                                }
+                            )
+                        }
+                    }
+                ]
+            }
+        )
+        with self.assertRaisesRegex(ValueError, "не найден срок"):
+            await extract_voice_task(
+                session,
+                "secret",
+                "Проверить регистрацию",
+                today=date(2026, 8, 8),
+            )
 
 
 class WorkflowDispatchTests(unittest.IsolatedAsyncioTestCase):
@@ -820,6 +925,44 @@ class ApprovalStoreTests(unittest.TestCase):
             self.assertEqual(reloaded.github_repository, "iq-barakah")
             self.assertEqual(reloaded.github_run_id, 123)
             self.assertEqual(reloaded.decision_source, "github")
+
+
+class IdeaStoreTests(unittest.TestCase):
+    def test_persists_and_exports_voice_ideas(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = IdeaStore(directory)
+            idea = store.create(
+                text="Сделать голосовой входящий для новых продуктов",
+                project_key="mizanos",
+                source="voice",
+                created_by=42,
+                now=datetime(2026, 8, 8, 8, 30, tzinfo=timezone.utc),
+            )
+            reloaded = IdeaStore(directory)
+
+            self.assertEqual(reloaded.all(), (idea,))
+            self.assertIn(idea.text, reloaded.export_markdown())
+            payload = json.loads(reloaded.export_json())
+            self.assertEqual(payload["version"], 1)
+            self.assertEqual(payload["ideas"][0]["project_key"], "mizanos")
+
+    def test_rejects_empty_or_oversized_idea(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = IdeaStore(directory)
+            with self.assertRaisesRegex(ValueError, "3 до 4000"):
+                store.create(
+                    text="x",
+                    project_key="mizanos",
+                    source="text",
+                    created_by=42,
+                )
+            with self.assertRaisesRegex(ValueError, "3 до 4000"):
+                store.create(
+                    text="x" * 4001,
+                    project_key="mizanos",
+                    source="text",
+                    created_by=42,
+                )
 
 
 class TaskStoreTests(unittest.TestCase):
