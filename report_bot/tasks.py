@@ -16,7 +16,7 @@ AgentStatus = Literal["ready", "queued"]
 def parse_user_date(value: str) -> date:
     """Parse the owner-facing DD.MM.YYYY format with ISO compatibility."""
     raw = value.strip()
-    for date_format in ("%d.%m.%Y", "%Y-%m-%d"):
+    for date_format in ("%d.%m.%Y", "%d %m %Y", "%d/%m/%Y", "%Y-%m-%d"):
         try:
             return datetime.strptime(raw, date_format).date()
         except ValueError:

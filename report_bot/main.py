@@ -69,7 +69,12 @@ from report_bot.tasks import (
     parse_task_details,
     parse_user_date,
 )
-from report_bot.voice import extract_voice_task, transcribe_voice
+from report_bot.voice import (
+    MissingVoiceTaskDate,
+    VoiceTaskDraft,
+    extract_voice_task,
+    transcribe_voice,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -158,6 +163,10 @@ class AgentTaskCreation(StatesGroup):
 
 class IdeaCreation(StatesGroup):
     text = State()
+
+
+class VoiceTaskCreation(StatesGroup):
+    due_date = State()
 
 
 class TaskReview(StatesGroup):
@@ -854,6 +863,40 @@ def build_router(
             reply_markup=voice_intent_keyboard(),
         )
 
+    async def show_voice_task_draft(
+        message: Message,
+        state: FSMContext,
+        draft: VoiceTaskDraft,
+        action: str,
+        *,
+        edit: bool = False,
+    ) -> None:
+        await state.update_data(
+            voice_task_kind=action,
+            voice_task_title=draft.title,
+            voice_task_due=draft.due_date.isoformat(),
+            voice_task_criterion=draft.success_criterion,
+        )
+        responsible = "Codex" if action == "agent" else "Вы"
+        text = (
+            "📋 <b>Проверьте черновик</b>\n\n"
+            f"Задача: {html.escape(draft.title)}\n"
+            f"Срок: <code>{format_user_date(draft.due_date)}</code>\n"
+            f"Готово, когда: {html.escape(draft.success_criterion)}\n"
+            f"Исполнитель: {responsible}\n\n"
+            "Без нажатия задача не создастся."
+        )
+        if edit:
+            await message.edit_text(
+                text,
+                reply_markup=voice_task_confirmation_keyboard(action),
+            )
+        else:
+            await message.answer(
+                text,
+                reply_markup=voice_task_confirmation_keyboard(action),
+            )
+
     @router.callback_query(F.data.startswith("voice:"))
     async def voice_intent_callback(
         callback: CallbackQuery,
@@ -913,28 +956,70 @@ def build_router(
                 transcript,
                 today=datetime.now(ZoneInfo(config.timezone)).date(),
             )
+        except MissingVoiceTaskDate as exc:
+            await state.update_data(
+                voice_task_kind=action,
+                voice_task_title=exc.title,
+                voice_task_criterion=exc.success_criterion,
+            )
+            await state.set_state(VoiceTaskCreation.due_date)
+            if callback.message:
+                await callback.message.answer(
+                    "📅 <b>Какой срок?</b>\n\n"
+                    "Отправьте дату отдельным сообщением.\n"
+                    "Например: <code>10.08.2026</code> или "
+                    "<code>10 08 2026</code>.\n"
+                    "Повторно записывать голос не нужно."
+                )
+            return
         except (ValueError, RuntimeError, aiohttp.ClientError, asyncio.TimeoutError) as exc:
             logger.warning("Voice task extraction failed: %s", type(exc).__name__)
             if callback.message:
                 await callback.message.answer(f"⚠️ {html.escape(str(exc))}")
             return
-        await state.update_data(
-            voice_task_kind=action,
-            voice_task_title=draft.title,
-            voice_task_due=draft.due_date.isoformat(),
-            voice_task_criterion=draft.success_criterion,
-        )
-        responsible = "Codex" if action == "agent" else "Вы"
         if callback.message:
-            await callback.message.edit_text(
-                "📋 <b>Проверьте черновик</b>\n\n"
-                f"Задача: {html.escape(draft.title)}\n"
-                f"Срок: <code>{format_user_date(draft.due_date)}</code>\n"
-                f"Готово, когда: {html.escape(draft.success_criterion)}\n"
-                f"Исполнитель: {responsible}\n\n"
-                "Без нажатия задача не создастся.",
-                reply_markup=voice_task_confirmation_keyboard(action),
+            await show_voice_task_draft(callback.message, state, draft, action, edit=True)
+
+    @router.message(VoiceTaskCreation.due_date)
+    async def voice_task_due_date_received(
+        message: Message,
+        state: FSMContext,
+    ) -> None:
+        if not await require_owner(message):
+            await state.clear()
+            return
+        raw = (message.text or "").strip()
+        if raw == "/cancel":
+            await state.clear()
+            await message.answer("Голосовая задача отменена.", reply_markup=MENU)
+            return
+        try:
+            due = parse_user_date(raw)
+        except ValueError:
+            await message.answer(
+                "⚠️ Не понял дату. Напишите, например: "
+                "<code>10.08.2026</code> или <code>10 08 2026</code>."
             )
+            return
+        today = datetime.now(ZoneInfo(config.timezone)).date()
+        if due < today:
+            await message.answer("⚠️ Срок уже прошёл. Укажите сегодня или будущую дату.")
+            return
+        data = await state.get_data()
+        action = str(data.get("voice_task_kind", ""))
+        title = str(data.get("voice_task_title", ""))
+        criterion = str(data.get("voice_task_criterion", ""))
+        if action not in {"manual", "agent"} or not title or not criterion:
+            await state.clear()
+            await message.answer("⚠️ Черновик уже истёк. Отправьте голос снова.")
+            return
+        await state.set_state(None)
+        await show_voice_task_draft(
+            message,
+            state,
+            VoiceTaskDraft(title, due, criterion),
+            action,
+        )
 
     @router.callback_query(F.data.startswith("voicecreate:"))
     async def voice_task_create_callback(

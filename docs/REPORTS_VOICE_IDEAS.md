@@ -12,10 +12,13 @@ After transcription the owner must choose one explicit action:
 - prepare a Codex task draft;
 - cancel without saving.
 
-Task drafts require a due date in the voice note. They are shown with a second
-confirmation button before being created. A Codex task still uses the existing
-PR-only workflow and is not dispatched until the owner presses the separate
-`Передать Codex` confirmation. Voice input never changes `main` or production.
+If the voice note has no due date, the bot keeps the draft and asks for the date
+in a follow-up message. It accepts `DD.MM.YYYY`, `DD MM YYYY`, `DD/MM/YYYY`, and
+legacy ISO input. The owner does not need to record the voice note again. Task
+drafts are shown with a second confirmation button before being created. A
+Codex task still uses the existing PR-only workflow and is not dispatched until
+the owner presses the separate `Передать Codex` confirmation. Voice input never
+changes `main` or production.
 
 ## Persistent ideas
 
