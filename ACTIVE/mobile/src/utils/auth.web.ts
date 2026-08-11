@@ -2,6 +2,8 @@ import { api, setToken } from './api'
 
 const BOT_USERNAME = process.env.EXPO_PUBLIC_BOT_USERNAME || 'iqbaraka_bot'
 const PENDING_SESSION_KEY = 'iq_mobile_tg_pending'
+const TELEGRAM_SDK_TIMEOUT_MS = 4_000
+const TELEGRAM_AUTH_TIMEOUT_MS = 8_000
 
 export type LoginStatus = 'opening_telegram' | 'waiting_confirmation' | 'success' | 'timeout' | 'error'
 
@@ -28,7 +30,7 @@ interface TelegramWebApp {
 async function ensureTelegramWebApp(): Promise<TelegramWebApp | null> {
   if (window.Telegram?.WebApp) return window.Telegram.WebApp
   if (document.querySelector('script[data-telegram-web-app]')) {
-    await new Promise((resolve) => setTimeout(resolve, 120))
+    await waitForTelegramSdk(TELEGRAM_SDK_TIMEOUT_MS)
     return window.Telegram?.WebApp ?? null
   }
 
@@ -37,11 +39,52 @@ async function ensureTelegramWebApp(): Promise<TelegramWebApp | null> {
     script.src = 'https://telegram.org/js/telegram-web-app.js'
     script.async = true
     script.dataset.telegramWebApp = 'true'
-    script.onload = () => resolve()
-    script.onerror = () => resolve()
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timeout)
+      script.onload = null
+      script.onerror = null
+      resolve()
+    }
+    const timeout = window.setTimeout(finish, TELEGRAM_SDK_TIMEOUT_MS)
+    script.onload = finish
+    script.onerror = finish
     document.head.appendChild(script)
   })
   return window.Telegram?.WebApp ?? null
+}
+
+function waitForTelegramSdk(timeoutMs: number): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  return new Promise((resolve) => {
+    const check = () => {
+      if (window.Telegram?.WebApp || Date.now() >= deadline) {
+        resolve()
+        return
+      }
+      window.setTimeout(check, 50)
+    }
+    check()
+  })
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: number | undefined
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeout = window.setTimeout(
+          () => reject(new Error('Telegram authentication timed out')),
+          timeoutMs,
+        )
+      }),
+    ])
+  } finally {
+    if (timeout !== undefined) window.clearTimeout(timeout)
+  }
 }
 
 export async function loginWithTelegramWebApp(): Promise<boolean> {
@@ -52,7 +95,10 @@ export async function loginWithTelegramWebApp(): Promise<boolean> {
   try {
     webApp?.ready?.()
     webApp?.expand?.()
-    const result = await api.telegramWebAppAuth(initData)
+    const result = await withTimeout(
+      api.telegramWebAppAuth(initData),
+      TELEGRAM_AUTH_TIMEOUT_MS,
+    )
     await setToken(result.access_token)
     return true
   } catch {
