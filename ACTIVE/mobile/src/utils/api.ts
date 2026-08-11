@@ -101,6 +101,10 @@ export const api = {
     api.get<{
       title: string
       hadith: string
+      video?: {
+        url: string
+        title?: string
+      }
       text: Record<'I' | 'II' | 'III', string>
       tasks: Record<'I' | 'II' | 'III', string[]>
     }>(`/mobile/content/${encodeURIComponent(level)}/${week}`),

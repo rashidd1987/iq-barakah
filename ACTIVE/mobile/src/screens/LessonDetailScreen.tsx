@@ -2,6 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native'
 import ErrorState from '../components/ErrorState'
+import LessonVideo from '../components/LessonVideo'
 import { useTheme } from '../context/ThemeContext'
 import { TOTAL_STEPS } from '../data/weeks'
 import { LessonsStackParamList } from '../navigation/types'
@@ -196,6 +197,8 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
   const paragraphs = lessonParagraphs(content.text[skill])
   const tasks = content.tasks[skill] ?? []
   const progressPct = Math.round((globalWeek / TOTAL_STEPS) * 100)
+  const localTestVideoUrl = __DEV__ ? process.env.EXPO_PUBLIC_LOCAL_LESSON_VIDEO_URL : undefined
+  const lessonVideo = content.video ?? (localTestVideoUrl ? { url: localTestVideoUrl, title: 'Локальная проверка видео' } : undefined)
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -208,6 +211,8 @@ export default function LessonDetailScreen({ route, navigation }: Props) {
         </View>
         <View style={styles.heroProgressTrack}><View style={[styles.heroProgressFill, { width: `${progressPct}%` }]} /></View>
       </View>
+
+      {!!lessonVideo?.url && <LessonVideo title={lessonVideo.title} url={lessonVideo.url} />}
 
       <View style={styles.skillCard}>
         <Text style={styles.sectionEyebrow}>ВАШ УРОВЕНЬ</Text>
