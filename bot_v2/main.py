@@ -172,6 +172,11 @@ async def _job_weekly_lesson(bot: Bot, config):
     from bot_v2.services.program import LEVEL_WEEKS
     from sqlalchemy import select
 
+    from bot_v2.db.models import WeekAck
+    from sqlalchemy import select as sa_select
+
+    # Шаг 1: собрать список участников для отправки (коротко держим транзакцию)
+    to_send = []  # list of (uid, level, week_new)
     async with get_session_factory()() as session:
         async with session.begin():
             result = await session.execute(
@@ -180,7 +185,6 @@ async def _job_weekly_lesson(bot: Bot, config):
                 .where(Participant.is_active == True)
             )
             rows = result.all()
-            count = 0
             for participant, _user in rows:
                 try:
                     uid = participant.user_id
@@ -193,8 +197,6 @@ async def _job_weekly_lesson(bot: Bot, config):
                         continue
 
                     # Проверяем: участник уже завершил шаг сам (week_ack есть)?
-                    from bot_v2.db.models import WeekAck
-                    from sqlalchemy import select as sa_select
                     ack_exists = await session.scalar(
                         sa_select(WeekAck.id).where(
                             WeekAck.user_id == uid,
@@ -203,17 +205,27 @@ async def _job_weekly_lesson(bot: Bot, config):
                         )
                     )
                     if ack_exists:
-                        # Уже завершил сам — таймер не вмешивается
                         continue
 
-                    # Резервное авто-продвижение (шаг не завершён за неделю)
+                    # Резервное авто-продвижение
                     participant.week += 1
-                    await session.flush()
-
-                    await send_weekly_lesson(bot, uid, participant, session, config)
-                    count += 1
+                    to_send.append((uid, participant.level, participant.week))
                 except Exception as e:
-                    logger.warning("weekly_lesson → %s: %s", participant.user_id, e)
+                    logger.warning("weekly_lesson DB phase → %s: %s", participant.user_id, e)
+        # Транзакция закрыта — DB-соединение освобождено
+
+    # Шаг 2: отправляем уроки вне транзакции (Telegram-сеть не блокирует пул БД)
+    count = 0
+    for uid, level, week in to_send:
+        try:
+            async with get_session_factory()() as session2:
+                async with session2.begin():
+                    participant2 = await session2.get(Participant, uid)
+                    if participant2:
+                        await send_weekly_lesson(bot, uid, participant2, session2, config)
+                        count += 1
+        except Exception as e:
+            logger.warning("weekly_lesson send → %s: %s", uid, e)
     logger.info("Weekly lesson sent: %d чел.", count)
 
 

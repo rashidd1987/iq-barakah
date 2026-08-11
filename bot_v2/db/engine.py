@@ -12,7 +12,14 @@ _session_factory = None
 
 def setup_db(database_url: str):
     global _engine, _session_factory
-    _engine = create_async_engine(database_url, echo=False, pool_pre_ping=True)
+    _engine = create_async_engine(
+        database_url,
+        echo=False,
+        pool_pre_ping=True,
+        pool_size=10,
+        max_overflow=20,
+        pool_timeout=30,
+    )
     _session_factory = async_sessionmaker(_engine, expire_on_commit=False, class_=AsyncSession)
 
 

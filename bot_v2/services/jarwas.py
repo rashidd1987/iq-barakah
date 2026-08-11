@@ -148,7 +148,7 @@ MAX_HISTORY = 6
 def setup_jarwas(api_key: str):
     global _client
     if api_key:
-        _client = anthropic.AsyncAnthropic(api_key=api_key)
+        _client = anthropic.AsyncAnthropic(api_key=api_key, timeout=60.0)
 
 
 def check_daily_limit(user_id: int) -> bool:
