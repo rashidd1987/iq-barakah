@@ -56,6 +56,21 @@ CREATE TABLE IF NOT EXISTS pwa_email_otp_challenges (
     created_at     TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS pwa_tg_sessions (
+    session_id     TEXT PRIMARY KEY,
+    tg_id          BIGINT,
+    tg_name        TEXT,
+    confirmed      BOOLEAN NOT NULL DEFAULT FALSE,
+    target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE,
+    consumed_at    TIMESTAMP,
+    created_at     TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE pwa_tg_sessions
+    ADD COLUMN IF NOT EXISTS target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE;
+ALTER TABLE pwa_tg_sessions
+    ADD COLUMN IF NOT EXISTS consumed_at TIMESTAMP;
+
 ALTER TABLE pwa_email_otp_challenges
     ADD COLUMN IF NOT EXISTS client_scope TEXT NOT NULL DEFAULT 'pwa';
 
@@ -66,3 +81,5 @@ CREATE INDEX IF NOT EXISTS idx_pwa_analytics_uid ON pwa_analytics(uid);
 CREATE INDEX IF NOT EXISTS idx_pwa_analytics_event ON pwa_analytics(event);
 CREATE INDEX IF NOT EXISTS idx_pwa_email_otp_email
     ON pwa_email_otp_challenges(email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pwa_tg_sessions_target
+    ON pwa_tg_sessions(target_user_id, created_at DESC);

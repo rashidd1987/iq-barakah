@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { loginWithTelegramWebApp } from '../utils/auth'
-import { clearToken, getToken } from '../utils/api'
+import { api, clearToken, getToken, MobileSessionStatus, setToken } from '../utils/api'
 import { lsGet, lsSet } from '../utils/storage'
 
 // Bumped from "seen_diagnostic" so every device re-runs the new onboarding once,
@@ -8,12 +8,16 @@ import { lsGet, lsSet } from '../utils/storage'
 const SEEN_DIAGNOSTIC_KEY = 'seen_diagnostic_v2'
 
 export type OnboardingStage = 'diagnostic' | 'vision' | 'done'
+export type AuthStage = 'signed_out' | MobileSessionStatus
 
 interface AuthContextValue {
   isLoggedIn: boolean
   isLoading: boolean
+  authStage: AuthStage
   onboarding: OnboardingStage | null
   markLoggedIn: () => void
+  acceptSession: (status: MobileSessionStatus, accessToken?: string) => Promise<void>
+  refreshSession: () => Promise<void>
   logout: () => Promise<void>
   advanceOnboarding: (stage: OnboardingStage) => void
   resetOnboarding: () => void
@@ -23,6 +27,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [authStage, setAuthStage] = useState<AuthStage>('signed_out')
   const [isLoading, setIsLoading] = useState(true)
   const [onboarding, setOnboarding] = useState<OnboardingStage | null>(null)
 
@@ -35,7 +40,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const loggedViaWebApp = await loginWithTelegramWebApp()
           if (loggedViaWebApp) token = await getToken()
         }
-        if (alive) setIsLoggedIn(!!token)
+        if (token) {
+          const result = await api.resolveMobileSession()
+          if (result.access_token) await setToken(result.access_token)
+          if (alive) {
+            setAuthStage(result.status)
+            setIsLoggedIn(result.status === 'ok')
+          }
+        } else if (alive) {
+          setAuthStage('signed_out')
+          setIsLoggedIn(false)
+        }
+      } catch {
+        await clearToken()
+        if (alive) {
+          setAuthStage('signed_out')
+          setIsLoggedIn(false)
+        }
       } finally {
         if (alive) setIsLoading(false)
       }
@@ -52,10 +73,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     lsGet(SEEN_DIAGNOSTIC_KEY, false).then((seen) => setOnboarding(seen ? 'done' : 'diagnostic'))
   }, [isLoggedIn])
 
-  const markLoggedIn = () => setIsLoggedIn(true)
+  const markLoggedIn = () => {
+    setAuthStage('ok')
+    setIsLoggedIn(true)
+  }
+
+  const acceptSession = async (status: MobileSessionStatus, accessToken?: string) => {
+    if (accessToken) await setToken(accessToken)
+    setAuthStage(status)
+    setIsLoggedIn(status === 'ok')
+  }
+
+  const refreshSession = async () => {
+    const result = await api.resolveMobileSession()
+    await acceptSession(result.status, result.access_token)
+  }
 
   const logout = async () => {
     await clearToken()
+    setAuthStage('signed_out')
     setIsLoggedIn(false)
   }
 
@@ -72,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ isLoggedIn, isLoading, onboarding, markLoggedIn, logout, advanceOnboarding, resetOnboarding }}
+      value={{ isLoggedIn, isLoading, authStage, onboarding, markLoggedIn, acceptSession, refreshSession, logout, advanceOnboarding, resetOnboarding }}
     >
       {children}
     </AuthContext.Provider>
