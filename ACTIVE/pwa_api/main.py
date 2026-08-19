@@ -83,7 +83,37 @@ async def startup():
             print('DB connected OK')
             await _run_migrations()
         except Exception as e:
-            print(f'DB connection failed: {e} — running without DB')
+            if db_pool is not None:
+                await db_pool.close()
+                db_pool = None
+            print(f'DB startup failed: {type(e).__name__}: {e}', flush=True)
+            raise
+
+async def _verify_required_schema(conn: asyncpg.Connection) -> None:
+    columns = await conn.fetch(
+        '''SELECT column_name FROM information_schema.columns
+           WHERE table_schema='public' AND table_name='pwa_tg_sessions'
+             AND column_name = ANY($1::text[])''',
+        ['target_user_id', 'consumed_at'],
+    )
+    present = {row['column_name'] for row in columns}
+    missing = {'target_user_id', 'consumed_at'} - present
+    if missing:
+        raise RuntimeError(f"required pwa_tg_sessions columns missing: {', '.join(sorted(missing))}")
+    fk_exists = await conn.fetchval(
+        '''SELECT EXISTS (
+             SELECT 1 FROM pg_constraint c
+             JOIN pg_class t ON t.oid=c.conrelid
+             JOIN pg_namespace n ON n.oid=t.relnamespace
+             WHERE n.nspname='public' AND t.relname='pwa_tg_sessions'
+               AND c.contype='f' AND pg_get_constraintdef(c.oid) LIKE 'FOREIGN KEY (target_user_id)%'
+           )'''
+    )
+    index_exists = await conn.fetchval(
+        "SELECT to_regclass('public.idx_pwa_tg_sessions_target') IS NOT NULL"
+    )
+    if not fk_exists or not index_exists:
+        raise RuntimeError('required pwa_tg_sessions FK or index missing')
 
 async def _run_migrations():
     stmts = [
@@ -139,6 +169,19 @@ async def _run_migrations():
         )''',
         'ALTER TABLE pwa_tg_sessions ADD COLUMN IF NOT EXISTS target_user_id INT REFERENCES pwa_users(id) ON DELETE CASCADE',
         'ALTER TABLE pwa_tg_sessions ADD COLUMN IF NOT EXISTS consumed_at TIMESTAMP',
+        '''DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT 1 FROM pg_constraint c
+                JOIN pg_class t ON t.oid=c.conrelid
+                JOIN pg_namespace n ON n.oid=t.relnamespace
+                WHERE n.nspname='public' AND t.relname='pwa_tg_sessions' AND c.contype='f'
+                  AND pg_get_constraintdef(c.oid) LIKE 'FOREIGN KEY (target_user_id)%'
+            ) THEN
+                ALTER TABLE pwa_tg_sessions
+                    ADD CONSTRAINT pwa_tg_sessions_target_user_id_fkey
+                    FOREIGN KEY (target_user_id) REFERENCES pwa_users(id) ON DELETE CASCADE;
+            END IF;
+        END $$''',
         'CREATE INDEX IF NOT EXISTS idx_pwa_tg_sessions_target ON pwa_tg_sessions(target_user_id, created_at DESC)',
         '''CREATE TABLE IF NOT EXISTS pwa_email_otp_challenges (
             challenge_id TEXT PRIMARY KEY,
@@ -164,11 +207,10 @@ async def _run_migrations():
         )''',
     ]
     async with db_pool.acquire() as conn:
-        for stmt in stmts:
-            try:
+        async with conn.transaction():
+            for stmt in stmts:
                 await conn.execute(stmt)
-            except Exception as e:
-                print(f'Migration note: {e}')
+            await _verify_required_schema(conn)
     print('Migration OK')
 
 # ── Models ────────────────────────────────────────────────────────────────────
@@ -704,42 +746,45 @@ async def telegram_link_check(session_id: str, user_id: int = Depends(verify_tok
     """Atomically attach a bot-confirmed Telegram id to the session owner."""
     if not db_pool:
         raise HTTPException(500, 'База данных не подключена')
-    async with db_pool.acquire() as conn:
-        async with conn.transaction():
-            row = await conn.fetchrow(
-                '''SELECT tg_id, confirmed, target_user_id, consumed_at, created_at
-                   FROM pwa_tg_sessions WHERE session_id=$1 FOR UPDATE''',
-                session_id,
-            )
-            if not row or row['target_user_id'] != user_id:
-                raise HTTPException(404, 'Сессия не найдена')
-            if (datetime.utcnow() - row['created_at']).total_seconds() > 600:
-                raise HTTPException(410, 'Сессия истекла')
-            if not row['confirmed']:
-                return {'status': 'pending'}
-            current = await conn.fetchrow(
-                'SELECT tg_id FROM pwa_users WHERE id=$1 FOR UPDATE', user_id
-            )
-            if not current:
-                raise HTTPException(404, 'Аккаунт не найден')
-            if current['tg_id'] is not None and current['tg_id'] != row['tg_id']:
-                raise HTTPException(409, 'К аккаунту уже привязан другой Telegram')
-            conflict = await conn.fetchrow(
-                'SELECT id FROM pwa_users WHERE tg_id=$1 AND id<>$2', row['tg_id'], user_id
-            )
-            if conflict:
-                raise HTTPException(409, 'Этот Telegram уже связан с другим аккаунтом')
-            telegram_user = await conn.fetchrow('SELECT id FROM users WHERE id=$1', row['tg_id'])
-            if not telegram_user:
-                raise HTTPException(409, 'Сначала откройте бота IQ Barakah командой /start')
-            await conn.execute(
-                'UPDATE pwa_users SET tg_id=$1 WHERE id=$2', row['tg_id'], user_id
-            )
-            await conn.execute(
-                'UPDATE pwa_tg_sessions SET consumed_at=COALESCE(consumed_at, $2) WHERE session_id=$1',
-                session_id, datetime.utcnow(),
-            )
-            return await _mobile_session_for_pwa_user(conn, user_id)
+    try:
+        async with db_pool.acquire() as conn:
+            async with conn.transaction():
+                row = await conn.fetchrow(
+                    '''SELECT tg_id, confirmed, target_user_id, consumed_at, created_at
+                       FROM pwa_tg_sessions WHERE session_id=$1 FOR UPDATE''',
+                    session_id,
+                )
+                if not row or row['target_user_id'] != user_id:
+                    raise HTTPException(404, 'Сессия не найдена')
+                if (datetime.utcnow() - row['created_at']).total_seconds() > 600:
+                    raise HTTPException(410, 'Сессия истекла')
+                if not row['confirmed']:
+                    return {'status': 'pending'}
+                current = await conn.fetchrow(
+                    'SELECT tg_id FROM pwa_users WHERE id=$1 FOR UPDATE', user_id
+                )
+                if not current:
+                    raise HTTPException(404, 'Аккаунт не найден')
+                if current['tg_id'] is not None and current['tg_id'] != row['tg_id']:
+                    raise HTTPException(409, 'К аккаунту уже привязан другой Telegram')
+                conflict = await conn.fetchrow(
+                    'SELECT id FROM pwa_users WHERE tg_id=$1 AND id<>$2', row['tg_id'], user_id
+                )
+                if conflict:
+                    raise HTTPException(409, 'Этот Telegram уже связан с другим аккаунтом')
+                telegram_user = await conn.fetchrow('SELECT id FROM users WHERE id=$1', row['tg_id'])
+                if not telegram_user:
+                    raise HTTPException(409, 'Сначала откройте бота IQ Barakah командой /start')
+                await conn.execute(
+                    'UPDATE pwa_users SET tg_id=$1 WHERE id=$2', row['tg_id'], user_id
+                )
+                await conn.execute(
+                    'UPDATE pwa_tg_sessions SET consumed_at=COALESCE(consumed_at, $2) WHERE session_id=$1',
+                    session_id, datetime.utcnow(),
+                )
+                return await _mobile_session_for_pwa_user(conn, user_id)
+    except asyncpg.UniqueViolationError as exc:
+        raise HTTPException(409, 'Этот Telegram уже связан с другим аккаунтом') from exc
 
 @app.post('/auth/mobile-session')
 async def mobile_session(

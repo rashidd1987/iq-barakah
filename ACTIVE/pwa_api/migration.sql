@@ -71,6 +71,20 @@ ALTER TABLE pwa_tg_sessions
 ALTER TABLE pwa_tg_sessions
     ADD COLUMN IF NOT EXISTS consumed_at TIMESTAMP;
 
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint c
+        JOIN pg_class t ON t.oid=c.conrelid
+        JOIN pg_namespace n ON n.oid=t.relnamespace
+        WHERE n.nspname='public' AND t.relname='pwa_tg_sessions' AND c.contype='f'
+          AND pg_get_constraintdef(c.oid) LIKE 'FOREIGN KEY (target_user_id)%'
+    ) THEN
+        ALTER TABLE pwa_tg_sessions
+            ADD CONSTRAINT pwa_tg_sessions_target_user_id_fkey
+            FOREIGN KEY (target_user_id) REFERENCES pwa_users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
 ALTER TABLE pwa_email_otp_challenges
     ADD COLUMN IF NOT EXISTS client_scope TEXT NOT NULL DEFAULT 'pwa';
 

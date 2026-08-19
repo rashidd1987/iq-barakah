@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { loginWithTelegramWebApp } from '../utils/auth'
 import { api, clearToken, getToken, MobileSessionStatus, setToken } from '../utils/api'
+import { shouldClearTokenAfterSessionFailure } from '../utils/authSessionPolicy'
 import { lsGet, lsSet } from '../utils/storage'
 
 // Bumped from "seen_diagnostic" so every device re-runs the new onboarding once,
@@ -8,7 +9,7 @@ import { lsGet, lsSet } from '../utils/storage'
 const SEEN_DIAGNOSTIC_KEY = 'seen_diagnostic_v2'
 
 export type OnboardingStage = 'diagnostic' | 'vision' | 'done'
-export type AuthStage = 'signed_out' | MobileSessionStatus
+export type AuthStage = 'signed_out' | 'session_unavailable' | MobileSessionStatus
 
 interface AuthContextValue {
   isLoggedIn: boolean
@@ -34,8 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let alive = true
     async function bootstrapAuth() {
+      let token: string | null = null
       try {
-        let token = await getToken()
+        token = await getToken()
         if (!token) {
           const loggedViaWebApp = await loginWithTelegramWebApp()
           if (loggedViaWebApp) token = await getToken()
@@ -51,10 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthStage('signed_out')
           setIsLoggedIn(false)
         }
-      } catch {
-        await clearToken()
+      } catch (error) {
+        const invalid = shouldClearTokenAfterSessionFailure(error)
+        if (invalid) await clearToken()
         if (alive) {
-          setAuthStage('signed_out')
+          setAuthStage(invalid || !token ? 'signed_out' : 'session_unavailable')
           setIsLoggedIn(false)
         }
       } finally {
@@ -85,8 +88,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshSession = async () => {
-    const result = await api.resolveMobileSession()
-    await acceptSession(result.status, result.access_token)
+    setIsLoading(true)
+    try {
+      const result = await api.resolveMobileSession()
+      await acceptSession(result.status, result.access_token)
+    } catch (error) {
+      if (shouldClearTokenAfterSessionFailure(error)) {
+        await clearToken()
+        setAuthStage('signed_out')
+        setIsLoggedIn(false)
+      } else {
+        setAuthStage('session_unavailable')
+        setIsLoggedIn(false)
+      }
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const logout = async () => {

@@ -39,6 +39,9 @@ jobs:
       - name: Check TypeScript
         run: npm run typecheck
 
+      - name: Test authentication session policy
+        run: npm run test:auth
+
       - name: Build PWA
         run: npm run build:pwa
 
@@ -72,6 +75,12 @@ jobs:
 
       - name: Install report bot dependencies
         run: python -m pip install --disable-pip-version-check -r report_bot/requirements.txt
+
+      - name: Install PWA API dependencies
+        run: python -m pip install --disable-pip-version-check -r ACTIVE/pwa_api/requirements.txt
+
+      - name: Run PWA API tests
+        run: python -m unittest discover -s ACTIVE/pwa_api/tests -p "test_*.py"
 
       - name: Run report bot tests
         run: python -m unittest discover -s report_bot -p "test_*.py"
