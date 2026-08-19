@@ -24,6 +24,16 @@ export async function clearToken(): Promise<void> {
   window.localStorage.removeItem(TOKEN_KEY)
 }
 
+export type MobileSessionStatus = 'ok' | 'telegram_required' | 'activation_required'
+export interface MobileSessionResult {
+  status: MobileSessionStatus
+  access_token?: string
+  token_type?: 'bearer'
+}
+export interface TelegramLinkCheckResult extends Omit<MobileSessionResult, 'status'> {
+  status: MobileSessionStatus | 'pending'
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken()
   const headers: Record<string, string> = {
@@ -68,10 +78,20 @@ export const api = {
     }),
   verifyEmailOtp: (challengeId: string, code: string) =>
     api.post<{
+      status: MobileSessionStatus
       access_token: string
       token_type: 'bearer'
       user: { id: number; name: string; email: string; telegram_linked: boolean }
     }>('/auth/email/verify', { challenge_id: challengeId, code }),
+  resolveMobileSession: () => api.post<MobileSessionResult>('/auth/mobile-session'),
+  telegramLinkInit: () =>
+    api.post<{ status: 'pending' | 'already_linked'; session_id?: string; expires_in?: number }>(
+      '/auth/telegram-link/init',
+    ),
+  telegramLinkCheck: (sessionId: string) =>
+    api.get<TelegramLinkCheckResult>(
+      `/auth/telegram-link/check?session_id=${encodeURIComponent(sessionId)}`,
+    ),
   participant: () =>
     api.get<{ level: string; week: number; vakt_level: string | null; is_active: boolean }>(
       '/mobile/participant',

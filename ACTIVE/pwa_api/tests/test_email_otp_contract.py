@@ -55,14 +55,30 @@ class EmailOtpContractTest(unittest.TestCase):
         self.assertIn("target_user_id", source)
         self.assertNotIn("FROM users WHERE email=$1", source)
 
-    def test_mobile_scope_returns_mobile_token_only_for_telegram_participant(self):
+    def test_mobile_scope_preserves_verified_email_until_telegram_is_linked(self):
         source = MODULE_PATH.read_text(encoding="utf-8")
         migration = (API_DIR / "migration.sql").read_text(encoding="utf-8")
         self.assertIn("client_scope: Literal['pwa', 'mobile'] = 'pwa'", source)
         self.assertIn("row['client_scope'] == 'mobile'", source)
-        self.assertIn("SELECT id FROM participants WHERE user_id=$1", source)
-        self.assertIn("_make_mobile_token(authenticated_user['tg_id'])", source)
+        self.assertIn("'status': 'telegram_required'", source)
+        self.assertIn("_mobile_session_for_pwa_user", source)
         self.assertIn("client_scope", migration)
+
+    def test_telegram_link_is_owned_atomic_and_conflict_safe(self):
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        migration = (API_DIR / "migration.sql").read_text(encoding="utf-8")
+        self.assertIn("@app.post('/auth/telegram-link/init')", source)
+        self.assertIn("@app.get('/auth/telegram-link/check')", source)
+        self.assertIn("row['target_user_id'] != user_id", source)
+        self.assertIn("WHERE session_id=$1 FOR UPDATE", source)
+        self.assertIn("Этот Telegram уже связан с другим аккаунтом", source)
+        self.assertIn("consumed_at", migration)
+
+    def test_mobile_session_upgrades_linked_email_account(self):
+        source = MODULE_PATH.read_text(encoding="utf-8")
+        self.assertIn("@app.post('/auth/mobile-session')", source)
+        self.assertIn("return await _mobile_session_for_pwa_user", source)
+        self.assertIn("'status': 'activation_required'", source)
 
     def test_mobile_profile_exposes_persisted_email_login_state(self):
         source = MODULE_PATH.read_text(encoding="utf-8")

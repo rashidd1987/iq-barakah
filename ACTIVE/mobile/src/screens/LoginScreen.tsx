@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { makeShadow, radius, ThemeColors } from '../theme/colors'
 import { LoginStatus, loginWithTelegram } from '../utils/auth'
-import { ApiError, api, setToken } from '../utils/api'
+import { ApiError, api } from '../utils/api'
 
 const STATUS_LABEL: Record<LoginStatus, string> = {
   opening_telegram: 'Открываем Telegram…',
@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<LoginStatus, string> = {
 export default function LoginScreen() {
   const { colors } = useTheme()
   const styles = useMemo(() => createStyles(colors), [colors])
-  const { markLoggedIn } = useAuth()
+  const { markLoggedIn, acceptSession } = useAuth()
   const [status, setStatus] = useState<LoginStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [emailMode, setEmailMode] = useState(false)
@@ -76,14 +76,9 @@ export default function LoginScreen() {
     setEmailMessage(null)
     try {
       const result = await api.verifyEmailOtp(challengeId, code.trim())
-      await setToken(result.access_token)
-      markLoggedIn()
+      await acceptSession(result.status, result.access_token)
     } catch (error) {
-      if (error instanceof ApiError && error.status === 403) {
-        setEmailMessage('Этот email ещё не привязан к активному участнику. Сначала войдите через Telegram один раз.')
-      } else {
-        setEmailMessage('Код неверный или устарел. Запросите новый.')
-      }
+      setEmailMessage('Код неверный или устарел. Запросите новый.')
     } finally {
       setBusy(false)
     }
@@ -161,7 +156,7 @@ export default function LoginScreen() {
             </Pressable>
 
             <Text style={styles.hint}>
-              Первый вход и активация — через Telegram. После привязки email можно входить без Telegram.
+              Можно начать по email. Telegram безопасно привяжем следующим шагом, чтобы синхронизировать прогресс.
             </Text>
           </>
         )}
