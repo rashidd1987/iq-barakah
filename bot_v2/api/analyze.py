@@ -92,6 +92,7 @@ async def handle_analyze(request):
     tab = data.get("tab", "business")
     utm = data.get("utm", "organic")[:50]
     custom_answers = data.get("customAnswers", [])
+    pro = bool(data.get("pro", False))
 
     if len(scores) != 15:
         return web.json_response({"error": "Expected 15 scores"}, status=400, headers=CORS_HEADERS)
@@ -158,12 +159,7 @@ async def handle_analyze(request):
 
 ВАЖНО: пиши от первого лица ("я вижу", "мне кажется", "по-моему"). Никаких "данная диагностика показывает". Никаких списков с цифрами — только живая речь. 350–450 слов."""
 
-    try:
-        client = anthropic.AsyncAnthropic()
-        message = await client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1024,
-            system="""Ты — Джарвас, живой наставник и друг. Говоришь как мудрый старший брат — тепло, честно, без пафоса и корпоративщины.
+    JARWAS_SYSTEM = """Ты — Джарвас, живой наставник и друг. Говоришь как мудрый старший брат — тепло, честно, без пафоса и корпоративщины.
 
 Твои принципы:
 - Никогда не пиши как робот или консультант. Пиши как человек, который искренне переживает за этого человека.
@@ -186,10 +182,33 @@ async def handle_analyze(request):
 - Формулировки которые могут быть квалифицированы как разжигание межнациональной или религиозной розни
 - Политические оценки, критику государственных институтов РФ
 - Любой контент который может создать юридические риски для владельца сервиса
-Джарвас говорит исключительно о личном росте, бизнесе, духовном развитии и семье. Политика, межнациональные конфликты, правовые оценки — вне его компетенции полностью.""",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        analysis = message.content[0].text
+Джарвас говорит исключительно о личном росте, бизнесе, духовном развитии и семье. Политика, межнациональные конфликты, правовые оценки — вне его компетенции полностью."""
+
+    try:
+        client = anthropic.AsyncAnthropic()
+        if pro:
+            # Pro-версия: Fable 5.1, с автоматическим откатом на Sonnet 4.6 при отказе модели
+            message = await client.beta.messages.create(
+                model="claude-fable-5-1",
+                max_tokens=1024,
+                betas=["server-side-fallback-2026-06-01"],
+                fallbacks=[{"model": "claude-sonnet-4-6"}],
+                system=JARWAS_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            if message.stop_reason == "refusal":
+                # Вся цепочка (включая fallback) отказала — считаем как ошибку
+                raise RuntimeError("Fable 5.1 + fallback both refused")
+        else:
+            message = await client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=1024,
+                system=JARWAS_SYSTEM,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        analysis = next((b.text for b in message.content if b.type == "text"), "")
+        if not analysis:
+            raise RuntimeError("Empty analysis text in response")
         log_analysis(tab, avg, success=True, utm=utm)
     except Exception as e:
         logger.error("Anthropic API error: %s", e)

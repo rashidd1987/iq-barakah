@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Разбор корабля · IQ Barakah</title>
+<meta name="robots" content="noindex,nofollow">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#C9A84C;--gold2:#E8C97A;--gold3:#FFF0B3;
+  --dark:#070B04;--dark2:#0D1A12;
+  --green:#1A3D08;--green2:#2A5C10;
+  --text:#F8F4E8;--muted:rgba(255,255,255,.58);--muted2:rgba(255,255,255,.35);
+  --line:rgba(201,168,76,.2);--line2:rgba(201,168,76,.1);
+  --panel:rgba(255,255,255,.05);
+  --red:#e74c3c;--amber:#f39c12;--good:#27ae60;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Georgia',serif;background:var(--dark);color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 20% 0%,rgba(26,61,8,.25),transparent 55%),
+             radial-gradient(ellipse at 90% 80%,rgba(201,168,76,.06),transparent 45%)}
+.wrap{max-width:860px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+
+.cover{padding:70px 0 50px;text-align:center;border-bottom:1px solid var(--line)}
+.cover-brand{font-size:10px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:16px}
+.cover-title{font-size:clamp(30px,6vw,52px);font-weight:400;color:var(--text);line-height:1.1;margin-bottom:8px}
+.cover-title span{color:var(--gold2);font-style:italic}
+.cover-date{font-size:13px;color:var(--muted);margin-bottom:40px;letter-spacing:.5px}
+.score-ring{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:140px;height:140px;border-radius:50%;border:2px solid var(--gold);background:rgba(201,168,76,.07);margin-bottom:8px}
+.score-n{font-size:52px;font-weight:400;color:var(--gold2);line-height:1}
+.score-l{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.cover-status{display:inline-block;margin-top:12px;padding:8px 24px;border:1px solid var(--line);border-radius:99px;font-size:13px;color:var(--gold3);letter-spacing:.5px}
+.cover-name-label{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+.cover-name-big{font-size:clamp(28px,6vw,44px);font-weight:400;color:var(--gold3);font-family:'Georgia',serif;margin-bottom:8px;line-height:1.15}
+
+.pdf-btn{display:block;margin:0 auto 40px;padding:13px 28px;border-radius:99px;border:1px solid var(--line);background:rgba(201,168,76,.08);color:var(--gold2);font-family:'Georgia',serif;font-size:13px;cursor:pointer;transition:.2s}
+.pdf-btn:hover{background:rgba(201,168,76,.15);border-color:var(--gold)}
+
+.mentor-message{border:1px solid var(--line);border-radius:18px;padding:36px 38px;margin:40px 0;background:rgba(201,168,76,.03)}
+.mentor-msg-eyebrow{font-size:10px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:18px}
+.mentor-msg-quote{font-size:16px;line-height:1.75;color:var(--text);font-style:italic;margin-bottom:28px}
+.mentor-msg-from{display:flex;align-items:center;gap:14px;padding-top:22px;border-top:1px solid var(--line2)}
+.mentor-msg-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#0D1A12;flex-shrink:0;font-family:'Georgia',serif}
+.mentor-msg-name{font-size:14px;color:var(--text);font-family:'Georgia',serif}
+.mentor-msg-title{font-size:11.5px;color:var(--muted);margin-top:2px;font-family:Calibri,sans-serif}
+.mentor-msg-seal{font-size:10px;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;margin-top:20px;text-align:right}
+
+.share-fab{position:fixed;bottom:24px;left:24px;padding:12px 20px;border-radius:99px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;font-family:'Georgia',serif;font-size:13px;font-weight:bold;cursor:pointer;box-shadow:0 8px 24px rgba(201,168,76,.35);opacity:0;transform:translateY(10px);pointer-events:none;transition:.3s;z-index:90}
+.share-fab.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+
+.strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line2);border-bottom:1px solid var(--line2)}
+.strip-item{background:var(--dark2);padding:22px 16px;text-align:center}
+.strip-n{font-size:40px;font-weight:400;line-height:1;margin-bottom:4px}
+.strip-n.red{color:var(--red)}
+.strip-n.amber{color:var(--amber)}
+.strip-n.good{color:var(--good)}
+.strip-l{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+
+.sec-head{padding:48px 0 24px;border-bottom:1px solid var(--line2);margin-bottom:32px}
+.sec-eyebrow{font-size:10px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
+.sec-title{font-size:clamp(22px,4vw,32px);font-weight:400;color:var(--text)}
+.sec-num{display:inline-block;min-width:26px;color:var(--gold2);font-weight:700;letter-spacing:0;margin-right:6px}
+
+.cover-tag{display:inline-block;padding:5px 14px;border:1px solid var(--line);border-radius:99px;font-size:9px;letter-spacing:2.5px;color:var(--muted);text-transform:uppercase;margin-bottom:22px}
+.cover-prepared{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.3px}
+
+.exec-summary{border:1px solid var(--line);border-radius:18px;padding:32px 34px;margin:0 0 12px;background:rgba(201,168,76,.04)}
+.exec-label{font-size:10px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:10px}
+.exec-title{font-size:22px;color:var(--text);margin-bottom:18px;font-weight:400}
+.exec-lead{font-size:15px;line-height:1.7;color:var(--text);margin-bottom:22px}
+.exec-priorities-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold2);margin-bottom:10px}
+.exec-priority-list{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:22px}
+.exec-priority-item{display:flex;gap:14px;align-items:flex-start}
+.exec-priority-num{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:rgba(201,168,76,.15);border:1px solid var(--line);color:var(--gold2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Georgia',serif}
+.exec-priority-text{font-size:13.5px;line-height:1.6;color:rgba(248,244,232,.85);font-family:Calibri,sans-serif}
+.exec-priority-text b{color:var(--text);font-family:'Georgia',serif}
+.exec-next{border-top:1px solid var(--line2);padding-top:18px}
+.exec-next-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold2);margin-bottom:8px}
+.exec-next-text{font-size:14px;line-height:1.65;color:var(--text)}
+
+.matrix-wrap{overflow-x:auto;margin-bottom:12px;border:1px solid var(--line2);border-radius:14px}
+.matrix-table{width:100%;border-collapse:collapse;font-family:Calibri,sans-serif;font-size:13px;min-width:560px}
+.matrix-table thead th{text-align:left;padding:12px 16px;background:rgba(201,168,76,.08);color:var(--gold2);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;border-bottom:1px solid var(--line)}
+.matrix-table tbody td{padding:12px 16px;border-bottom:1px solid var(--line2);color:rgba(248,244,232,.85);vertical-align:top}
+.matrix-table tbody tr:last-child td{border-bottom:none}
+.matrix-num{color:var(--muted2);font-variant-numeric:tabular-nums}
+.matrix-name{color:var(--text);font-family:'Georgia',serif;font-size:13.5px}
+.matrix-score{font-variant-numeric:tabular-nums;font-weight:700}
+.matrix-badge{display:inline-block;padding:3px 11px;border-radius:99px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.row-crit .matrix-score{color:#f09595}
+.row-warn .matrix-score{color:#fac775}
+.row-ok .matrix-score{color:#7dcea0}
+.row-crit .matrix-badge{background:rgba(231,76,60,.15);color:#f09595;border:1px solid rgba(231,76,60,.3)}
+.row-warn .matrix-badge{background:rgba(243,156,18,.12);color:#fac775;border:1px solid rgba(243,156,18,.25)}
+.row-ok .matrix-badge{background:rgba(39,174,96,.1);color:#7dcea0;border:1px solid rgba(39,174,96,.2)}
+.matrix-action{font-size:12.5px;color:var(--muted);line-height:1.5;max-width:260px}
+
+.checklist-plan{display:flex;flex-direction:column;gap:28px;margin-bottom:12px}
+.checklist-group-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line2)}
+.checklist-period{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+.checklist-title{font-size:16px;color:var(--text);font-family:'Georgia',serif}
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:9px 0}
+.chk-box{flex-shrink:0;width:16px;height:16px;border:1.5px solid var(--gold);border-radius:4px;margin-top:2px}
+.checklist-text{font-size:13.5px;line-height:1.6;color:rgba(248,244,232,.85);font-family:Calibri,sans-serif}
+.block-num{font-size:11px;color:var(--muted2);margin-right:9px;font-family:Calibri,sans-serif;letter-spacing:1px;font-variant-numeric:tabular-nums}
+
+.radar-wrap{padding:40px 0;display:flex;justify-content:center}
+.radar-canvas-wrap{width:100%;max-width:520px;aspect-ratio:1}
+.counter-strip{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 28px;font-size:12.5px;color:var(--muted);font-family:Calibri,sans-serif}
+.counter-dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex-shrink:0;box-shadow:0 0 6px rgba(39,174,96,.6)}
+.counter-num{color:var(--gold2);font-weight:700}
+
+.blocks{display:flex;flex-direction:column;gap:20px;margin-bottom:48px}
+.block{border-radius:16px;overflow:hidden;border:1px solid var(--line2)}
+.block.crit{border-color:rgba(231,76,60,.4)}
+.block.warn{border-color:rgba(243,156,18,.35)}
+.block.ok{border-color:rgba(39,174,96,.3)}
+
+.block-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;gap:12px}
+.block.crit .block-head{background:rgba(231,76,60,.1)}
+.block.warn .block-head{background:rgba(243,156,18,.08)}
+.block.ok .block-head{background:rgba(39,174,96,.07)}
+.block-name{font-size:17px;color:var(--text);flex:1}
+.block-badge{padding:5px 14px;border-radius:99px;font-size:11px;font-weight:bold;letter-spacing:.5px;font-family:'Georgia',serif;white-space:nowrap}
+.block.crit .block-badge{background:rgba(231,76,60,.2);color:#f09595;border:1px solid rgba(231,76,60,.3)}
+.block.warn .block-badge{background:rgba(243,156,18,.15);color:#fac775;border:1px solid rgba(243,156,18,.25)}
+.block.ok .block-badge{background:rgba(39,174,96,.12);color:#7dcea0;border:1px solid rgba(39,174,96,.2)}
+
+.block-body{padding:20px 22px;display:flex;flex-direction:column;gap:18px}
+.block-desc{font-size:14px;color:var(--muted);line-height:1.75;font-family:Calibri,sans-serif}
+
+.rec-section{display:flex;flex-direction:column;gap:6px}
+.rec-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;display:flex;align-items:center;gap:6px}
+.rec-label.gold{color:var(--gold)}
+.rec-label.lightning{color:#E8C97A}
+.rec-text{font-size:13px;color:rgba(255,255,255,.8);line-height:1.8;font-family:Calibri,sans-serif}
+
+.tools-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.tool-tag{padding:5px 12px;border-radius:8px;font-size:11px;font-family:Calibri,sans-serif;border:1px solid var(--line2);color:var(--muted);background:rgba(255,255,255,.04);letter-spacing:.3px}
+
+.lightning-box{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:14px 16px}
+.lightning-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold2);margin-bottom:8px}
+.lightning-steps{display:flex;flex-direction:column;gap:6px}
+.lightning-step{display:flex;gap:10px;align-items:flex-start}
+.step-num{width:20px;height:20px;border-radius:50%;background:rgba(201,168,76,.2);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--gold2);flex-shrink:0;margin-top:1px}
+.step-text{font-size:12px;color:rgba(255,255,255,.75);line-height:1.6;font-family:Calibri,sans-serif}
+
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:48px}
+.plan-card{border-radius:16px;border:1px solid var(--line2);overflow:hidden}
+.plan-card-head{padding:16px 18px;border-bottom:1px solid var(--line2)}
+.plan-card:nth-child(1) .plan-card-head{background:rgba(231,76,60,.08)}
+.plan-card:nth-child(2) .plan-card-head{background:rgba(243,156,18,.07)}
+.plan-card:nth-child(3) .plan-card-head{background:rgba(39,174,96,.06)}
+.plan-period{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.plan-title{font-size:15px;color:var(--text)}
+.plan-items{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.plan-item{display:flex;gap:10px;align-items:flex-start}
+.plan-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.plan-card:nth-child(1) .plan-dot{background:var(--red)}
+.plan-card:nth-child(2) .plan-dot{background:var(--amber)}
+.plan-card:nth-child(3) .plan-dot{background:var(--good)}
+.plan-text{font-size:12px;color:var(--muted);line-height:1.6;font-family:Calibri,sans-serif}
+
+.next-steps{padding:56px 0 40px;border-top:1px solid var(--line2)}
+.next-steps-eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.next-steps-title{font-size:clamp(22px,4vw,34px);font-weight:400;color:var(--text);margin-bottom:8px}
+.next-steps-sub{font-size:14px;color:var(--muted);line-height:1.7;max-width:580px;margin-bottom:36px;font-family:Calibri,sans-serif}
+.offers-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:40px}
+.offers-grid-3{grid-template-columns:repeat(3,1fr)}
+.mentor-comment{border:1px solid var(--line);border-radius:16px;padding:28px 32px;margin:32px 0 0;page-break-inside:avoid}
+.mentor-comment-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+.mentor-comment-lines{display:flex;flex-direction:column;gap:18px;margin-bottom:24px}
+.mentor-line{border-bottom:1px solid var(--line);height:1px;width:100%}
+.mentor-line.short{width:100%}
+.mentor-sign-row{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.mentor-sign-item{display:flex;flex-direction:column;gap:6px}
+.mentor-sign-lbl{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted2)}
+@media print{.mentor-comment{border-color:#ccc}.mentor-line{border-bottom-color:#ccc}.print-bar{display:none!important}}
+.offer-price{font-size:1.6rem;font-weight:800;color:var(--gold);letter-spacing:-.5px;margin:6px 0 10px;font-family:'Georgia',serif}
+.ol-banner{background:linear-gradient(135deg,rgba(201,168,76,.1),rgba(201,168,76,.04));border:1px solid rgba(201,168,76,.3);border-radius:12px;padding:14px 20px;margin-bottom:20px}
+.ol-banner-inner{display:flex;align-items:center;gap:12px}
+.ol-icon{font-size:1.4rem;color:var(--gold)}
+.ol-banner-title{font-size:13px;font-weight:700;color:var(--gold);letter-spacing:.5px}
+.ol-banner-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.cover-name-block{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.cover-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;color:#0D1A12;flex-shrink:0}
+.cover-hello{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.cover-name{font-size:1.4rem;font-weight:800;color:var(--fg)}
+.cover-alert{background:rgba(220,80,60,.08);border:1px solid rgba(220,80,60,.25);border-radius:8px;padding:8px 14px;font-size:12px;color:#e07060;margin-top:8px}
+.cover-strength{background:rgba(60,180,100,.08);border:1px solid rgba(60,180,100,.2);border-radius:8px;padding:8px 14px;font-size:12px;color:#5cb87a;margin-top:8px}
+.mentor-rec-box{background:rgba(201,168,76,.06);border-left:3px solid var(--gold);border-radius:0 10px 10px 0;padding:12px 16px;margin-top:14px}
+.mentor-rec-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.mentor-rec-text{font-size:13px;line-height:1.65;color:var(--fg2)}
+.offer-recommend-badge{position:absolute;top:-1px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:5px 16px;border-radius:0 0 10px 10px;white-space:nowrap;z-index:2}
+.offer-why{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--gold2);line-height:1.5;font-family:Calibri,sans-serif}
+.offer-card{border-radius:20px;overflow:hidden;border:1px solid var(--line);display:flex;flex-direction:column}
+.offer-card.featured{border-color:var(--gold);box-shadow:0 0 40px rgba(201,168,76,.12)}
+.offer-head{padding:28px 28px 20px;position:relative}
+.offer-card:nth-child(1) .offer-head{background:linear-gradient(135deg,rgba(26,61,8,.6),rgba(13,26,18,.8))}
+.offer-card:nth-child(2) .offer-head{background:linear-gradient(135deg,rgba(60,40,8,.6),rgba(40,20,5,.85))}
+.offer-badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.offer-card:nth-child(1) .offer-badge{background:rgba(39,174,96,.2);color:#7dcea0;border:1px solid rgba(39,174,96,.3)}
+.offer-card:nth-child(2) .offer-badge{background:rgba(201,168,76,.15);color:var(--gold2);border:1px solid rgba(201,168,76,.25)}
+.offer-icon{font-size:36px;margin-bottom:10px;display:block}
+.offer-name{font-size:20px;color:var(--text);margin-bottom:6px}
+.offer-tagline{font-size:12px;color:var(--muted);line-height:1.6;font-family:Calibri,sans-serif}
+.offer-body{padding:20px 28px;flex:1;display:flex;flex-direction:column;gap:16px}
+.offer-features{display:flex;flex-direction:column;gap:8px}
+.offer-feat{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:rgba(255,255,255,.75);font-family:Calibri,sans-serif;line-height:1.55}
+.offer-feat::before{content:"✓";color:var(--gold);flex-shrink:0;font-weight:bold;margin-top:1px}
+.offer-cta{margin-top:auto;padding:20px 28px 28px}
+.offer-btn{display:block;width:100%;padding:14px 20px;border-radius:12px;font-family:'Georgia',serif;font-size:14px;text-align:center;text-decoration:none;cursor:pointer;border:none;transition:.2s;letter-spacing:.3px}
+.offer-btn.green{background:linear-gradient(135deg,#1A5C0A,#2A7D14);color:#D4F0BE;border:1px solid rgba(39,174,96,.3)}
+.offer-btn.gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;font-weight:bold}
+.offer-btn:hover{transform:translateY(-1px);filter:brightness(1.07)}
+.offer-note{font-size:11px;color:var(--muted2);text-align:center;margin-top:8px;font-family:Calibri,sans-serif}
+.social-proof{background:rgba(201,168,76,.05);border:1px solid var(--line2);border-radius:16px;padding:24px 28px;margin-bottom:36px}
+.social-proof-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.reviews{display:flex;flex-direction:column;gap:14px}
+.review{display:flex;gap:14px;align-items:flex-start}
+.review-ava{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--green),var(--green2));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.review-text{font-size:12px;color:rgba(255,255,255,.7);line-height:1.65;font-family:Calibri,sans-serif;flex:1}
+.review-name{font-size:10px;color:var(--muted2);margin-top:3px;letter-spacing:.5px}
+
+.report-footer{padding:32px 0 48px;text-align:center;border-top:1px solid var(--line2)}
+.report-footer p{font-size:11px;color:var(--muted2);letter-spacing:1px;line-height:1.8}
+
+.print-bar{position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:100}
+.print-btn{padding:12px 22px;border-radius:99px;font-family:'Georgia',serif;font-size:13px;cursor:pointer;border:none;transition:.2s}
+.print-btn.primary{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;font-weight:bold;box-shadow:0 8px 28px rgba(201,168,76,.3)}
+.print-btn.secondary{background:rgba(255,255,255,.08);color:var(--gold2);border:1px solid var(--line)}
+.history-banner{display:flex;align-items:center;gap:14px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:14px;padding:14px 18px;margin:20px 0}
+.history-icon{font-size:20px;flex-shrink:0}
+.history-title{font-size:13px;color:var(--text);font-family:Calibri,sans-serif;margin-bottom:8px}
+.history-deltas{display:flex;flex-wrap:wrap;gap:8px}
+.delta-chip{font-size:11px;padding:4px 10px;border-radius:99px;font-family:Calibri,sans-serif;font-weight:600}
+.delta-chip.delta-up{background:rgba(39,174,96,.15);color:#7dcea0;border:1px solid rgba(39,174,96,.3)}
+.delta-chip.delta-down{background:rgba(231,76,60,.12);color:#f09595;border:1px solid rgba(231,76,60,.25)}
+
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(5,10,7,.75);z-index:300;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--bg2,#101c14);border:1px solid var(--line);border-radius:20px;padding:32px 28px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-icon{font-size:36px;margin-bottom:12px}
+.modal-title{font-size:19px;color:var(--text);font-family:'Georgia',serif;margin-bottom:8px}
+.modal-sub{font-size:13px;color:var(--muted);line-height:1.6;font-family:Calibri,sans-serif;margin-bottom:20px}
+.modal-inp{width:100%;box-sizing:border-box;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);font-family:Calibri,sans-serif;font-size:14px;outline:none;margin-bottom:14px}
+.modal-inp:focus{border-color:var(--gold)}
+.modal-btn-primary{display:block;width:100%;padding:13px 20px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;font-weight:bold;font-family:'Georgia',serif;font-size:14px;cursor:pointer;margin-bottom:10px;transition:.2s}
+.modal-btn-primary:hover{filter:brightness(1.07)}
+.modal-btn-skip{display:block;width:100%;background:none;border:none;color:var(--muted2);font-size:12px;cursor:pointer;font-family:Calibri,sans-serif;padding:6px}
+.modal-consent-label{display:flex;align-items:flex-start;gap:8px;text-align:left;font-size:11.5px;color:var(--muted);line-height:1.5;margin-bottom:14px;cursor:pointer;font-family:Calibri,sans-serif}
+.modal-consent-label input[type="checkbox"]{flex-shrink:0;margin-top:2px;width:15px;height:15px;accent-color:var(--gold)}
+.modal-consent-label a{color:var(--gold2)}
+
+@media(max-width:640px){
+  .wrap{padding:0 16px}
+  .cover{padding:48px 0 32px}
+  .cover-title{font-size:clamp(26px,7vw,38px)}
+  .score-ring{width:110px;height:110px}.score-n{font-size:38px}
+  .strip{grid-template-columns:repeat(3,1fr)}.strip-n{font-size:28px}
+  .sec-head{padding:32px 0 16px}
+  .sec-title{font-size:clamp(18px,5vw,24px)}
+  .radar-canvas-wrap{max-width:100%}
+  .block-head{flex-direction:column;align-items:flex-start;gap:8px;padding:14px 16px}
+  .block-body{padding:16px}
+  .block-name{font-size:15px}
+  .block-desc{font-size:13px}
+  .rec-text{font-size:12px}
+  .tools-row{gap:6px}
+  .tool-tag{font-size:10px;padding:4px 10px}
+  .lightning-box{padding:12px 14px}
+  .step-text{font-size:11px}
+  .plan-grid{grid-template-columns:1fr}
+  .offers-grid-3{grid-template-columns:1fr}
+  .offers-grid{grid-template-columns:1fr}
+  .offer-head{padding:22px 20px 16px}
+  .offer-body{padding:16px 20px}
+  .offer-cta{padding:14px 20px 20px}
+  .next-steps-title{font-size:clamp(20px,5vw,28px)}
+  .print-bar{bottom:12px;right:12px;gap:6px}
+  .print-btn{padding:10px 16px;font-size:12px}
+  .qz-card{padding:22px 16px}
+  .qz-tabs{flex-direction:column;align-items:stretch}
+  .qz-tab{text-align:center}
+  .qz-question{font-size:clamp(17px,4.5vw,22px)}
+  .qz-opts{gap:8px}
+  .qz-opt{font-size:13px;padding:13px 16px}
+  .qz-btn-next{padding:12px 22px;font-size:13px}
+}
+
+/* ── QUIZ SCREEN ── */
+#quiz-screen{min-height:100vh;display:none;align-items:flex-start;justify-content:center;padding:60px 20px 40px;position:relative;z-index:1}
+#quiz-screen::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse at 20% 0%,rgba(26,61,8,.25),transparent 55%),radial-gradient(ellipse at 90% 80%,rgba(201,168,76,.06),transparent 45%)}
+.qz-wrap{max-width:660px;width:100%;position:relative;z-index:1}
+.qz-header{text-align:center;margin-bottom:32px}
+.qz-brand{font-size:10px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;margin-bottom:12px}
+.qz-title{font-size:clamp(28px,5vw,46px);color:var(--text);line-height:1.1;margin-bottom:10px;font-weight:400}
+.qz-sub{font-size:14px;color:var(--muted);line-height:1.7}
+.qz-tabs{display:flex;gap:12px;justify-content:center;margin-bottom:32px}
+.qz-tab{padding:12px 28px;border-radius:99px;font-family:'Georgia',serif;font-size:14px;cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted);transition:.2s}
+.qz-tab.active{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0D1A12;border-color:transparent;font-weight:bold}
+.qz-card{border-radius:20px;padding:36px 40px;background:rgba(255,255,255,.04);border:1px solid var(--line2)}
+.qz-prog{margin-bottom:28px}
+.qz-prog-top{display:flex;justify-content:space-between;margin-bottom:8px}
+.qz-prog-lbl{font-size:10px;letter-spacing:3px;color:var(--gold);text-transform:uppercase}
+.qz-prog-frac{font-size:10px;color:var(--muted2)}
+.qz-prog-track{height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.qz-prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:99px;transition:width .4s ease}
+.qz-bname{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.qz-question{font-size:clamp(18px,2.8vw,26px);color:var(--text);line-height:1.3;margin-bottom:24px;font-weight:400}
+.qz-opts{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.qz-opt{padding:15px 20px;border-radius:14px;border:1px solid rgba(201,168,76,.14);background:rgba(255,255,255,.03);color:rgba(255,255,255,.75);font-family:Calibri,sans-serif;font-size:14px;text-align:left;cursor:pointer;transition:.2s;line-height:1.5}
+.qz-opt:hover{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07);color:var(--gold2)}
+.qz-opt.sel{border-color:var(--gold);background:rgba(201,168,76,.12);color:var(--gold2)}
+.qz-nav{display:flex;justify-content:space-between;align-items:center}
+.qz-btn-back{padding:12px 20px;border-radius:99px;border:1px solid var(--line2);background:transparent;color:var(--muted2);font-family:'Georgia',serif;font-size:13px;cursor:pointer;transition:.2s}
+.qz-btn-back:hover{color:var(--gold2);border-color:var(--line)}
+.qz-btn-back:disabled{opacity:.15;cursor:not-allowed}
+.qz-btn-next{padding:13px 28px;border-radius:99px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#070B04;border:none;font-family:'Georgia',serif;font-size:14px;font-weight:bold;cursor:pointer;transition:.2s;box-shadow:0 6px 22px rgba(201,168,76,.3)}
+.qz-btn-next:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 30px rgba(201,168,76,.4)}
+.qz-btn-next:disabled{opacity:.25;cursor:not-allowed;transform:none;box-shadow:none}
+.qz-name-inp{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:99px;padding:13px 22px;color:var(--text);font-family:'Georgia',serif;font-size:15px;width:100%;max-width:380px;outline:none;display:block;margin:0 auto 16px}
+.qz-name-inp:focus{border-color:var(--gold)}
+.qz-name-inp::placeholder{color:var(--muted2)}
+.qz-skip{font-size:12px;color:var(--muted2);margin-top:12px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.qz-skip:hover{color:var(--muted)}
+@media(max-width:640px){.qz-card{padding:24px 18px}.qz-tabs{flex-direction:column;align-items:center}}
+
+/* ── 4 вопроса блока ── */
+.qz-block-header{margin-bottom:20px}
+.qz-block-desc{font-size:13px;color:var(--muted);line-height:1.65;font-family:Calibri,sans-serif;margin-top:6px}
+.qz-progress-label{font-size:11px;color:var(--muted2);letter-spacing:.5px;font-family:Calibri,sans-serif;margin-bottom:16px}
+.qz-progress-label b{color:var(--gold)}
+.qz-item{margin-bottom:18px}
+.qz-q{font-size:13px;color:rgba(255,255,255,0.88);margin-bottom:.55rem;font-family:Calibri,sans-serif;line-height:1.5;padding-left:4px}
+.qz-q span{color:var(--gold);font-size:11px;margin-right:6px;letter-spacing:1px}
+.qz-opts-wrap{display:flex;flex-direction:column;gap:6px}
+.qz-custom-wrap{margin-top:6px;display:none}
+.qz-custom-wrap.show{display:block}
+.qz-custom-inp{width:100%;box-sizing:border-box;padding:10px 14px;border-radius:10px;border:1px solid rgba(201,168,76,.4);background:rgba(201,168,76,.06);color:var(--fg);font-family:Calibri,sans-serif;font-size:13px;resize:none;outline:none;line-height:1.5}
+.qz-custom-inp:focus{border-color:var(--gold)}
+.qz-custom-inp::placeholder{color:rgba(255,255,255,.35)}
+.qz-opt-btn{padding:.55rem .9rem;border:1px solid rgba(201,168,76,0.2);border-radius:10px;background:rgba(255,255,255,.03);color:rgba(255,255,255,0.72);font-size:13px;font-family:Calibri,sans-serif;cursor:pointer;transition:all .18s;text-align:left;line-height:1.4}
+.qz-opt-btn:hover{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.07);color:var(--gold2)}
+.qz-opt-btn.sel-hi{border-color:#4CAF82;background:rgba(76,175,130,0.1);color:#7DFFB8}
+.qz-opt-btn.sel-mid{border-color:var(--gold);background:rgba(201,168,76,.14);color:var(--gold2)}
+.qz-opt-btn.sel-lo{border-color:#f39c12;background:rgba(243,156,18,.1);color:#fac775}
+.qz-opt-btn.sel-bad{border-color:#e74c3c;background:rgba(231,76,60,.1);color:#f09595}
+.qz-auto-score{display:none;margin-top:.7rem;padding:.6rem 1rem;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,.2);border-radius:8px;text-align:center;font-size:13px;color:var(--gold);font-family:Calibri,sans-serif}
+.qz-auto-score.show{display:block}
+
+/* ── AI ANALYSIS BLOCK ── */
+.ai-block{border-radius:20px;padding:32px 36px;background:linear-gradient(135deg,rgba(26,61,8,.18),rgba(201,168,76,.06));border:1px solid rgba(201,168,76,.25);margin:0 0 8px;position:relative;overflow:hidden}
+.ai-block::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--gold),var(--green2));opacity:.7}
+.ai-eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.ai-title{font-size:clamp(18px,3vw,26px);color:var(--text);font-weight:400;margin-bottom:20px;line-height:1.3}
+.ai-content{font-family:Calibri,sans-serif;font-size:14px;color:rgba(255,255,255,.82);line-height:1.8}
+.ai-content h2{font-family:'Georgia',serif;font-size:16px;color:var(--gold2);margin:20px 0 8px;font-weight:400}
+.ai-content p{margin-bottom:12px}
+.ai-loading{display:flex;align-items:center;gap:14px;padding:8px 0}
+.ai-spinner{width:22px;height:22px;border:2px solid rgba(201,168,76,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ai-loading-text{font-size:13px;color:var(--muted);font-family:Calibri,sans-serif}
+@media(max-width:640px){.ai-block{padding:22px 18px}}
+
+@media print{
+  body{background:#fff;color:#111}
+  body::before{display:none}
+  .print-bar{display:none}
+  .cover-brand{color:#C9A84C}.cover-title{color:#0D1A12}.cover-date{color:#555}
+  .score-ring{border-color:#C9A84C}.score-n{color:#C9A84C}.score-l,.cover-status{color:#555}
+  .strip{background:#eee}.strip-item{background:#fff}.strip-l{color:#555}
+  .sec-eyebrow{color:#C9A84C}.sec-title{color:#0D1A12}
+  .blocks{display:block}
+  .block{page-break-inside:auto;margin-bottom:20px}
+  .block-body{display:block}
+  .block-head{page-break-after:avoid}
+  .rec-section{page-break-inside:avoid;margin-bottom:18px}
+  .lightning-box{page-break-inside:avoid}
+  .mentor-rec-box,.cta-upsell-box{page-break-inside:avoid}
+  .radar-wrap{page-break-inside:avoid}
+  .cover{padding:16px 0 20px}
+  .radar-wrap{padding:6px 0}
+  .strip{padding:0}
+  .exec-summary{padding:22px 24px}
+  .plan-card,.offer-card{page-break-inside:avoid}
+  .block-name{color:#0D1A12}.block-desc{color:#555}.rec-text{color:#333}.step-text{color:#444}
+  .rec-label.gold{color:#C9A84C}.rec-label.lightning{color:#9a7c1a}
+  .lightning-box{background:#fffbf0;border-color:#C9A84C}
+  .lightning-title{color:#9a7c1a}.step-num{color:#9a7c1a}
+  .plan-title{color:#0D1A12}.plan-period{color:#666}.plan-text{color:#444}
+  .report-footer p{color:#888}
+  .tool-tag{color:#555;border-color:#ddd;background:#f7f7f7}
+  .next-steps{display:none}
+  .pdf-btn,.share-fab{display:none!important}
+  .mentor-message{background:#fdf9ef;border-color:#C9A84C;page-break-inside:avoid}
+  .mentor-msg-eyebrow{color:#C9A84C}
+  .mentor-msg-quote{color:#222}
+  .mentor-msg-from{border-color:#eee}
+  .mentor-msg-name{color:#0D1A12}.mentor-msg-title{color:#666}
+  .mentor-msg-seal{color:#999}
+  .cover-name-label{color:#666}.cover-name-big{color:#0D1A12}
+
+  .block.crit .block-head{background:#fdecea}
+  .block.warn .block-head{background:#fff4e0}
+  .block.ok .block-head{background:#e9f7ef}
+  .block.crit .block-badge{background:#e74c3c;color:#fff;border-color:#e74c3c}
+  .block.warn .block-badge{background:#e08a2c;color:#fff;border-color:#e08a2c}
+  .block.ok .block-badge{background:#27974f;color:#fff;border-color:#27974f}
+
+  .mentor-rec-box{background:#eef4fc;border-left-color:#3b6fd6}
+  .mentor-rec-label{color:#2f5bb8}
+  .mentor-rec-text{color:#1c2b45}
+
+  .cta-upsell-box{background:#fdf1e6;border-color:#d98a2b}
+  .cta-upsell-text{color:#7a4a10}
+
+  .offer-why{background:#fdf6e3;border-color:#C9A84C;color:#7a5c10}
+
+  .history-banner{background:#f4f0e5;border-color:#C9A84C}
+  .history-title{color:#111}
+  .delta-chip.delta-up{background:#e5f6ec;color:#1e8449;border-color:#27974f}
+  .delta-chip.delta-down{background:#fdecea;color:#c0392b;border-color:#e74c3c}
+
+  .cover-alert{background:#fdecea;color:#c0392b;border-color:#e74c3c}
+  .cover-strength{background:#e5f6ec;color:#1e8449;border-color:#27974f}
+
+  .ol-banner{background:#fdf6e3;border-color:#C9A84C}
+  .ol-banner-title{color:#7a5c10}.ol-banner-sub{color:#555}.ol-icon{color:#C9A84C}
+
+  .exec-summary{background:#fdf9ef;border-color:#C9A84C}
+  .exec-label{color:#C9A84C}.exec-title{color:#0D1A12}.exec-lead{color:#222}
+  .exec-priorities-label,.exec-next-label{color:#9a7c1a}
+  .exec-priority-num{background:#fdf1cf;border-color:#C9A84C;color:#7a5c10}
+  .exec-priority-text{color:#333}.exec-priority-text b{color:#0D1A12}
+  .exec-next-text{color:#222}
+
+  .matrix-wrap{border-color:#ddd}
+  .matrix-table thead th{background:#f7f2e2;color:#7a5c10;border-color:#e6dcc0}
+  .matrix-table tbody td{color:#333;border-color:#eee}
+  .matrix-name{color:#0D1A12}
+  .row-crit .matrix-score{color:#c0392b}
+  .row-warn .matrix-score{color:#b8720a}
+  .row-ok .matrix-score{color:#1e8449}
+  .row-crit .matrix-badge{background:#fdecea;color:#c0392b;border-color:#e74c3c}
+  .row-warn .matrix-badge{background:#fff3e0;color:#b8720a;border-color:#e08a2c}
+  .row-ok .matrix-badge{background:#eafaf1;color:#1e8449;border-color:#27974f}
+  .matrix-action{color:#555}
+  .matrix-section .sec-head{page-break-after:avoid}
+
+  .checklist-group-head{border-color:#ddd}
+  .checklist-period{color:#9a7c1a}.checklist-title{color:#0D1A12}
+  .chk-box{border-color:#C9A84C}
+  .checklist-text{color:#333}
+  .checklist-plan>div{page-break-inside:avoid}
+
+  .cover-tag{color:#666;border-color:#ccc}
+  .cover-prepared{color:#666}
+  .sec-num{color:#C9A84C}
+
+  .cover-brand,.cover-date,.cover-status,.cover-name-label,.cover-tag,.cover-prepared,
+  .strip-l,.score-l,.sec-eyebrow,.sec-num,.exec-label,.exec-priorities-label,.exec-next-label,
+  .checklist-period,.block-num,.block-badge,.rec-label,.tool-tag,.lightning-title,
+  .mentor-rec-label,.mentor-msg-eyebrow,.mentor-msg-seal,.matrix-table thead th{
+    letter-spacing:normal!important;
+  }
+
+  -webkit-print-color-adjust:exact;print-color-adjust:exact
+}
+</style>
+</head>
+<body>
+
+<div id="quiz-screen">
+  <div class="qz-wrap">
+    <div class="qz-header">
+      <div class="qz-brand">IQ Barakah · Диагностика корабля</div>
+      <h1 class="qz-title">Разбор <em style="color:var(--gold2);font-style:italic">корабля</em></h1>
+      <p class="qz-sub">15 вопросов — полный разбор каждого блока с инструментами и конкретными действиями</p>
+    </div>
+    <div class="qz-tabs">
+      <button class="qz-tab active" onclick="setTab('business',this)">⚓ Бизнес-корабль</button>
+      <button class="qz-tab" onclick="setTab('personal',this)">🌙 Корабль жизни</button>
+    </div>
+
+    <div style="max-width:640px;margin:0 auto 20px;padding:14px 20px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:14px;font-family:'Calibri','Arial',sans-serif">
+      <div style="font-size:10px;letter-spacing:3px;color:rgba(201,168,76,0.7);text-transform:uppercase;margin-bottom:10px">Как пользоваться</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="text-align:center;padding:6px">
+          <div style="font-size:22px;margin-bottom:5px">1️⃣</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5">Выбери тип: <b style="color:#C9A84C">Бизнес</b> или <b style="color:#C9A84C">Корабль жизни</b></div>
+        </div>
+        <div style="text-align:center;padding:6px">
+          <div style="font-size:22px;margin-bottom:5px">2️⃣</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5">Ответь на <b style="color:#C9A84C">4 вопроса</b> по каждому из 15 блоков</div>
+        </div>
+        <div style="text-align:center;padding:6px">
+          <div style="font-size:22px;margin-bottom:5px">3️⃣</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);line-height:1.5">Получи <b style="color:#C9A84C">полный разбор</b> — Джарвас покажет пробоины и план действий</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- кораблик -->
+    <div style="padding:4px 0 12px">
+      <svg id="qz-ship-svg" viewBox="0 0 1420 620" width="100%" style="max-height:42vh;display:block" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="qz-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="qz-skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0D1A12" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#142A1C" stop-opacity="1"/>
+          </linearGradient>
+          <linearGradient id="qz-seaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0A2318" stop-opacity="0.95"/>
+            <stop offset="60%" stop-color="#071510" stop-opacity="1"/>
+            <stop offset="100%" stop-color="#040E0A" stop-opacity="1"/>
+          </linearGradient>
+          <linearGradient id="qz-waterRed" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E24B4A" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#E24B4A" stop-opacity="0.45"/>
+          </linearGradient>
+          <linearGradient id="qz-waterAmb" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E8A040" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#E8A040" stop-opacity="0.4"/>
+          </linearGradient>
+          <linearGradient id="qz-waterGold" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#C5A24A" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#C5A24A" stop-opacity="0.3"/>
+          </linearGradient>
+        </defs>
+        <rect width="1420" height="620" fill="url(#qz-skyGrad)"/>
+        <rect x="0" y="202" width="1420" height="418" fill="url(#qz-seaGrad)"/>
+        <path d="M 0 210 Q 180 205 360 212 Q 540 219 720 210 Q 900 201 1080 210 Q 1260 219 1420 210" fill="none" stroke="rgba(197,162,74,0.12)" stroke-width="1"/>
+        <rect x="0" y="199" width="1420" height="4" fill="rgba(197,162,74,0.15)"/>
+        <line x1="0" y1="201" x2="1420" y2="201" stroke="rgba(197,162,74,0.6)" stroke-width="1" stroke-dasharray="8,5" filter="url(#qz-glow)"/>
+        <text x="12" y="196" font-family="Calibri,sans-serif" font-size="11" fill="rgba(197,162,74,0.6)" letter-spacing="2">ВАТЕРЛИНИЯ</text>
+        <g id="qz-g-compartments"></g>
+        <path id="qz-wave-path" fill="none" stroke="#C5A24A" stroke-width="1.5" filter="url(#qz-glow)"/>
+        <g id="qz-g-dots"></g>
+        <g id="qz-g-labels" font-family="'Calibri','Arial',sans-serif" font-size="13"></g>
+        <g id="qz-g-ship"></g>
+      </svg>
+    </div>
+
+    <div class="qz-card" id="qz-card">
+      <div class="qz-prog">
+        <div class="qz-prog-top">
+          <span class="qz-prog-lbl" id="qz-lbl">ОТСЕК 1 / 15</span>
+          <span class="qz-prog-frac" id="qz-frac">1 / 15</span>
+        </div>
+        <div class="qz-prog-track"><div class="qz-prog-fill" id="qz-pfill" style="width:0%"></div></div>
+      </div>
+      <div class="qz-block-header">
+        <div class="qz-bname" id="qz-bname"></div>
+        <div class="qz-block-desc" id="qz-bdesc"></div>
+      </div>
+      <div class="qz-progress-label" id="qz-progress-label">Отметь то, что ближе всего · <b>0/4</b></div>
+      <div id="qz-questions"></div>
+      <div class="qz-auto-score" id="qz-auto-score"></div>
+      <div class="qz-nav">
+        <button class="qz-btn-back" id="qz-back" disabled onclick="qzBack()">← Назад</button>
+        <button class="qz-btn-next" id="qz-next" disabled onclick="qzNext()">Следующий блок →</button>
+      </div>
+    </div>
+    <div class="qz-card" id="qz-name-card" style="display:none;text-align:center">
+      <div class="qz-header" style="margin-bottom:24px">
+        <div class="qz-brand">Готово · 15 из 15</div>
+        <h2 class="qz-title" style="font-size:clamp(22px,4vw,36px)">Как тебя зовут?</h2>
+        <p class="qz-sub">Необязательно — но с именем это звучит по-другому</p>
+      </div>
+      <input class="qz-name-inp" id="qz-name-inp" type="text" placeholder="Твоё имя" maxlength="40">
+      <p style="text-align:center;font-size:11px;color:var(--muted2);max-width:380px;margin:0 auto 16px;line-height:1.5;font-family:Calibri,sans-serif">Имя используется только для персонализации разбора. Продолжая, вы соглашаетесь с <a href="privacy-policy.html" target="_blank" style="color:var(--gold2)">Политикой конфиденциальности</a></p>
+      <button class="qz-btn-next" style="margin:0 auto;display:block;padding:15px 36px;font-size:15px" onclick="qzFinish()">Получить полный разбор →</button>
+      <div class="qz-skip" onclick="qzFinish()">Пропустить →</div>
+    </div>
+  </div>
+</div>
+<div id="app"></div>
+<div class="print-bar" id="print-bar">
+  <button class="print-btn secondary" onclick="window.close()">← Закрыть</button>
+  <button class="print-btn secondary" onclick="qzRestart()">↩ Пройти заново</button>
+  <button class="print-btn primary" onclick="window.print()">🖨 Сохранить PDF</button>
+</div>
+
+<script>
+const SEC = {
+business:[
+  {name:'Энергия',full:'Энергия основателя',
+   desc:'Твоя личная энергия — главный ресурс твоего дела. Когда ты в ресурсе, всё идёт лучше: решения яснее, отношения теплее, результаты приходят легче. Это не про слабость или силу — это просто забота о себе, которую каждый из нас заслуживает.',
+   deep:'Многие из нас привыкли работать на износ, считая это нормой. На самом деле, когда мы восстанавливаемся — намаз, сон, движение, тишина — мы принимаем лучшие решения и делаем больше за меньшее время. Это не роскошь, это мудрость.',
+   rec:'Установи «время выхода» из бизнеса — ежедневный намаз-стоп в 18:00. Проведи энергетический аудит по трём уровням: тело, эмоции, смысл. Один день в неделю без оперативки — это не роскошь, это стратегия. Составь список задач которые уходят с тебя уже на следующей неделе.',
+      rec:'Проведи энергетический аудит 3 дня: оценивай уровень 1–10 каждые 3 часа. Паттерн утечек увидишь к третьему дню. Составь «стоп-список» — что тратит без возврата. Введи «час тишины» без телефона: намаз, тишина, чай. Ежедневно в одно время.',
+tools:['Трекер энергии (Google Sheets)','Блок-расписание (Notion/Todoist)','Правило «без встреч до 10:00»','Приложение Sleep Cycle'],
+   steps:['Прямо сейчас — открой календарь и заблокируй 30 минут ежедневного «восстановительного блока». Назови его «Аманат». Не переносить, не удалять.','Сегодня вечером — запиши 3 вещи которые съедают энергию без отдачи. Завтра делегируй или удали одну из них.','На этой неделе — проведи энергетический аудит: каждые 3 часа фиксируй уровень 1–10 и что влияет. Паттерн увидишь за 3 дня.']},
+
+  {name:'Ният (Намерение)',full:'Ният (Намерение) и мышление основателя',
+   desc:'Намерение — корень каждого действия. Пророк ﷺ сказал: «Поистине, дела — по намерениям». Бизнес, построенный ради денег и статуса, неустойчив: при первых трудностях мотивация рушится. Бизнес ради пользы уммы (мусульманского сообщества) и ризка халяль — имеет внутренний стержень.',
+   deep:'Когда мы знаем ради чего работаем — появляется внутренняя сила, которая не зависит от обстоятельств. Рекомендую время от времени задавать себе один вопрос: «Ради чего всё это?» Это помогает оставаться собой даже в самые сложные моменты.',
+      rec:'Каждое утро 2 минуты: запиши ниятом одно намерение на день. Раз в месяц разбери 5 ключевых решений через фильтр: «Аллах доволен?». Веди журнал бараката — моменты когда чувствуешь Его помощь. Найди наставника с кем делать ежеквартальный ниятский разбор.',
+tools:['Утренний ният (намерение)-ритуал (2 минуты)','Журнал бараката (благословения) (Notion)','Вопрос-фильтр: «Аллах доволен этим?»','Ежеквартальный разбор миссии с наставником'],
+   steps:['Прямо сейчас — напиши одно предложение: «Я строю этот бизнес ради...». Если не можешь написать честно — это и есть главная работа.','Сегодня — поставь напоминание на каждый фаджр (предрассветный намаз): «Ради чего сегодня?». 1 минута каждое утро.','На этой неделе — вспомни 3 последних крупных решения. Прогони каждое через фильтр: «Аллах доволен?». Что меняется?']},
+
+  {name:'Самореализация',full:'Предназначение и зона гения',
+   desc:'Каждый человек создан с уникальным набором талантов — аманат от Аллаха. Когда бизнес построен внутри зоны гения, энергии хватает на всё. Когда человек занимается не своим — выгорание неизбежно.',
+   deep:'Каждый из нас хорош в чём-то своём. Рекомендую найти то, что у тебя получается легко и приносит удовольствие — и строить вокруг этого. Всё остальное можно постепенно передавать другим людям.',
+      rec:'Проведи «аудит дня» за 3 дня: записывай каждые 2 часа что делал — «зона гения» или «не моё». Всё что «не моё» больше 20% недели — первый кандидат на делегирование. Выдели 1 полный час в день когда занимаешься только своим. Это не роскошь — это стратегический актив.',
+tools:['Тест Strength Finder 2.0','Метод «3 колонки» (что умею / что заряжает / за что платят)','Матрица «делегирования» (Eisenhower)','Карта компетенций команды'],
+   steps:['Прямо сейчас — запиши 5 задач которые ты делал последние 3 дня. Отметь каждую: «зона гения» или «не моё».','Сегодня — выбери одну задачу «не моё» которую делаешь регулярно. Напиши кому её делегировать и к какому сроку.','На этой неделе — проведи 1 час в режиме «только моё»: занимайся исключительно тем, где ты на пике. Запомни ощущение.']},
+
+  {name:'Ценность',full:'Ценность и трансформация клиента',
+   desc:'Люди платят не за продукт и не за услугу — они платят за трансформацию. За то, кем они станут или чего избегут. Если ты не можешь чётко назвать трансформацию которую даёшь — у тебя нет продукта, у тебя есть занятость.',
+   deep:'Рекомендую попробовать сформулировать одним предложением: что конкретно меняется в жизни человека после того как он поработал с тобой? Когда ответ становится ясным — всё остальное выстраивается само.',
+      rec:'Проведи 3 глубоких звонка с клиентами: спроси только «что изменилось в твоей жизни после нас?». Запиши дословно. Перепиши описание продукта на языке этих ответов — не твоими словами, а их. Проверь: говоришь о себе или о клиенте?',
+tools:['Шаблон Jobs To Be Done','«До и после» — матрица трансформации','Интервью с клиентами (5 глубоких звонков)','Value Proposition Canvas (Strategyzer)'],
+   steps:['Прямо сейчас — напиши одно предложение: «Мой продукт помогает [кому] достичь [чего] без [главного страха]».','Сегодня — позвони одному довольному клиенту и спроси только одно: «Что изменилось в твоей жизни после работы с нами?» Запиши дословно.','На этой неделе — переформулируй описание своего продукта на языке трансформации клиента. Проверь: говоришь о себе или о клиенте?']},
+
+  {name:'Команда',full:'Команда — Экипаж корабля',
+   desc:'Команда — это сердце любого дела. Рекомендую обратить внимание на ценности при формировании команды — это сильно влияет на атмосферу и результаты. Люди с нужными ценностями вырастают в профессионалов, если им дать возможность.',
+   deep:'Рекомендую начать с простого: поговори с каждым в команде о том, что для него важно. Когда люди чувствуют что их слышат — они работают с душой. Ценности объединяют лучше любых инструкций.',
+      rec:'Оцени каждого члена команды по ценностям (1–10). Кто ниже 7 — первый разговор на этой неделе. Введи еженедельный 15-мин check-in: победа / трудность / нужна помощь. Напиши 3 обязательных ценности для найма — ещё до следующего собеседования.',
+tools:['Матрица «ценности × результаты» 2x2','Еженедельный 15-мин check-in (структура: победы/трудности/помощь)','Notion для OKR команды','Правило «культурного соответствия» при найме'],
+   steps:['Прямо сейчас — мысленно оцени каждого члена команды по шкале 1–10 по ценностям. Кто ниже 6 — это главный риск.','Сегодня — напиши 3 ценности которые ОБЯЗАТЕЛЬНЫ для работы в твоей команде. Это станет основой следующего найма.','На этой неделе — проведи первый 15-мин check-in с каждым ключевым человеком. Только три вопроса: победа / трудность / нужна помощь.']},
+
+  {name:'Сервис',full:'Продукт и клиентский сервис',
+   desc:'Продукт — это обещание. Сервис — это исполнение. Разрыв между ними снижает доверие клиентов. Каждая точка контакта с клиентом — это момент истины, который либо укрепляет доверие, либо разрушает.',
+   deep:'Вау-эффект — это не роскошь, это стратегия. Компании с вау-сервисом тратят на маркетинг в 5 раз меньше, потому что клиенты сами рассказывают. Начни с карты клиентского пути и найди 3 точки где клиент думает «нормально» — их нужно превратить в «вау».',
+      rec:'Пройди путь клиента сам как незнакомец — купи свой продукт анонимно. Найди 3 точки где клиент думает «нормально» и сделай хотя бы одну «вау». Введи правило: на жалобу ответ за 2 часа, на проблему — решение за 24 часа. Это меняет лояльность.',
+tools:['Customer Journey Map (Miro/Figma)','NPS опрос (раз в квартал)','Система обработки жалоб (SLA 24 часа)','Шаблон follow-up письма после покупки'],
+   steps:['Прямо сейчас — вспомни последнюю жалобу клиента. Что стояло за ней системно? Запиши одно изменение, которое предотвратит повтор.','Сегодня — напиши одному клиенту персональное сообщение: «Как у вас дела? Что могу улучшить?» Без цели продать.','На этой неделе — пройди путь клиента сам: купи собственный продукт как незнакомец. Где больно?']},
+
+  {name:'Маркетинг',full:'Маркетинг и система привлечения',
+   desc:'Маркетинг без системы — это паника перед каждым месяцем. Системный маркетинг работает пока ты спишь. Разница между паникой и системой — один качественный канал доведённый до автоматизма.',
+   deep:'80% предпринимателей делают ошибку: пробуют 5 каналов одновременно и ни один не доводят до работающего состояния. Правило одного канала: выбери один канал, доведи его до предсказуемого потока клиентов, только потом добавляй второй. 90 дней на один канал.',
+      rec:'Назови один канал откуда пришли 80% лучших клиентов. Следующие 90 дней — только этот канал, ничего больше. Сделай один контент в неделю, который бьёт точно в главную боль клиента. Замеряй: сколько лидов и сделок даёт канал ежемесячно.',
+tools:['Формула «1-3-1» (1 ЦА / 3 боли / 1 канал)','CRM для отслеживания воронки (Bitrix24/AmoCRM)','Контент-план на месяц (Notion)','Метрики воронки: охват → лиды → сделки'],
+   steps:['Прямо сейчас — назови один канал откуда пришли 80% лучших клиентов. Это твой приоритет.','Сегодня — напиши 3 конкретные боли идеального клиента. Не твои преимущества — его боли.','На этой неделе — создай один единственный пост/сообщение/видео, которое бьёт точно в главную боль. Распространи через один канал.']},
+
+  {name:'Инновации',full:'Инновации и способность меняться',
+   desc:'Мир меняется экспоненциально. Бизнес, который не обновляется, умирает медленно, но неизбежно. Инновация — это не обязательно революция. Это культура: замечать изменения раньше конкурентов и реагировать быстрее.',
+   deep:'Лучшие инновации приходят не на конференциях — они приходят от глубокого понимания клиентов. Регулярный контакт с клиентами + еженедельный час на изучение трендов ниши = конкурентное преимущество, которое нельзя купить.',
+      rec:'Введи «час инноваций» в пятницу: 30 минут читаешь тренды ниши, 30 минут тестируешь одну идею. Раз в квартал задавай клиентам вопрос: «Если бы денег не было — что хотели бы от нас иначе?». Ответы — твой R&D бюджет.',
+tools:['Google Alerts по ключевым словам ниши','«Час инноваций» в пятницу (30 мин чтение + 30 мин тест идеи)','Доска идей (Trello/Notion)','2-недельный спринт для новых идей'],
+   steps:['Прямо сейчас — подпишись на 3 топ-блога или каналов в своей нише. Поставь 30 минут в пятницу для чтения.','Сегодня — спроси клиента: «Что если бы денег не было — что бы ты хотел чтобы мы делали иначе?»','На этой неделе — выбери одну идею которую откладывал. Дай ей 3 дня теста при минимальных ресурсах.']},
+
+  {name:'Показатели',full:'Цифры и управление по данным',
+   desc:'Невозможно управлять тем, что не измеряешь. Предприниматели которые не знают своих ключевых цифр — не управляют бизнесом, они реагируют на него. Управление — это когда ты видишь проблему раньше, чем она стала кризисом.',
+   deep:'5 цифр достаточно для управления 90% бизнесов: выручка (план/факт), маржа, конверсия воронки, LTV клиента, cash runway. Остальное — детали. Смотреть каждое утро — 5 минут. Иметь «дашборд капитана» в телефоне — это и есть управление.',
+      rec:'Создай «дашборд капитана» из 5 цифр: выручка, маржа, конверсия, LTV, cash. Смотри каждое утро 5 минут. Поставь напоминание каждый понедельник 09:00 «Пульс бизнеса». Если не знаешь хотя бы одну из пяти — это точка роста номер один.',
+tools:['Google Sheets дашборд (шаблон «5 цифр»)','Notion для OKR + недельного пульса','Финансовый отчёт P&L (раз в месяц)','Cash flow прогноз на 90 дней'],
+   steps:['Прямо сейчас — запиши цифру: какая выручка за этот месяц на сегодня? Если не знаешь — это первая проблема.','Сегодня — создай таблицу из 5 строк: выручка, маржа, новые клиенты, повторные покупки, cash. Заполни то что знаешь.','На этой неделе — настрой напоминание каждый понедельник 09:00 «Пульс бизнеса». 10 минут на обновление цифр.']},
+
+  {name:'Клиенты',full:'Клиентская база и лояльность',
+   desc:'Существующий клиент стоит в 5 раз дешевле нового. Лояльный клиент приводит троих. Компании которые инвестируют в отношения с существующими клиентами, растут без зависимости от рекламного бюджета.',
+   deep:'LTV (пожизненная ценность клиента) — главная метрика, которую игнорируют большинство предпринимателей. Если LTV растёт, бизнес здоров. Инвестируй в клиентский опыт, систему возврата и программу лояльности — это ROI, который работает годами.',
+      rec:'Выдели 5 самых ценных клиентов и напиши им лично — не продавать, просто спросить как дела. Введи правило: каждую пятницу один звонок клиенту «просто так». Посчитай LTV топ-клиентов — эта цифра покажет сколько стоит вкладывать в их удержание.',
+tools:['CRM с историей касаний','NPS после каждой сделки','Программа «Приведи друга»','Ежеквартальный звонок топ-клиентам'],
+   steps:['Прямо сейчас — открой список клиентов и выдели 5 самых ценных. Они знают, что они важны для тебя?','Сегодня — напиши одному из них короткое сообщение просто спросить как дела. Не продавать.','На этой неделе — введи правило: каждую пятницу один звонок клиенту «просто так». Это изменит отношения за 30 дней.']},
+
+  {name:'Контрагенты',full:'Партнёры и цепочка поставок',
+   desc:'Надёжность цепочки поставок — это надёжность твоего обещания клиенту. Один ненадёжный подрядчик ломает продукт, отношения и репутацию. Выбирай партнёров как экипаж — по ценностям, потом по компетенции.',
+   deep:'Правило диверсификации: ни один контрагент не должен быть незаменимым. Для каждой критической функции должна быть альтернатива на случай форс-мажора. Это не паранойя — это управление рисками.',
+      rec:'Составь карту зависимостей: для каждого критического контрагента запиши альтернативу. Ни один партнёр не должен быть незаменимым. Проверь: все ключевые договорённости оформлены письменно? Найди один незащищённый узел и закрой его на этой неделе.',
+tools:['Карта зависимостей (список + уровень риска)','Чеклист выбора подрядчика','Шаблон базового договора','Матрица «критичность × надёжность»'],
+   steps:['Прямо сейчас — назови одного контрагента от которого максимально зависишь. Есть ли у тебя план Б?','Сегодня — проверь: все ключевые договорённости оформлены документально? Найди один пробел.','На этой неделе — составь список 5 критических зависимостей и для каждой запиши потенциальную альтернативу.']},
+
+  {name:'Государство',full:'Юридическая чистота и compliance',
+   desc:'Спокойная совесть перед государством — один из источников бараката (благословения от Аллаха) в бизнесе. Нечистота в налогах, документах, трудовых отношениях создаёт фоновый стресс, который блокирует рост и решения.',
+   deep:'Предприниматели часто откладывают юридическую чистоту «на потом». Но каждый месяц без порядка — это накопленный риск. 1 день грамотного аудита закрывает проблемы которые иначе накапливались бы годами.',
+      rec:'Зайди в личный кабинет налоговой и проверь задолженности — прямо сейчас. Составь список всех активных договоров и проверь актуальность каждого. Запланируй 2-часовой юридический аудит раз в квартал. Один день порядка закрывает риски которые копились годами.',
+tools:['Чеклист юридического аудита','1С/сервис онлайн-бухгалтерии','Консультация с налоговым юристом (раз в год)','Папка «Документы» с актуальными уставными документами'],
+   steps:['Прямо сейчас — есть ли задолженность по налогам или взносам? Зайди в личный кабинет налоговой и проверь.','Сегодня — составь список всех активных договоров. Все ли подписаны и актуальны?','На этой неделе — проведи 2-часовой юридический аудит: документы, налоги, трудовые договора. Закрой 1 серый момент.']},
+
+  {name:'Прибыль',full:'Прибыль и финансовое здоровье',
+   desc:'Выручка — это суета, прибыль — это реальность, денежный поток — это жизнь. Бизнес может расти по выручке и умирать от кассового разрыва. Три цифры должны быть в голове всегда.',
+   deep:'Самая частая ошибка: путать оборот с прибылью. Бизнес с выручкой 10 млн и маржой 3% зарабатывает меньше, чем бизнес с 3 млн и маржой 30%. Управляй маржой, не оборотом.',
+      rec:'Посчитай чистую маржу этого месяца — выручка минус все расходы. Внедри систему Profit First: с каждого поступления сразу откладывай 5–10% на отдельный счёт прибыли. Управляй маржой не оборотом — бизнес с 30% маржой здоровее чем с 3% при втрое большей выручке.',
+tools:['P&L отчёт (ежемесячно)','Cash flow прогноз (Google Sheets)','Правило «сначала прибыль» (Profit First)','Точка безубыточности — считать ежеквартально'],
+   steps:['Прямо сейчас — какая твоя чистая маржа в этом месяце? Выручка минус все расходы = ?','Сегодня — запиши все постоянные расходы. Есть ли что-то что платится и не даёт результата?','На этой неделе — внедри систему Profit First: с каждого поступления сразу откладывай 5–10% на отдельный счёт прибыли.']},
+
+  {name:'Личный доход',full:'Личный доход и финансы семьи',
+   desc:'Твоя семья — первая ответственность. Бизнес, который не обеспечивает достойный личный доход — это хобби за чужой счёт. Установить «зарплату основателя» — это дисциплина и честность.',
+   deep:'Многие предприниматели месяцами «реинвестируют всё» и не платят себе. Это путь к накопленной обиде, семейным конфликтам и финансовому стрессу. Минимальная зарплата основателя должна покрывать базовые потребности семьи — это не жадность, это фарида.',
+      rec:'Установи фиксированную «зарплату основателя» — минимум покрывающий базовые нужды семьи. Это строка расходов, не прихоть. Открой отдельный личный счёт если нет. Переведи зарплату основателя в первых числах следующего месяца. Семья — первая ответственность.',
+tools:['Семейный бюджет (Google Sheets)','Раздельные счета: бизнес / личный / резерв','Правило: личный доход = фиксированная строка расходов бизнеса'],
+   steps:['Прямо сейчас — сколько ты заплатил себе в этом месяце? Если 0 — напиши минимальную сумму которую семья реально нуждается.','Сегодня — открой отдельный личный счёт если его нет. Бизнес-деньги и личные деньги — разные.','На этой неделе — установи «минимальную зарплату основателя» и переведи её в первых числах следующего месяца.']},
+
+  {name:'СТАБ фонд',full:'Финансовая подушка и устойчивость',
+   desc:'Финансовая подушка — это не роскошь, а спокойствие. Рекомендую постепенно формировать резерв: даже небольшой запас даёт уверенность и позволяет принимать решения без давления.',
+   deep:'Правило «Сначала резерв»: 10% от каждого поступления уходит на резервный счёт. Не трогать пока не накоплено 3 месяца расходов. После этого 10% идут на развитие. Это не консервативно — это профессионально.',
+      rec:'Открой отдельный накопительный счёт и переведи туда хотя бы 1000 рублей как старт. Настрой автоматический перевод 10% от каждого поступления. Цель — 3 месяца операционных расходов. Эта подушка превратит следующий кризис из катастрофы в временное неудобство.',
+tools:['Отдельный накопительный счёт','Правило 10% от каждого поступления','Расчёт: ежемесячные расходы × 3 = цель','Депозит для резерва (не текущий счёт)'],
+   steps:['Прямо сейчас — сколько месяцев операционных расходов у тебя на счёте прямо сейчас? Посчитай.','Сегодня — открой отдельный накопительный счёт если нет. Переведи туда хотя бы 1000 рублей как старт.','На этой неделе — настрой автоматический перевод 10% от каждого поступления на резервный счёт.']}
+],
+personal:[
+  {name:'Иман (Вера)',full:'Духовный стержень — вера, поклонение, связь с Аллахом',
+   desc:'Иман (Вера) — якорь корабля. Без него любой шторм сносит с курса. Насколько сильна живая, ощутимая связь с Аллахом в ежедневной жизни — не теоретически, а в моменты решений, страхов и радости.',
+   deep:'Иман (Вера) — не статичная величина. Он повышается и понижается. «Иман (Вера) изнашивается как одежда» — говорят учёные. Его нужно регулярно обновлять: зикром (поминанием Аллаха), Кораном, хорошим окружением, дуа (обращение к Аллаху с просьбой) и мухасабой. Намаз — не вставка в расписание, а якорная точка дня вокруг которой строится всё остальное.',
+      rec:'Начни с одного азкара который будешь читать постоянно — только один. Переведи «намаз в день» в «день вокруг намаза» — это смена оптики, не расписания. Веди журнал дуа (обращение к Аллаху с просьбой): записывай просьбы и отмечай когда принято. Это строит живую, ощутимую связь.',
+tools:['Утренние и вечерние азкары (молитвы-поминания)','Приложение Muslim Pro / Athan для напоминаний','Журнал дуа (обращение к Аллаху с просьбой)','Хатм Корана — план чтения по 1 джузу'],
+   steps:['Прямо сейчас — прочитай истигфар (просьбу о прощении у Аллаха) 3 раза и сделай дуа (обращение к Аллаху с просьбой) за одного человека, которому тяжело. Это момент иман (вера)-восстановления.','Сегодня — выбери один азкар (молитва-поминание), который будешь читать постоянно. Только один. Субханаллах 33 раза после намаза.','На этой неделе — 7 дней подряд планируй день вокруг пяти намазов. Не «вставляй намаз в день», а «вставляй день вокруг намаза».']},
+
+  {name:'Здоровье',full:'Физическое здоровье — Аманат Аллаха',
+   desc:'Тело — это аманат. «У тела есть права на тебя» — хадис Пророка ﷺ. Нарушение этого аманата — пренебрежение сном, движением и питанием — это не просто здоровье, это ответственность перед Аллахом.',
+   deep:'Три кита физического здоровья: сон (7–8 часов, встать на фаджр (предрассветный намаз)), движение (30 минут ходьбы — минимальный порог), питание (половина тарелки овощи, умеренность). Начни с одного — самого слабого. Маленькое постоянное лучше большого временного.',
+      rec:'Выбери один из трёх — сон, движение или питание — самый слабый. Одно конкретное действие на 30 дней. Встать и пройти 10 минут сейчас лучше чем идеальный план в голове. Ложись в 22:30 следующие 3 дня как эксперимент — и посмотри что изменится.',
+tools:['Приложение Sleep Cycle / Simple Habit','Google Fit / шагомер','Правило «половина тарелки»','Ежегодный медосмотр как обязательное дело'],
+   steps:['Прямо сейчас — встань и пройди 10 минут. Буквально сейчас. Это минимальная доза движения.','Сегодня вечером — ложись в 22:30. Поставь телефон на зарядку вне спальни. Один эксперимент.','На этой неделе — выбери один из трёх (сон/движение/питание) — самый слабый. Одно конкретное действие на 30 дней.']},
+
+  {name:'Энергия',full:'Жизненная энергия и ресурсное состояние',
+   desc:'Энергия — это не только про физическое тело. Это совокупность физической, эмоциональной и духовной заряженности. Можно спать 8 часов и быть опустошённым, если иман (вера) слаб, окружение токсично или в жизни нет смысла.',
+   deep:'Четыре источника энергии: тело (сон/движение), дух (иман (вера)/намаз), смысл (ясность намерения), окружение. Утечки: токсичные отношения, незавершённые дела, информационный мусор, отсутствие границ. Энергетический аудит — увидеть где течёт.',
+   tools:['Энергетический журнал (оценка 1–10 каждые 3 часа)','«Стоп-список» — что тратит энергию без возврата','Правило «без телефона первый час утра»','Практика шукур (благодарность) перед сном'],
+   steps:['Прямо сейчас — оцени свою энергию прямо сейчас по шкале 1–10. Что влияло последние 24 часа?','Сегодня — запиши 3 вещи/людей/ситуации которые тратят твою энергию больше всего. Одну из них — убери или ограничь.','На этой неделе — введи «час тишины» без телефона. Каждый день в одно и то же время. Намаз + тишина + чай.']},
+
+  {name:'Время',full:'Время — невозобновляемый ресурс',
+   desc:'Время — единственный ресурс, который нельзя вернуть. Всё остальное можно восстановить: деньги, здоровье, отношения. Время — никогда. Как мусульманин распоряжается временем — это отражение его ниятов (намерений) и приоритетов.',
+   deep:'Большинство людей управляются временем, а не управляют им. Реактивный режим: отвечать на сообщения, тушить пожары, делать срочное. Проактивный режим: сначала важное, потом всё остальное. Намаз создаёт структуру — 5 якорных точек дня. ВАКТ строится именно на этом.',
+      rec:'Определи одну главную задачу (MIT) на каждый день — ту которая сделает день успешным независимо от всего остального. Аудит времени за 3 дня: записывай каждый час что делал. Найдёшь 2–3 часа «реакции» которые можно заменить на «важное».',
+tools:['«Блок-расписание» — 3 блока дня (утро/день/вечер)','Метод «MIT» — Most Important Task каждый день','Приложение Toggl Track для аудита времени','Правило «2 минуты» (Дэвид Аллен)'],
+   steps:['Прямо сейчас — запиши одну главную задачу на сегодня. Одну. Что сделает день успешным независимо от всего остального?','Сегодня — проверь: на что ушли последние 3 часа? Это твой приоритет или реакция?','На этой неделе — 7 дней веди простой трекер: утро (что сделал до обеда), день, вечер. Паттерн увидишь за 3 дня.']},
+
+  {name:'Эмоции',full:'Эмоциональная стабильность и мухасаба (вечерний самоотчёт)',
+   desc:'Эмоциональная нестабильность — это не слабость характера, это симптом: слабый иман (вера), хронический стресс, незакрытые раны или нехватка сна. Каждое из них решаемо. Мухасаба (Вечерний самоотчёт) — ежедневный инструмент работы с эмоциями.',
+   deep:'Вечерний самоанализ — 5 минут в конце дня — это простая и очень ценная практика. Что прошло хорошо? Что хочу сделать иначе завтра? Рекомендую попробовать: это помогает расти постепенно, без самокритики, с добротой к себе.',
+      rec:'Начни вечернюю мухасабу: 3 вопроса перед сном — что хорошего, что бы сделал иначе, за что благодарен. 5 минут. При сильных эмоциях — «Пауза + Аузу биллях» до ответа. 7 дней мухасабы меняют качество следующего дня.',
+tools:['Вечерняя мухасаба (вечерний самоотчёт)','Дневник эмоций (триггеры + реакции + выводы)','Практика «Пауза + Аузу биллях» при сильных эмоциях','Дуа (Обращение к Аллаху с просьбой) от тревоги и гнева из Сунны'],
+   steps:['Прямо сейчас — закрой глаза на 60 секунд. Сделай 5 глубоких вдохов. Скажи «Альхамдулиллях» за 3 вещи прямо сейчас.','Сегодня вечером — ответь на 3 вопроса: Что хорошего было сегодня? Что бы я сделал иначе? За что благодарен Аллаху?','На этой неделе — 7 дней подряд делай мухасабу перед сном. 5 минут. Это изменит качество следующего дня.']},
+
+  {name:'Развитие',full:'Знания, рост и реализация потенциала',
+   desc:'«Кто сегодня равен вчерашнему — в убытке» — принцип исламского роста. Стагнация — это не нейтральная позиция, это деградация. Аллах вложил в каждого потенциал — его нужно раскрывать.',
+   deep:'Парадокс развития: люди читают много, применяют мало. Знание без амаля — это бремя, а не сила. Цикл роста: узнал → применил → закрепил → поделился. Только пройдя весь цикл знание становится твоим навыком.',
+      rec:'«15 минут роста» каждое утро — книга, подкаст, урок. На каждую прочитанную книгу одно конкретное действие. Знание без применения — бремя. Раз в квартал личный разбор: что вырос, что нет. Цикл: узнал → применил → поделился.',
+tools:['«15 минут роста» каждое утро (книга/подкаст/курс)','Notion для личного «Банка знаний»','Правило: на каждую прочитанную книгу — одно конкретное действие','Ежеквартальный личный разбор: что вырос, что нет'],
+   steps:['Прямо сейчас — назови одну книгу или тему которую хочешь изучить. Открой её прямо сейчас и прочитай первую страницу.','Сегодня — поставь напоминание «15 минут роста» на завтра в 07:30. После фаджра.','На этой неделе — пройди одно конкретное упражнение из любой книги которую читал. Применённое знание — настоящее знание.']},
+
+  {name:'Страхи',full:'Страхи и внутренние блоки',
+   desc:'Страх — это сигнал. Не враг, не истина, а сигнал о чём-то важном. Проблема не сам страх — а то, что он начинает управлять решениями вместо ниятов (намерений) и ценностей. Таваккуль (Доверие Аллаху) — не безответственность, а действие при полной опоре на Аллаха.',
+   deep:'Три вида страха: страх потери (имущество, статус, отношения), страх осуждения (что скажут люди), страх неизвестности (что будет). Каждый из них имеет исламский ответ: хасбуналлах («Аллаха достаточно для меня»), доверие Аллаху, истихара (молитва о выборе верного решения). Работа со страхами — это работа с иманом (верой).',
+      rec:'Назови главный страх одним предложением и запиши его на бумаге. Вынесенный из головы страх теряет 50% силы. Задай себе вопрос: «Если случится худшее — как я справлюсь?» Запиши конкретный ответ. Одно откладываемое действие — сделай на этой неделе.',
+tools:['Упражнение «Худший сценарий» (запись + разбор)','Журнал страхов: что боюсь / что реально произойдёт / что сделаю','Практика истихара (молитва о выборе верного решения) перед важными решениями','Дуа (Обращение к Аллаху с просьбой) против тревоги и страха из Корана'],
+   steps:['Прямо сейчас — назови свой главный страх одним предложением. Запиши его. Вынеси из головы на бумагу.','Сегодня — спроси себя: «Если случится самое худшее — как я справлюсь?» Запиши конкретный ответ. Страх теряет власть, когда у него есть имя.','На этой неделе — одно действие, которое ты откладывал из-за страха. Сделай его. Не завтра — на этой неделе.']},
+
+  {name:'Родители',full:'Отношения с родителями — забота о родителях',
+   desc:'Довольство родителей — один из кратчайших путей к довольству Аллаха. «Рай находится у ног матери». Один звонок, одна улыбка, одно «как ты себя чувствуешь?» — это поклонение, которое доступно каждый день.',
+   deep:'Самая частая ошибка: думать что «разберусь с родителями потом, сейчас дела». Но родители стареют. Возможности сделать им приятное конечны. То что можно сделать сегодня — завтра может быть уже невозможным. Это не давление — это реальность.',
+      rec:'Позвони маме или папе прямо сейчас — не пиши, именно позвони. Введи правило: минимум 3 звонка в неделю. Вспомни одно невыполненное обещание родителям — напиши дату когда сделаешь. Возможности порадовать их конечны. То что можно сегодня, завтра может быть недоступно.',
+tools:['«Правило звонка» — минимум 3 раза в неделю','Календарное напоминание на дни рождения и важные даты','«15 минут полного внимания» при встрече — без телефона','Список невыполненных обещаний родителям — закрыть по одному'],
+   steps:['Прямо сейчас — позвони маме или папе. Не пиши — позвони. Просто спроси, как дела. Прямо сейчас.','Сегодня — вспомни одно обещание, которое дал родителям и не выполнил. Напиши когда сделаешь.','На этой неделе — сделай что-то для родителей, что они не просили. Купи что-то нужное, помоги с делом, просто приедь.']},
+
+  {name:'Жена / Муж',full:'Отношения с супругой — добрые отношения в браке',
+   desc:'«Лучший из вас — лучший к своей семье» — Пророк ﷺ. Гармония дома — фундамент для роста везде. Недовольный дом — это утечка энергии, концентрации и бараката (благословения от Аллаха). Качество присутствия важнее количества времени.',
+   deep:'Главная ошибка в браке: принимать близость как данность и перестать вкладывать. Отношения — живой организм, который требует ежедневного ухода. Один инструмент меняет всё: спрашивай «Как ты?» и слушай полностью. Без телефона, без советов — просто слушай.',
+      rec:'Раз в неделю: 2 часа вдвоём без телефонов — пусть партнёр выбирает что делать. Каждый день спрашивай «Как ты?» и слушай полностью, без советов. Узнай язык любви партнёра (книга «5 языков любви») и говори на нём — не на своём.',
+tools:['«Свидание без телефона» раз в неделю (2 часа)','Вопрос недели: «Что я могу сделать лучше для тебя?»','«5 языков любви» — книга Гэри Чепмена (узнай язык партнёра)','Утреннее/вечернее приветствие с вниманием (не на ходу)'],
+   steps:['Прямо сейчас — напиши или скажи супруге/супругу одно конкретное что ты ценишь в нём/ней. Конкретно, не «ты хороший».','Сегодня — спроси: «Что я могу сделать сегодня чтобы тебе было легче?» И сделай это.','На этой неделе — предложи одно «свидание»: 2 часа вдвоём без телефонов и детей. Пусть выберет что делать.']},
+
+  {name:'Дети',full:'Воспитание детей — вклад в будущее поколение',
+   desc:'Праведный ребёнок — продолжающаяся благотворительность (непрерывное пожертвование), которая работает после смерти. Твоё присутствие — самый ценный подарок. Дети не запоминают подарки. Они запоминают моменты, когда ты был полностью здесь.',
+   deep:'Качество внимания важнее количества. 15 минут полного присутствия — один на один, без телефона, пусть выбирает чем заниматься — создаёт большую близость чем часы в одной комнате с телефоном в руках. Дети чувствуют качество внимания безошибочно.',
+      rec:'Каждый день 15 минут один на один с каждым ребёнком — без телефона, пусть выбирает чем заниматься. Вечером один вопрос: «Что было самое хорошее сегодня?» Слушай без спешки. Начни один семейный ритуал — это создаёт культуру семьи которую дети унесут с собой.',
+tools:['«15 минут один на один» — ежедневно с каждым ребёнком','Семейный утренний ритуал (5 минут дуа (обращение к Аллаху с просьбой) вместе)','Совместное чтение исламских историй перед сном','Вопрос: «Что было самое лучшее в твоём дне?»'],
+   steps:['Прямо сейчас — если дети рядом: положи телефон и проведи следующие 15 минут только с ними. Пусть выберут чем заниматься.','Сегодня вечером — перед сном спроси каждого ребёнка: «Что было самое хорошее сегодня?» Слушай без спешки.','На этой неделе — начни один семейный ритуал: совместный утренний зикр (поминание Аллаха), вечернее чтение или воскресный завтрак. Один ритуал меняет культуру семьи.']},
+
+  {name:'Окружение',full:'Окружение — среда роста или деградации',
+   desc:'«Человек — на религии своего ближайшего друга» — хадис. Окружение формирует стандарты, цели, язык и привычки. Это самый недооценённый фактор личного роста — и самый мощный.',
+   deep:'Пять самых частых людей в жизни — их среднее и есть твой реальный уровень. Не тот которым хочешь быть, а тот которым являешься. Хочешь расти — нужны люди уровнем выше. IQ Barakah — это не просто программа, это новое окружение.',
+      rec:'Проведи аудит окружения: 10 ближайших людей, оценка влияния +/–. Сократи токсичные контакты, не объявляя об этом. Найди одно сообщество людей с твоими ценностями. Напиши одному человеку которого уважаешь и давно не общался — сегодня.',
+tools:['«Аудит окружения» — список 10 ближайших людей + оценка влияния','Сообщество IQ Barakah как среда роста','«Один ментор» — найти человека уровнем выше и учиться','Правило: сократить токсичные контакты на 50% за 30 дней'],
+   steps:['Прямо сейчас — вспомни 3 человека которые заряжают и 3 которые тратят. Это первый шаг аудита.','Сегодня — напиши одному человеку которого уважаешь и давно не общался. Просто поздоровайся.','На этой неделе — найди одно сообщество людей с твоими ценностями и войди в него.']},
+
+  {name:'Садака (Благотворительность)',full:'Садака (Благотворительность) и польза людям',
+   desc:'«Лучший из людей — тот, кто приносит больше пользы людям» — Пророк ﷺ. Садака (Благотворительность) — не только деньги. Знание, улыбка, дуа (обращение к Аллаху с просьбой), помощь, совет — всё садака (благотворительность). И всё умножает ризк (пропитание от Аллаха).',
+   deep:'Садака (Благотворительность)-привычка (привычка жертвовать) — одно из самых мощных изменений в жизни. Когда ты начинаешь думать «что я могу дать сегодня?» вместо «что я получу?» — меняется вся оптика жизни. Щедрость притягивает баракат (благословение и изобилие от Аллаха) — это не метафора, это закон Аллаха.',
+      rec:'Сделай одно доброе дело анонимно сегодня. Перед сном задавай вопрос: «Что я сделал для кого-то сегодня?» Выбери текущую садака (благотворительность)-джарию — что-то что продолжится после тебя. Когда начинаешь думать «что могу дать?» вместо «что получу?» — меняется вся оптика жизни.',
+tools:['Ежедневный минимум садаки (хотя бы одно доброе дело)','Jar садаки дома (физическая монетка каждый день)','Правило: перед сном — «Что я сделал для кого-то сегодня?»','Текущая садака (благотворительность)-джария (непрерывная благотворительность)'],
+   steps:['Прямо сейчас — сделай дуа (обращение к Аллаху с просьбой) за одного человека, которому сейчас тяжело. Это садака (благотворительность).','Сегодня — сделай одно доброе дело анонимно. Никто не должен знать.','На этой неделе — выбери текущую садака (благотворительность)-джарию: помочь мечети, оплатить учёбу нуждающегося, сделать взнос на воду. Что-то что продолжится после тебя.']},
+
+  {name:'Финансы',full:'Финансовый порядок и дозволенный заработок',
+   desc:'Хаос в финансах — отражение хаоса в мышлении. Дозволенный заработок (пропитание от Аллаха), своевременный закят (обязательный налог в пользу нуждающихся), отсутствие долгов — это не просто финансовое здоровье, это чистота, которая открывает баракат (благословение и изобилие от Аллаха).',
+   deep:'Три уровня финансового порядка: 1) знаешь свои цифры (приход, расход, долги), 2) есть система (бюджет, закят (обязательный налог в пользу нуждающихся), накопление), 3) есть подушка (3 месяца расходов). Большинство застревает на первом уровне. Начни с простого: один документ, еженедельное обновление.',
+      rec:'Открой банковское приложение и посчитай расходы за этот месяц. Создай один документ: доход / обязательные расходы / остаток. «Финансовый четверг» — 20 минут аудита каждую неделю. Рассчитай и выплати закят (обязательный налог в пользу нуждающихся) если не делал — это открывает ризк (пропитание от Аллаха).',
+tools:['Таблица «Приход/Расход» в Google Sheets','«Финансовый четверг» — 20 минут аудита каждую неделю','Закят (Обязательный налог в пользу нуждающихся)-калькулятор (online)','Правило 50/30/20 (нужды/желания/накопление)'],
+   steps:['Прямо сейчас — открой банковское приложение. Сколько потратил за этот месяц? На что уходит больше всего?','Сегодня — создай папку «Финансы» в заметках или Notion. Запиши: доход этого месяца / все обязательные расходы / остаток.','На этой неделе — рассчитай закят (обязательный налог в пользу нуждающихся) если не делал. Выплати или запланируй. Закят (Обязательный налог в пользу нуждающихся) открывает ризк (пропитание от Аллаха).']},
+
+  {name:'Наследие',full:'Наследие — след, который остаётся навсегда',
+   desc:'Жизнь короткая, а след — вечный. Три вещи продолжаются после смерти: продолжающаяся благотворительность (непрерывное пожертвование), знание, которым пользуются, праведный ребёнок, который делает дуа (обращение к Аллаху с просьбой). Жить с осознанием наследия — значит принимать решения иначе.',
+   deep:'Большинство людей планируют следующую неделю, лучшие — следующий год. Мудрые — следующее поколение. Вопрос «что обо мне скажут мои дети через 30 лет?» меняет сегодняшние приоритеты.',
+      rec:'Ответь на один вопрос: «Если бы меня не стало завтра — что бы я хотел, чтобы дети обо мне знали?» Запиши. Начни «письмо наследия» — одна страница, не доделывай, просто начни. Сделай одно действие которое будет работать после тебя.',
+tools:['«Письмо будущим поколениям» — написать сегодня','Список садака (благотворительность)-джария (непрерывная благотворительность) проектов (большие и малые)','Завещание — оформить по всем нормам ислама','«Личный манифест» — что я хочу передать детям'],
+   steps:['Прямо сейчас — ответь на один вопрос: «Если бы меня не стало завтра — что бы я хотел, чтобы мои дети о мне знали?» Запиши первое что пришло.','Сегодня — начни «письмо наследия»: одна страница для детей или близких. Не доделывай — просто начни.','На этой неделе — сделай одно действие, которое будет работать после тебя. Перевод на мечеть, запись урока, посадить дерево.']},
+
+  {name:'Баракат (Благословение и изобилие от Аллаха)',full:'Баракат (Благословение и изобилие от Аллаха) — благодать во всём',
+   desc:'Баракат (Благословение и изобилие от Аллаха) — это не богатство и не успех. Это когда малое приносит много, усилие приносит результат, а в доме мир. Баракат (Благословение и изобилие от Аллаха) — знак того что Аллах доволен. Его нельзя купить — только заслужить чистотой ниятов (намерений) и благодарностью.',
+   deep:'Шукур (Благодарность) умножает баракат (благословение и изобилие от Аллаха) — это не просто слова, это закон Аллаха: «Если будете благодарны, Я добавлю вам». Регулярная инвентаризация того что уже есть — практика, которая открывает глаза на уже данный баракат (благословение и изобилие от Аллаха) и привлекает новый.',
+      rec:'Каждый вечер запиши 3 момента где сегодня был баракат (благословение и изобилие от Аллаха) — даже самых маленьких. 7 дней журнала бараката меняют взгляд на жизнь. Утром дуа (обращение к Аллаху с просьбой) за баракат (благословение и изобилие от Аллаха) в деле и времени. Шукур (Благодарность) умножает — это не метафора, это закон Аллаха.',
+tools:['«Дневник бараката» — 3 вещи за которые благодарен каждый вечер','Утренняя дуа (обращение к Аллаху с просьбой) за баракат (благословение и изобилие от Аллаха) в деле, времени и ризке','Отслеживать «знаки бараката» — когда вещи складываются','Вечерний вопрос: «Где сегодня был баракат (благословение и изобилие от Аллаха)?»'],
+   steps:['Прямо сейчас — назови 5 вещей в жизни прямо сейчас за которые благодарен. Конкретно, не абстрактно.','Сегодня вечером — запиши 3 момента где сегодня чувствовался баракат (благословение и изобилие от Аллаха). Даже самых маленьких.','На этой неделе — 7 дней ведь «журнал бараката»: каждый вечер 3 записи. К концу недели твой взгляд на жизнь изменится.']}
+]};
+
+function buildNextSteps(scores, secs, avg, critCount, goodCount, tab, isOL){
+  // Определяем профиль по блокам, не по проценту
+  const secScores = secs.map((s,i)=>({name:s.name, score:scores[i], i}));
+  const top2weak = secScores.filter(s=>s.score<65).sort((a,b)=>a.score-b.score).slice(0,2).map(s=>s.name);
+
+  let rec, recReason, featured;
+
+  // Лидер мнения — особый профиль: влияние есть, системы нет
+  if(isOL){
+    const reach    = tab==='business' ? [6,13] : [7,8];   // Маркетинг+Лидерство / Окружение+Благ
+    const systems  = tab==='business' ? [9,8,4] : [11,10]; // Системы+Финансы+Команда / Время+Мечты
+    const weakSys  = systems.filter(i=>scores[i]<65).length;
+    const strongRch= reach.filter(i=>scores[i]>=60).length;
+
+    if(strongRch>=1 && weakSys>=1){
+      // Классический OL: охват есть — система и глубина провисают
+      rec='leader';
+      featured='leader';
+      recReason = top2weak.length
+        ? `У тебя есть влияние — это редкость. Но «${top2weak[0]}» держит тебя на уровне ниже твоего потенциала. Работа 1 на 1 позволит выстроить систему под твой масштаб.`
+        : 'Твоё влияние — актив. Лидер Уммы поможет выстроить под него систему и вырасти в глубину, а не только в охват.';
+    } else {
+      rec='potok';
+      featured='potok';
+      recReason = top2weak.length
+        ? `«${top2weak[0]}» — это то, что сдерживает рост твоего влияния. Поток даст среду и систему чтобы это закрыть.`
+        : 'Поток даст системную основу для роста влияния.';
+    }
+  } else if(tab==='business'){
+    // Стратегические блоки (масштаб, лидерство, видение)
+    const strategic = [10,11,12,13,14]; // Стратегия, Партнёрства, Антихрупкость, Лидерство, Наследие
+    const ops       = [6,7,8,9];        // Маркетинг, Продажи, Финансы, Системы
+    const found     = [0,1,2,3,4,5];    // Энергия, Ният (Намерение), Гений, Ценность, Команда, Продукт
+
+    const weakStrategic = strategic.filter(i=>scores[i]<65).length;
+    const weakOps       = ops.filter(i=>scores[i]<50).length;
+    const weakFound     = found.filter(i=>scores[i]<50).length;
+
+    // Сигналы "большого бизнеса": слабые стратегические при сильных операционных
+    // ИЛИ человек с явными пробоинами в масштабировании
+    const hasScaleGap = weakStrategic >= 2;
+    const hasOpsGap   = weakOps >= 2;
+    const hasFoundGap = weakFound >= 3;
+
+    const strongOps   = ops.filter(i=>scores[i]>=70).length;
+    const strongFound = found.filter(i=>scores[i]>=70).length;
+
+    if(hasScaleGap && (strongOps>=2 || avg>=50)){
+      // Оперативка работает, но стратегия провисает — это масштабный человек
+      rec = 'leader';
+      recReason = top2weak.length ? `Твои «${top2weak[0]}» и «${top2weak[1]||top2weak[0]}» — это стратегический уровень. Здесь нужна работа 1 на 1, не группа.` : 'Стратегические блоки требуют персональной работы, не группового потока.';
+      featured = 'leader';
+    } else if(hasFoundGap && !hasScaleGap){
+      // Фундамент провисает — нужна система и среда
+      rec = 'potok';
+      recReason = top2weak.length ? `«${top2weak[0]}» тянет вниз всё остальное. Поток даёт систему и живое сообщество которое держит в тонусе.` : 'Фундаментальные блоки требуют системной работы в живой среде.';
+      featured = 'potok';
+    } else if(hasOpsGap && !hasScaleGap){
+      // Операционные дыры — Поток
+      rec = 'potok';
+      recReason = top2weak.length ? `Пробоины в «${top2weak[0]}» и «${top2weak[1]||top2weak[0]}» закрываются через систему — именно это даёт Поток.` : 'Операционные блоки закрываются через систему и среду Потока.';
+      featured = 'potok';
+    } else {
+      // Всё относительно ровно или высокий балл — Лидер Уммы
+      rec = 'leader';
+      recReason = avg>=65 ? 'Корабль держится — следующий уровень это масштаб и стратегия. Работа 1 на 1 даст то чего группа не даст.' : 'Комплексная картина требует персонального подхода — разобрать всё вместе, приоритизировать и двигаться системно.';
+      featured = 'leader';
+    }
+  } else {
+    // Личная жизнь
+    if(critCount >= 5){
+      rec = 'potok';
+      recReason = top2weak.length ? `${critCount} пробоин сразу — это системная история. Поток даст структуру и людей рядом.` : 'Несколько пробоин одновременно — нужна система и поддерживающая среда.';
+      featured = 'potok';
+    } else {
+      rec = 'leader';
+      recReason = top2weak.length ? `«${top2weak[0]}» — это корень. Работа 1 на 1 позволит разобраться с настоящей причиной и выстроить план под твою жизнь.` : 'Персональная работа даст возможность разобраться с корнем и выстроить план именно под тебя.';
+      featured = 'leader';
+    }
+  }
+
+  const offerStart = `
+    <div class="offer-card">
+      <div class="offer-head">
+        <div class="offer-badge">Старт · Самостоятельно</div>
+        <span class="offer-icon">🌱</span>
+        <div class="offer-name">Старт IQ Barakah</div>
+        <div class="offer-tagline">Первые 6 шагов программы — закрыть самые острые пробоины и почувствовать движение.</div>
+      </div>
+      <div class="offer-body">
+        <div class="offer-features">
+          <div class="offer-feat">6 структурированных шагов</div>
+          <div class="offer-feat">Материалы и задания в боте</div>
+          <div class="offer-feat">Трекер прогресса</div>
+          <div class="offer-feat">Закрытый чат сообщества</div>
+        </div>
+      </div>
+      <div class="offer-cta">
+        <a href="https://t.me/iqbaraka_bot?start=start" target="_blank" class="offer-btn green">Начать за 1 500 ₽ →</a>
+        <div class="offer-note">Доступ сразу после оплаты</div>
+      </div>
+    </div>`;
+
+  const offerPotok = `
+    <div class="offer-card${featured==='potok'?' featured':''}">
+      ${featured==='potok'?'<div class="offer-recommend-badge">✦ Рекомендуем тебе</div>':''}
+      <div class="offer-head">
+        <div class="offer-badge">Поток · Группа</div>
+        <span class="offer-icon">👥</span>
+        <div class="offer-name">Поток IQ Barakah</div>
+        <div class="offer-price">50 000 ₽</div>
+        <div class="offer-tagline">Ты перестанешь бороться в одиночку. Рядом будут люди с теми же ценностями — они не дадут остановиться и помогут закрыть пробоины быстрее, чем ты думаешь.</div>
+      </div>
+      <div class="offer-body">
+        ${featured==='potok'?`<div class="offer-why">${recReason}</div>`:''}
+        <div class="offer-features">
+          <div class="offer-feat">Полная программа — 3 сезона, системная трансформация</div>
+          <div class="offer-feat">Еженедельные живые разборы в группе</div>
+          <div class="offer-feat">Сообщество предпринимателей-мусульман — среда которая меняет</div>
+          <div class="offer-feat">Трекер прогресса по всем 15 блокам</div>
+          <div class="offer-feat">Куратор в закрытом чате на каждом шаге</div>
+        </div>
+      </div>
+      <div class="offer-cta">
+        <a href="https://t.me/iqbaraka?start=potok" target="_blank" class="offer-btn${featured==='potok'?' gold':' green'}">Узнать подробнее →</a>
+        <div class="offer-note">Куратор ответит на все вопросы · набор открыт</div>
+      </div>
+    </div>`;
+
+  const offerLeader = `
+    <div class="offer-card${featured==='leader'?' featured':''}">
+      ${featured==='leader'?'<div class="offer-recommend-badge">✦ Рекомендуем тебе</div>':''}
+      <div class="offer-head">
+        <div class="offer-badge">Лидер Уммы · 1 на 1</div>
+        <span class="offer-icon">👑</span>
+        <div class="offer-name">Лидер Уммы</div>
+        <div class="offer-price">250 000 ₽</div>
+        <div class="offer-tagline">Ты получишь партнёра который знает твою жизнь, твой бизнес и твой ният (намерение). Один человек рядом — и скорость роста меняется кардинально.</div>
+      </div>
+      <div class="offer-body">
+        ${featured==='leader'?`<div class="offer-why">${recReason}</div>`:''}
+        <div class="offer-features">
+          <div class="offer-feat">24 недели работы 1 на 1 с основателем программы</div>
+          <div class="offer-feat">Стратегия бизнеса и жизни — под твою конкретную ситуацию</div>
+          <div class="offer-feat">Персональный разбор каждого из 15 блоков вглубь</div>
+          <div class="offer-feat">Прямой доступ 6 дней в неделю — ответ в тот же день</div>
+          <div class="offer-feat">Работа с командой, масштабированием и наследием</div>
+          <div class="offer-feat">Закрытый клуб выпускников на всю жизнь</div>
+        </div>
+      </div>
+      <div class="offer-cta">
+        <a href="https://t.me/iqbaraka?start=leader" target="_blank" class="offer-btn gold">Подать заявку →</a>
+        <div class="offer-note">Только 3 места · куратор свяжется лично</div>
+      </div>
+    </div>`;
+
+  return `<div class="next-steps">
+    <div class="next-steps-eyebrow"><span class="sec-num">06</span>Следующий шаг</div>
+    <div class="next-steps-title">Разбор показал точки роста.<br>Теперь — система для их закрытия.</div>
+    <div class="next-steps-sub">Одиночные инструменты не работают без среды. IQ Barakah — это живое сообщество практиков, которые идут рядом и держат тебя в тонусе.</div>
+    <div class="social-proof">
+      <div class="social-proof-title">Что говорят участники</div>
+      <div class="reviews">
+        <div class="review"><div class="review-ava">🌱</div><div><div class="review-text">«За 8 недель выстроил утренний ритуал, который держится уже полгода. Раньше пробовал сотни раз — не выходило. Здесь работает, потому что идёшь не один.»</div><div class="review-name">Участник Потока · Казань</div></div></div>
+        <div class="review"><div class="review-ava">👑</div><div><div class="review-text">«Лидер Уммы перевернул моё понимание бизнеса. Не просто стратегия — переосмысление ниятов (намерений), команды и того зачем вообще всё это делается.»</div><div class="review-name">Участник программы Лидер Уммы · Москва</div></div></div>
+      </div>
+    </div>
+    <div class="offers-grid">
+      ${offerPotok}${offerLeader}
+    </div>
+    <div class="report-footer">
+      <p>IQ Barakah · Путь исламского личностного развития · iq-barakah.ru</p>
+      <p style="margin-top:4px">Всё создаётся ради довольства Аллаха</p>
+    </div>
+  </div>`;
+}
+
+function buildPlan(secs, sc){
+  const sorted = secs.map((s,i)=>({...s,score:sc[i]})).sort((a,b)=>a.score-b.score);
+  const crit = sorted.filter(s=>s.score<40);
+  const warn = sorted.filter(s=>s.score>=40&&s.score<70);
+  const ok   = sorted.filter(s=>s.score>=70);
+
+  const p30 = crit.slice(0,3).map(s=>`${s.name}: ${s.steps[0].split('—')[1]?.trim()||s.steps[0].slice(0,80)+'...'}`)
+    .concat(crit.length===0?['Закрепить лучшие практики','Углубить ежедневные ритуалы']:[]);
+
+  const p60 = warn.slice(0,3).map(s=>`${s.name}: ${s.steps[1].split('—')[1]?.trim()||s.steps[1].slice(0,80)+'...'}`)
+    .concat(warn.length===0?['Масштабировать работающие системы']:[]);
+
+  const p90 = ok.slice(0,2).map(s=>`${s.name}: масштабировать и передавать другим`)
+    .concat(['Провести повторную диагностику и сравнить результат','Выстроить систему поддержания роста на следующий квартал']);
+
+  return {p30,p60,p90};
+}
+
+function parseParams(){
+  if(window._qzData) return window._qzData;
+  const p = new URLSearchParams(window.location.search);
+  const rawScores = p.get('scores')||'';
+  const scores = rawScores.split(',').map(Number).filter(n=>!isNaN(n)&&n>=0&&n<=100);
+  const utm = p.get('utm')||'organic';
+  return {
+    scores: scores.length===15 ? scores : new Array(15).fill(70),
+    name: decodeURIComponent(p.get('name')||''),
+    tab: p.get('tab')==='personal'?'personal':'business',
+    date: p.get('date')||new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}),
+    utm: utm,
+    isOL: utm.startsWith('ol_') // лидер мнения — ссылка ?utm=ol_имя
+  };
+}
+
+function render(){
+  const {scores,name,tab,date,isOL} = parseParams();
+  const secs = SEC[tab];
+  const N=15;
+  const avg = Math.round(scores.reduce((a,b)=>a+b,0)/N);
+  const crit = scores.filter(v=>v<40).length;
+  const warn = scores.filter(v=>v>=40&&v<70).length;
+  const good = scores.filter(v=>v>=70).length;
+  const tabLabel = tab==='personal'?'Корабль жизни':'Бизнес-корабль';
+
+  function healthText(a){
+    if(a>=80) return 'Корабль в отличном состоянии';
+    if(a>=65) return 'Держится — есть над чем работать';
+    if(a>=45) return 'Несколько пробоин требуют внимания';
+    return 'Есть над чем работать — это хорошая отправная точка';
+  }
+  function blockCls(v){return v<40?'crit':v<70?'warn':'ok'}
+  function badgeText(v){return v<40?v+'% · Пробоина':v<70?v+'% · Внимание':v+'% · Норма'}
+  function statusText(v){return v<40?'Пробоина':v<70?'Внимание':'Норма'}
+  function shortAction(steps){
+    var s = steps[0].replace(/^[^—]+—\s*/,'').trim();
+    return s.length>100 ? s.slice(0,100).trim()+'…' : s;
+  }
+  const secHead = (num, eyebrow, title) => `<div class="sec-head"><div class="sec-eyebrow"><span class="sec-num">${num}</span>${eyebrow}</div><div class="sec-title">${title}</div></div>`;
+
+  const sorted = secs.map((s,i)=>({...s,score:scores[i]})).sort((a,b)=>a.score-b.score);
+
+  function execLead(a){
+    if(a>=80) return 'Корабль в отличном состоянии. Большинство систем работают стабильно — сейчас важно закрепить результат и не терять набранный темп.';
+    if(a>=65) return 'Корабль держится уверенно, но есть зоны которые тормозят общий рост. Устранение приоритетов ниже даст самый быстрый эффект.';
+    if(a>=45) return 'Несколько системных пробоин требуют внимания в первую очередь. Хорошая новость — большинство из них решается конкретными, простыми действиями.';
+    return 'Разбор показал несколько зон с высоким потенциалом роста. Это нормальная отправная точка — ниже приоритеты, с которых стоит начать.';
+  }
+  const worst3 = sorted.slice(0,3);
+  const execSummaryHTML = `
+    <div class="exec-summary">
+      <div class="exec-label">Executive Summary</div>
+      <div class="exec-title">Ключевые выводы</div>
+      <p class="exec-lead">${execLead(avg)}</p>
+      <div class="exec-priorities-label">Три приоритета для работы</div>
+      <div class="exec-priority-list">
+        ${worst3.map((s,i)=>`<div class="exec-priority-item"><div class="exec-priority-num">${i+1}</div><div class="exec-priority-text"><b>${s.name}</b> (${s.score}%) — ${shortAction(s.steps)}</div></div>`).join('')}
+      </div>
+      <div class="exec-next">
+        <div class="exec-next-label">Рекомендуемый первый шаг</div>
+        <div class="exec-next-text">${shortAction(worst3[0].steps)}</div>
+      </div>
+    </div>`;
+
+  const matrixHTML = `
+    <div class="matrix-wrap">
+      <table class="matrix-table">
+        <thead><tr><th>№</th><th>Отсек</th><th>Балл</th><th>Статус</th><th>Что делать</th></tr></thead>
+        <tbody>
+          ${sorted.map((s,i)=>`<tr class="row-${blockCls(s.score)}"><td class="matrix-num">${i+1}</td><td class="matrix-name">${s.name}</td><td class="matrix-score">${s.score}%</td><td><span class="matrix-badge">${statusText(s.score)}</span></td><td class="matrix-action">${shortAction(s.steps)}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  const blocksHTML = sorted.map((s,i)=>`
+    <div class="block ${blockCls(s.score)}">
+      <div class="block-head">
+        <div class="block-name"><span class="block-num">${String(i+1).padStart(2,'0')}</span>${s.full}</div>
+        <div class="block-badge">${badgeText(s.score)}</div>
+      </div>
+      <div class="block-body">
+        <div class="block-desc">${s.desc}</div>
+        <div class="rec-section">
+          <div class="rec-label gold">Глубокий разбор</div>
+          <div class="rec-text">${s.deep}</div>
+        </div>
+        <div class="rec-section">
+          <div class="rec-label gold">Инструменты</div>
+          <div class="tools-row">${s.tools.map(t=>`<span class="tool-tag">${t}</span>`).join('')}</div>
+        </div>
+        <div class="lightning-box">
+          <div class="lightning-title">⚡ Молниеносные действия — прямо сейчас и на этой неделе</div>
+          <div class="lightning-steps">
+            ${s.steps.map((st,i)=>`<div class="lightning-step"><div class="step-num">${i+1}</div><div class="step-text">${st}</div></div>`).join('')}
+          </div>
+        </div>
+        ${s.score<70&&s.rec?`<div class="mentor-rec-box"><div class="mentor-rec-label">💬 Рекомендация наставника</div><div class="mentor-rec-text">${s.rec}</div></div>`:''}
+      </div>
+    </div>
+  `).join('');
+
+  const plan = buildPlan(secs, scores);
+  const checklistItems = items => items.map(t=>`<div class="checklist-item"><div class="chk-box"></div><div class="checklist-text">${t}</div></div>`).join('');
+  const checklistHTML = `
+    <div class="checklist-plan">
+      <div>
+        <div class="checklist-group-head"><span class="checklist-period">Дни 1–30</span><span class="checklist-title">Закрыть главные пробоины</span></div>
+        ${checklistItems(plan.p30)}
+      </div>
+      <div>
+        <div class="checklist-group-head"><span class="checklist-period">Дни 30–60</span><span class="checklist-title">Поднять уровень отсеков</span></div>
+        ${checklistItems(plan.p60)}
+      </div>
+      <div>
+        <div class="checklist-group-head"><span class="checklist-period">Дни 60–90</span><span class="checklist-title">Масштабировать силу</span></div>
+        ${checklistItems(plan.p90)}
+      </div>
+    </div>`;
+
+  document.getElementById('app').innerHTML=`
+    ${isOL?`<div class="ol-banner"><div class="ol-banner-inner"><span class="ol-icon">✦</span><div><div class="ol-banner-title">Персональный разбор · Лидер мнения</div><div class="ol-banner-sub">Углублённая диагностика с живым комментарием наставника</div></div></div></div>`:''}
+    <div class="wrap">
+      <div class="cover">
+        <div class="cover-tag">Конфиденциально · Личный документ</div>
+        <div class="cover-brand">IQ Barakah · ${tabLabel}</div>
+        ${name&&name.length>1
+          ? `<div><div class="cover-name-label">Персональный разбор корабля</div><div class="cover-name-big">${name}</div></div>`
+          : `<div class="cover-title">Персональный разбор</div>`}
+        <div class="cover-date">${date}</div>
+        ${name&&name.length>1?`<div class="cover-prepared">Подготовлено для: ${name}</div>`:''}
+        <div class="score-ring"><div class="score-n">${avg}%</div><div class="score-l">здоровье</div></div>
+        <div class="cover-status">${healthText(avg)}</div>
+        ${avg<40?`<div class="cover-alert">✦ Выявлено ${crit} зон с потенциалом роста</div>`
+          :avg>=75?`<div class="cover-strength">Сильный корабль — ${good} зон в норме</div>`:''}
+      </div>
+    </div>
+    ${buildHistoryBanner(tab,scores)}
+    <div class="strip">
+      <div class="strip-item"><div class="strip-n red">${crit}</div><div class="strip-l">Пробоин</div></div>
+      <div class="strip-item"><div class="strip-n amber">${warn}</div><div class="strip-l">Внимания</div></div>
+      <div class="strip-item"><div class="strip-n good">${good}</div><div class="strip-l">В норме</div></div>
+    </div>
+    <div class="wrap">
+      <div id="ai-section" style="display:none;padding:24px 0 0"></div>
+      ${secHead('01','Executive Summary','Ключевые выводы разбора')}
+      ${execSummaryHTML}
+      ${secHead('02','Форма корабля','Радар 15 отсеков')}
+      <div class="radar-wrap"><div class="radar-canvas-wrap"><canvas id="radarChart"></canvas></div></div>
+      ${buildCounter(tab)}
+      <button class="pdf-btn" onclick="printReport()">⬇ Скачать отчёт (PDF)</button>
+      <div class="matrix-section">
+        ${secHead('03','Приоритизация','Матрица приоритетов')}
+        ${matrixHTML}
+      </div>
+      ${secHead('04','Полный разбор · от критических к сильным','Все 15 отсеков — инструменты и действия')}
+      <div class="blocks">${blocksHTML}</div>
+      <div class="mentor-message">
+        <div class="mentor-msg-eyebrow">✦ Личное послание наставника</div>
+        <div class="mentor-msg-quote">
+          ${name&&name.length>1
+            ? `Я вижу твой корабль, ${name}. И я вижу в нём потенциал который ты ещё не раскрыл до конца. Эти цифры — не приговор, это карта. Карта показывает где ты сейчас и куда нужно идти. Главное что ты уже сделал шаг — прошёл диагностику. Большинство людей никогда не делают даже этого.`
+            : `Я вижу твой корабль. И я вижу в нём потенциал который ещё не раскрыт до конца. Эти цифры — не приговор, это карта. Карта показывает где ты сейчас и куда нужно идти.`}
+        </div>
+        <div class="mentor-msg-from">
+          <div class="mentor-msg-avatar">Р</div>
+          <div>
+            <div class="mentor-msg-name">Рашид · Основатель IQ Barakah</div>
+            <div class="mentor-msg-title">Наставник · Ментор предпринимателей-мусульман</div>
+          </div>
+        </div>
+        <div class="mentor-msg-seal">IQ Barakah · ${date}</div>
+      </div>
+      ${secHead('05','Дорожная карта','План на 30 · 60 · 90 дней')}
+      ${checklistHTML}
+      ${buildNextSteps(scores,secs,avg,crit,good,tab,isOL)}
+      <div class="report-footer">
+        <p>IQ Barakah · Путь исламского личностного развития · iq-barakah.ru</p>
+        <p style="margin-top:4px">Всё создаётся ради довольства Аллаха</p>
+      </div>
+    </div>`;
+
+  const labels = secs.map(s=>s.name);
+  window._radarChart = new Chart(document.getElementById('radarChart'),{
+    type:'radar',
+    data:{labels,datasets:[{
+      label:'Ваш корабль',data:scores,
+      backgroundColor:'rgba(201,168,76,.12)',borderColor:'#C9A84C',borderWidth:2,
+      pointBackgroundColor:scores.map(v=>v<40?'#e74c3c':v<70?'#f39c12':'#27ae60'),
+      pointRadius:5,pointHoverRadius:7
+    }]},
+    options:{responsive:true,maintainAspectRatio:true,
+      scales:{r:{min:0,max:100,
+        ticks:{stepSize:25,color:'rgba(255,255,255,.3)',backdropColor:'transparent',font:{size:10}},
+        grid:{color:'rgba(255,255,255,.1)'},
+        angleLines:{color:'rgba(201,168,76,.2)'},
+        pointLabels:{color:'rgba(255,255,255,.7)',font:{size:11,family:'Georgia'}}
+      }},
+      plugins:{legend:{display:false}},
+      animation:false}
+  });
+  // запускаем scroll анимации после render
+  setTimeout(initScrollAnim, 100);
+}
+
+// ── QUIZ LOGIC ──
+var qzTab='business',qzStep=0;
+var qzAnswers=new Array(15).fill(null).map(function(){return[null,null,null,null];});
+  qzCustomAnswers=new Array(15).fill(null).map(function(){return['','','',''];});
+var qzCustomAnswers=new Array(15).fill(null).map(function(){return['','','',''];});
+
+// Вопросы: каждый блок = массив из 4 объектов {q, opts:[{t,s}]}
+// scores: 85=лучший, 65=хорошо, 42=слабо, 18=плохо
+var QZ_Q={
+business:[
+  // 0: Энергия
+  [{q:'Как ты чувствуешь себя большинство рабочих дней?',opts:[{t:'Заряжен и полон сил, продуктивен весь день',s:85},{t:'Нормально, справляюсь с задачами',s:65},{t:'Часто устаю к середине дня',s:42},{t:'Устаю, работаю на пределе — хочу это изменить',s:18}]},
+   {q:'Что происходит, если ты берёшь отпуск на 2 недели?',opts:[{t:'Бизнес работает, смотрю только ключевые метрики',s:85},{t:'Держится, но приходится решать вопросы удалённо',s:65},{t:'Начинаются проблемы, команда не справляется',s:42},{t:'Пока всё держится на мне, хочу это изменить',s:18}]},
+   {q:'Как часто ты испытываешь выгорание или срывы?',opts:[{t:'Практически никогда, есть система восстановления',s:85},{t:'Редко, несколько раз в год',s:65},{t:'Периодически, раз в 1–2 месяца',s:42},{t:'Часто, почти постоянно на пределе',s:18}]},
+   {q:'Удаётся ли тебе восстанавливаться после насыщенных дней?',opts:[{t:'Да: режим сна, спорт, намаз, регулярный отдых',s:85},{t:'Частично — стараюсь восстанавливаться',s:65},{t:'Восстанавливаюсь стихийно, когда вынужден',s:42},{t:'Пока нет системы, хочу разобраться с этим',s:18}]}],
+  // 1: Ният (Намерение)
+  [{q:'Ради чего ты строишь свой бизнес?',opts:[{t:'Ради Аллаха, пользы уммы и семьи — намерение чистое',s:85},{t:'В основном ради семьи и пользы, но иногда теряю ориентир',s:65},{t:'Больше ради денег и статуса, чем ради смысла',s:42},{t:'Честно — пока не очень задумывался об этом',s:18}]},
+   {q:'Как часто ты обновляешь намерение перед важными решениями?',opts:[{t:'Регулярно, это часть моей практики',s:85},{t:'Иногда, особенно в сложные моменты',s:65},{t:'Редко, больше действую на автомате',s:42},{t:'Пока редко, хочу прийти к этому',s:18}]},
+   {q:'Бывает ли что тревога или страх потери влияют на твои решения?',opts:[{t:'Пока этого нет, но хочу прийти к этому, есть доверие Аллаху и благодарность',s:85},{t:'Иногда проявляется, но быстро возвращаюсь к балансу',s:65},{t:'Бывает влияет — стараюсь замечать это',s:42},{t:'Да, замечаю это в себе — хочу работать над этим',s:18}]},
+   {q:'Насколько твои решения соответствуют исламским ценностям?',opts:[{t:'Полностью — проверяю через призму дозволенного',s:85},{t:'В основном да, стараюсь соблюдать',s:65},{t:'Бывают компромиссы, которые меня беспокоят',s:42},{t:'Не задумываюсь над этим',s:18}]}],
+  // 2: Самореализация
+  [{q:'Чувствуешь ли, что занимаешься своим делом — тем, для чего создан?',opts:[{t:'Да, бизнес — это моё призвание',s:85},{t:'В основном да, хотя есть части которые не нравятся',s:65},{t:'Скорее нет — делаю то, что умею, а не то, что люблю',s:42},{t:'Нет, занимаюсь этим только ради денег',s:18}]},
+   {q:'Насколько бизнес позволяет реализовывать твои сильные стороны?',opts:[{t:'Полностью — каждый день делаю то, в чём силён',s:85},{t:'В основном да, хотя есть нелюбимая рутина',s:65},{t:'Часто застреваю в задачах, которые не моё',s:42},{t:'Почти не применяю свои таланты',s:18}]},
+   {q:'Приносит ли бизнес тебе глубокое внутреннее удовлетворение?',opts:[{t:'Да, я вдохновлён тем, что делаю',s:85},{t:'Периодически — бывают моменты смысла',s:65},{t:'Редко, больше исполняю обязанности',s:42},{t:'Нет, ощущение пустоты от работы',s:18}]},
+   {q:'Когда думаешь о работе через 10 лет — чувствуешь ли гордость?',opts:[{t:'Да, вижу значимое дело и наследие',s:85},{t:'В основном да, хотя не всё ещё выстроено',s:65},{t:'Нет ясного видения',s:42},{t:'Хотел бы заниматься чем-то другим',s:18}]}],
+  // 3: Ценность
+  [{q:'Решает ли твой бизнес реальную проблему людей?',opts:[{t:'Да, клиенты сами говорят, как мы изменили их жизнь',s:85},{t:'В основном да, польза есть',s:65},{t:'Приносим пользу, но не уверен насколько она значима',s:42},{t:'Продаём, но реальной пользы почти нет',s:18}]},
+   {q:'Насколько люди нуждаются в твоём продукте прямо сейчас?',opts:[{t:'Высокий спрос, решаем острую боль',s:85},{t:'Есть спрос, продукт нужен рынку',s:65},{t:'Умеренный спрос, не самый приоритетный продукт',s:42},{t:'Создаём спрос искусственно',s:18}]},
+   {q:'Есть ли в продукте исламская этика и халяльные ценности?',opts:[{t:'Да, полностью — гордимся нашими принципами',s:85},{t:'В основном да',s:65},{t:'Есть моменты, которые стоит пересмотреть',s:42},{t:'Не задумывался об этом',s:18}]},
+   {q:'Оставишь ли ты этот бизнес как непрерывную благотворительность?',opts:[{t:'Да, это часть моего наследия уммы',s:85},{t:'Думаю об этом, хочу к этому прийти',s:65},{t:'Не уверен — пока не думал об этом',s:42},{t:'Нет, это просто заработок',s:18}]}],
+  // 4: Команда
+  [{q:'Насколько надёжны ключевые люди в твоей команде?',opts:[{t:'Полностью надёжны, им можно доверять сложные задачи',s:85},{t:'В основном надёжны, но есть 1–2 слабых звена',s:65},{t:'Часто подводят или работают нестабильно',s:42},{t:'Команда пока нестабильна — есть над чем работать',s:18}]},
+   {q:'Можешь ли ты делегировать задачи и быть спокоен за результат?',opts:[{t:'Да, делегирование — норма моей работы',s:85},{t:'Могу делегировать, но часто перепроверяю',s:65},{t:'С трудом — легче сделать самому',s:42},{t:'Пока всё делаю сам — стоит начать делегировать',s:18}]},
+   {q:'Понимает ли команда вашу миссию и ценности?',opts:[{t:'Да, все разделяют смысл работы',s:85},{t:'Большинство понимает зачем работаем',s:65},{t:'Команда работает за деньги, не за смысл',s:42},{t:'Пока команда не разделяет общие ценности',s:18}]},
+   {q:'Как часто возникают конфликты или кадровые проблемы?',opts:[{t:'Редко, есть культура и ясные ожидания',s:85},{t:'Иногда, справляемся',s:65},{t:'Регулярно — это значительная часть моей энергии',s:42},{t:'Конфликты бывают часто — стоит разобраться в причинах',s:18}]}],
+  // 5: Сервис
+  [{q:'Насколько клиенты довольны вашим продуктом/услугой?',opts:[{t:'Получаем регулярные восторженные отзывы',s:85},{t:'Клиенты довольны, нареканий мало',s:65},{t:'Бывают жалобы и недовольство',s:42},{t:'Есть недовольные клиенты — стоит разобраться',s:18}]},
+   {q:'Есть ли у клиентов вау-эффект от вашего продукта?',opts:[{t:'Да, клиенты удивлены и рекомендуют нас',s:85},{t:'Клиенты довольны, но особого вау нет',s:65},{t:'Продукт средний — «нормально»',s:42},{t:'Пока не дотягиваем до вау-эффекта',s:18}]},
+   {q:'Насколько легко работать с вашей компанией?',opts:[{t:'Очень удобно — минимум барьеров, максимум сервиса',s:85},{t:'В основном удобно',s:65},{t:'Бывают сложности в коммуникации',s:42},{t:'Есть сложности в работе с нами — стоит упростить',s:18}]},
+   {q:'Как часто улучшаете продукт на основе обратной связи?',opts:[{t:'Регулярно — есть система сбора и внедрения ОС',s:85},{t:'Иногда, но непоследовательно',s:65},{t:'Редко, держимся за то, что есть',s:42},{t:'Пока редко обновляю продукт — стоит начать',s:18}]}],
+  // 6: Маркетинг
+  [{q:'Есть ли у вас предсказуемый поток новых клиентов?',opts:[{t:'Да, воронка работает стабильно каждый месяц',s:85},{t:'В основном есть, хотя бывают просадки',s:65},{t:'Нестабильно — бывают неровные периоды',s:42},{t:'Клиентов не хватает, ищем постоянно',s:18}]},
+   {q:'Насколько хорошо вы понимаете своего идеального клиента?',opts:[{t:'Чётко знаем боли, желания, портрет ЦА',s:85},{t:'Примерно понимаем, кто наш клиент',s:65},{t:'Смутное понимание ЦА',s:42},{t:'Работаем со всеми подряд',s:18}]},
+   {q:'Рекомендуют ли вас клиенты другим?',opts:[{t:'Активно — сарафанное радио приносит клиентов',s:85},{t:'Иногда рекомендуют',s:65},{t:'Редко',s:42},{t:'Пока сарафанное радио слабое — есть с чем работать',s:18}]},
+   {q:'Есть ли у вас чёткая маркетинговая стратегия?',opts:[{t:'Да, есть план, каналы и чёткая воронка',s:85},{t:'Частичная стратегия, работаем по нескольким каналам',s:65},{t:'Пока действую больше по ситуации',s:42},{t:'Пока нет чёткой стратегии — хорошая точка для старта',s:18}]}],
+  // 7: Инновации
+  [{q:'Как часто вы улучшаете продукты или процессы?',opts:[{t:'Регулярно — есть культура постоянного улучшения',s:85},{t:'Иногда, когда появляется время и ресурсы',s:65},{t:'Редко, изменения только под давлением',s:42},{t:'Пока меняемся редко — стоит начать',s:18}]},
+   {q:'Следишь ли за трендами и инновациями в своей нише?',opts:[{t:'Да, регулярно изучаю и внедряю новое',s:85},{t:'Слежу, но редко внедряю',s:65},{t:'Редко смотрю, что происходит в нише',s:42},{t:'Пока мало слежу за нишей — стоит начать',s:18}]},
+   {q:'Используете ли современные инструменты (AI, автоматизация)?',opts:[{t:'Да, активно внедряем технологии',s:85},{t:'Частично используем',s:65},{t:'Редко, в основном старые методы',s:42},{t:'Пока используем старые методы — есть куда расти',s:18}]},
+   {q:'Есть ли у команды время на эксперименты и новые идеи?',opts:[{t:'Да, выделяем ресурсы на развитие',s:85},{t:'Иногда, когда не горит',s:65},{t:'Редко, всегда операционка',s:42},{t:'Пока не хватает времени на развитие — стоит найти',s:18}]}],
+  // 8: Показатели
+  [{q:'Знаешь ли ты ключевые цифры бизнеса наизусть?',opts:[{t:'Да, отслеживаю ежедневно или еженедельно',s:85},{t:'В основном знаю, сверяюсь раз в месяц',s:65},{t:'Примерно понимаю, но детали не знаю',s:42},{t:'Пока считаю цифры редко — стоит начать',s:18}]},
+   {q:'Есть ли у вас система регулярного учёта и анализа?',opts:[{t:'Да, чёткая система с регулярными отчётами',s:85},{t:'Частично — ведём учёт, но анализа мало',s:65},{t:'Учёт хаотичный, нерегулярный',s:42},{t:'Пока нет системы учёта — хорошая точка для старта',s:18}]},
+   {q:'Понимает ли команда свои KPI и ответственность?',opts:[{t:'Да, у всех ясные показатели и ответственность',s:85},{t:'У ключевых людей есть KPI',s:65},{t:'Нет чётких KPI, всё на словах',s:42},{t:'Пока нет ясности кто за что отвечает',s:18}]},
+   {q:'Принимаешь ли ты решения на основе данных?',opts:[{t:'Да, данные — основа всех ключевых решений',s:85},{t:'Иногда смотрю на цифры, иногда интуиция',s:65},{t:'Больше на интуиции, данных мало',s:42},{t:'Пока решения больше на интуиции',s:18}]}],
+  // 9: Клиенты
+  [{q:'Насколько ты доволен количеством клиентов?',opts:[{t:'Клиентов достаточно, очередь или загрузка 80%+',s:85},{t:'В основном хватает, бывают просадки',s:65},{t:'Клиентов меньше желаемого — работаю над этим',s:42},{t:'Клиентов пока не хватает — хочу это исправить',s:18}]},
+   {q:'Есть ли повторные покупки и лояльность?',opts:[{t:'Да, большинство клиентов возвращаются',s:85},{t:'Есть постоянные клиенты, но их могло быть больше',s:65},{t:'Повторных покупок мало',s:42},{t:'Пока мало повторных покупок — есть куда расти',s:18}]},
+   {q:'Знаешь ли ты своих ключевых клиентов лично?',opts:[{t:'Да, строим долгосрочные партнёрские отношения',s:85},{t:'Знаю топ-клиентов, общаемся',s:65},{t:'Клиенты — просто транзакции, не отношения',s:42},{t:'Пока мало личного контакта с клиентами',s:18}]},
+   {q:'Есть ли система работы с клиентской базой (CRM)?',opts:[{t:'Да, чёткая система ведения и возврата клиентов',s:85},{t:'Частично — что-то ведём',s:65},{t:'Нет системы, работаем хаотично',s:42},{t:'Пока работаю без системы учёта клиентов',s:18}]}],
+  // 10: Контрагенты
+  [{q:'Насколько надёжны ваши ключевые поставщики и подрядчики?',opts:[{t:'Высоконадёжные, годами проверенные партнёры',s:85},{t:'В основном надёжные, редко подводят',s:65},{t:'Бывают проблемы и срывы',s:42},{t:'Контрагенты часто подводят — стоит пересмотреть',s:18}]},
+   {q:'Насколько вы зависите от одного ключевого контрагента?',opts:[{t:'Низкая зависимость, есть альтернативы',s:85},{t:'Есть 1–2 ключевых, но есть и запасные',s:65},{t:'Сильно зависим от 1–2 контрагентов',s:42},{t:'Сильная зависимость от одного контрагента — хочу диверсифицировать',s:18}]},
+   {q:'Выбираешь ли контрагентов по ценностям и халяльности?',opts:[{t:'Да, ценности — один из критериев выбора',s:85},{t:'Иногда учитываю это',s:65},{t:'Смотрю только на цену и качество',s:42},{t:'Пока выбираю в основном по цене',s:18}]},
+   {q:'Есть ли у вас чёткие договорённости с ключевыми партнёрами?',opts:[{t:'Да, всё оформлено документально',s:85},{t:'В основном есть договора',s:65},{t:'Часто работаем без чётких договорённостей',s:42},{t:'Пока договорённости не оформлены — стоит закрепить',s:18}]}],
+  // 11: Государство
+  [{q:'Все ли юридические документы и лицензии в порядке?',opts:[{t:'Да, полностью в порядке',s:85},{t:'В основном да, мелкие вопросы есть',s:65},{t:'Есть вопросы, которые нужно решить',s:42},{t:'Есть серьёзные вопросы с документами — надо решить',s:18}]},
+   {q:'Платишь ли все налоги честно и вовремя?',opts:[{t:'Да, плачу полностью и вовремя',s:85},{t:'В основном да, иногда задержки',s:65},{t:'Минимизирую как могу',s:42},{t:'Пока есть нарушения — хочу привести в порядок',s:18}]},
+   {q:'Есть ли риски проверок или претензий со стороны государства?',opts:[{t:'Нет рисков, чистая история',s:85},{t:'Минимальные риски',s:65},{t:'Есть вопросы которые меня беспокоят',s:42},{t:'Риски есть — стоит уделить этому внимание',s:18}]},
+   {q:'Есть ли у тебя квалифицированный юрист или бухгалтер?',opts:[{t:'Да, профессиональное юридическое и бухгалтерское сопровождение',s:85},{t:'Есть бухгалтер, юридической поддержки мало',s:65},{t:'Работаем самостоятельно',s:42},{t:'Пока нет юридической поддержки — стоит найти',s:18}]}],
+  // 12: Прибыль
+  [{q:'Устраивает ли тебя уровень чистой прибыли компании?',opts:[{t:'Да, прибыль выше ожиданий',s:85},{t:'В целом устраивает',s:65},{t:'Прибыль есть, но ниже желаемого',s:42},{t:'Пока работаем в убыток — ищу решение',s:18}]},
+   {q:'Растёт ли прибыль год к году?',opts:[{t:'Да, стабильный рост прибыли',s:85},{t:'Держимся на одном уровне',s:65},{t:'Нестабильно — то вверх, то вниз',s:42},{t:'Прибыль пока снижается — хочу разобраться почему',s:18}]},
+   {q:'Понимаешь ли ты юнит-экономику (CAC, LTV, маржа)?',opts:[{t:'Да, чётко знаю цифры по каждому продукту',s:85},{t:'Примерно понимаю',s:65},{t:'Смутно представляю',s:42},{t:'Нет, не считал',s:18}]},
+   {q:'Достаточно ли прибыли для реинвестиции и роста?',opts:[{t:'Да, инвестируем в рост и развитие',s:85},{t:'Хватает на поддержание, иногда на рост',s:65},{t:'Вся прибыль уходит на операционку',s:42},{t:'Пока не хватает на развитие — работаю над этим',s:18}]}],
+  // 13: Личный доход
+  [{q:'Покрывает ли твой личный доход все семейные нужды?',opts:[{t:'Да, с запасом и без стресса',s:85},{t:'Покрывает основное, ограничения есть',s:65},{t:'Едва хватает, постоянное напряжение',s:42},{t:'Пока не хватает, есть долги — хочу выправить ситуацию',s:18}]},
+   {q:'Насколько велик разрыв между текущим и желаемым доходом?',opts:[{t:'Небольшой разрыв, нахожусь близко к цели',s:85},{t:'Разрыв умеренный, двигаюсь к цели',s:65},{t:'Значительный разрыв, путь долгий',s:42},{t:'Разрыв большой, но я верю что дойду',s:18}]},
+   {q:'Получаешь ли ты регулярную зарплату от бизнеса?',opts:[{t:'Да, фиксированная сумма каждый месяц',s:85},{t:'В основном регулярно, иногда задержки',s:65},{t:'Беру когда есть деньги в кассе',s:42},{t:'Пока нет регулярного дохода — хочу выстроить',s:18}]},
+   {q:'Ощущаешь ли себя финансово свободным?',opts:[{t:'Да, есть уверенность и свобода',s:85},{t:'В основном да, но есть тревога',s:65},{t:'Пока чувствую давление — хочу больше свободы',s:42},{t:'Финансовое напряжение сильно ощущается — хочу это изменить',s:18}]}],
+  // 14: СТАБ фонд
+  [{q:'Есть ли у бизнеса финансовая подушка безопасности?',opts:[{t:'Да, 6–12 месяцев расходов в резерве',s:85},{t:'Есть небольшая подушка — 1–3 месяца',s:65},{t:'Пока этого нет, но хочу прийти к этому',s:42},{t:'Пока нет резерва — хочу начать формировать',s:18}]},
+   {q:'Выделяешь ли часть прибыли на непрерывную благотворительность?',opts:[{t:'Да, регулярно и в установленном объёме',s:85},{t:'Иногда выделяю',s:65},{t:'Редко, когда остаётся',s:42},{t:'Пока не выделяю — можно начать с малого',s:18}]},
+   {q:'Думаешь ли о долгосрочном финансовом наследии?',opts:[{t:'Да, есть план создания вакфа или наследия',s:85},{t:'Думаю об этом, но плана нет',s:65},{t:'Иногда думаю, но не приоритет',s:42},{t:'Пока не думал об этом — хорошее время начать',s:18}]},
+   {q:'Есть ли инвестиции или активы, которые работают без тебя?',opts:[{t:'Да, есть пассивные активы',s:85},{t:'Есть небольшие накопления/инвестиции',s:65},{t:'Нет, всё завязано на бизнесе',s:42},{t:'Нет никаких активов кроме операционного бизнеса',s:18}]}]
+],
+personal:[
+  // 0: Иман (Вера)
+  [{q:'Насколько намаз стал частью твоей жизни?',opts:[{t:'Все 5 намазов регулярно и вовремя',s:85},{t:'Почти все намазы, редко пропускаю',s:65},{t:'Намаз есть, но не всегда регулярно',s:42},{t:'Намаз нерегулярный, хочу исправить',s:18}]},
+   {q:'Чувствуешь ли ты внутреннюю связь с Богом в повседневной жизни?',opts:[{t:'Часто чувствую связь с Аллахом в течение дня',s:85},{t:'Иногда есть это ощущение',s:65},{t:'Редко — закрутился, забываю',s:42},{t:'Пока этого нет, но хочу прийти к этому',s:18}]},
+   {q:'Есть ли у тебя регулярная практика — зикр (поминание Аллаха), чтение Корана, дуа (обращение к Аллаху с просьбой)?',opts:[{t:'Да, ежедневная практика — зикр, чтение Корана, дуа',s:85},{t:'Иногда читаю Коран, зикр непостоянно',s:65},{t:'Редко, только по настроению',s:42},{t:'Пока этого нет, но хочу прийти к этому',s:18}]},
+   {q:'Ощущаешь ли ты смысл и опору в своей вере?',opts:[{t:'Да, вера — основа всего, чувствую силу и смысл',s:85},{t:'В основном да, хотя бывают моменты сомнений',s:65},{t:'Есть вера, но хочу более глубокой связи',s:42},{t:'Пока слабо развита, хочу к этому прийти',s:18}]}],
+  // 1: Здоровье
+  [{q:'Как ты оцениваешь своё физическое здоровье?',opts:[{t:'Отличное — полон сил, нет хронических проблем',s:85},{t:'Хорошее — в основном здоров',s:65},{t:'Есть проблемы, на которые не хватает времени',s:42},{t:'Серьёзные проблемы со здоровьем',s:18}]},
+   {q:'Насколько регулярно ты занимаешься физической активностью?',opts:[{t:'Регулярно — 3–5 раз в неделю',s:85},{t:'Иногда — 1–2 раза в неделю',s:65},{t:'Редко — от случая к случаю',s:42},{t:'Пока физической активности почти нет, хочу это изменить',s:18}]},
+   {q:'Как ты питаешься?',opts:[{t:'Осознанно, халяль, здоровое питание',s:85},{t:'В основном нормально',s:65},{t:'Питаюсь беспорядочно — хочу наладить',s:42},{t:'Питание пока не на должном уровне — хочу изменить',s:18}]},
+   {q:'Высыпаешься ли ты?',opts:[{t:'Да, сплю 7–8 часов, встаю рано (на утреннюю молитву)',s:85},{t:'В основном да, иногда недосып',s:65},{t:'Хроническое недосыпание',s:42},{t:'Серьёзные проблемы со сном',s:18}]}],
+  // 2: Энергия
+  [{q:'Как ты чувствуешь себя, просыпаясь?',opts:[{t:'Бодро и с желанием действовать',s:85},{t:'Нормально, разгоняюсь к середине утра',s:65},{t:'Тяжело, нужно много времени',s:42},{t:'Постоянная усталость с утра',s:18}]},
+   {q:'Хватает ли энергии на всё важное в течение дня?',opts:[{t:'Да, на работу, семью и поклонение',s:85},{t:'На основное хватает, к вечеру устаю',s:65},{t:'Часто не хватает, много откладываю',s:42},{t:'Энергии катастрофически не хватает',s:18}]},
+   {q:'Есть ли у тебя источники радости и вдохновения?',opts:[{t:'Да, жизнь полна смысла и радости',s:85},{t:'Иногда, бывают моменты вдохновения',s:65},{t:'Редко, жизнь в основном рутина',s:42},{t:'Нет радости, апатия или уныние',s:18}]},
+   {q:'Насколько хорошо ты восстанавливаешься?',opts:[{t:'Отлично — есть система восстановления',s:85},{t:'В основном восстанавливаюсь за выходные',s:65},{t:'Отдыхаю, но восстановления не хватает — хочу разобраться',s:42},{t:'Давно не восстанавливался нормально — хочу это изменить',s:18}]}],
+  // 3: Время
+  [{q:'Насколько ты доволен тем, как проводишь своё время?',opts:[{t:'Очень доволен — время соответствует ценностям',s:85},{t:'В основном доволен',s:65},{t:'Много времени уходит не туда',s:42},{t:'Постоянное ощущение потери времени',s:18}]},
+   {q:'Планируешь ли ты свой день и неделю?',opts:[{t:'Да, есть система планирования вокруг намаза',s:85},{t:'Иногда планирую, непоследовательно',s:65},{t:'Редко, живу реактивно',s:42},{t:'Нет, полный хаос с временем',s:18}]},
+   {q:'Сколько времени тратишь на гаджеты/соцсети зря?',opts:[{t:'Контролирую — минимально, осознанно',s:85},{t:'Умеренно, стараюсь ограничивать',s:65},{t:'Много, больше чем хотел бы',s:42},{t:'Огромное количество времени, осознаю проблему',s:18}]},
+   {q:'Выделяешь ли время на главное: вера, семья, здоровье?',opts:[{t:'Да, приоритеты на своём месте',s:85},{t:'В основном да, бывают перекосы',s:65},{t:'Часто важное откладывается из-за срочного',s:42},{t:'Главное постоянно жертвуется ради текущего',s:18}]}],
+  // 4: Эмоции
+  [{q:'Как часто ты испытываешь тревогу или стресс?',opts:[{t:'Редко, есть внутренний покой и доверие Аллаху (доверие Аллаху)',s:85},{t:'Иногда, справляюсь',s:65},{t:'Часто, тревога мешает жить',s:42},{t:'Постоянная тревога или стресс',s:18}]},
+   {q:'Насколько ты эмоционально стабилен?',opts:[{t:'Стабилен — реагирую взвешенно',s:85},{t:'В основном стабилен',s:65},{t:'Бывают срывы или нестабильность',s:42},{t:'Сильная эмоциональная нестабильность',s:18}]},
+   {q:'Есть ли в тебе глубокая благодарность Аллаху (шукур (благодарность))?',opts:[{t:'Да, благодарность Аллаху — часть каждого дня',s:85},{t:'Иногда осознаю и благодарю',s:65},{t:'Редко — больше жалоб, чем благодарности',s:42},{t:'Нет, скорее претензии к жизни',s:18}]},
+   {q:'Делаешь ли ты вечерний самоанализ?',opts:[{t:'Да, регулярная практика каждый вечер',s:85},{t:'Иногда — непостоянно',s:65},{t:'Редко',s:42},{t:'Нет',s:18}]}],
+  // 5: Развитие
+  [{q:'Как регулярно ты учишься и развиваешься?',opts:[{t:'Ежедневно — книги, курсы, полезный контент',s:85},{t:'Несколько раз в неделю',s:65},{t:'Изредка, от случая к случаю',s:42},{t:'Практически не уделяю время развитию',s:18}]},
+   {q:'Есть ли у тебя ясные цели личного развития?',opts:[{t:'Да, конкретные цели на год и квартал',s:85},{t:'Общее направление есть, конкретики нет',s:65},{t:'Смутные желания, без чётких целей',s:42},{t:'Нет целей развития',s:18}]},
+   {q:'Применяешь ли ты новые знания на практике?',opts:[{t:'Да, учусь чтобы применять',s:85},{t:'Иногда применяю',s:65},{t:'Читаю много, применяю мало',s:42},{t:'Нет — теория без практики',s:18}]},
+   {q:'Уделяешь ли ты время изучению своей религии?',opts:[{t:'Да, регулярно читаю и слушаю об исламе',s:85},{t:'Иногда, когда есть время',s:65},{t:'Редко, но хочу исправить это',s:42},{t:'Нет',s:18}]}],
+  // 6: Страхи
+  [{q:'Насколько страхи влияют на твои важные решения?',opts:[{t:'Минимально — есть таваккуль (доверие Аллаху) и смелость действовать',s:85},{t:'Иногда влияют, но справляюсь',s:65},{t:'Часто останавливают от важных шагов',s:42},{t:'Страхи парализуют и управляют жизнью',s:18}]},
+   {q:'Есть ли у тебя страх финансовой нестабильности?',opts:[{t:'Нет — есть доверие Аллаху и финансовая подушка',s:85},{t:'Умеренный, контролируемый',s:65},{t:'Значительный, влияет на решения',s:42},{t:'Сильный страх, постоянная тревога о деньгах',s:18}]},
+   {q:'Есть ли страх осуждения или чужого мнения?',opts:[{t:'Минимально — живу по своим ценностям',s:85},{t:'Иногда беспокоит',s:65},{t:'Часто оглядываюсь на мнение других',s:42},{t:'Сильно зависим от чужого мнения',s:18}]},
+   {q:'Бывает ли что внутренние ограничения удерживают тебя от следующего шага?',opts:[{t:'Да, осознаю страхи и работаю с ними',s:85},{t:'Иногда замечаю, стараюсь разобраться',s:65},{t:'Знаю что они есть, но не знаю как работать',s:42},{t:'Пока не задумывался над этим',s:18}]}],
+  // 7: Родители
+  [{q:'Довольны ли тобой твои родители?',opts:[{t:'Да, у нас хорошие тёплые отношения',s:85},{t:'В основном довольны',s:65},{t:'Есть напряжение или обиды',s:42},{t:'Отношения очень сложные',s:18}]},
+   {q:'Как часто ты общаешься с родителями?',opts:[{t:'Регулярно, поддерживаем тесную связь',s:85},{t:'Иногда, несколько раз в месяц',s:65},{t:'Редко, реже чем хотел бы',s:42},{t:'Пока тесного контакта не хватает, хочу это изменить',s:18}]},
+   {q:'Помогаешь ли ты родителям финансово или физически?',opts:[{t:'Да, регулярная помощь',s:85},{t:'Помогаю когда могу',s:65},{t:'Редко, но хочу исправить это',s:42},{t:'Нет возможности или желания помогать',s:18}]},
+   {q:'Нет ли невыполненных обязательств перед родителями?',opts:[{t:'Нет, отношения чистые',s:85},{t:'Есть мелкие вопросы, в целом чисто',s:65},{t:'Есть невыполненные обещания',s:42},{t:'Есть серьёзные невыполненные обязательства',s:18}]}],
+  // 8: Жена/Муж
+  [{q:'Насколько гармоничны ваши отношения?',opts:[{t:'Очень гармоничны — поддержка и любовь',s:85},{t:'В основном хорошие',s:65},{t:'Есть напряжение и нерешённые вопросы',s:42},{t:'Серьёзные проблемы в отношениях',s:18}]},
+   {q:'Сколько качественного времени вы проводите вместе?',opts:[{t:'Регулярно — есть традиции качественного времени',s:85},{t:'Иногда, несколько раз в неделю',s:65},{t:'Мало — работа поглощает',s:42},{t:'Пока качественного времени вместе почти нет, хочу это изменить',s:18}]},
+   {q:'Хорошо ли вы общаетесь и понимаете друг друга?',opts:[{t:'Да, открытая коммуникация и взаимопонимание',s:85},{t:'В основном да',s:65},{t:'Есть трудности в общении',s:42},{t:'Серьёзные проблемы с коммуникацией',s:18}]},
+   {q:'Поддерживает ли супруга/супруг твои цели?',opts:[{t:'Да, мы движемся к целям вместе',s:85},{t:'В основном поддерживает',s:65},{t:'Понимает, но не активно поддерживает',s:42},{t:'Нет поддержки или понимания',s:18}]}],
+  // 9: Дети
+  [{q:'Доволен ли ты своим присутствием в жизни детей?',opts:[{t:'Да, уделяю качественное время регулярно',s:85},{t:'В основном да, хотя хотел бы больше',s:65},{t:'Не хватает времени и присутствия',s:42},{t:'Пока времени и присутствия не хватает, хочу это изменить',s:18}]},
+   {q:'Как ты оцениваешь своё воспитание детей?',opts:[{t:'Доволен, дети развиваются в исламе и ценностях',s:85},{t:'В основном доволен',s:65},{t:'Есть моменты которые хочу улучшить',s:42},{t:'Не доволен пока — хочу прийти к лучшему',s:18}]},
+   {q:'Обучаешь ли детей основам ислама?',opts:[{t:'Да, регулярно учим вместе',s:85},{t:'Иногда, стараемся',s:65},{t:'Редко, делегирую другим',s:42},{t:'Нет, нет системы обучения',s:18}]},
+   {q:'Знаешь ли ты мечты и потребности каждого ребёнка?',opts:[{t:'Да, я в курсе их внутреннего мира',s:85},{t:'В основном знаю',s:65},{t:'Поверхностно',s:42},{t:'Нет близости и понимания',s:18}]}],
+  // 10: Окружение
+  [{q:'Поднимают ли тебя твои друзья в имане и развитии?',opts:[{t:'Да, окружение вдохновляет и поднимает',s:85},{t:'Часть поднимает, часть нейтральна',s:65},{t:'В основном нейтральные или тянущие вниз',s:42},{t:'Окружение тянет вниз',s:18}]},
+   {q:'Есть ли в окружении праведные люди с ценностями?',opts:[{t:'Да, окружение сознательно формирую',s:85},{t:'Есть несколько таких людей',s:65},{t:'Мало таких людей рядом',s:42},{t:'Нет, такого окружения нет',s:18}]},
+   {q:'Есть ли токсичные отношения в жизни?',opts:[{t:'Нет, вышел из токсичных связей',s:85},{t:'Есть немного, работаю над этим',s:65},{t:'Есть токсичные отношения, сложно выйти',s:42},{t:'Серьёзные токсичные связи разрушают',s:18}]},
+   {q:'Состоишь ли ты в сообществе единомышленников?',opts:[{t:'Да, есть сильное сообщество',s:85},{t:'Иногда общаюсь с единомышленниками',s:65},{t:'Одиночка, сообщества нет',s:42},{t:'Нет, и ищу его',s:18}]}],
+  // 11: Садака (Благотворительность)
+  [{q:'Насколько регулярно ты помогаешь другим?',opts:[{t:'Регулярно — есть привычка садаки',s:85},{t:'Иногда, когда есть возможность',s:65},{t:'Редко, но хочу исправить это',s:42},{t:'Пока этого нет, но хочу прийти к этому',s:18}]},
+   {q:'Платишь ли ты закят (обязательный налог в пользу нуждающихся) вовремя?',opts:[{t:'Да, плачу закят (обязательный налог в пользу нуждающихся) регулярно и правильно',s:85},{t:'Плачу, но иногда не вовремя',s:65},{t:'Не всегда уверен в правильности расчёта',s:42},{t:'Не плачу или не знаю как',s:18}]},
+   {q:'Делаешь ли ты добро анонимно?',opts:[{t:'Да, люблю анонимную садаку',s:85},{t:'Иногда',s:65},{t:'Редко',s:42},{t:'Нет',s:18}]},
+   {q:'Есть ли у тебя текущая продолжающаяся благотворительность?',opts:[{t:'Да, есть постоянная продолжающаяся благотворительность',s:85},{t:'Планирую, нахожусь на пути',s:65},{t:'Думал об этом, но не сделал',s:42},{t:'Нет и не думал',s:18}]}],
+  // 12: Финансы
+  [{q:'Есть ли у тебя долги?',opts:[{t:'Нет долгов',s:85},{t:'Небольшие долги, план погашения есть',s:65},{t:'Значительные долги, давят на психику',s:42},{t:'Серьёзная долговая нагрузка',s:18}]},
+   {q:'Контролируешь ли ты свои расходы?',opts:[{t:'Да, есть бюджет и учёт расходов',s:85},{t:'В основном знаю куда уходит',s:65},{t:'Слабый контроль, деньги утекают',s:42},{t:'Нет контроля расходов',s:18}]},
+   {q:'Есть ли личная финансовая подушка?',opts:[{t:'Да, 3–6 месяцев расходов',s:85},{t:'Небольшая, 1–2 месяца',s:65},{t:'Пока этого нет, но хочу прийти к этому',s:42},{t:'Нет накоплений',s:18}]},
+   {q:'Все ли источники дохода халяльные?',opts:[{t:'Да, полностью уверен в халяльности',s:85},{t:'В основном да',s:65},{t:'Есть сомнения по некоторым источникам',s:42},{t:'Есть сомнительные источники',s:18}]}],
+  // 13: Наследие
+  [{q:'Думаешь ли ты о том, что оставишь после себя?',opts:[{t:'Да, есть чёткое видение своего наследия',s:85},{t:'Думаю об этом, но конкретного плана нет',s:65},{t:'Иногда задумываюсь, но не приоритет',s:42},{t:'Пока не задумывался над этим',s:18}]},
+   {q:'Есть ли у тебя проекты продолжающаяся благотворительность?',opts:[{t:'Да, уже есть текущие проекты',s:85},{t:'Планирую, нахожусь на пути',s:65},{t:'Есть идеи, но не реализованы',s:42},{t:'Нет',s:18}]},
+   {q:'Есть ли у тебя составленное завещание?',opts:[{t:'Да, завещание есть',s:85},{t:'Планирую составить',s:65},{t:'Думал, но откладываю',s:42},{t:'Нет и не думал',s:18}]},
+   {q:'Будут ли люди делать дуа (обращение к Аллаху с просьбой) за тебя после твоей смерти?',opts:[{t:'Уверен — много добрых дел и связей',s:85},{t:'Надеюсь, что да',s:65},{t:'Не уверен',s:42},{t:'Маловероятно',s:18}]}],
+  // 14: Баракат (Благословение и изобилие от Аллаха)
+  [{q:'Чувствуешь ли ты баракат (благословение и изобилие от Аллаха) в своей жизни?',opts:[{t:'Да, ощущаю баракат (благословение и изобилие от Аллаха) во многих аспектах',s:85},{t:'Иногда ощущаю',s:65},{t:'Редко, но хочу исправить это',s:42},{t:'Не чувствую бараката',s:18}]},
+   {q:'Доволен ли ты своей жизнью в целом?',opts:[{t:'Да, глубоко доволен альхамдулиЛлях',s:85},{t:'В основном доволен',s:65},{t:'Есть значимые вещи которых не хватает',s:42},{t:'Не доволен, многое хочу изменить',s:18}]},
+   {q:'Есть ли в жизни внутренний покой (сакина)?',opts:[{t:'Да, есть покой даже в трудностях',s:85},{t:'Иногда есть, иногда нет',s:65},{t:'Редко, чаще беспокойство',s:42},{t:'Нет покоя, тревога и стресс',s:18}]},
+   {q:'Благодарен ли ты Аллаху за то, что имеешь?',opts:[{t:'Да, шукур (благодарность) — это моя основа',s:85},{t:'Стараюсь быть благодарным',s:65},{t:'Иногда, непоследовательно',s:42},{t:'Трудно быть благодарным',s:18}]}]
+]};
+
+function setTab(tab,el){
+  qzTab=tab;
+  document.querySelectorAll('.qz-tab').forEach(function(b){b.classList.remove('active')});
+  el.classList.add('active');
+  qzAnswers=new Array(15).fill(null).map(function(){return[null,null,null,null];});
+  qzCustomAnswers=new Array(15).fill(null).map(function(){return['','','',''];});
+  qzStep=0;
+  buildShipCells();
+  qzRender();
+}
+
+function qzRender(){
+  var secs=SEC[qzTab],s=secs[qzStep];
+  var qs=QZ_Q[qzTab][qzStep];
+  var ans=qzAnswers[qzStep];
+  var answered=ans.filter(function(a){return a!==null;}).length;
+
+  document.getElementById('qz-lbl').textContent='ОТСЕК '+(qzStep+1)+' / 15';
+  document.getElementById('qz-frac').textContent=(qzStep+1)+' / 15';
+  document.getElementById('qz-pfill').style.width=(qzStep/15*100)+'%';
+  document.getElementById('qz-bname').textContent=s.full;
+  document.getElementById('qz-bdesc').textContent=s.desc;
+  document.getElementById('qz-progress-label').innerHTML='Отметь то, что ближе всего · <b>'+answered+'/4</b>';
+
+  var html=qs.map(function(q,qi){
+    return '<div class="qz-item">'+
+      '<div class="qz-q"><span>0'+(qi+1)+'</span>'+q.q+'</div>'+
+      '<div class="qz-opts-wrap">'+
+        q.opts.map(function(opt){
+          var cls='qz-opt-btn';
+          if(ans[qi]===opt.s){
+            cls+= opt.s>=70?' sel-hi': opt.s>=50?' sel-mid': opt.s>=35?' sel-lo':' sel-bad';
+          }
+          return '<button class="'+cls+'" onclick="qzPick('+qi+','+opt.s+')">'+opt.t+'</button>';
+        }).join('')+
+        '<button class="qz-opt-btn'+(ans[qi]==='custom'?' sel-mid':'')+'" onclick="qzPickCustom('+qi+')">✏️ Свой вариант</button>'+
+        '<div class="qz-custom-wrap'+(ans[qi]==='custom'?' show':'')+'" id="qz-custom-'+qzStep+'-'+qi+'">'+
+          '<textarea class="qz-custom-inp" rows="2" placeholder="Опиши своими словами..." oninput="qzSaveCustom('+qi+',this.value)">'+qzCustomAnswers[qzStep][qi]+'</textarea>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('qz-questions').innerHTML=html;
+
+  var sc=document.getElementById('qz-auto-score');
+  if(answered===4){
+    var avg=Math.round(ans.map(function(v){return v==='custom'?52:v;}).reduce(function(a,b){return a+b;},0)/4);
+    sc.className='qz-auto-score show';
+    sc.textContent='✓ Оценка рассчитана: '+avg+'%';
+  } else {
+    sc.className='qz-auto-score';
+  }
+
+  document.getElementById('qz-next').disabled=(answered<4);
+  document.getElementById('qz-next').textContent=qzStep===14?'Узнать результат →':'Следующий блок →';
+  document.getElementById('qz-back').disabled=qzStep===0;
+}
+
+function qzPick(qi,score){
+  qzAnswers[qzStep][qi]=score;
+  updateShipCell(qzStep);
+  qzRender();
+}
+
+function qzPickCustom(qi){
+  qzAnswers[qzStep][qi]='custom';
+  updateShipCell(qzStep);
+  qzRender();
+  // focus textarea
+  setTimeout(function(){
+    var el=document.getElementById('qz-custom-'+qzStep+'-'+qi);
+    if(el){var ta=el.querySelector('textarea');if(ta)ta.focus();}
+  },50);
+}
+
+function qzSaveCustom(qi,val){
+  qzCustomAnswers[qzStep][qi]=val;
+}
+
+function qzGoTo(idx){
+  qzStep=idx;
+  document.getElementById('qz-card').style.display='block';
+  document.getElementById('qz-name-card').style.display='none';
+  var tabs=document.querySelector('.qz-tabs');if(tabs)tabs.style.display='';
+  qzRender();
+  document.getElementById('qz-card').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function qzBack(){if(qzStep>0){qzStep--;qzRender();}}
+
+function qzNext(){
+  var ans=qzAnswers[qzStep];
+  var answered=ans.filter(function(a){return a!==null;}).length;
+  if(answered<4)return;
+  if(qzStep<14){qzStep++;qzRender();}
+  else{
+    document.getElementById('qz-pfill').style.width='100%';
+    document.getElementById('qz-card').style.display='none';
+    document.getElementById('qz-name-card').style.display='block';
+    document.querySelector('.qz-tabs').style.display='none';
+  }
+}
+
+var AI_ANALYZE_URL = 'https://iq-barakah-v2-rashidiq.amvera.io/analyze';
+
+function mdToHtml(md){
+  return md
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n\n/g,'</p><p>')
+    .replace(/^(?!<h2)/,'<p>')
+    + '</p>';
+}
+
+function loadAiAnalysis(scores, name, tab){
+  var sec = document.getElementById('ai-section');
+  if(!sec) return;
+  sec.style.display = 'block';
+  sec.innerHTML = '<div class="ai-block"><div class="ai-eyebrow">✦ Персональный разбор от Джарваса</div><div class="ai-loading"><div class="ai-spinner"></div><div class="ai-loading-text">Джарвас анализирует твой корабль...</div></div></div>';
+
+  fetch(AI_ANALYZE_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({scores:scores, name:name, tab:tab, utm:parseParams().utm, customAnswers:window._qzData&&window._qzData.customAnswers||[], pro:true})
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){
+    if(d.analysis){
+      sec.innerHTML = '<div class="ai-block"><div class="ai-eyebrow">✦ Персональный разбор от Джарваса</div><div class="ai-title">Что видит Джарвас в твоём корабле</div><div class="ai-content">' + mdToHtml(d.analysis) + '</div></div>';
+    } else {
+      sec.style.display = 'none';
+    }
+  })
+  .catch(function(){ sec.style.display = 'none'; });
+}
+
+function qzFinish(){
+  var name=(document.getElementById('qz-name-inp').value||'').trim();
+  var scores=qzAnswers.map(function(a){
+    var answered=a.filter(function(v){return v!==null;});
+    if(answered.length===0) return 50;
+    var numericAnswers=answered.filter(function(v){return v!=='custom';});
+    if(numericAnswers.length===0) return 52;
+    return Math.round(numericAnswers.reduce(function(s,v){return s+v;},0)/numericAnswers.length);
+  });
+  var customFlat=qzCustomAnswers.map(function(block){return block.filter(function(v){return v&&v.trim();});});
+  window._qzData={
+    scores:scores,
+    name:name,tab:qzTab,
+    customAnswers:customFlat,
+    date:new Date().toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'})
+  };
+  var _scores=scores, _name=name, _tab=qzTab;
+  document.getElementById('quiz-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  showContactModal(function(){
+    render();
+    loadAiAnalysis(_scores, _name, _tab);
+    saveHistory(_tab, _scores);
+    setTimeout(function(){var f=document.getElementById('share-fab');if(f)f.classList.add('visible');},1500);
+  });
+  saveHistory(qzTab, scores);
+  setTimeout(function(){var f=document.getElementById('share-fab');if(f)f.classList.add('visible');},1500);
+}
+
+// ── SHIP DRAWING ──
+var QZ_NS='http://www.w3.org/2000/svg';
+var QZ_W=1420,QZ_WL=202,QZ_MAX_D=330,QZ_ML=28,QZ_MR=28;
+var QZ_BW_TOTAL=(QZ_W-QZ_ML-QZ_MR)/15,QZ_GAP=4,QZ_BW=QZ_BW_TOTAL-QZ_GAP;
+function qzMk(tag,attr,parent){var el=document.createElementNS(QZ_NS,tag);for(var k in attr)el.setAttribute(k,attr[k]);if(parent)parent.appendChild(el);return el;}
+function qzBx(i){return QZ_ML+i*QZ_BW_TOTAL+QZ_GAP/2;}
+function qzCx(i){return qzBx(i)+QZ_BW/2;}
+function qzWaterH(s){return Math.round((1-s/100)*QZ_MAX_D);}
+function qzCol(s){return s>=70?'#C5A24A':s>=40?'#E8A040':'#E24B4A';}
+function qzColRgb(s){return s>=70?'197,162,74':s>=40?'232,160,64':'226,75,74';}
+function qzGradId(s){return s>=70?'qz-waterGold':s>=40?'qz-waterAmb':'qz-waterRed';}
+
+function qzShipScore(i){
+  var a=qzAnswers[i];
+  var answered=a.filter(function(v){return v!==null;});
+  if(answered.length===0) return 70;
+  return Math.round(answered.reduce(function(s,v){return s+v;},0)/answered.length);
+}
+
+function buildShipCells(){
+  qzDrawShip();
+  qzDrawCompartments();
+}
+
+function updateShipCell(){
+  qzDrawCompartments();
+}
+
+function qzDrawShip(){
+  var g=document.getElementById('qz-g-ship');
+  if(!g) return;
+  g.innerHTML='';
+  var G='#C5A24A',GD='rgba(197,162,74,0.28)',GF='rgba(197,162,74,0.07)';
+  var hull=[[80,200],[160,178],[290,166],[470,158],[670,154],[840,153],[1000,156],[1160,163],[1295,172],[1365,184],[1375,200]];
+  qzMk('path',{d:'M '+hull.map(function(p){return p.join(' ');}).join(' L ')+' L 1375 202 L 80 202 Z',fill:'rgba(20,50,32,0.7)',stroke:G,'stroke-width':'1.5'},g);
+  qzMk('path',{d:'M 120 190 L 1350 190',stroke:'rgba(197,162,74,0.5)','stroke-width':'1.2'},g);
+  var s1=[[330,158],[385,130],[510,114],[675,108],[825,110],[955,122],[1060,142],[1110,157]];
+  qzMk('path',{d:'M '+s1.map(function(p){return p.join(' ');}).join(' L ')+' L 330 158 Z',fill:GF,stroke:G,'stroke-width':'1.2'},g);
+  var s2=[[420,130],[465,104],[558,86],[678,80],[782,84],[862,98],[925,118],[950,130]];
+  qzMk('path',{d:'M '+s2.map(function(p){return p.join(' ');}).join(' L ')+' L 420 130 Z',fill:'rgba(197,162,74,0.09)',stroke:G,'stroke-width':'1.3'},g);
+  var br=[[488,104],[528,82],[610,68],[692,63],[762,67],[822,82],[855,98]];
+  qzMk('path',{d:'M '+br.map(function(p){return p.join(' ');}).join(' L ')+' L 488 104 Z',fill:'rgba(197,162,74,0.13)',stroke:G,'stroke-width':'1.3'},g);
+  qzMk('line',{x1:698,y1:63,x2:698,y2:5,stroke:G,'stroke-width':'2.2'},g);
+  qzMk('line',{x1:662,y1:24,x2:734,y2:24,stroke:GD,'stroke-width':'1.3'},g);
+  hull.concat(s1,s2,br,[[698,63],[698,5]]).forEach(function(p){qzMk('circle',{cx:p[0],cy:p[1],r:'2.8',fill:G,filter:'url(#qz-glow)'},g);});
+  var ne=qzMk('text',{x:200,y:186,'font-family':'Georgia,serif','font-size':'13','font-style':'italic',fill:'rgba(197,162,74,0.55)','letter-spacing':'2'},g);
+  ne.textContent='IQ Barakah';
+}
+
+function qzDrawCompartments(){
+  var gc=document.getElementById('qz-g-compartments');
+  var gD=document.getElementById('qz-g-dots');
+  var gL=document.getElementById('qz-g-labels');
+  if(!gc) return;
+  gc.innerHTML='';gD.innerHTML='';gL.innerHTML='';
+  var secs=SEC[qzTab],pts=[];
+  for(var i=0;i<15;i++){
+    var s=qzShipScore(i);
+    var x=qzBx(i),c=qzCx(i),wh=qzWaterH(s);
+    var cl=qzCol(s),rgb=qzColRgb(s),gid=qzGradId(s);
+    var answered=qzAnswers[i]!==null;
+    var isActive=(i===qzStep);
+    var comp=qzMk('rect',{x:x,y:QZ_WL,width:QZ_BW,height:QZ_MAX_D,fill:'rgba(0,0,0,0.25)',stroke:isActive?'#E8C56A':answered?cl:'rgba(197,162,74,0.22)','stroke-width':isActive?'3':answered?'1.5':'0.8',rx:'2',style:'cursor:pointer'},gc);
+    (function(idx){comp.addEventListener('click',function(){qzGoTo(idx);});})(i);
+    if(wh>0&&answered){
+      qzMk('rect',{x:x+1,y:QZ_WL+QZ_MAX_D-wh,width:QZ_BW-2,height:wh,fill:'url(#'+gid+')',rx:'1'},gc);
+      qzMk('line',{x1:x+2,y1:QZ_WL+QZ_MAX_D-wh,x2:x+QZ_BW-2,y2:QZ_WL+QZ_MAX_D-wh,stroke:cl,'stroke-width':'1.5',opacity:'0.9'},gc);
+      var sl=qzMk('text',{x:c,y:QZ_WL+18,'text-anchor':'middle',fill:cl,'font-size':'12','font-family':'Georgia,serif','font-weight':'bold'},gc);
+      sl.textContent=s;
+    }
+    var dotY=QZ_WL-(s/100)*16+4;
+    if(answered) pts.push([c,dotY]);
+    qzMk('circle',{cx:c,cy:dotY,r:answered?'4':'3',fill:answered?cl:'rgba(197,162,74,0.3)',filter:'url(#qz-glow)'},gD);
+    var lg=qzMk('g',{transform:'translate('+c+','+(QZ_WL+QZ_MAX_D+18)+') rotate(-42)',style:'cursor:pointer'},gL);
+    (function(idx){lg.addEventListener('click',function(){qzGoTo(idx);});})(i);
+    var lt=qzMk('text',{x:0,y:0,'text-anchor':'start',fill:answered?cl:(i===qzStep?'#E8C56A':'rgba(255,255,255,0.5)'),'font-size':'12','font-weight':(answered||i===qzStep)?'bold':'normal'},lg);
+    lt.textContent=secs[i].name;
+  }
+  if(pts.length>1){
+    var d='M '+pts[0][0]+','+pts[0][1];
+    for(var j=1;j<pts.length;j++){var mx=(pts[j-1][0]+pts[j][0])/2;d+=' C '+mx+','+pts[j-1][1]+' '+mx+','+pts[j][1]+' '+pts[j][0]+','+pts[j][1];}
+    var wp=document.getElementById('qz-wave-path');
+    if(wp) wp.setAttribute('d',d);
+  }
+}
+
+// ── RESTART ──
+function qzRestart(){
+  qzAnswers=new Array(15).fill(null).map(function(){return[null,null,null,null];});
+  qzCustomAnswers=new Array(15).fill(null).map(function(){return['','','',''];});
+  qzStep=0;
+  window._qzData=null;
+  document.getElementById('quiz-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('qz-card').style.display='block';
+  document.getElementById('qz-name-card').style.display='none';
+  var tabs=document.querySelectorAll('.qz-tabs');
+  tabs.forEach(function(t){t.style.display='';});
+  buildShipCells();
+  qzRender();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+// ── SCROLL ANIMATIONS ──
+function initScrollAnim(){
+  var els=document.querySelectorAll('.block,.exec-summary,.matrix-wrap,.checklist-plan>div');
+  if(!('IntersectionObserver' in window)){
+    els.forEach(function(el){el.classList.add('visible');});
+    return;
+  }
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}
+    });
+  },{threshold:0.08,rootMargin:'0px 0px -40px 0px'});
+  els.forEach(function(el){io.observe(el);});
+}
+
+// ── PDF ──
+function printReport(){window.print();}
+
+function _radarPrintColors(dark){
+  var ch = window._radarChart;
+  if(!ch) return;
+  var s = ch.options.scales.r;
+  if(dark){
+    s.ticks.color = 'rgba(0,0,0,.45)';
+    s.grid.color = 'rgba(0,0,0,.15)';
+    s.angleLines.color = 'rgba(180,140,40,.35)';
+    s.pointLabels.color = 'rgba(0,0,0,.75)';
+  } else {
+    s.ticks.color = 'rgba(255,255,255,.3)';
+    s.grid.color = 'rgba(255,255,255,.1)';
+    s.angleLines.color = 'rgba(201,168,76,.2)';
+    s.pointLabels.color = 'rgba(255,255,255,.7)';
+  }
+  ch.update('none');
+}
+window.addEventListener('beforeprint', function(){ _radarPrintColors(true); });
+window.addEventListener('afterprint', function(){ _radarPrintColors(false); });
+
+// ── COUNTER ──
+function buildCounter(tab){
+  var total = tab==='business' ? 1247 : 934;
+  // small random delta so it looks live
+  total += Math.floor(Math.random()*20);
+  return '<div class="counter-strip"><span class="counter-dot"></span><span>Диагностику прошли <span class="counter-num">'+total+'</span> предпринимателей-мусульман</span></div>';
+}
+
+// ── INIT ──
+function _iqbInit(){
+  var p=new URLSearchParams(window.location.search);
+  var raw=p.get('scores')||'';
+  var sc=raw.split(',').map(Number).filter(function(n){return !isNaN(n)&&n>=0&&n<=100;});
+  if(sc.length===15){
+    document.getElementById('quiz-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    render();
+    setTimeout(function(){var f=document.getElementById('share-fab');if(f)f.classList.add('visible');},1500);
+  } else {
+    document.getElementById('app').style.display='none';
+    document.getElementById('quiz-screen').style.display='flex';
+    buildShipCells();
+    qzRender();
+  }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_iqbInit);
+} else {
+  _iqbInit();
+}
+
+// ── SHARE ──
+function shareReport(){
+  var url=window.location.href;
+  var title='Мой разбор корабля IQ Barakah';
+  if(navigator.share){
+    navigator.share({title:title,url:url}).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(url).then(function(){
+      var btn=document.getElementById('share-fab');
+      var orig=btn.innerHTML;
+      btn.innerHTML='✓ Ссылка скопирована';
+      setTimeout(function(){btn.innerHTML=orig;},2000);
+    });
+  }
+}
+
+// ── HISTORY ──
+var HISTORY_KEY='iqb_history';
+function saveHistory(tab,scores){
+  try{
+    var all=JSON.parse(localStorage.getItem(HISTORY_KEY)||'{}');
+    if(!all[tab]) all[tab]=[];
+    all[tab].unshift({date:new Date().toLocaleDateString('ru-RU'),scores:scores});
+    all[tab]=all[tab].slice(0,5); // keep last 5
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(all));
+  }catch(e){}
+}
+function loadHistory(tab){
+  try{
+    var all=JSON.parse(localStorage.getItem(HISTORY_KEY)||'{}');
+    return (all[tab]||[]);
+  }catch(e){return [];}
+}
+function buildHistoryBanner(tab,scores){
+  var hist=loadHistory(tab);
+  if(hist.length<2) return '';
+  var prev=hist[1];
+  var secs=SEC[tab];
+  var changed=[];
+  for(var i=0;i<15;i++){
+    var d=scores[i]-prev.scores[i];
+    if(Math.abs(d)>=5){
+      changed.push({name:secs[i].name,d:d});
+    }
+  }
+  if(!changed.length){
+    var avgNow=Math.round(scores.reduce(function(a,b){return a+b;},0)/scores.length);
+    var msg=avgNow>=75
+      ? 'Ты стабильно держишь высокий уровень с прошлого разбора · '+prev.date
+      : 'С прошлого разбора видимых сдвигов пока нет · '+prev.date+'. Это нормально — устойчивые изменения требуют времени.';
+    return '<div class="history-banner"><div class="history-icon">📈</div><div><div class="history-title">'+msg+'</div></div></div>';
+  }
+  var chips=changed.slice(0,5).map(function(c){
+    var cls=c.d>0?'delta-up':'delta-down';
+    var sign=c.d>0?'+':'';
+    return '<span class="delta-chip '+cls+'">'+c.name+' '+sign+c.d+'%</span>';
+  }).join('');
+  return '<div class="history-banner"><div class="history-icon">📈</div><div><div class="history-title">Сравнение с прошлым разбором · '+prev.date+'</div><div class="history-deltas">'+chips+'</div></div></div>';
+}
+
+// ── CONTACT CAPTURE ──
+var CONTACT_KEY='iqb_contact_saved';
+function showContactModal(onDone){
+  if(localStorage.getItem(CONTACT_KEY)){onDone();return;}
+  var overlay=document.getElementById('contact-modal');
+  overlay.classList.add('show');
+  document.getElementById('contact-done-btn').onclick=function(){
+    var val=(document.getElementById('contact-tg-inp').value||'').trim();
+    var consent=document.getElementById('contact-consent-chk');
+    if(val && consent && !consent.checked){
+      consent.parentElement.style.color='#e07060';
+      return;
+    }
+    if(val){
+      localStorage.setItem(CONTACT_KEY,'1');
+      // send to backend
+      fetch('https://iq-barakah-v2-rashidiq.amvera.io/contact',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({telegram:val,utm:parseParams().utm,tab:parseParams().tab})
+      }).catch(function(){});
+    }
+    overlay.classList.remove('show');
+    onDone();
+  };
+  document.getElementById('contact-skip-btn').onclick=function(){
+    localStorage.setItem(CONTACT_KEY,'1');
+    overlay.classList.remove('show');
+    onDone();
+  };
+}
+
+// ── PAGE VIEW TRACKING ──
+(function(){
+  var p=parseParams();
+  if(p.scores && p.scores.length===15){
+    fetch('https://iq-barakah-v2-rashidiq.amvera.io/track',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({event:'report_open',utm:p.utm,tab:p.tab})
+    }).catch(function(){});
+  }
+})();
+</script>
+
+<!-- Contact Modal -->
+<div class="modal-overlay" id="contact-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🚀</div>
+    <div class="modal-title">Получи напоминание через 30 дней</div>
+    <div class="modal-sub">Пройди диагностику снова и увидишь свой прогресс.<br>Оставь Telegram — напомним в нужный момент.</div>
+    <input class="modal-inp" id="contact-tg-inp" type="text" placeholder="@твой_телеграм">
+    <label class="modal-consent-label">
+      <input type="checkbox" id="contact-consent-chk">
+      <span>Согласен на обработку персональных данных в соответствии с <a href="privacy-policy.html" target="_blank">Политикой конфиденциальности</a></span>
+    </label>
+    <button class="modal-btn-primary" id="contact-done-btn">Напомнить через 30 дней →</button>
+    <button class="modal-btn-skip" id="contact-skip-btn">Пропустить</button>
+  </div>
+</div>
+<!-- Share FAB -->
+<button class="share-fab" id="share-fab" onclick="shareReport()">⬆ Поделиться результатом</button>
+</body>
+</html>
