@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Mulish:wght@300;400;600;700;800;900&display=swap">
+<title>Путь IQ Barakah — система жизни для мусульман</title>
+<meta name="description" content="24 шага трансформации. Mini App, Джарвас, сообщество, созвоны. 5 000 ₽/месяц — система жизни для мусульманина.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://iq-barakah.ru/put.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Путь IQ Barakah — 24 шага трансформации">
+<meta property="og:description" content="Ты не покупаешь курс. Ты вступаешь на Путь. Шаг за шагом, день за днём.">
+<meta property="og:url" content="https://iq-barakah.ru/put.html">
+<meta property="og:image" content="https://iq-barakah.ru/images/og-image-final.jpg">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="shortcut icon" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=Mulish:wght@300;400;500;600;700;800;900&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400;1,600&family=Mulish:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"></noscript>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#C9A84C;--gold2:#E8C97A;--gold3:#FFF0B3;
+  --green:#1A3D08;--green2:#2A5C10;--green3:#3B7A18;
+  --green4:#EDF5E5;--green5:#D4ECC0;
+  --dark:#060B04;--dark2:#0D1A0A;
+  --text:#1A2810;--mid:#4A6030;--mid2:#7A8E6A;
+  --cream:#FAFDF6;--white:#fff;--sand:#F0EBD8;--border:#D8EAC8;
+  --shadow:rgba(26,61,8,.10);--shadow2:rgba(26,61,8,.18)
+}
+html{scroll-behavior:smooth}
+body{font-family:'Mulish',sans-serif;background:var(--cream);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% -10%,rgba(59,122,24,.07),transparent 55%),
+             radial-gradient(ellipse at 100% 90%,rgba(201,168,76,.05),transparent 45%)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+.narrow{max-width:680px;margin:0 auto}
+a{color:inherit;text-decoration:none}
+
+/* ── НАВ ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(250,253,246,.93);backdrop-filter:blur(14px);border-bottom:1px solid rgba(216,234,200,.8)}
+.nav{height:72px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;letter-spacing:3px;color:var(--green);white-space:nowrap}
+.nav-links{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.nav-links a{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:8px 13px;border-radius:999px;border:1px solid rgba(42,92,16,.13);background:rgba(255,255,255,.68);font-size:12px;font-weight:800;color:var(--mid);transition:all .2s}
+.nav-links a:hover,.nav-links a.active{background:var(--green4);border-color:var(--green3);color:var(--green);transform:translateY(-1px)}
+.nav-cta{padding:12px 22px;border-radius:999px;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;font-size:12px;font-weight:900;box-shadow:0 8px 24px var(--shadow2);white-space:nowrap}
+.burger{display:none;font-size:28px;line-height:1;cursor:pointer;color:var(--green);user-select:none}
+.mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;z-index:100;background:rgba(250,253,246,.98);border-top:1px solid var(--border);padding:14px 0 18px;box-shadow:0 10px 30px var(--shadow2)}
+.mobile-menu a{display:block;padding:16px 28px;color:var(--text);font-size:17px;font-weight:800}
+.mobile-menu a:hover{background:var(--green4);color:var(--green)}
+.mobile-menu.active{display:block}
+
+/* ── HERO (тёмный) ── */
+.hero{min-height:100svh;padding:130px 0 80px;display:flex;align-items:center;
+  background:linear-gradient(168deg,var(--dark2) 0%,var(--dark) 60%,#0A2005 100%);
+  position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 20%,rgba(201,168,76,.12),transparent 55%),
+             radial-gradient(ellipse at 0% 80%,rgba(42,92,16,.3),transparent 50%)}
+.hero-inner{text-align:center;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;border-radius:999px;
+  background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);
+  font-size:9px;font-weight:800;letter-spacing:2.5px;color:var(--gold2);margin-bottom:30px}
+h1{font-family:'Cormorant Garamond',serif;font-size:clamp(44px,8vw,88px);line-height:1.04;
+  color:#fff;letter-spacing:-.5px;margin-bottom:24px}
+h1 em{display:block;color:var(--gold2);font-weight:300;font-style:italic}
+.hero-line{width:48px;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;margin:0 auto 28px}
+.hero-sub{max-width:560px;margin:0 auto 36px;font-size:20px;line-height:1.6;color:rgba(255,255,255,.6);font-weight:300}
+.hero-cta{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:48px}
+.btn-gold{display:inline-flex;align-items:center;justify-content:center;min-width:300px;
+  padding:20px 40px;border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#060B04;font-size:16px;font-weight:900;
+  box-shadow:0 14px 44px rgba(201,168,76,.35);transition:.2s;
+  animation:gpulse 2.4s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 14px 44px rgba(201,168,76,.35),0 0 0 0 rgba(201,168,76,.15)}
+  50%{box-shadow:0 14px 44px rgba(201,168,76,.5),0 0 0 14px rgba(201,168,76,0)}}
+.btn-gold:hover{transform:translateY(-3px)}
+.btn-micro{font-size:12px;color:rgba(255,255,255,.35);font-weight:600}
+
+/* формула */
+.formula-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:700px;margin:0 auto}
+.frm{padding:16px 12px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.14);text-align:center}
+.frm-pct{font-family:'Cormorant Garamond',serif;font-size:36px;font-weight:700;color:var(--gold2);line-height:1;margin-bottom:4px}
+.frm span{font-size:10px;font-weight:800;color:rgba(255,255,255,.4);letter-spacing:.5px;line-height:1.4;display:block}
+
+/* ── ОБЩИЕ ── */
+section{padding:80px 0;position:relative}
+.eyebrow{text-align:center;font-size:10px;font-weight:800;letter-spacing:3px;color:var(--gold);margin-bottom:14px;text-transform:uppercase}
+.sec-title{font-family:'Cormorant Garamond',serif;text-align:center;font-size:clamp(32px,5vw,56px);line-height:1.08;color:var(--dark);margin-bottom:14px}
+.sec-title em{font-weight:300;color:var(--green2)}
+.arc-tag{display:inline-flex;align-items:center;gap:8px;font-size:10px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--gold2);margin-bottom:14px;justify-content:center}
+.arc-tag::before{content:"";width:22px;height:1px;background:var(--gold2)}
+.sec-sub{max-width:620px;margin:0 auto 36px;text-align:center;font-size:16px;line-height:1.75;color:var(--mid);font-weight:300}
+
+/* ── НЕ КУРС ── */
+.not-course{background:var(--white)}
+.nc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:860px;margin:0 auto}
+.nc-no{padding:28px 24px;border-radius:20px;background:#FEF9F0;border:1px solid #F0D9A0}
+.nc-yes{padding:28px 24px;border-radius:20px;background:var(--green4);border:1px solid var(--border)}
+.nc-label{font-size:9px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:16px;padding:4px 10px;border-radius:999px;display:inline-block}
+.nc-no .nc-label{background:rgba(201,168,76,.15);color:var(--gold)}
+.nc-yes .nc-label{background:var(--green);color:#fff}
+.nc-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+.nc-item:last-child{border-bottom:none}
+.nc-ic{font-size:16px;flex-shrink:0;margin-top:1px}
+.nc-item span{font-size:14px;line-height:1.6;color:var(--text)}
+
+/* ── 24 ШАГА — 3 ЭТАПА ── */
+.stages-section{background:var(--dark);overflow:hidden;position:relative}
+.stages-section::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.1),transparent 50%)}
+.stages-section .eyebrow{color:var(--gold)}
+.stages-section .sec-title{color:#fff}
+.stages-section .sec-sub{color:rgba(255,255,255,.5)}
+
+.stages-wrap{max-width:960px;margin:0 auto}
+.stage-rail{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:40;display:flex;flex-direction:column;gap:18px;opacity:0;pointer-events:none;transition:opacity .4s}
+.stage-rail.active{opacity:1}
+.stage-rail-item{display:flex;align-items:center;gap:10px;cursor:pointer}
+.stage-rail-dot{width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(201,168,76,.4);background:transparent;transition:.35s}
+.stage-rail-label{font-size:10px;font-weight:800;letter-spacing:1.5px;color:rgba(255,255,255,.35);transition:.35s;white-space:nowrap}
+.stage-rail-item.on .stage-rail-dot{background:var(--gold2);border-color:var(--gold2);box-shadow:0 0 10px 2px rgba(201,168,76,.6)}
+.stage-rail-item.on .stage-rail-label{color:var(--gold2)}
+@media(max-width:900px){.stage-rail{display:none}}
+.stage-block{margin-bottom:48px;border-radius:28px;overflow:hidden;border:1px solid rgba(201,168,76,.14)}
+.stage-header{padding:28px 36px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(201,168,76,.1);
+  display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center}
+.stage-roman{font-family:'Cormorant Garamond',serif;font-size:64px;font-weight:700;color:var(--gold);line-height:1}
+.stage-info h3{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:#fff;margin-bottom:6px}
+.stage-info p{font-size:14px;color:rgba(255,255,255,.5);line-height:1.65}
+.stage-result{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 14px;
+  border-radius:999px;background:rgba(59,122,24,.25);border:1px solid rgba(59,122,24,.4);
+  font-size:12px;font-weight:800;color:#8BC96A}
+.steps-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(201,168,76,.1)}
+.sm{padding:18px 16px;background:var(--dark2);transition:.2s}
+.sm:hover{background:rgba(255,255,255,.04)}
+.sm-n{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:rgba(201,168,76,.5);margin-bottom:4px}
+.sm span{font-size:13px;font-weight:700;color:rgba(255,255,255,.7)}
+.sm p{font-size:12px;color:rgba(255,255,255,.35);line-height:1.5;margin-top:4px}
+
+/* ── ЧТО ВХОДИТ ── */
+.includes-section{background:var(--white)}
+.inc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:900px;margin:0 auto}
+.inc-card{padding:32px 28px;border-radius:24px;background:var(--cream);border:1px solid var(--border);transition:.2s}
+.inc-card:hover{transform:translateY(-3px);box-shadow:0 16px 48px var(--shadow2)}
+.inc-ic{font-size:36px;margin-bottom:16px}
+.inc-card h3{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--dark);margin-bottom:10px}
+.inc-card p{font-size:14px;line-height:1.75;color:var(--mid)}
+
+/* ── ЦЕНА ── */
+.price-section{background:var(--dark);overflow:hidden;position:relative;text-align:center}
+.price-section::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(201,168,76,.12),transparent 55%)}
+.price-section .eyebrow{color:var(--gold)}
+.price-section .sec-title{color:#fff}
+.price-section .sec-sub{color:rgba(255,255,255,.5)}
+
+.price-block{max-width:560px;margin:0 auto;padding:48px 40px;border-radius:32px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.2);position:relative}
+.price-block::before{content:"";position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,168,76,.6),transparent)}
+.p-amount{font-family:'Cormorant Garamond',serif;font-size:96px;font-weight:700;color:var(--gold2);line-height:1;margin-bottom:4px}
+.p-per{font-size:16px;color:rgba(255,255,255,.4);margin-bottom:20px}
+.sadaka-pill{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:999px;
+  background:rgba(42,92,16,.3);border:1px solid rgba(59,122,24,.4);
+  font-size:13px;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:28px}
+.price-feats{display:grid;gap:10px;margin-bottom:32px;text-align:left}
+.pf{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.55}
+.pf-ic{color:var(--gold2);flex-shrink:0;font-size:13px;margin-top:2px}
+.pf strong{color:#fff;font-weight:700}
+.btn-cta{display:flex;align-items:center;justify-content:center;width:100%;
+  padding:20px;border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#060B04;font-size:16px;font-weight:900;
+  box-shadow:0 14px 44px rgba(201,168,76,.35);transition:.2s;margin-bottom:12px;
+  animation:gpulse 2.4s ease-in-out infinite}
+.btn-cta:hover{transform:translateY(-2px)}
+.btn-cta-note{font-size:12px;color:rgba(255,255,255,.25)}
+.price-or{margin:20px 0;font-size:13px;color:rgba(255,255,255,.2);position:relative}
+.price-or::before,.price-or::after{content:"";position:absolute;top:50%;width:40%;height:1px;background:rgba(255,255,255,.08)}
+.price-or::before{left:0}.price-or::after{right:0}
+.btn-entry{display:flex;align-items:center;justify-content:center;width:100%;
+  padding:16px;border-radius:999px;border:1px solid rgba(201,168,76,.3);
+  color:var(--gold2);font-size:14px;font-weight:800;transition:.2s}
+.btn-entry:hover{background:rgba(201,168,76,.08);border-color:var(--gold)}
+
+/* ── FOUNDING ── */
+.founding{background:linear-gradient(170deg,var(--cream),var(--sand))}
+.fm-wrap{max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.fm-main{padding:40px 36px;border-radius:28px;background:var(--dark);border:1px solid rgba(201,168,76,.2);color:#fff}
+.fm-badge{display:inline-block;font-size:9px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;
+  padding:5px 12px;border-radius:999px;background:rgba(201,168,76,.12);color:var(--gold2);margin-bottom:18px}
+.fm-main h3{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:700;color:var(--gold2);margin-bottom:12px;line-height:1.1}
+.fm-main p{font-size:15px;color:rgba(255,255,255,.55);line-height:1.75;margin-bottom:24px}
+.fm-slots{display:grid;gap:10px;margin-bottom:24px}
+.fmslot{padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:14px}
+.fmslot b{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:700;color:#fff;line-height:1;min-width:44px}
+.fmslot span{font-size:13px;color:rgba(255,255,255,.4);line-height:1.45}
+.fm-perks{padding:36px 32px;border-radius:24px;background:var(--white);border:1px solid var(--border)}
+.fm-perks-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--dark);margin-bottom:6px}
+.fm-perks p{font-size:14px;color:var(--mid);margin-bottom:20px}
+.fperk{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.fperk:last-child{border-bottom:none}
+.fperk-ic{font-size:22px;flex-shrink:0}
+.fperk-body b{display:block;font-size:14px;font-weight:800;color:var(--green);margin-bottom:3px}
+.fperk-body span{font-size:13px;color:var(--mid);line-height:1.5}
+
+/* ── ДЖАРВАС ── */
+.jarwas{background:var(--white)}
+.jinner{max-width:700px;margin:0 auto}
+.jchat{padding:32px;border-radius:24px;background:var(--dark);border:1px solid rgba(201,168,76,.2)}
+.bubble{padding:12px 16px;border-radius:16px;margin-bottom:10px;font-size:14px;line-height:1.55}
+.bubble.user{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.bubble.ai{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.2);color:rgba(255,255,255,.85)}
+.jnote{font-size:13px;color:rgba(255,255,255,.3);line-height:1.6;margin-top:6px}
+
+/* ── FAQ ── */
+.faq-section{background:var(--green4)}
+.faq-list{max-width:700px;margin:0 auto;display:grid;gap:12px}
+.faq-item{padding:22px 26px;border-radius:20px;background:var(--white);border:1px solid var(--border);cursor:pointer}
+.faq-q{font-size:16px;font-weight:800;color:var(--dark);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.faq-icon{font-size:20px;color:var(--gold);flex-shrink:0;transition:transform .3s}
+.faq-a{font-size:14px;line-height:1.75;color:var(--mid);max-height:0;overflow:hidden;transition:max-height .35s ease,padding-top .3s}
+.faq-item.open .faq-a{max-height:300px;padding-top:14px}
+.faq-item.open .faq-icon{transform:rotate(45deg)}
+
+/* ── ФИНАЛ ── */
+.final{background:var(--dark);color:#fff;text-align:center}
+.final .sec-title{color:#fff}
+.final .sec-sub{color:rgba(255,255,255,.55)}
+.cta-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:28px}
+.btn-ghost{display:inline-flex;align-items:center;justify-content:center;padding:15px 24px;
+  border-radius:999px;border:1px solid rgba(201,168,76,.4);color:var(--gold2);font-size:14px;font-weight:800}
+.btn-ghost:hover{background:rgba(201,168,76,.08);border-color:var(--gold)}
+
+/* ── ФУТЕР ── */
+footer{padding:34px 0;background:#040802;color:rgba(255,255,255,.35)}
+.foot{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px}
+
+/* ── СТИКЕР ── */
+.sticky{display:none;position:fixed;left:14px;right:14px;bottom:12px;z-index:50;
+  padding:14px 18px;border-radius:16px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#060B04;text-align:center;text-decoration:none;font-size:14px;font-weight:900;
+  box-shadow:0 12px 34px rgba(201,168,76,.35)}
+
+/* ── МОБАЙЛ ── */
+@media(max-width:780px){
+  .wrap{padding:0 18px}
+  .nav{height:64px}.logo{font-size:18px}.nav-links{display:none}.burger{display:block}
+  .nav-cta{padding:10px 16px;font-size:11px}
+  .hero{min-height:auto;padding:110px 0 56px}
+  h1{font-size:46px}.hero-sub{font-size:18px}
+  .formula-row{grid-template-columns:repeat(2,1fr)}
+  .nc-grid,.inc-grid,.fm-wrap{grid-template-columns:1fr}
+  .steps-mini{grid-template-columns:repeat(2,1fr)}
+  .stage-header{grid-template-columns:1fr}
+  .stage-roman{font-size:44px}
+  .cta-row{flex-direction:column;align-items:center}
+  section{padding:56px 0}
+  .foot{padding-bottom:52px}.sticky{display:block}
+}
+
+.hero{position:relative;overflow:hidden;background:#070C05}
+.hero-photo{position:absolute;inset:0;z-index:0;overflow:hidden}
+.hero-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 40%;
+  animation:heroPanText 32s ease-in-out infinite alternate;width:180%;left:-40%}
+@keyframes heroPanText{0%{transform:translateX(22%)}50%{transform:translateX(-22%)}100%{transform:translateX(22%)}}
+.hero-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 70% 65% at 50% 42%,rgba(7,12,5,.55) 0%,rgba(7,12,5,.88) 68%,rgba(7,12,5,.97) 100%)}
+.hero-textscrim{position:absolute;z-index:1;pointer-events:none;left:0;right:0;top:10%;bottom:6%;
+  background:#070C05}
+.hero .wrap.hero-inner{position:relative;z-index:2}
+.divider-photo{height:56vh;min-height:380px;max-height:600px;position:relative;overflow:hidden;background:#070C05;margin-top:36px}
+.divider-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 32%}
+.divider-photo::before{content:"";position:absolute;left:0;right:0;top:0;height:80px;z-index:1;background:linear-gradient(180deg,#070C05 0%,rgba(7,12,5,0) 100%)}
+.path-anim{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.path-dot{position:absolute;width:9px;height:9px;margin:-4.5px;border-radius:50%;background:transparent;
+  box-shadow:0 0 0 rgba(255,190,90,0);animation:dotLight 6s linear infinite}
+@keyframes dotLight{0%,89%,100%{box-shadow:0 0 0 rgba(255,190,90,0);background:transparent}
+  4%,7%{box-shadow:0 0 22px 7px rgba(255,195,100,.95);background:rgba(255,225,160,.5)}}
+.walker{position:absolute;width:16px;height:40px;z-index:3;animation:figureWalk 6s ease-in-out infinite;transform-origin:50% 100%}
+.walker .fw-head{width:7px;height:7px;border-radius:50%;background:#fff6e0;margin:0 auto;box-shadow:0 0 8px rgba(255,225,170,.7)}
+.walker .fw-torso{width:6px;height:16px;border-radius:3px;background:#fff6e0;margin:1px auto 0;box-shadow:0 0 8px rgba(255,225,170,.5)}
+.walker .fw-legs{position:relative;width:16px;height:15px;margin:0 auto}
+.walker .fw-leg{position:absolute;top:0;left:50%;width:2.4px;height:15px;border-radius:2px;background:#fff6e0;
+  transform-origin:top center;box-shadow:0 0 6px rgba(255,225,170,.5)}
+.walker .fw-leg.a{animation:legSwingA 0.7s ease-in-out infinite}
+.walker .fw-leg.b{animation:legSwingB 0.7s ease-in-out infinite}
+@keyframes legSwingA{0%,100%{transform:translateX(-2.4px) rotate(22deg)}50%{transform:translateX(-2.4px) rotate(-18deg)}}
+@keyframes legSwingB{0%,100%{transform:translateX(0) rotate(-18deg)}50%{transform:translateX(0) rotate(22deg)}}
+@keyframes figureWalk{
+  0%{left:2%;bottom:35%;transform:rotate(34deg)}
+  20%{left:22%;bottom:32%;transform:rotate(24deg)}
+  45%{left:46%;bottom:23%;transform:rotate(14deg)}
+  70%{left:70%;bottom:31%;transform:rotate(6deg)}
+  92%,100%{left:93%;bottom:36%;transform:rotate(0deg)}
+}
+@media(prefers-reduced-motion:reduce){.path-dot,.walker{animation:none!important}}
+.divider-photo::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(7,12,5,.6) 0%,rgba(7,12,5,.08) 30%,rgba(7,12,5,.08) 70%,rgba(7,12,5,.6) 100%)}
+.divider-cap{position:absolute;z-index:2;left:0;right:0;bottom:34px;text-align:center;
+  font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(19px,2.6vw,28px);
+  color:rgba(255,255,255,.92);padding:0 28px;text-shadow:0 2px 20px rgba(0,0,0,.65)}
+.divider-eyebrow{position:absolute;z-index:2;left:0;right:0;bottom:104px;text-align:center;
+  font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold2);
+  text-shadow:0 2px 16px rgba(0,0,0,.65)}
+.divider-questions{position:absolute;z-index:2;left:0;right:0;bottom:-2px;display:flex;justify-content:center;gap:28px;
+  padding:14px 28px;flex-wrap:wrap}
+.divider-questions span{font-size:13px;font-weight:700;color:rgba(255,255,255,.85);letter-spacing:.3px;
+  text-shadow:0 2px 12px rgba(0,0,0,.7)}
+
+
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.cta-glow{animation:ctaBreathe 3.2s ease-in-out infinite}
+@keyframes ctaBreathe{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.35)}50%{box-shadow:0 0 26px 6px rgba(201,168,76,.35)}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1!important;transform:none!important}.cta-glow{animation:none!important}}
+
+</style>
+
+<!-- Yandex.Metrika --><!--
+<script type="text/javascript">
+(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+})(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=109552020','ym');
+ym(109552020,'init',{ssr:true,webvisor:true,clickmap:true,accurateTrackBounce:true,trackLinks:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/109552020" style="position:absolute;left:-9999px" alt=""/></div></noscript>
+<script>function ymGoal(g){if(typeof ym!=='undefined')ym(109552020,'reachGoal',g);}</script>
+</head>
+<body>
+
+<!-- ── НАВ ── -->
+<nav>
+  <div class="wrap nav">
+    <a class="logo" href="index.html">IQ BARAKAH</a>
+    <div class="nav-links">
+      <a href="index.html">ГЛАВНАЯ</a>
+      <a href="start.html">СТАРТ</a>
+      <a href="put.html" class="active">ПУТЬ IQ BARAKAH</a>
+      <a href="potok.html">ПОТОК</a>
+      <a href="premium.html">ЛИДЕР УММЫ</a>
+      <a href="founder.html">ОСНОВАТЕЛЬ</a>
+    </div>
+    <div class="burger" onclick="toggleMenu()">☰</div>
+    <a class="nav-cta" href="korablik.html" onclick="ymGoal('nav_cta_click')">Проверить потенциал</a>
+  </div>
+  <div class="mobile-menu" id="mmenu">
+    <a href="index.html">Главная</a>
+    <a href="start.html">Старт</a>
+    <a href="put.html">Путь IQ Barakah</a>
+    <a href="potok.html">Поток</a>
+    <a href="premium.html">Лидер Уммы</a>
+    <a href="founder.html">Основатель</a>
+    <a href="korablik.html">Проверить потенциал →</a>
+  </div>
+</nav>
+
+<a class="sticky" href="https://t.me/iqbaraka_bot" target="_blank" onclick="ymGoal('sticky_click')">Войти на Путь IQ Barakah — 5 000 ₽/мес</a>
+
+<!-- ══════════════════════════════
+     HERO
+══════════════════════════════ -->
+<section class="hero">
+  <div class="hero-photo"><img src="assets/put-hero-crossroads.png" alt=""></div>
+  <div class="hero-scrim"></div>
+  <div class="wrap hero-inner">
+    <div class="hero-badge">УРОВЕНЬ 2 · ОСНОВНОЙ ПРОДУКТ</div>
+    <h1>Путь<br><em>IQ Barakah</em></h1>
+    <div class="hero-line"></div>
+    <p class="hero-sub">Это не обучение. Это пространство роста. 24 шага трансформации — кто я, как я живу, зачем я живу.</p>
+    <div class="hero-cta">
+      <a class="btn-gold" href="https://t.me/iqbaraka_bot" target="_blank" onclick="ymGoal('hero_cta')">Войти на Путь — 5 000 ₽/мес</a>
+      <span class="btn-micro">Из них 1 000 ₽ — благотворительность · Отмена в любой момент</span>
+    </div>
+    <div class="formula-row">
+      <div class="frm">
+        <div class="frm-pct">10%</div>
+        <span>Контент</span>
+      </div>
+      <div class="frm">
+        <div class="frm-pct">30%</div>
+        <span>Инструменты</span>
+      </div>
+      <div class="frm">
+        <div class="frm-pct">20%</div>
+        <span>Mini App<br>+ Джарвас</span>
+      </div>
+      <div class="frm">
+        <div class="frm-pct">40%</div>
+        <span>Принад-<br>лежность</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     НЕ КУРС
+══════════════════════════════ -->
+<section class="not-course">
+  <div class="wrap">
+    <div class="eyebrow">Принципиальное отличие</div>
+    <h2 class="sec-title">Ты не покупаешь курс.<br><em>Ты вступаешь на Путь.</em></h2>
+    <p class="sec-sub">Курсы заканчиваются. Путь продолжается.</p>
+    <div class="nc-grid">
+      <div class="nc-no">
+        <div class="nc-label">Обычный курс</div>
+        <div class="nc-item"><div class="nc-ic">⏱</div><span>Купил, посмотрел, забыл</span></div>
+        <div class="nc-item"><div class="nc-ic">📺</div><span>Бесконечные видеолекции</span></div>
+        <div class="nc-item"><div class="nc-ic">😶</div><span>Один среди тысяч</span></div>
+        <div class="nc-item"><div class="nc-ic">📅</div><span>Дедлайны и жёсткое расписание</span></div>
+        <div class="nc-item"><div class="nc-ic">📚</div><span>Знания без изменений в жизни</span></div>
+        <div class="nc-item"><div class="nc-ic">🔚</div><span>Заканчивается — и пустота</span></div>
+      </div>
+      <div class="nc-yes">
+        <div class="nc-label">Путь IQ Barakah</div>
+        <div class="nc-item"><div class="nc-ic">🔄</div><span>Живая система — растёт вместе с тобой</span></div>
+        <div class="nc-item"><div class="nc-ic">🛠</div><span>Практики, трекеры, инструменты жизни</span></div>
+        <div class="nc-item"><div class="nc-ic">👥</div><span>Джамаат — братья и сёстры рядом</span></div>
+        <div class="nc-item"><div class="nc-ic">🌿</div><span>В своём темпе, без давления</span></div>
+        <div class="nc-item"><div class="nc-ic">🔁</div><span>Реальные изменения — шаг за шагом</span></div>
+        <div class="nc-item"><div class="nc-ic">🚀</div><span>Путь не заканчивается — он продолжается</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     24 ШАГА — 3 ЭТАПА
+══════════════════════════════ -->
+<section class="divider-photo">
+  <img src="assets/slide-24-stancii.png" alt="">
+  <div class="divider-eyebrow">Каждый этап — это вопрос</div>
+  <div class="divider-cap">24 станции. Один путь. Ты уже на нём.</div>
+  <div class="divider-questions"><span>Кто я?</span><span>Как я живу?</span><span>Зачем я живу?</span></div>
+  <div class="path-anim" id="pathAnim"></div>
+  <div class="walker"><div class="fw-head"></div><div class="fw-torso"></div><div class="fw-legs"><div class="fw-leg a"></div><div class="fw-leg b"></div></div></div>
+  <script>(function(){var host=document.getElementById('pathAnim');if(!host)return;
+    var x=[5.1,8.6,12.3,15.9,19.4,23.0,26.6,29.6,36.3,40.1,43.8,47.6,51.7,55.6,59.2,62.6,68.4,72.3,76.0,79.6,83.3,87.0,91.2,95.4];
+    var y=[38,40,42,43,44,44,43,41,40,41,41,38,36,35,37,39,40,41,42,42,41,40,41,46];
+    for(var i=0;i<24;i++){var d=document.createElement('div');d.className='path-dot';
+      d.style.left=x[i]+'%';d.style.bottom=y[i]+'%';
+      d.style.animationDelay=(i*(6/24))+'s';host.appendChild(d);}
+  })();</script>
+</section>
+
+<section class="stages-section" id="stages">
+  <div class="stage-rail" id="stageRail">
+    <div class="stage-rail-item" data-target="stageI"><div class="stage-rail-dot"></div><div class="stage-rail-label">I · КТО Я</div></div>
+    <div class="stage-rail-item" data-target="stageII"><div class="stage-rail-dot"></div><div class="stage-rail-label">II · КАК Я ЖИВУ</div></div>
+    <div class="stage-rail-item" data-target="stageIII"><div class="stage-rail-dot"></div><div class="stage-rail-label">III · ЗАЧЕМ Я ЖИВУ</div></div>
+  </div>
+  <div class="wrap">
+    <div class="arc-tag" style="display:flex">02 · Решение</div>
+    <div class="eyebrow">24 шага трансформации</div>
+    <h2 class="sec-title" style="color:#fff">Три этапа.<br><em>Один человек.</em></h2>
+    <p class="sec-sub">Каждый этап — это вопрос. Три вопроса, которые меняют жизнь.</p>
+
+    <div class="stages-wrap">
+
+      <!-- ЭТАП I -->
+      <div class="stage-block" id="stageI">
+        <div class="stage-header">
+          <div class="stage-roman">I</div>
+          <div class="stage-info">
+            <h3>КТО Я</h3>
+            <p>Сезон 1 «Основание» · шаги 1–8. Фундамент личности, среды, времени и тела. Без этого любая система — просто набор техник.</p>
+            <div class="stage-result">✅ Я понимаю, кто я</div>
+          </div>
+        </div>
+        <div class="steps-mini">
+          <div class="sm"><div class="sm-n">1</div><span>Ният</span><p>Тайный разговор</p></div>
+          <div class="sm"><div class="sm-n">2</div><span>Фитра</span><p>Возвращение домой</p></div>
+          <div class="sm"><div class="sm-n">3</div><span>Среда</span><p>Среда формирует</p></div>
+          <div class="sm"><div class="sm-n">4</div><span>Фокус</span><p>Ихсан</p></div>
+          <div class="sm"><div class="sm-n">5</div><span>Детокс</span><p>Таваккуль</p></div>
+          <div class="sm"><div class="sm-n">6</div><span>Порядок</span><p>Тахара</p></div>
+          <div class="sm"><div class="sm-n">7</div><span>Тело</span><p>Аманат</p></div>
+          <div class="sm"><div class="sm-n">8</div><span>Тауба</span><p>Генеральная уборка души</p></div>
+        </div>
+      </div>
+
+      <!-- ЭТАП II -->
+      <div class="stage-block" id="stageII">
+        <div class="stage-header">
+          <div class="stage-roman">II</div>
+          <div class="stage-info">
+            <h3>КАК Я ЖИВУ</h3>
+            <p>Сезон 2 «Строительство» · шаги 9–16. Архитектура привычек и бизнес как служение: характер, справедливость, честный договор, закят.</p>
+            <div class="stage-result">✅ Я понимаю, как я живу</div>
+          </div>
+        </div>
+        <div class="steps-mini">
+          <div class="sm"><div class="sm-n">9</div><span>Петля привычки</span><p>Триггер → действие</p></div>
+          <div class="sm"><div class="sm-n">10</div><span>Наслоение</span><p>Постоянство малого</p></div>
+          <div class="sm"><div class="sm-n">11</div><span>Нафс и корни</span><p>Джихад с источником</p></div>
+          <div class="sm"><div class="sm-n">12</div><span>Характер</span><p>Ахляк</p></div>
+          <div class="sm"><div class="sm-n">13</div><span>Команда</span><p>Справедливость</p></div>
+          <div class="sm"><div class="sm-n">14</div><span>Договор</span><p>Самый длинный аят</p></div>
+          <div class="sm"><div class="sm-n">15</div><span>Закят</span><p>Партнёрство с Аллахом</p></div>
+          <div class="sm"><div class="sm-n">16</div><span>Делегирование</span><p>Синдром Атланта</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="stages-section" style="padding-top:0">
+  <div class="wrap">
+    <div class="stages-wrap" style="margin-top:-24px">
+      <!-- ЭТАП III -->
+      <div class="stage-block" id="stageIII">
+        <div class="stage-header">
+          <div class="stage-roman">III</div>
+          <div class="stage-info">
+            <h3>ЗАЧЕМ Я ЖИВУ</h3>
+            <p>Сезон 3 «Наследие» · шаги 17–24. Крепость семьи и вечность: супруга, дети, род, служение, миссия — и стойкость на пути.</p>
+            <div class="stage-result">✅ Я понимаю, зачем я живу</div>
+          </div>
+        </div>
+        <div class="steps-mini">
+          <div class="sm"><div class="sm-n">17</div><span>Целостность</span><p>Ключи от Рая</p></div>
+          <div class="sm"><div class="sm-n">18</div><span>Супруга</span><p>Сакина</p></div>
+          <div class="sm"><div class="sm-n">19</div><span>Дети</span><p>Тарбия примером</p></div>
+          <div class="sm"><div class="sm-n">20</div><span>Род</span><p>Узы родства</p></div>
+          <div class="sm"><div class="sm-n">21</div><span>Зрелость</span><p>Король без короны</p></div>
+          <div class="sm"><div class="sm-n">22</div><span>Служение</span><p>Река и болото</p></div>
+          <div class="sm"><div class="sm-n">23</div><span>Миссия</span><p>Открытый счёт</p></div>
+          <div class="sm"><div class="sm-n">24</div><span>Истикама</span><p>Договор с будущим</p></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     ЧТО ВХОДИТ
+══════════════════════════════ -->
+<section class="includes-section">
+  <div class="wrap">
+    <div class="eyebrow">Что входит</div>
+    <h2 class="sec-title">Всё, что нужно<br><em>для пути</em></h2>
+    <p class="sec-sub">Не набор инструментов. Живая экосистема, которая поддерживает тебя каждый день.</p>
+    <div class="inc-grid">
+      <div class="inc-card">
+        <div class="inc-ic">🤖</div>
+        <h3>Telegram Bot</h3>
+        <p>Основная среда Пути. Выдаёт шаги, принимает самоотчёты, напоминает и следит за прогрессом. Всё в твоём телефоне.</p>
+      </div>
+      <div class="inc-card">
+        <div class="inc-ic">🧠</div>
+        <h3>Джарвас AI</h3>
+        <p>Твой спутник на Пути. Поддерживает, напоминает, возвращает к цели и даёт один следующий шаг — когда трудно двигаться.</p>
+      </div>
+      <div class="inc-card">
+        <div class="inc-ic">📱</div>
+        <h3>Mini App</h3>
+        <p>Утренние намерения, дневные практики, вечерний самоотчёт, трекеры привычек и личный прогресс — всё в одном интерфейсе.</p>
+      </div>
+      <div class="inc-card">
+        <div class="inc-ic">🎙</div>
+        <h3>Ежемесячные созвоны</h3>
+        <p>Живые встречи сообщества. Разбор шагов, вопросы и ответы, поддержка и движение вперёд вместе.</p>
+      </div>
+      <div class="inc-card">
+        <div class="inc-ic">👥</div>
+        <h3>Сообщество — Джамаат</h3>
+        <p>Братья и сёстры, которые идут тем же путём. Один поддерживает другого — это и есть умма в действии.</p>
+      </div>
+      <div class="inc-card">
+        <div class="inc-ic">📖</div>
+        <h3>Видео и аудиоуроки</h3>
+        <p>Практичный контент по каждому шагу. Короткие, без воды, по существу. Слушай в дороге или смотри дома.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     ЦЕНА
+══════════════════════════════ -->
+<section class="price-section" id="price">
+  <div class="wrap">
+    <div class="eyebrow">Стоимость</div>
+    <h2 class="sec-title">Честная цена.<br><em>Прозрачно.</em></h2>
+    <p class="sec-sub">Из каждого платежа 1 000 ₽ идёт садакой. Ты платишь — и делаешь добро.</p>
+    <div class="price-block">
+      <div class="p-amount">5 000 ₽</div>
+      <div class="p-per">в месяц · отмена в любой момент</div>
+      <div class="sadaka-pill">🤲 1 000 ₽ из каждого платежа — благотворительность</div>
+      <div class="price-feats">
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>24 шага трансформации</strong> — три этапа жизни</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>Telegram Bot</strong> — ведёт по шагам каждый день</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>Джарвас AI</strong> — поддержка и спутник</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>Mini App</strong> — трекеры, прогресс, намерения</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>Ежемесячные созвоны</strong> с сообществом</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>Джамаат</strong> — братья и сёстры на Пути</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div><strong>Видео и аудиоуроки</strong> по каждому шагу</div></div>
+        <div class="pf"><div class="pf-ic">✦</div><div>Путь IQ Barakah: Старт <strong>включён в стоимость</strong></div></div>
+      </div>
+      <a class="btn-cta" href="https://t.me/iqbaraka_bot" target="_blank" onclick="ymGoal('price_cta')">Войти на Путь IQ Barakah →</a>
+      <div class="btn-cta-note">Открывает Telegram · @iqbaraka_bot</div>
+      <div class="price-or">или</div>
+      <a class="btn-entry" href="start.html" onclick="ymGoal('price_entry')">Начать со Старта — 1 500 ₽</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     FOUNDING MEMBERS
+══════════════════════════════ -->
+<section class="founding">
+  <div class="wrap">
+    <div class="eyebrow">Ограниченный статус</div>
+    <h2 class="sec-title">Founding <em>Members</em></h2>
+    <p class="sec-sub">Первые 100 Основателей Пути. После закрытия набора этот статус больше никогда не выдаётся.</p>
+    <div class="fm-wrap">
+      <div class="fm-main">
+        <div class="fm-badge">100 мест · навсегда</div>
+        <h3>Стань<br>Основателем</h3>
+        <p>Ты вступаешь не в продукт. Ты становишься одним из первых, кто построил это пространство вместе с нами.</p>
+        <div class="fm-slots">
+          <div class="fmslot"><b>70</b><span>мест — первые участники проекта</span></div>
+          <div class="fmslot"><b>20</b><span>мест — лидеры мнений, имамы, наставники, предприниматели</span></div>
+          <div class="fmslot"><b>10</b><span>мест — резерв основателя</span></div>
+        </div>
+        <a class="btn-gold" href="https://t.me/iqbaraka_bot" target="_blank" onclick="ymGoal('fm_cta')" style="animation:none;font-size:14px;padding:16px 24px;min-width:0;display:flex">Стать Founding Member →</a>
+      </div>
+      <div class="fm-perks">
+        <div class="fm-perks-title">Founding Member Pack</div>
+        <p>Цифровой пакет — выдаётся сразу при вступлении</p>
+        <div class="fperk">
+          <div class="fperk-ic">📜</div>
+          <div class="fperk-body"><b>Именной сертификат</b><span>С твоим именем и номером основателя</span></div>
+        </div>
+        <div class="fperk">
+          <div class="fperk-ic">🏅</div>
+          <div class="fperk-body"><b>Цифровой значок</b><span>Статус в системе и сообществе</span></div>
+        </div>
+        <div class="fperk">
+          <div class="fperk-ic">✉️</div>
+          <div class="fperk-body"><b>Письмо основателя</b><span>Личное обращение к первым участникам</span></div>
+        </div>
+        <div class="fperk">
+          <div class="fperk-ic">🖼</div>
+          <div class="fperk-body"><b>Уникальная аватарка</b><span>Только для Founding Members</span></div>
+        </div>
+        <div class="fperk">
+          <div class="fperk-ic">💳</div>
+          <div class="fperk-body"><b>Через 6 мес. — FM Card</b><span>Именная карта FM-001 … FM-100</span></div>
+        </div>
+        <div class="fperk">
+          <div class="fperk-ic">👕</div>
+          <div class="fperk-body"><b>Через 12 мес. — FM Hoodie</b><span>Никогда больше не выпускается</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     ДЖАРВАС
+══════════════════════════════ -->
+<section class="jarwas" style="background:var(--white)">
+  <div class="wrap">
+    <div class="eyebrow">AI-спутник</div>
+    <h2 class="sec-title">Джарвас — <em>ты не идёшь один</em></h2>
+    <p class="sec-sub">Не напоминалка. Не чат-бот. Спутник, который понимает методологию и ведёт тебя по шагам.</p>
+    <div class="jinner">
+      <div class="jchat">
+        <div class="bubble user">Я на 15-м шаге уже три недели. Не могу двигаться дальше.</div>
+        <div class="bubble ai">Три недели — это не застрял. Это значит, что шаг 15 работает. Семья — самое трудное. Что именно даётся сложнее всего прямо сейчас?</div>
+        <div class="bubble user">Не хватает времени на семью и работу одновременно.</div>
+        <div class="bubble ai">Время нельзя разделить — можно только расставить приоритеты. Ты уже прошёл шаг 10 про время. Открой его ещё раз и задай себе один вопрос: что я делаю сейчас, потому что привык, а не потому что важно? Один пункт — и напиши мне.</div>
+        <div class="jnote">Джарвас работает внутри методологии IQ Barakah. Для вопросов вне программы — перенаправляет к куратору.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     FAQ
+══════════════════════════════ -->
+<section class="faq-section">
+  <div class="wrap">
+    <div class="eyebrow">Вопросы</div>
+    <h2 class="sec-title">Часто<br><em>спрашивают</em></h2>
+    <div class="faq-list">
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Можно начать сразу с Пути или нужно сначала пройти Ключ?<span class="faq-icon">+</span></div>
+        <div class="faq-a">Можно сразу. Путь IQ Barakah: Старт (6 шагов) входит в стоимость Пути. Войдя сразу на Путь, ты начнёшь с первого шага и пройдёшь Ключ как часть первых 6 шагов общей системы.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Как долго длится один шаг?<span class="faq-icon">+</span></div>
+        <div class="faq-a">У каждого шага нет фиксированного срока. Ты переходишь к следующему, когда готов — обычно от нескольких дней до двух недель. Нет дедлайнов, нет давления.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Что если я пропущу несколько дней?<span class="faq-icon">+</span></div>
+        <div class="faq-a">Ничего страшного. Джарвас мягко напомнит. Ты продолжаешь с того места, где остановился. Путь не сбрасывается — он ждёт тебя.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Это только для братьев?<span class="faq-icon">+</span></div>
+        <div class="faq-a">Для всех мусульман — братьев и сестёр. Все 24 шага универсальны. Сообщество тоже смешанное.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Куда идёт благотворительность?<span class="faq-icon">+</span></div>
+        <div class="faq-a">1 000 ₽ из каждого ежемесячного платежа направляется на поддержку благотворительных инициатив. Мы публикуем отчёты в сообществе. Прозрачно и открыто.</div>
+      </div>
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-q">Как отменить подписку?<span class="faq-icon">+</span></div>
+        <div class="faq-a">В любой момент через бота — одна команда, без звонков и объяснений. Мы уважаем твой выбор.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     ФИНАЛ
+══════════════════════════════ -->
+<section class="final">
+  <div class="wrap narrow">
+    <div class="arc-tag" style="display:flex;color:var(--gold2)">03 · Результат</div>
+    <div class="eyebrow">Начало Пути</div>
+    <h2 class="sec-title">Ты не покупаешь курс.<br><em>Ты вступаешь на Путь.</em></h2>
+    <p class="sec-sub">Шаг за шагом. День за днём. Становясь лучшей версией себя ради Аллаха, семьи, общества и уммы.</p>
+    <div class="cta-row">
+      <a class="btn-gold" href="https://t.me/iqbaraka_bot" target="_blank" onclick="ymGoal('final_cta')" style="animation:none">Войти на Путь — 5 000 ₽/мес</a>
+      <a class="btn-ghost" href="start.html" onclick="ymGoal('final_klyuch')">Начать со Старта — 1 500 ₽</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════
+     ФУТЕР
+══════════════════════════════ -->
+<footer>
+  <div class="wrap foot">
+    <span>© 2025 IQ Barakah</span>
+    <span>Уровень 2 — Путь IQ Barakah</span>
+    <a href="privacy-policy.html" style="color:rgba(255,255,255,.5)">Политика конфиденциальности</a>
+    <a href="https://t.me/iqbaraka_bot" target="_blank" style="color:rgba(255,255,255,.5)">@iqbaraka_bot</a>
+  </div>
+</footer>
+
+<script>
+function toggleMenu(){
+  document.getElementById('mmenu').classList.toggle('active');
+}
+document.addEventListener('click',function(e){
+  var m=document.getElementById('mmenu');
+  if(m.classList.contains('active')&&!e.target.closest('nav'))m.classList.remove('active');
+});
+function toggleFaq(el){
+  el.classList.toggle('open');
+}
+</script>
+<script>
+document.querySelectorAll('.stage-block,.format-featured,.format-card,.whom-card,.pricing-grid>*,.feat-card,.inc-grid>*').forEach(function(el,i){el.classList.add('reveal');el.style.transitionDelay=(Math.min(i,6)*0.08)+'s';});
+var obs=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.08,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
+</script>
+<script>
+(function(){
+  var rail=document.getElementById('stageRail'); if(!rail) return;
+  var items=rail.querySelectorAll('.stage-rail-item');
+  var targets=Array.from(items).map(function(it){return document.getElementById(it.dataset.target);});
+  items.forEach(function(it,i){it.addEventListener('click',function(){targets[i].scrollIntoView({behavior:'smooth',block:'start'});});});
+  var section=document.getElementById('stages');
+  function onScroll(){
+    var r=section.getBoundingClientRect();
+    var visible=r.top<window.innerHeight*0.85 && r.bottom>window.innerHeight*0.15;
+    rail.classList.toggle('active',visible);
+    var mid=window.innerHeight*0.5;
+    var current=0;
+    targets.forEach(function(t,i){if(t && t.getBoundingClientRect().top<mid)current=i;});
+    items.forEach(function(it,i){it.classList.toggle('on',i===current);});
+  }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  onScroll();
+})();
+</script>
+
+<!-- БАННЕР COOKIES -->
+<style>
+.cookie-banner{position:fixed;bottom:0;left:0;right:0;z-index:11000;background:rgba(10,15,6,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid rgba(201,168,76,.25);padding:18px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;transform:translateY(100%);transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.cookie-banner.show{transform:translateY(0)}
+.cookie-text{flex:1;min-width:220px;font-family:'Mulish',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.6}
+.cookie-text a{color:#C9A84C;font-weight:600;text-decoration:none}
+.cookie-text a:hover{text-decoration:underline}
+.cookie-btns{display:flex;gap:10px;flex-shrink:0}
+.cookie-btn-accept{padding:10px 24px;border-radius:30px;background:linear-gradient(135deg,#2d6a1f,#4a9e30);color:#fff;font-family:'Mulish',sans-serif;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .18s;white-space:nowrap}
+.cookie-btn-accept:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(74,158,48,.4)}
+.cookie-btn-decline{padding:10px 18px;border-radius:30px;background:transparent;color:rgba(255,255,255,.45);font-family:'Mulish',sans-serif;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.15);cursor:pointer;transition:all .18s;white-space:nowrap}
+.cookie-btn-decline:hover{color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.3)}
+@media(max-width:600px){.cookie-banner{flex-direction:column;align-items:flex-start;gap:14px}.cookie-btns{width:100%}.cookie-btn-accept,.cookie-btn-decline{flex:1;text-align:center}}
+</style>
+
+<div class="cookie-banner" id="cookie-banner">
+  <div class="cookie-text">
+    🍪 Мы используем cookies для улучшения сайта и аналитики (Яндекс.Метрика). Продолжая использование сайта, вы соглашаетесь с нашей <a href="privacy-policy.html">Политикой конфиденциальности</a>.
+  </div>
+  <div class="cookie-btns">
+    <button class="cookie-btn-decline" onclick="cookieDecline()">Только необходимые</button>
+    <button class="cookie-btn-accept" onclick="cookieAccept()">Принять все</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  if(!localStorage.getItem('cookie_consent')){
+    setTimeout(function(){
+      var b=document.getElementById('cookie-banner');
+      if(b)b.classList.add('show');
+    },1200);
+  }
+})();
+function cookieAccept(){
+  localStorage.setItem('cookie_consent','all');
+  hideCookieBanner();
+}
+function cookieDecline(){
+  localStorage.setItem('cookie_consent','essential');
+  hideCookieBanner();
+}
+function hideCookieBanner(){
+  var b=document.getElementById('cookie-banner');
+  if(!b)return;
+  b.style.transform='translateY(100%)';
+  setTimeout(function(){b.remove();},400);
+}
+</script>
+
+</body>
+</html>
