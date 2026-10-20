@@ -186,20 +186,25 @@ async def handle_analyze(request):
 
     try:
         client = anthropic.AsyncAnthropic()
+        message = None
         if pro:
-            # Pro-версия: Fable 5.1, с автоматическим откатом на Sonnet 4.6 при отказе модели
-            message = await client.beta.messages.create(
-                model="claude-fable-5-1",
-                max_tokens=1024,
-                betas=["server-side-fallback-2026-06-01"],
-                fallbacks=[{"model": "claude-sonnet-4-6"}],
-                system=JARWAS_SYSTEM,
-                messages=[{"role": "user", "content": prompt}],
-            )
-            if message.stop_reason == "refusal":
-                # Вся цепочка (включая fallback) отказала — считаем как ошибку
-                raise RuntimeError("Fable 5.1 + fallback both refused")
-        else:
+            # Pro-версия: Fable 5.1; при отказе модели — server-side fallback на Sonnet 4.6,
+            # при любой ошибке вызова (нет доступа/баланса к Fable и т.п.) — повтор на Sonnet 4.6 ниже
+            try:
+                message = await client.beta.messages.create(
+                    model="claude-fable-5-1",
+                    max_tokens=1024,
+                    betas=["server-side-fallback-2026-06-01"],
+                    fallbacks=[{"model": "claude-sonnet-4-6"}],
+                    system=JARWAS_SYSTEM,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                if message.stop_reason == "refusal":
+                    raise RuntimeError("Fable 5.1 + fallback both refused")
+            except Exception as e:
+                logger.warning("Fable 5.1 failed, falling back to Sonnet 4.6: %s", e)
+                message = None
+        if message is None:
             message = await client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=1024,
