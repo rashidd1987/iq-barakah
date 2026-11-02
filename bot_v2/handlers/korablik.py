@@ -245,23 +245,51 @@ def _build_result(scores: list) -> tuple:
 
 # ── Старт кораблика ──────────────────────────────────────
 
-async def _launch_korablik(call: CallbackQuery, state: FSMContext):
+# Отсеки, ответ на которые уже дал тест на сайте: индекс вопроса Кораблика
+_SITE_PREFILL_IDX = {"morning": 1, "goals": 2}
+
+
+async def _site_prefill(session: AsyncSession | None, uid: int) -> dict:
+    """Ответы с сайта {индекс_вопроса: балл}, если человек пришёл с теста."""
+    if session is None:
+        return {}
+    try:
+        from bot_v2.db.repositories import SettingsRepo
+        val = await SettingsRepo(session).get(f"site_answers:{uid}")
+        if not val:
+            return {}
+        m, g = (int(x) for x in val.split(","))
+        return {_SITE_PREFILL_IDX["morning"]: m, _SITE_PREFILL_IDX["goals"]: g}
+    except Exception:
+        return {}
+
+
+def _advance(scores: list, next_q: int, prefill: dict) -> int:
+    """Пропускает вопросы, ответ на которые уже известен с сайта."""
+    while next_q < len(QUESTIONS) and next_q in prefill and len(scores) == next_q:
+        scores.append(prefill[next_q])
+        next_q += 1
+    return next_q
+
+
+async def _launch_korablik(call: CallbackQuery, state: FSMContext, session: AsyncSession | None = None):
     """Общий запуск Кораблика — используется из нескольких callback'ов."""
     await call.answer()
-    await state.update_data(k_scores=[], k_current=0)
+    prefill = await _site_prefill(session, call.from_user.id)
+    await state.update_data(k_scores=[], k_current=0, k_prefill={str(k): v for k, v in prefill.items()})
     await state.set_state(KorablikStates.question)
     await call.message.answer(QUESTIONS[0]["text"], reply_markup=_question_kb(0))
 
 
 @router.callback_query(F.data == "korablik_start")
-async def cb_korablik_start(call: CallbackQuery, state: FSMContext):
-    await _launch_korablik(call, state)
+async def cb_korablik_start(call: CallbackQuery, state: FSMContext, session: AsyncSession):
+    await _launch_korablik(call, state, session)
 
 
 @router.callback_query(F.data == "start_diag")
-async def cb_start_diag_korablik(call: CallbackQuery, state: FSMContext):
+async def cb_start_diag_korablik(call: CallbackQuery, state: FSMContext, session: AsyncSession):
     """Перехватываем старую кнопку «Диагностика» → запускаем Кораблик."""
-    await _launch_korablik(call, state)
+    await _launch_korablik(call, state, session)
 
 
 # ── Ответы ───────────────────────────────────────────────
@@ -279,7 +307,8 @@ async def cb_korablik_answer(call: CallbackQuery, state: FSMContext, session: As
     else:
         scores[q_idx] = score
 
-    next_q = q_idx + 1
+    prefill = {int(k): v for k, v in (data.get("k_prefill") or {}).items()}
+    next_q = _advance(scores, q_idx + 1, prefill)
     if next_q < len(QUESTIONS):
         await state.update_data(k_scores=scores, k_current=next_q)
         await call.message.answer(QUESTIONS[next_q]["text"], reply_markup=_question_kb(next_q))
@@ -480,26 +509,25 @@ async def cb_free_lesson(call: CallbackQuery, session: AsyncSession, config: Con
 
 
 @router.callback_query(F.data == "kb_want_vakt")
-async def cb_want_vakt(call: CallbackQuery):
-    await call.answer()
-    await call.message.answer(
-        "Отлично! 🚀\n\nНажми «Оплата» в меню — там выбери IQ Barakah Старт.",
-        reply_markup=_kb(("💳 Перейти к оплате", "show_tariffs")),
-    )
+async def cb_want_vakt(call: CallbackQuery, session: AsyncSession):
+    """Человек выбрал Старт — сразу показываем карточку Старта с актуальной ценой,
+    без промежуточного меню всех тарифов."""
+    from bot_v2.handlers.payments import send_offer
+    await send_offer(call, session, "vakt")
 
 @router.callback_query(F.data == "kb_about_vakt")
 async def cb_about_vakt(call: CallbackQuery):
     await call.answer()
     await call.message.answer(
         "*IQ Barakah Старт* — это не курс мотивации.\n\n"
-        "Это 6-недельная система возвращения ритма:\n\n"
+        "Это 6 шагов — по одному в неделю — чтобы вернуть ритм дня:\n\n"
         "• Утро: якорь дня, намерение, намаз\n"
         "• День: план вокруг намазов\n"
         "• Вечер: 3 вопроса мухасабы перед сном\n"
         "• Поддержка: Telegram-группа + брат/сестра по пути\n\n"
         "Первый сдвиг — уже в первую неделю.",
         parse_mode="Markdown",
-        reply_markup=_kb(("🌱 Начать IQ Barakah Старт", "show_tariffs")),
+        reply_markup=_kb(("🌱 Начать IQ Barakah Старт", "offer:vakt")),
     )
 
 @router.callback_query(F.data == "kb_want_iq")
@@ -563,7 +591,7 @@ async def cb_fu_price(call: CallbackQuery):
         "А система, которая работает каждый день.\n\n"
         "Если в первую неделю не почувствуешь сдвиг —\n"
         "напиши куратору, разберёмся.",
-        reply_markup=_kb(("🌱 Попробовать IQ Barakah Старт", "show_tariffs")),
+        reply_markup=_kb(("🌱 Попробовать IQ Barakah Старт", "offer:vakt")),
     )
 
 @router.callback_query(F.data == "kb_fu_time")
@@ -575,7 +603,7 @@ async def cb_fu_time(call: CallbackQuery):
         "15 минут утром + 5 минут вечером.\n\n"
         "IQ Barakah Старт не добавляет задачи —\n"
         "он наводит порядок в тех, что уже есть.",
-        reply_markup=_kb(("🌱 Начать IQ Barakah Старт", "show_tariffs")),
+        reply_markup=_kb(("🌱 Начать IQ Barakah Старт", "offer:vakt")),
     )
 
 @router.callback_query(F.data == "kb_fu_unsure")

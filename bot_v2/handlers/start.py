@@ -37,6 +37,7 @@ from bot_v2.services.program import TARIFFS
 
 router = Router(name="start")
 _log = logging.getLogger(__name__)
+logger = _log
 
 BOTTOM_TEXTS = {
     "diag": {BTN_DIAG, t("ru", "bottom.diag")},
@@ -202,6 +203,21 @@ async def cmd_start(message: Message, session: AsyncSession, config: Config, sta
                 site_pct = int(payload_parts[2]) if len(payload_parts) > 2 else None
             except ValueError:
                 site_pct = None
+
+        # Опциональный хвост с ответами сайта: quiz_anon_b_68_m1g2
+        # m — утро (0..3), g — цели (0..3). Кораблик не переспрашивает эти отсеки.
+        import re as _re
+        site_answers = next(
+            (p for p in payload_parts[4:] if _re.fullmatch(r"m[0-3]g[0-3]", p)), None
+        )
+        if site_answers:
+            try:
+                from bot_v2.db.repositories import SettingsRepo as _SRq
+                await _SRq(session).set(
+                    f"site_answers:{db_user.id}", f"{site_answers[1]},{site_answers[3]}"
+                )
+            except Exception as e:
+                logger.warning("site_answers save failed: %s", e)
 
         # Имя из квиза — приоритет над именем Telegram
         quiz_name = ""

@@ -28,6 +28,119 @@ TARIFF_LEVEL_MAP = {
 router = Router(name="payments")
 
 
+async def _effective_price(session: AsyncSession, tariff_id: str, user_id: int) -> tuple[int, int | None]:
+    """Цена с учётом персональных предложений.
+
+    Возвращает (цена, unix-время окончания скидки или None).
+    Единый источник правды для карточки тарифа и создания платежа —
+    чтобы человек видел ту же цену, которую потом платит.
+    """
+    import time as _time
+    from bot_v2.db.repositories import SettingsRepo
+
+    tariff = get_tariff(tariff_id)
+    price = tariff["price"] if tariff else 0
+    now = int(_time.time())
+    repo = SettingsRepo(session)
+
+    # Скидка 999 ₽ на Старт после Кораблика (3 часа)
+    if tariff_id == "vakt":
+        val = await repo.get(f"korablik_offer:{user_id}")
+        try:
+            if val and int(val) > now:
+                return 999, int(val)
+        except ValueError:
+            pass
+
+    # Скидка 3 500 ₽ на Путь после Старта (48 часов)
+    if tariff_id == "s1_month":
+        val = await repo.get(f"s1_offer_at:{user_id}")
+        try:
+            if val and int(val) > now:
+                return 3_500, int(val)
+        except ValueError:
+            pass
+        return 5_000, None
+
+    return price, None
+
+
+def _left_str(expires_at: int) -> str:
+    import time as _time
+    left = max(0, expires_at - int(_time.time()))
+    h, m = divmod(left // 60, 60)
+    return f"{h} ч {m} мин" if h else f"{m} мин"
+
+
+def _price_str(value: int) -> str:
+    return f"{value:,}".replace(",", " ")
+
+
+def _vakt_card_text(price: int, expires_at: int | None) -> str:
+    """Продающая карточка IQ Barakah Старт (ru)."""
+    base = get_tariff("vakt")["price"]
+    if expires_at and price < base:
+        price_line = (
+            f"💰 {_price_str(base)} ₽ → *{_price_str(price)} ₽*\n"
+            f"🎁 Цена за пройденную диагностику — действует ещё {_left_str(expires_at)}"
+        )
+    else:
+        price_line = f"💰 *{_price_str(price)} ₽* — разовая оплата, без подписки"
+    return (
+        "🌱 *IQ Barakah Старт*\n"
+        "_6 шагов — по одному в неделю — чтобы вернуть ритм дня_\n\n"
+        "*Что меняется уже в первые 2 недели:*\n"
+        "• Утро начинается с Фаджра, а не с телефона\n"
+        "• День выстроен вокруг намазов\n"
+        "• Вечерний разбор — 5 минут, без самобичевания\n"
+        "• Рядом брат/сестра по пути и общая группа\n\n"
+        "⏱ 15 минут утром + 5 минут вечером\n"
+        "🤝 Не почувствуешь сдвиг в первую неделю — напиши куратору, разберёмся\n\n"
+        f"{price_line}"
+    )
+
+
+def _kb_vakt_offer(price: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"💳 Начать за {_price_str(price)} ₽", callback_data="pay:vakt")],
+        [InlineKeyboardButton(text="📋 Все программы", callback_data="show_tariffs")],
+    ])
+
+
+async def _tariff_card(session: AsyncSession, tariff_id: str, user_id: int, lang: str):
+    """Текст и клавиатура карточки тарифа с актуальной ценой."""
+    tariff = get_tariff(tariff_id)
+    tariff_view = get_tariff_view(tariff_id, lang) or tariff
+    price, expires_at = await _effective_price(session, tariff_id, user_id)
+    if tariff_id == "vakt" and lang == "ru":
+        return _vakt_card_text(price, expires_at), _kb_vakt_offer(price)
+    text = f"*{tariff_view['name']}*\n_{tariff_view['desc']}_\n\n💰 {_price_str(price)} ₽"
+    if expires_at and price < tariff["price"]:
+        text = (
+            f"*{tariff_view['name']}*\n_{tariff_view['desc']}_\n\n"
+            f"💰 {_price_str(tariff['price'])} ₽ → *{_price_str(price)} ₽*\n"
+            f"🎁 Специальная цена — действует ещё {_left_str(expires_at)}"
+        )
+    return text, kb_tariff_detail(tariff_id, lang)
+
+
+@router.callback_query(F.data.startswith("offer:"))
+async def cb_offer(call: CallbackQuery, session: AsyncSession):
+    """Карточка конкретного тарифа новым сообщением — прямой путь из рекомендации
+    к оплате, без промежуточного меню всех тарифов."""
+    await send_offer(call, session, call.data.split(":")[1])
+
+
+async def send_offer(call: CallbackQuery, session: AsyncSession, tariff_id: str):
+    await call.answer()
+    lang = await _user_lang(session, call.from_user.id)
+    if not get_tariff(tariff_id):
+        await call.message.answer(t(lang, "tariffs.not_found"))
+        return
+    text, kb = await _tariff_card(session, tariff_id, call.from_user.id, lang)
+    await call.message.answer(text, parse_mode="Markdown", reply_markup=kb)
+
+
 @router.callback_query(F.data == "show_tariffs")
 async def cb_show_tariffs(call: CallbackQuery, session: AsyncSession):
     await call.answer()
@@ -45,10 +158,9 @@ async def cb_tariff_detail(call: CallbackQuery, session: AsyncSession):
     if not tariff:
         await call.answer(t(lang, "tariffs.not_found"))
         return
-    tariff_view = get_tariff_view(tariff_id, lang) or tariff
     await call.answer()
-    text = f"*{tariff_view['name']}*\n_{tariff_view['desc']}_\n\n💰 {tariff['price']:,} ₽".replace(",", " ")
-    await call.message.edit_text(text, parse_mode="Markdown", reply_markup=kb_tariff_detail(tariff_id, lang))
+    text, kb = await _tariff_card(session, tariff_id, call.from_user.id, lang)
+    await call.message.edit_text(text, parse_mode="Markdown", reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("pay:"))
@@ -75,8 +187,15 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
         )
     )
     if existing:
+        # call.answer() уже вызван в начале хендлера — повторный answer Telegram
+        # отклоняет, и человек видел «мёртвую» кнопку. Отвечаем сообщением.
         logger.info("cb_pay: duplicate paid tariff %s for user %s", tariff_id, call.from_user.id)
-        await call.answer("✅ Ты уже оплатил этот тариф!", show_alert=True)
+        tariff_view = get_tariff_view(tariff_id, lang) or tariff
+        await call.message.answer(
+            f"✅ У тебя уже есть доступ к *{tariff_view['name']}*.\n\n"
+            f"Уроки — в разделе «📖 Мой путь» в меню внизу. 🌿",
+            parse_mode="Markdown",
+        )
         return
 
     if tariff_id in ("jamaat", "leader"):
@@ -118,34 +237,9 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
     user = await UserRepo(session).get(user_id)
     tariff_view = get_tariff_view(tariff_id, lang) or tariff
 
-    # Проверяем скидку 999₽ после Кораблика (24 часа)
-    import time as _time
-    from bot_v2.db.repositories import SettingsRepo
-    price = tariff["price"]
-    discount_active = False
-    if tariff_id == "vakt":
-        offer_val = await SettingsRepo(session).get(f"korablik_offer:{user_id}")
-        if offer_val:
-            try:
-                if int(offer_val) > int(_time.time()):
-                    price = 999
-                    discount_active = True
-            except ValueError:
-                pass
-
-    # Проверяем скидку 3500₽ после IQ Barakah Старт (48 часов, потом 5000₽)
-    if tariff_id == "s1_month":
-        s1_offer_val = await SettingsRepo(session).get(f"s1_offer_at:{user_id}")
-        if s1_offer_val:
-            try:
-                if int(s1_offer_val) > int(_time.time()):
-                    price = 3_500
-                else:
-                    price = 5_000
-            except ValueError:
-                price = 5_000
-        else:
-            price = 5_000
+    # Персональные скидки: 999 ₽ на Старт после Кораблика, 3 500 ₽ на Путь после Старта
+    price, offer_expires = await _effective_price(session, tariff_id, user_id)
+    discount_active = bool(offer_expires) and price < tariff["price"]
 
     logger.info("cb_pay: creating payment tariff=%s price=%s user=%s", tariff_id, price, user_id)
     payment = await create_payment(
@@ -178,9 +272,13 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
     )
 
     name = user.name if user else "участник"
-    price_str = f"{price:,}".replace(",", " ")
-    discount_line = f"🎁 Специальная цена за прохождение диагностики — действует 3 часа!\n\n" if discount_active else ""
-    old_price_line = f"~~1 500 ₽~~ → " if discount_active else ""
+    price_str = _price_str(price)
+    # Сообщение уходит без parse_mode — поэтому без markdown-зачёркиваний,
+    # раньше человек видел буквально «~~1 500 ₽~~».
+    discount_line = (
+        f"🎁 Специальная цена — действует ещё {_left_str(offer_expires)}\n\n" if discount_active else ""
+    )
+    old_price_line = f"{_price_str(tariff['price'])} ₽ → " if discount_active else ""
     text = (
         f"💳 {tariff_view['name']}\n\n"
         f"{discount_line}"
@@ -209,7 +307,7 @@ async def cb_pay(call: CallbackQuery, session: AsyncSession, config: Config):
                 text=(
                     f"🔔 *Новый заказ*\n\n"
                     f"👤 {name} (`{user_id}`)\n"
-                    f"📦 {tariff['name']} · {tariff['price']:,} ₽\n"
+                    f"📦 {tariff['name']} · {price:,} ₽\n"
                     f"🆔 `{payment['id']}`"
                 ).replace(",", " "),
                 parse_mode="Markdown",
