@@ -37,6 +37,8 @@ from report_bot.ai_gateway import (
     synthesis_task,
 )
 from report_bot.approvals import Approval, ApprovalStore
+from report_bot.mac_queue import MacQueue
+from report_bot.mac_bridge import build_mac_router, add_mac_routes, mac_result_notifications
 from report_bot.config import Config, load_config
 from report_bot.council import (
     CouncilContext,
@@ -103,6 +105,8 @@ BOT_COMMANDS = (
     BotCommand(command="newtask", description="Создать мою задачу"),
     BotCommand(command="agenttask", description="Поручить задачу агенту"),
     BotCommand(command="agenttasks", description="Задачи агента"),
+    BotCommand(command="mac", description="Поручить задачу своему Mac"),
+    BotCommand(command="macstatus", description="Задачи и связь с Mac"),
     BotCommand(command="newidea", description="Сохранить идею"),
     BotCommand(command="ideas", description="База идей"),
     BotCommand(command="ideasexport", description="Экспорт идей для ИИ"),
@@ -709,6 +713,8 @@ def build_router(
             "/use ключ — выбрать проект для коротких задач\n"
             "/brief текст — обновить паспорт активного проекта\n"
             "/tasks — мои открытые задачи\n"
+            "/mac задача — выполнить поручение на Mac\n"
+            "/macstatus — связь с Mac и очередь поручений\n"
             "/today — мои задачи на сегодня и просроченные\n"
             "/morning — утренний бриф по всем проектам\n"
             "/plan — предложить до трёх действий на сегодня\n"
@@ -2758,9 +2764,12 @@ async def run_health_server(
     config: Config,
     bot: Bot,
     approval_store: ApprovalStore,
+    mac_queue: MacQueue | None = None,
 ) -> web.AppRunner:
     app = web.Application()
     app.router.add_get("/health", health)
+    if mac_queue is not None:
+        add_mac_routes(app, mac_queue)
 
     async def create_approval(request: web.Request) -> web.Response:
         if not approval_auth_ok(request, config.approval_api_secret):
@@ -2921,6 +2930,7 @@ async def main() -> None:
         task_store = TaskStore(config.data_dir)
         day_plan_store = DayPlanStore(config.data_dir)
         idea_store = IdeaStore(config.data_dir)
+        mac_queue = MacQueue(config.data_dir)
         bot = Bot(
             config.bot_token,
             default=DefaultBotProperties(parse_mode=ParseMode.HTML),
@@ -2932,6 +2942,7 @@ async def main() -> None:
                 "Could not refresh Telegram command menu; bot will continue"
             )
         dispatcher = Dispatcher()
+        dispatcher.include_router(build_mac_router(config, mac_queue))
         dispatcher.include_router(
             build_router(
                 config,
@@ -2946,7 +2957,7 @@ async def main() -> None:
             )
         )
         health_runner = await run_health_server(
-            config.port, config, bot, approval_store
+            config.port, config, bot, approval_store, mac_queue
         )
         monitor_task = asyncio.create_task(
             monitor_loop(
@@ -2979,6 +2990,7 @@ async def main() -> None:
         approval_reconciliation_task = asyncio.create_task(
             approval_reconciliation_loop(bot, client, approval_store)
         )
+        mac_notifications = asyncio.create_task(mac_result_notifications(bot, mac_queue))
 
         try:
             logger.info("Starting owner-only project report bot")
@@ -2990,9 +3002,11 @@ async def main() -> None:
         finally:
             monitor_task.cancel()
             approval_reconciliation_task.cancel()
+            mac_notifications.cancel()
             await asyncio.gather(
                 monitor_task,
                 approval_reconciliation_task,
+                mac_notifications,
                 return_exceptions=True,
             )
             await health_runner.cleanup()
