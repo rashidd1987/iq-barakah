@@ -47,5 +47,5 @@ jobs:
             --action "Развернуть Reports-бот в production" \
             --description "Точечно развернуть только report_bot из commit $APPROVED_COMMIT_SHA" \
             --risk "Production Reports-бот будет перезапущен; другие продукты не затрагиваются" \
-            --idempotency-key "reports-production:$APPROVED_COMMIT_SHA" \
+            --idempotency-key "reports-production:$APPROVED_COMMIT_SHA:$GITHUB_RUN_ID:$GITHUB_RUN_ATTEMPT" \
             --ttl-minutes 60
