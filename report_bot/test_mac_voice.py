@@ -39,7 +39,7 @@ class MacVoiceTests(unittest.IsolatedAsyncioTestCase):
     def callback(self, action='voice:mac', owner=123, chat_type='private', message_id=40):
         return SimpleNamespace(data=action, from_user=SimpleNamespace(id=owner),
             message=SimpleNamespace(message_id=message_id,
-                chat=SimpleNamespace(id=123, type=chat_type), edit_text=AsyncMock()),
+                chat=SimpleNamespace(id=123, type=chat_type), edit_text=AsyncMock(), answer_voice=AsyncMock()),
             answer=AsyncMock())
 
     async def test_transcript_requires_confirmation_then_worker_returns_result(self):
@@ -52,6 +52,7 @@ class MacVoiceTests(unittest.IsolatedAsyncioTestCase):
         await self.confirm(callback, self.state)
         jobs = self.queue.recent(123)
         self.assertEqual(len(jobs), 1)
+        callback.message.answer_voice.assert_awaited_once()
         self.assertEqual(jobs[0]['task'], 'Создай файл outbox/voice.md с текстом Голос работает.')
         job = self.queue.claim('owner-mac')
         self.queue.finish(job['id'], 'owner-mac', job['claim_token'], 'done', 'Файл создан')

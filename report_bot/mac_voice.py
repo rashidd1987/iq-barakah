@@ -1,9 +1,11 @@
 """Confirm a transcribed owner voice note before enqueuing it for the Mac."""
 
 import html
+import logging
+from pathlib import Path
 
 from aiogram import F
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
 
 from report_bot.mac_queue import MacQueue
 
@@ -76,3 +78,9 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
             f'🖥 Задача Mac <code>{job["id"]}</code>: {job["status"]}.\n'
             'Результат придёт сюда. Если Mac спит, задача будет ждать.'
         )
+
+        if queue.claim_ack(job['id']):
+            try:
+                await message.answer_voice(FSInputFile(Path(__file__).parent / 'assets' / 'mac_accepted.ogg'))
+            except Exception:
+                logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])

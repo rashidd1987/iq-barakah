@@ -1,6 +1,7 @@
 """Owner-only Telegram commands and authenticated outbound-worker endpoints."""
 
 import asyncio
+import base64
 import hmac
 import html
 import logging
@@ -10,7 +11,7 @@ import time
 from aiohttp import web
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
 
 from report_bot.mac_queue import MacQueue
 
@@ -29,7 +30,7 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         return bool(message.from_user and message.from_user.id in config.owner_ids
                     and message.chat.type == 'private')
 
-    @router.message(Command('mac'))
+    @router.message(Command('mac', 'macvoice'))
     async def run_on_mac(message: Message):
         if not owner_private(message):
             return
@@ -41,7 +42,10 @@ def build_mac_router(config, queue: MacQueue) -> Router:
             await message.answer('Напишите /mac и задачу. Например: /mac составь план публикаций и сохрани в outbox/plan.md\n\nМак работает с файлами своей рабочей папки. Изменения production остаются в Approval Center.')
             return
         try:
-            job = queue.enqueue(message.from_user.id, f'{message.chat.id}:{message.message_id}', task[1])
+            source = f'{message.chat.id}:{message.message_id}'
+            if message.text.split()[0].split('@')[0] == '/macvoice':
+                source = 'voice:' + source
+            job = queue.enqueue(message.from_user.id, source, task[1])
         except ValueError as exc:
             await message.answer(html.escape(str(exc)))
             return
@@ -70,7 +74,8 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
             raise web.HTTPUnauthorized()
 
     def payload(job):
-        return {key: job[key] for key in ('id', 'task', 'claim_token')}
+        return {**{key: job[key] for key in ('id', 'task', 'claim_token')},
+                'voice_reply': job['source'].startswith('voice:')}
 
     async def claim(request):
         authorize(request)
@@ -88,7 +93,7 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
             if not isinstance(body, dict) or not isinstance(body.get('claim_token'), str):
                 raise ValueError('invalid result')
             job = queue.finish(request.match_info['job_id'], WORKER, body['claim_token'],
-                               body.get('status'), body.get('result'))
+                               body.get('status'), body.get('result'), body.get('voice'))
         except PermissionError:
             raise web.HTTPForbidden() from None
         except (ValueError, TypeError):
@@ -109,6 +114,16 @@ async def mac_result_notifications(bot, queue: MacQueue):
                 result = job['result']
                 for start in range(0, len(result), 3000):
                     await bot.send_message(job['owner'], header + result[start:start + 3000], parse_mode=None)
+                if job.get('voice'):
+                    try:
+                        await bot.send_voice(job['owner'], BufferedInputFile(
+                            base64.b64decode(job['voice']), filename='result.ogg'),
+                            caption=f'Голосовой результат · {job["id"]}')
+                    except Exception:
+                        logger.warning('Could not deliver spoken result %s', job['id'])
+                        await bot.send_message(job['owner'], 'Не удалось отправить голосовой ответ. Результат выше — текстом.')
+                elif job['source'].startswith('voice:'):
+                    await bot.send_message(job['owner'], 'Озвучивание недоступно. Результат выше — текстом.')
                 queue.mark_notified(job['id'])
             except Exception:
                 logger.warning('Could not deliver Mac result %s', job['id'])

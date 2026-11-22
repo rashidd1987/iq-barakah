@@ -92,6 +92,13 @@ def process(config, job, state_dir):
         result_path.replace(folder / 'result.corrupt')
         result = {'status': 'unknown', 'result': 'Сохранённый результат задачи повреждён. Проверьте рабочую папку; повторное выполнение отключено.'}
         atomic_json(result_path, result)
+    if job.get('voice_reply') and 'voice' not in result and not result.get('voice_error'):
+        try:
+            from spoken_result import render_voice
+            result['voice'] = render_voice(result['result'])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            result['voice_error'] = True
+        atomic_json(result_path, result)
     api(config, f'/mac-worker/jobs/{job["id"]}/result', {**result, 'claim_token': job['claim_token']})
     logger.info('Reported job %s (%s)', job['id'], result['status'])
 

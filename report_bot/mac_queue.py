@@ -6,6 +6,8 @@ be unknown, and repeating a file write could duplicate an external effect.
 
 from contextlib import contextmanager
 from pathlib import Path
+import base64
+import binascii
 import secrets
 import sqlite3
 import time
@@ -26,6 +28,10 @@ class MacQueue:
             db.execute("""CREATE TABLE IF NOT EXISTS heartbeat (
                 worker TEXT PRIMARY KEY, seen REAL NOT NULL
             )""")
+            columns = {r[1] for r in db.execute('PRAGMA table_info(jobs)')}
+            for name, definition in [('voice', 'TEXT'), ('ack_sent', 'INTEGER NOT NULL DEFAULT 0')]:
+                if name not in columns:
+                    db.execute(f'ALTER TABLE jobs ADD COLUMN {name} {definition}')
         self.path.chmod(0o600)
 
     @contextmanager
@@ -70,18 +76,27 @@ class MacQueue:
                        (worker, token, time.time(), row['id']))
             return dict(db.execute("SELECT * FROM jobs WHERE id=?", (row['id'],)).fetchone())
 
-    def finish(self, job_id: str, worker: str, token: str, status: str, result: str) -> dict:
+    def finish(self, job_id: str, worker: str, token: str, status: str, result: str, voice=None) -> dict:
         if status not in {'done', 'failed', 'unknown'} or not isinstance(result, str) or not 1 <= len(result) <= 16000:
             raise ValueError('invalid result')
+        if voice is not None:
+            if not isinstance(voice, str) or len(voice) > 350000:
+                raise ValueError('invalid voice')
+            try:
+                audio = base64.b64decode(voice, validate=True)
+            except (ValueError, binascii.Error):
+                raise ValueError('invalid voice') from None
+            if not 500 <= len(audio) <= 260000 or not audio.startswith(b'OggS') or b'OpusHead' not in audio[:128]:
+                raise ValueError('invalid voice')
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
             if row is None or row['worker'] != worker or not secrets.compare_digest(row['claim_token'] or '', token):
                 raise PermissionError('invalid claim')
             if row['status'] == 'running':
-                db.execute("UPDATE jobs SET status=?,result=?,finished=? WHERE id=?",
-                           (status, result, time.time(), job_id))
-            elif row['status'] != status or row['result'] != result:
+                db.execute("UPDATE jobs SET status=?,result=?,finished=?,voice=? WHERE id=?",
+                           (status, result, time.time(), voice, job_id))
+            elif row['status'] != status or row['result'] != result or row['voice'] != voice:
                 raise ValueError('conflicting result')
             return dict(db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone())
 
@@ -104,3 +119,7 @@ class MacQueue:
     def mark_notified(self, job_id: str):
         with self.connection() as db:
             db.execute('UPDATE jobs SET notified=1 WHERE id=?', (job_id,))
+
+    def claim_ack(self, job_id):
+        with self.connection() as db:
+            return db.execute('UPDATE jobs SET ack_sent=1 WHERE id=? AND ack_sent=0', (job_id,)).rowcount == 1
