@@ -16,7 +16,7 @@ ROOT = Path.home() / '.openjarvis' / 'projects' / 'iq-barakah.git'
 
 def wants_project_report(task):
     text = re.sub(r'[\s_-]+', '', task.casefold())
-    project = any(name in text for name in ('iqbarak', 'iqbarakah', 'айкьюбарак', 'икьюбарак'))
+    project = any(name in text for name in ('iqbarak', 'iqbarakah', 'айкьюбарак', 'икьюбарак', 'iqбарак', 'айкюбарак'))
     return project and any(word in text for word in ('провер', 'аудит', 'отч', 'состояни', 'ошиб', 'check', 'audit', 'report'))
 
 
