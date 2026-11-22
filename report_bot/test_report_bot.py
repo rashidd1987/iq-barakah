@@ -255,7 +255,7 @@ class ReleaseControlTests(unittest.TestCase):
         }
         self.assertEqual(
             intents,
-            {"voice:idea", "voice:manual", "voice:agent", "voice:cancel"},
+            {"voice:idea", "voice:manual", "voice:agent", "voice:mac", "voice:cancel"},
         )
         confirmations = {
             button.callback_data

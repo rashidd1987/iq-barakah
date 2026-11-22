@@ -446,6 +446,7 @@ def voice_intent_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="👤 Моя задача", callback_data="voice:manual"),
                 InlineKeyboardButton(text="🤖 Задача Codex", callback_data="voice:agent"),
             ],
+            [InlineKeyboardButton(text="🖥 Выполнить на Mac", callback_data="voice:mac")],
             [InlineKeyboardButton(text="❌ Отмена", callback_data="voice:cancel")],
         ]
     )
@@ -862,12 +863,13 @@ def build_router(
             voice_transcript=transcript,
             voice_project_key=knowledge.active_project,
         )
-        await message.answer(
+        preview = await message.answer(
             "🎙 <b>Текст голосового</b>\n\n"
             f"{html.escape(transcript)}\n\n"
             "Что сделать с этой записью?",
             reply_markup=voice_intent_keyboard(),
         )
+        await state.update_data(voice_preview_id=preview.message_id, voice_preview_chat=message.chat.id)
 
     async def show_voice_task_draft(
         message: Message,

@@ -60,3 +60,12 @@ report_bot.test_mac_worker report_bot.test_report_bot report_bot.test_agent_safe
 report_bot.test_release_safety` with Reports dependencies. HTTP tests require
 permission to bind a localhost socket. A real local-model and Telegram smoke
 are separate deployment checks.
+
+## Voice tasks
+
+Send a Telegram voice message to the Reports bot, check its transcript, choose
+«Выполнить на Mac», then «Запустить на Mac». No due date is required. Only the
+owner in a private chat can enqueue it. The original transcript is the task;
+transcription uses the existing OpenAI integration. The Mac uses its existing
+scoped file tools and the normal durable queue/result notifications. Cancelled,
+expired, replaced or duplicate confirmations do not create extra jobs.
