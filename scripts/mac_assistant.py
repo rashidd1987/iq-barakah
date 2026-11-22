@@ -7,6 +7,9 @@ import sys
 
 
 def execute(task: str, workspace: Path) -> dict:
+    from project_report import wants_project_report, report
+    if wants_project_report(task):
+        return report(workspace)
     os.environ['JARVIS_NUM_CTX'] = '4096'
     from openjarvis.agents.orchestrator import OrchestratorAgent
     from openjarvis.engine.ollama import OllamaEngine
