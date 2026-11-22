@@ -8,6 +8,7 @@ import logging
 import os
 import time
 
+import aiohttp
 from aiohttp import web
 from aiogram import Router
 from aiogram.filters import Command
@@ -60,6 +61,18 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         rows = queue.recent(message.from_user.id)
         text = '\n'.join(f'{row["id"]}: {row["status"]} — {row["task"][:100]}' for row in rows)
         await message.answer(html.escape(f'Mac: {status}\n\n{text or "Задач пока нет"}'))
+
+    @router.message(Command('voicetest'))
+    async def voice_preview(message: Message):
+        if not owner_private(message):
+            return
+        from report_bot.voice_preview import cached_preview
+        try:
+            audio = await cached_preview(queue.path.parent)
+            await message.answer_voice(BufferedInputFile(audio, filename='preview.ogg'),
+                caption='Проба мужского ИИ-голоса Cedar. Постоянная платная озвучка выключена.')
+        except (OSError, ValueError, RuntimeError, aiohttp.ClientError, asyncio.TimeoutError):
+            await message.answer('Не удалось получить пробу голоса. Платный запрос автоматически не повторяется.')
 
     from report_bot.mac_voice import register_mac_voice
     register_mac_voice(router, config, queue, lambda: len(worker_secret()) >= 32)
