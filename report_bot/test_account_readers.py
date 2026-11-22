@@ -56,7 +56,14 @@ class AccountReaderTests(unittest.TestCase):
 
     def test_instagram_does_not_sum_daily_unique_reach(self):
         payloads=[{'username':'rashidiqmizan','user_id':'123'}, {'data':[{'name':'reach','values':[{'end_time':'2026-11-21','value':100},{'end_time':'2026-11-22','value':100}]}]}]
-        with patch.object(m,'load_access',return_value={'access_token':'test'}),patch.object(m,'request_json',side_effect=payloads):
+        with patch.object(m,'load_access',return_value={'access_token':'test','login':'instagram'}),patch.object(m,'request_json',side_effect=payloads):
             report=m.instagram_report()
             self.assertNotIn('200',report)
             self.assertIn('не уникальный охват',report)
+
+    def test_facebook_insights_only_uses_authorized_matching_instagram(self):
+        pages={'data':[{'instagram_business_account':{'id':'123','username':'rashidiqmizan'}}]}
+        with patch.object(m,'request_json',return_value=pages):
+            self.assertEqual(m.instagram_identity({'login':'facebook','access_token':'test'}),('https://graph.facebook.com/v27.0/','123'))
+        with patch.object(m,'request_json',return_value={'data':[]}):
+            with self.assertRaises(ValueError):m.instagram_identity({'login':'facebook','access_token':'test'})

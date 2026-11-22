@@ -12,7 +12,7 @@ GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly'
 
 def request_json(url, *, token=None, form=None):
     parsed = urlsplit(url)
-    if parsed.scheme != 'https' or parsed.hostname not in {'oauth2.googleapis.com', 'gmail.googleapis.com', 'graph.instagram.com'} or parsed.username or parsed.port:
+    if parsed.scheme != 'https' or parsed.hostname not in {'oauth2.googleapis.com', 'gmail.googleapis.com', 'graph.instagram.com', 'graph.facebook.com'} or parsed.username or parsed.port:
         raise ValueError('unapproved account endpoint')
     if form is not None and url != 'https://oauth2.googleapis.com/token':
         raise ValueError('account writes are disabled')
@@ -84,19 +84,33 @@ def gmail_report():
     return '\n'.join(lines)
 
 
+def instagram_identity(access):
+    token=access['access_token']
+    if access.get('login') == 'facebook':
+        base='https://graph.facebook.com/v27.0/'
+        query=urlencode({'fields':'id,instagram_business_account{id,username}','limit':100})
+        pages=request_json(base+'me/accounts?'+query,token=token)
+        matches=[p.get('instagram_business_account',{}) for p in pages.get('data',[])
+                 if p.get('instagram_business_account',{}).get('username','').casefold()=='rashidiqmizan']
+        if len(matches)!=1:raise ValueError('Instagram account not found among authorized Pages')
+        profile=matches[0];account_id=str(profile.get('id',''))
+    elif access.get('login') == 'instagram':
+        base='https://graph.instagram.com/v27.0/'
+        profile=request_json(base+'me?fields=user_id,username',token=token)
+        account_id=str(profile.get('user_id',''))
+    else:raise ValueError('Unsupported Instagram authorization path')
+    if profile.get('username','').casefold()!='rashidiqmizan' or not account_id.isdigit():
+        raise ValueError('Wrong Instagram account')
+    return base,account_id
+
+
 def instagram_report():
     from datetime import datetime,timedelta,timezone
     access=load_access('instagram')
-    token=access['access_token']
-    profile=request_json('https://graph.instagram.com/v27.0/me?fields=user_id,username',token=token)
-    if profile.get('username','').casefold() != 'rashidiqmizan':
-        raise ValueError('Wrong Instagram account')
-    account_id=str(profile.get('user_id',''))
-    if not account_id.isdigit():
-        raise ValueError('Invalid Instagram account id')
+    base,account_id=instagram_identity(access)
     today=datetime.now(timezone.utc).date()
     query=urlencode({'metric':'reach','period':'day','since':str(today-timedelta(days=7)),'until':str(today)})
-    metrics=request_json('https://graph.instagram.com/v27.0/'+account_id+'/insights?'+query,token=token)
+    metrics=request_json(base+account_id+'/insights?'+query,token=access['access_token'])
     lines=['Instagram @rashidiqmizan: дневной охват за последние 7 завершённых дней (UTC).']
     rows=0
     for metric in metrics.get('data',[]):
