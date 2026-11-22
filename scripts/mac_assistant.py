@@ -7,6 +7,10 @@ import sys
 
 
 def execute(task: str, workspace: Path) -> dict:
+    from account_readers import account_report
+    account_result = account_report(task)
+    if account_result is not None:
+        return account_result
     from project_report import wants_project_report, report
     if wants_project_report(task):
         return report(workspace)
