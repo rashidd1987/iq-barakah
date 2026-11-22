@@ -7,7 +7,7 @@ and the last poll. Existing reminders, approvals and Codex PR workflows are unch
 ## Scope
 
 OpenJarvis with Ollama `qwen3.5:2b-q4_K_M` handles Russian texts, plans, calculations,
-and draft code. It can read/write text files only in `~/Documents/Mizan Assistant`.
+and draft code. It can read/write text files only in `~/Mizan Assistant`.
 It has no shell, deploy, messaging or production tools. Copy relevant source
 files into `inbox/`; documents go to `outbox/` and code drafts to `code/`.
 Use Mizan's existing Codex agent tasks for changes to real repositories and PRs.
@@ -60,3 +60,9 @@ report_bot.test_mac_worker report_bot.test_report_bot report_bot.test_agent_safe
 report_bot.test_release_safety` with Reports dependencies. HTTP tests require
 permission to bind a localhost socket. A real local-model and Telegram smoke
 are separate deployment checks.
+
+## Verified owner Mac installation — 2026-11-22
+
+Reports production was updated to `27a2a36a65251bb65c74203143797c3c820feae8` on top of its existing production baseline, preserving Shater Control. Owner Telegram approval workflow 45032993833 succeeded before deployment. The production variant passed 105 tests.
+
+The Mac worker is paired over HTTPS and starts as `ru.mizan.mac-worker`. A Telegram `/mac` task (`2f7ece385f22`) created and read back `~/Mizan Assistant/outbox/telegram-mac-check-2.md`; the owner chat received `done`. File contents were independently verified. The first test was interrupted by a Documents background-access block and reported `unknown`; it was not automatically repeated. The working folder now lives outside Documents, and reinstall preserves the configured folder.

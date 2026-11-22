@@ -19,7 +19,9 @@ def main():
     runtime = root / 'mac-worker'
     runtime.mkdir(parents=True, exist_ok=True)
     runtime.chmod(0o700)
-    workspace = Path.home() / 'Documents' / 'Mizan Assistant'
+    config_path = root / 'mac-worker.json'
+    existing = json.loads(config_path.read_text()) if config_path.exists() else {}
+    workspace = Path(existing.get('workspace', str(Path.home() / 'Mizan Assistant'))).expanduser().resolve()
     for directory in ('inbox', 'outbox', 'code'):
         (workspace / directory).mkdir(parents=True, exist_ok=True)
     source = Path(__file__).parent
