@@ -4,6 +4,7 @@ import fcntl
 import json
 import logging
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -37,6 +38,8 @@ def api(config, route: str, body=None):
         'header = ' + quoted('Authorization: Bearer ' + config['secret']),
         'header = "Content-Type: application/json"',
     ]
+    if config.get("reports_interface"):
+        settings.append("interface = " + quoted(config["reports_interface"]))
     if body is not None:
         settings += ['request = "POST"', 'data = ' + quoted(json.dumps(body))]
     response = subprocess.run(
@@ -57,6 +60,9 @@ def validate_config(config):
         raise ValueError('reports_url must be an HTTPS origin')
     if len(config['secret']) < 32:
         raise ValueError('worker secret is too short')
+    interface = config.get("reports_interface")
+    if interface is not None and (not isinstance(interface, str) or not re.fullmatch(r"en[0-9]{1,2}", interface)):
+        raise ValueError("reports_interface must name a physical Mac network interface")
     workspace = Path(config['workspace']).expanduser().resolve()
     if not workspace.is_dir():
         raise ValueError('workspace does not exist')
