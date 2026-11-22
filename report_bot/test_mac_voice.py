@@ -125,3 +125,23 @@ class MacVoiceTests(unittest.IsolatedAsyncioTestCase):
         await self.confirm(callback, self.state)
         self.assertLessEqual(len(callback.message.edit_text.call_args.args[0]), 4096)
         self.assertEqual(len(self.queue.recent(123)), 1)
+
+    async def test_auto_voice_owner_private_and_duplicate_delivery(self):
+        from report_bot.mac_voice import auto_accept_voice
+        message = SimpleNamespace(from_user=SimpleNamespace(id=123),
+            chat=SimpleNamespace(id=123, type='private'), message_id=99,
+            answer=AsyncMock(), answer_voice=AsyncMock())
+        config = SimpleNamespace(owner_ids={123})
+        with patch.dict(os.environ, MAC_VOICE_AUTO_RUN='1'):
+            for _ in range(2):
+                self.assertTrue(await auto_accept_voice(message, 'Проверь Gmail', config, self.queue))
+            self.assertEqual(len(self.queue.recent(123)), 1)
+            message.answer_voice.assert_awaited_once()
+            self.assertTrue(self.queue.claim('owner-mac')['source'].startswith('voice:'))
+            message.from_user.id = 456
+            self.assertFalse(await auto_accept_voice(message, 'Проверь Gmail', config, self.queue))
+            message.from_user.id = 123
+            message.chat.type = 'group'
+            self.assertFalse(await auto_accept_voice(message, 'Проверь Gmail', config, self.queue))
+        with patch.dict(os.environ, MAC_VOICE_AUTO_RUN='0'):
+            self.assertFalse(await auto_accept_voice(message, 'Проверь Gmail', config, self.queue))

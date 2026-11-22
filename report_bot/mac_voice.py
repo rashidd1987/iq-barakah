@@ -2,6 +2,7 @@
 
 import html
 import logging
+import os
 from pathlib import Path
 
 from aiogram import F
@@ -84,3 +85,31 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
                 await message.answer_voice(FSInputFile(Path(__file__).parent / 'assets' / 'mac_accepted.ogg'))
             except Exception:
                 logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])
+
+
+async def auto_accept_voice(message, transcript, config, queue):
+    """Owner opted into immediate voice tasks; production approvals remain separate."""
+    if (queue is None or os.environ.get('MAC_VOICE_AUTO_RUN', '1') != '1'
+            or message.from_user is None or message.from_user.id not in config.owner_ids
+            or message.chat.type != 'private'):
+        return False
+    from report_bot.mac_bridge import worker_secret
+    if len(worker_secret()) < 32:
+        return False
+    if not isinstance(transcript, str) or not 3 <= len(transcript.strip()) <= 4000:
+        await message.answer('Не удалось принять поручение: нужна расшифровка от 3 до 4000 символов.')
+        return True
+    try:
+        job = queue.enqueue(message.from_user.id,
+                            f'voice:auto:{message.chat.id}:{message.message_id}', transcript.strip())
+    except ValueError as exc:
+        await message.answer(html.escape(str(exc)))
+        return True
+    if queue.claim_ack(job['id']):
+        await message.answer('🖥 Принято на Mac: ' + html.escape(transcript.strip())
+                             + f'\nЗадача <code>{job["id"]}</code>. Результат придёт текстом и голосом.')
+        try:
+            await message.answer_voice(FSInputFile(Path(__file__).parent / 'assets' / 'mac_accepted.ogg'))
+        except Exception:
+            logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])
+    return True
