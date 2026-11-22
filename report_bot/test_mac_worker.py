@@ -53,3 +53,23 @@ class MacWorkerTests(unittest.TestCase):
         for url in ['http://reports.example', 'https://secret@reports.example', 'https://reports.example/?token=x']:
             with self.assertRaises(ValueError):
                 validate_config({**self.config, 'reports_url': url})
+
+    def test_https_uses_private_stdin_and_keeps_tls_and_redirect_protection(self):
+        from scripts.mac_worker import api
+        from types import SimpleNamespace
+        with patch('scripts.mac_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout='{"job":null}')) as run:
+            self.assertEqual(api(self.config,'/mac-worker/claim',{}), {'job':None})
+        args=run.call_args.args[0];settings=run.call_args.kwargs['input']
+        self.assertNotIn(self.config['secret'],' '.join(args))
+        self.assertIn(self.config['secret'],settings)
+        self.assertNotIn('--insecure',args)
+        self.assertNotIn('--location',args)
+        self.assertIn('=https',args)
+        self.assertEqual(args[1],'--disable')
+
+    def test_https_transport_failure_does_not_leak_stderr(self):
+        from scripts.mac_worker import api
+        from types import SimpleNamespace
+        with patch('scripts.mac_worker.subprocess.run', return_value=SimpleNamespace(returncode=35, stderr=self.config['secret'])):
+            with self.assertRaises(OSError) as caught:api(self.config,'/mac-worker/running')
+        self.assertNotIn(self.config['secret'],str(caught.exception))

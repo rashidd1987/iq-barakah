@@ -92,3 +92,13 @@ and provider error payloads are not sent to Telegram.
 Mail, social accounts, calendars and task stores require separately implemented
 connectors and owner authorization; Codex app connections are not automatically
 available to the background Mac worker.
+
+### Mac HTTPS transport
+
+During the owner smoke test, Python TLS handshakes intermittently timed out while
+macOS curl could reach the same verified HTTPS origin. The worker uses the built-in
+`/usr/bin/curl` SecureTransport client with certificate validation, HTTPS-only
+protocols, no redirects, no user curl config, bounded retries, response size and
+time limits. Bearer credentials and result payloads are supplied through stdin,
+never process arguments. Existing queue idempotency and saved-result recovery
+remain in force. Network outages can still delay a result.

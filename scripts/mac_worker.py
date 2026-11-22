@@ -9,7 +9,6 @@ import subprocess
 import sys
 import time
 from urllib.parse import urlsplit
-from urllib.request import Request
 
 ROOT = Path.home() / '.openjarvis'
 logger = logging.getLogger('mizan.mac')
@@ -26,16 +25,30 @@ def atomic_json(path: Path, value):
 
 
 def api(config, route: str, body=None):
-    url = config['reports_url'].rstrip('/') + route
-    request = Request(url, data=json.dumps(body).encode() if body is not None else None,
-                      headers={'Authorization': 'Bearer ' + config['secret'], 'Content-Type': 'application/json'})
-    # Refuse redirects: bearer credentials must only go to the configured origin.
-    from urllib.request import HTTPRedirectHandler, build_opener, HTTPSHandler
-    class NoRedirect(HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
-            return None
-    with build_opener(NoRedirect(), HTTPSHandler()).open(request, timeout=20) as response:
-        return json.loads(response.read(100000))
+    validate_config(config)
+    if not route.startswith('/mac-worker/') or any(c in route for c in ('\n', '\r', '?', '#')):
+        raise ValueError('invalid worker route')
+    # macOS SecureTransport works on networks where Python TLS handshakes stall.
+    # Curl config is supplied via stdin: secrets never appear in process arguments.
+    def quoted(value):
+        return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r') + '"'
+    settings = [
+        'url = ' + quoted(config['reports_url'].rstrip('/') + route),
+        'header = ' + quoted('Authorization: Bearer ' + config['secret']),
+        'header = "Content-Type: application/json"',
+    ]
+    if body is not None:
+        settings += ['request = "POST"', 'data = ' + quoted(json.dumps(body))]
+    response = subprocess.run(
+        ['/usr/bin/curl', '--disable', '--config', '-', '--silent', '--show-error',
+         '--fail', '--proto', '=https', '--proto-redir', '=https', '--max-redirs', '0',
+         '--ipv4', '--http1.1', '--retry', '2', '--retry-all-errors', '--retry-delay', '1',
+         '--connect-timeout', '8', '--max-time', '20', '--max-filesize', '100000'],
+        input='\n'.join(settings) + '\n', capture_output=True, text=True, timeout=70,
+    )
+    if response.returncode:
+        raise OSError('Reports HTTPS transport failed')
+    return json.loads(response.stdout)
 
 
 def validate_config(config):
