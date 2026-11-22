@@ -19,11 +19,13 @@ def main():
     runtime = root / 'mac-worker'
     runtime.mkdir(parents=True, exist_ok=True)
     runtime.chmod(0o700)
-    workspace = Path.home() / 'Documents' / 'Mizan Assistant'
+    config_path = root / 'mac-worker.json'
+    existing = json.loads(config_path.read_text()) if config_path.exists() else {}
+    workspace = Path(existing.get('workspace', str(Path.home() / 'Mizan Assistant'))).expanduser().resolve()
     for directory in ('inbox', 'outbox', 'code'):
         (workspace / directory).mkdir(parents=True, exist_ok=True)
     source = Path(__file__).parent
-    for filename in ('mac_worker.py', 'mac_assistant.py', 'install_mac_worker.py'):
+    for filename in ('mac_worker.py', 'mac_assistant.py', 'project_report.py', 'install_mac_worker.py'):
         destination = runtime / filename
         if source / filename != destination:
             shutil.copy2(source / filename, destination)

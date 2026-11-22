@@ -69,3 +69,26 @@ owner in a private chat can enqueue it. The original transcript is the task;
 transcription uses the existing OpenAI integration. The Mac uses its existing
 scoped file tools and the normal durable queue/result notifications. Cancelled,
 expired, replaced or duplicate confirmations do not create extra jobs.
+
+## IQ Barakah project reports
+
+The Mac runtime recognizes a request to check/audit/report IQ Barakah (including
+`IQBarak` from speech recognition). It reads a fresh, fixed GitHub `main` snapshot
+in `~/.openjarvis/projects/iq-barakah.git`, outside Documents and outside the
+model's writable workspace. No GitHub token is installed for the public snapshot.
+It produces an independently verified Markdown report in the configured outbox
+and returns the report through the existing Telegram queue. No Amvera update is
+needed for this local capability.
+
+Checks: bounded Python AST syntax and package.json validation, exact-commit
+Quality checks status from GitHub, and HTTP availability of iq-barakah.ru.
+A successful report does not mean the application is free of bugs. Source is not
+executed, dependencies are not installed, and local dirty changes, private CRM
+records, production databases and full user flows are not inspected. Refresh
+failures are explicit and never reuse an old snapshot as current. Secret/env,
+data/vendor files and symlinks are excluded from source scanning. Source lines
+and provider error payloads are not sent to Telegram.
+
+Mail, social accounts, calendars and task stores require separately implemented
+connectors and owner authorization; Codex app connections are not automatically
+available to the background Mac worker.
