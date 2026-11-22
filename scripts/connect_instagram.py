@@ -5,7 +5,7 @@ from account_readers import request_json,save_access,instagram_identity
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument('--login',choices=['facebook','instagram'],default='facebook')
+    parser.add_argument('--login',choices=['facebook','instagram'],default='instagram')
     args=parser.parse_args()
     token=getpass.getpass('Meta API token (не отображается): ').strip()
     try:

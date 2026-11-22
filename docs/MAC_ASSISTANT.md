@@ -116,14 +116,13 @@ considered connected until its local helper completes a real API capability chec
   model workspace with private permissions. The first reader shows unread inbox
   subjects/senders only (up to 10), hiding security-code subjects. Message bodies
   and attachments are not currently included.
-- Instagram: existing Meta app IQ Barakah Publisher can supply an authorized
-  Facebook Login user token with instagram_basic, instagram_manage_insights,
-  pages_show_list and pages_read_engagement for the linked Page. The helper
-  defaults to Facebook Login; an Instagram Login token can be selected explicitly
-  only if its Insights capability is verified. The owner runs
-  `connect_instagram.py` and pastes the token in a hidden local Terminal prompt.
-  It checks @rashidiqmizan and an actual Insights request before saving. The reader
-  reports daily reach for seven completed UTC days; it does not sum daily uniques.
+- Instagram: existing Meta app IQ Barakah Publisher has the current optional
+  instagram_business_manage_insights permission available. Prefer Instagram Login
+  with instagram_business_basic and instagram_business_manage_insights, authorizing
+  only @rashidiqmizan. The helper defaults to this path and checks a real Insights
+  response before saving the owner-entered token. Facebook Login is an optional
+  separately authorized fallback, not a required grant. The reader reports daily
+  reach for seven completed UTC days and does not sum daily unique counts.
 - Both readers have fixed provider hosts, no redirect following, no write endpoints,
   and return a clear failure when authorization is absent. Mail/post content never
   becomes an instruction to the agent. Tokens are not exposed in process args.
