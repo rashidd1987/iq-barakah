@@ -39,8 +39,7 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
         await callback.answer()
         await message.edit_text(
             '🖥 <b>Поручение для Mac</b>\n\n' + html.escape(transcript)
-            + '\n\nПроверьте распознанный текст. Mac работает с файлами своей рабочей папки. '
-              'Результат придёт сюда. Без подтверждения задача не запустится.',
+            + '\n\nПроверьте текст. Рабочая папка Mac; результат придёт сюда.',
             reply_markup=keyboard,
         )
 
@@ -74,7 +73,6 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
         await state.clear()
         await callback.answer('Поручение принято')
         await message.edit_text(
-            f'🖥 Задача Mac <code>{job["id"]}</code>: {job["status"]}.\n\n'
-            + html.escape(task)
-            + '\n\nРезультат придёт сюда. Если Mac спит, задача будет ждать.'
+            f'🖥 Задача Mac <code>{job["id"]}</code>: {job["status"]}.\n'
+            'Результат придёт сюда. Если Mac спит, задача будет ждать.'
         )

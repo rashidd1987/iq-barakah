@@ -114,3 +114,13 @@ class MacVoiceTests(unittest.IsolatedAsyncioTestCase):
         with patch.dict(os.environ, MAC_WORKER_SECRET=''):
             await self.confirm(callback, self.state)
         self.assertEqual(self.queue.recent(123), [])
+
+    async def test_long_transcript_fits_telegram_message_limit(self):
+        self.state.data['voice_transcript'] = 'a' * 4000
+        callback = self.callback()
+        await self.prepare(callback, self.state)
+        self.assertLessEqual(len(callback.message.edit_text.call_args.args[0]), 4096)
+        callback.data = 'macvoice:run'
+        await self.confirm(callback, self.state)
+        self.assertLessEqual(len(callback.message.edit_text.call_args.args[0]), 4096)
+        self.assertEqual(len(self.queue.recent(123)), 1)
