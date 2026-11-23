@@ -8,11 +8,11 @@ TEXT = ('Привет, Рашид. Поручение принято. Я про�
         'Ты можешь отправлять задачи голосом — я приму их и сообщу результат в этом чате.')
 
 
-async def synthesize_preview(api_key):
+async def synthesize_preview(api_key, voice="cedar"):
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as session:
         async with session.post('https://api.openai.com/v1/audio/speech',
                 headers={'Authorization': 'Bearer ' + api_key},
-                json={'model': 'gpt-4o-mini-tts', 'voice': 'cedar', 'input': TEXT,
+                json={'model': 'gpt-4o-mini-tts', 'voice': voice, 'input': TEXT,
                       'instructions': 'Speak in Russian with a natural male conversational voice. Warm, calm, confident. Medium pace, short natural pauses. No announcer delivery, no exaggerated emotion.',
                       'response_format': 'opus'}) as response:
             if response.status != 200:
@@ -28,11 +28,13 @@ async def synthesize_preview(api_key):
     return audio
 
 
-async def cached_preview(directory):
+async def cached_preview(directory, voice="cedar"):
+    if voice not in {'cedar', 'onyx', 'ash'}:
+        raise ValueError('Unsupported preview voice')
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=True)
-    output = root / 'voice-preview-cedar-v1.ogg'
-    marker = root / 'voice-preview-cedar-v1.started'
+    output = root / f'voice-preview-{voice}-v1.ogg'
+    marker = root / f'voice-preview-{voice}-v1.started'
     if output.exists():
         return output.read_bytes()
     api_key = os.environ.get('OPENAI_API_KEY', '').strip()
@@ -43,7 +45,7 @@ async def cached_preview(directory):
     except FileExistsError:
         raise ValueError('Preview already started; paid synthesis will not be repeated') from None
     os.close(fd)
-    audio = await synthesize_preview(api_key)
+    audio = await synthesize_preview(api_key, voice)
     temporary = output.with_suffix('.tmp')
     fd = os.open(temporary, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(fd, 'wb') as stream:

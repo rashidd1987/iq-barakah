@@ -16,3 +16,13 @@ class VoicePreviewTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(RuntimeError): await cached_preview(folder)
             with self.assertRaises(ValueError): await cached_preview(folder)
             call.assert_awaited_once()
+
+    async def test_each_voice_is_cached_separately_and_names_are_restricted(self):
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, OPENAI_API_KEY='test'), patch('report_bot.voice_preview.synthesize_preview', new_callable=AsyncMock, side_effect=[b'onyx', b'ash']) as call:
+            for _ in range(2):
+                self.assertEqual(await cached_preview(folder, 'onyx'), b'onyx')
+                self.assertEqual(await cached_preview(folder, 'ash'), b'ash')
+            self.assertEqual(call.await_count, 2)
+            for name in ['../../secret', 'unknown', '']:
+                with self.assertRaises(ValueError): await cached_preview(folder, name)
+            self.assertEqual(call.await_count, 2)

@@ -67,10 +67,15 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         if not owner_private(message):
             return
         from report_bot.voice_preview import cached_preview
+        parts = (message.text or '').split()
+        voice = parts[1].casefold() if len(parts) == 2 else 'cedar'
+        if len(parts) > 2 or voice not in {'cedar', 'onyx', 'ash'}:
+            await message.answer('Для сравнения: /voicetest cedar, /voicetest onyx или /voicetest ash')
+            return
         try:
-            audio = await cached_preview(queue.path.parent)
+            audio = await cached_preview(queue.path.parent, voice)
             await message.answer_voice(BufferedInputFile(audio, filename='preview.ogg'),
-                caption='Проба мужского ИИ-голоса Cedar. Постоянная платная озвучка выключена.')
+                caption=f'Проба мужского ИИ-голоса {voice.title()}. Постоянная платная озвучка выключена.')
         except (OSError, ValueError, RuntimeError, aiohttp.ClientError, asyncio.TimeoutError):
             await message.answer('Не удалось получить пробу голоса. Платный запрос автоматически не повторяется.')
 
