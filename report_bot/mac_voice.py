@@ -6,9 +6,18 @@ import os
 from pathlib import Path
 
 from aiogram import F
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile, FSInputFile
 
 from report_bot.mac_queue import MacQueue
+
+
+async def answer_acceptance(message, queue, paid):
+    if paid:
+        from report_bot.onyx_voice import cached_onyx, ACCEPTED
+        audio = await cached_onyx(queue.path.parent, 'acceptance-v1', ACCEPTED)
+        await message.answer_voice(BufferedInputFile(audio, filename='accepted.ogg'))
+    else:
+        await message.answer_voice(FSInputFile(Path(__file__).parent / 'assets' / 'mac_accepted.ogg'))
 
 
 def register_mac_voice(router, config, queue: MacQueue, ready):
@@ -66,10 +75,15 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
         if not ready():
             await callback.answer('Исполнитель Mac ещё не подключён', show_alert=True)
             return
+        from report_bot.voice_mode import select_voice_task
+        task, paid = select_voice_task(task)
+        if not 3 <= len(task) <= 4000:
+            await callback.answer('Добавьте поручение после имени голоса', show_alert=True)
+            return
         try:
             # Stable across duplicate callback deliveries and concurrent presses.
             job = queue.enqueue(callback.from_user.id,
-                                f'voice:{message.chat.id}:{message.message_id}', task)
+                                f'voice:{"onyx:" if paid else ""}{message.chat.id}:{message.message_id}', task)
         except ValueError as exc:
             await callback.answer(str(exc), show_alert=True)
             return
@@ -82,9 +96,7 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
 
         if queue.claim_ack(job['id']):
             try:
-                from report_bot.onyx_voice import cached_onyx, ACCEPTED
-                audio = await cached_onyx(queue.path.parent, 'acceptance-v1', ACCEPTED)
-                await message.answer_voice(BufferedInputFile(audio, filename='accepted.ogg'))
+                await answer_acceptance(message, queue, paid)
             except Exception:
                 logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])
 
@@ -101,19 +113,22 @@ async def auto_accept_voice(message, transcript, config, queue):
     if not isinstance(transcript, str) or not 3 <= len(transcript.strip()) <= 4000:
         await message.answer('Не удалось принять поручение: нужна расшифровка от 3 до 4000 символов.')
         return True
+    from report_bot.voice_mode import select_voice_task
+    transcript, paid = select_voice_task(transcript)
+    if len(transcript) < 3:
+        await message.answer('Добавьте поручение после имени голоса.')
+        return True
     try:
         job = queue.enqueue(message.from_user.id,
-                            f'voice:auto:{message.chat.id}:{message.message_id}', transcript.strip())
+                            f'voice:{"onyx:" if paid else ""}auto:{message.chat.id}:{message.message_id}', transcript.strip())
     except ValueError as exc:
         await message.answer(html.escape(str(exc)))
         return True
     if queue.claim_ack(job['id']):
         await message.answer('🖥 Принято на Mac: ' + html.escape(transcript.strip())
-                             + f'\nЗадача <code>{job["id"]}</code>. Результат придёт текстом и голосом.')
+                             + f'\nЗадача <code>{job["id"]}</code>. Голос: {"Onyx (платный)" if paid else "Юрий (локально)"}. Результат придёт текстом и голосом.')
         try:
-            from report_bot.onyx_voice import cached_onyx, ACCEPTED
-            audio = await cached_onyx(queue.path.parent, 'acceptance-v1', ACCEPTED)
-            await message.answer_voice(BufferedInputFile(audio, filename='accepted.ogg'))
+            await answer_acceptance(message, queue, paid)
         except Exception:
             logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])
     return True

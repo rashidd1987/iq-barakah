@@ -33,7 +33,7 @@ class OnyxVoiceTests(unittest.IsolatedAsyncioTestCase):
         from report_bot.mac_bridge import mac_result_notifications
         from types import SimpleNamespace
         from pathlib import Path
-        job = dict(id='123456abcdef', owner=123, source='voice:auto:123:99', status='done', result='Почта проверена', voice='invalid legacy audio')
+        job = dict(id='123456abcdef', owner=123, source='voice:onyx:auto:123:99', status='done', result='Почта проверена', voice='invalid legacy audio')
         queue = SimpleNamespace(path=Path('/tmp/jobs.sqlite3'), unnotified=lambda: [job], mark_notified=lambda _: None)
         bot = SimpleNamespace(send_message=AsyncMock(), send_voice=AsyncMock())
         with patch('report_bot.onyx_voice.cached_onyx', new_callable=AsyncMock, return_value=b'onyx') as call, patch('report_bot.mac_bridge.asyncio.sleep', side_effect=asyncio.CancelledError):
