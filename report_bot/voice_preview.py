@@ -35,7 +35,7 @@ async def synthesize_text(api_key, voice, text):
             audio = bytearray()
             async for chunk in response.content.iter_chunked(8192):
                 audio.extend(chunk)
-                if len(audio) > 260000:
+                if len(audio) > 2 * 1024 * 1024:
                     raise ValueError('Voice preview exceeds limit')
     audio = bytes(audio)
     if len(audio) < 500 or not audio.startswith(b'OggS') or b'OpusHead' not in audio[:128]:

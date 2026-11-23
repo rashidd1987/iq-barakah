@@ -139,8 +139,8 @@ async def mac_result_notifications(bot, queue: MacQueue):
                         audio = await cached_onyx(queue.path.parent, 'result-' + job['id'], result)
                         await bot.send_voice(job['owner'], BufferedInputFile(audio, filename='result.ogg'),
                             caption=f'Голосовой результат · Onyx (ИИ) · {job["id"]}')
-                    except Exception:
-                        logger.warning('Could not deliver Onyx result %s', job['id'])
+                    except Exception as exc:
+                        logger.warning('Could not deliver Onyx result %s (%s)', job['id'], type(exc).__name__)
                         await bot.send_message(job['owner'], 'Озвучка Onyx недоступна. Результат выше — текстом. Платная генерация автоматически не повторяется.')
                 elif job.get('voice'):
                     try:

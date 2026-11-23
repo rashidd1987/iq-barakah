@@ -38,3 +38,21 @@ class VoicePreviewTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(await cached_preview(folder, 'echo'), b'echo')
                 self.assertEqual(await cached_preview(folder, 'fable'), b'fable')
             self.assertEqual(call.await_count, 2)
+
+    async def test_server_speech_accepts_report_audio_above_legacy_queue_limit(self):
+        from report_bot.voice_preview import synthesize_text
+        class Content:
+            async def iter_chunked(self, size):
+                yield b'OggS' + b'OpusHead' + b'\0' * 300000
+        class Response:
+            status = 200
+            content = Content()
+            async def __aenter__(self): return self
+            async def __aexit__(self, *args): pass
+        class Session:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *args): pass
+            def post(self, *args, **kwargs): return Response()
+        with patch('report_bot.voice_preview.aiohttp.ClientSession', return_value=Session()):
+            audio = await synthesize_text('test', 'onyx', 'Отчёт проверен')
+            self.assertGreater(len(audio), 260000)

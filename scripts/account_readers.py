@@ -129,7 +129,7 @@ def account_report(task):
     if not (gmail or instagram):return None
     if any(word in text for word in ('отправь','удали','опубликуй','ответь')):
         return {'status':'failed','result':'Для почты и Instagram подключено только чтение. Отправка, удаление и публикация недоступны.'}
-    if not any(word in text for word in ('провер','прочит','покаж','статист','охват','непрочит','входящ','check','read','insight')):
+    if not any(word in text for word in ('провер','прочит','покаж','статист','охват','непрочит','входящ','check','read','insight','отчет','отчёт','сводк','глянь','посмотр')):
         return None
     try:
         sections=[]
