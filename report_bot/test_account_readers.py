@@ -67,3 +67,13 @@ class AccountReaderTests(unittest.TestCase):
             self.assertEqual(m.instagram_identity({'login':'facebook','access_token':'test'}),('https://graph.facebook.com/v27.0/','123'))
         with patch.object(m,'request_json',return_value={'data':[]}):
             with self.assertRaises(ValueError):m.instagram_identity({'login':'facebook','access_token':'test'})
+
+    def test_colloquial_mail_report_survives_damaged_leading_verb(self):
+        with patch.object(m, 'gmail_report', return_value='Gmail: реальные заголовки') as read:
+            result = m.account_report('Фраберджи моя почту и скинь краткий отчет.')
+            self.assertEqual(result['status'], 'done')
+            self.assertIn('реальные заголовки', result['result'])
+            read.assert_called_once()
+        with patch.object(m, 'gmail_report') as read:
+            self.assertEqual(m.account_report('Удали письма и пришли отчет')['status'], 'failed')
+            read.assert_not_called()

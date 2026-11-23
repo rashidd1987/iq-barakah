@@ -73,3 +73,17 @@ class MacWorkerTests(unittest.TestCase):
         with patch('scripts.mac_worker.subprocess.run', return_value=SimpleNamespace(returncode=35, stderr=self.config['secret'])):
             with self.assertRaises(OSError) as caught:api(self.config,'/mac-worker/running')
         self.assertNotIn(self.config['secret'],str(caught.exception))
+
+    def test_reports_interface_is_optional_and_restricted(self):
+        from scripts.mac_worker import api
+        from types import SimpleNamespace
+        for interface in ['en0', 'en1']:
+            config = {**self.config, 'reports_interface': interface}
+            with patch('scripts.mac_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout='{}')) as run:
+                api(config, '/mac-worker/running')
+            self.assertIn('interface = "' + interface + '"', run.call_args.kwargs['input'])
+        for interface in ['en0\nheader = bad', 'utun4', '', None, 1]:
+            if interface is None:
+                continue
+            with self.assertRaises(ValueError):
+                validate_config({**self.config, 'reports_interface': interface})

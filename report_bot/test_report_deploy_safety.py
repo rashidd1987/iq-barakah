@@ -22,7 +22,7 @@ class ReportDeployApprovalSafetyTests(unittest.TestCase):
     def test_approval_is_bound_to_exact_full_commit_sha(self) -> None:
         self.assertIn('^[0-9a-f]{40}$', self.workflow)
         self.assertIn(
-            '--idempotency-key "reports-production:$APPROVED_COMMIT_SHA"',
+            '--idempotency-key "reports-production:$APPROVED_COMMIT_SHA:${{ github.run_id }}"',
             self.workflow,
         )
         self.assertIn("ref: ${{ inputs.commit_sha }}", self.workflow)

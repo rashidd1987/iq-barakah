@@ -1,16 +1,18 @@
 """Owner-only Telegram commands and authenticated outbound-worker endpoints."""
 
 import asyncio
+import base64
 import hmac
 import html
 import logging
 import os
 import time
 
+import aiohttp
 from aiohttp import web
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
 
 from report_bot.mac_queue import MacQueue
 
@@ -29,7 +31,7 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         return bool(message.from_user and message.from_user.id in config.owner_ids
                     and message.chat.type == 'private')
 
-    @router.message(Command('mac'))
+    @router.message(Command('mac', 'macvoice', 'onyx', 'jarvas'))
     async def run_on_mac(message: Message):
         if not owner_private(message):
             return
@@ -38,10 +40,16 @@ def build_mac_router(config, queue: MacQueue) -> Router:
             return
         task = (message.text or '').split(maxsplit=1)
         if len(task) != 2:
-            await message.answer('Напишите /mac и задачу. Например: /mac составь план публикаций и сохрани в outbox/plan.md\n\nМак работает с файлами своей рабочей папки. Изменения production остаются в Approval Center.')
+            await message.answer('/mac задача — ответ текстом.\n/onyx задача — Оникс, бесплатный голос Юрий.\n/jarvas задача — Джарвас, платный голос Onyx.\n/macvoice задача — бесплатный голос.\n\n«Джарвас, …» — платно; «Оникс, …» или без имени — бесплатная озвучка.')
             return
         try:
-            job = queue.enqueue(message.from_user.id, f'{message.chat.id}:{message.message_id}', task[1])
+            source = f'{message.chat.id}:{message.message_id}'
+            command = message.text.split()[0].split('@')[0]
+            if command == '/jarvas':
+                source = 'voice:onyx:' + source
+            elif command in {'/macvoice', '/onyx'}:
+                source = 'voice:' + source
+            job = queue.enqueue(message.from_user.id, source, task[1])
         except ValueError as exc:
             await message.answer(html.escape(str(exc)))
             return
@@ -57,6 +65,23 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         text = '\n'.join(f'{row["id"]}: {row["status"]} — {row["task"][:100]}' for row in rows)
         await message.answer(html.escape(f'Mac: {status}\n\n{text or "Задач пока нет"}'))
 
+    @router.message(Command('voicetest'))
+    async def voice_preview(message: Message):
+        if not owner_private(message):
+            return
+        from report_bot.voice_preview import cached_preview
+        parts = (message.text or '').split()
+        voice = parts[1].casefold() if len(parts) == 2 else 'cedar'
+        if len(parts) > 2 or voice not in {'cedar', 'onyx', 'ash', 'echo', 'fable'}:
+            await message.answer('Для сравнения: /voicetest cedar, /voicetest onyx, /voicetest ash, /voicetest echo или /voicetest fable')
+            return
+        try:
+            audio = await cached_preview(queue.path.parent, voice)
+            await message.answer_voice(BufferedInputFile(audio, filename='preview.ogg'),
+                caption=f'Образец ИИ-голоса {voice.title()}. Оникс: бесплатный Юрий; Джарвас: платный Onyx, /jarvas задача.')
+        except (OSError, ValueError, RuntimeError, aiohttp.ClientError, asyncio.TimeoutError):
+            await message.answer('Не удалось получить пробу голоса. Платный запрос автоматически не повторяется.')
+
     from report_bot.mac_voice import register_mac_voice
     register_mac_voice(router, config, queue, lambda: len(worker_secret()) >= 32)
     return router
@@ -70,7 +95,9 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
             raise web.HTTPUnauthorized()
 
     def payload(job):
-        return {key: job[key] for key in ('id', 'task', 'claim_token')}
+        return {**{key: job[key] for key in ('id', 'task', 'claim_token')},
+                'voice_reply': job['source'].startswith('voice:'),
+                'voice_engine': 'server-onyx' if job['source'].startswith('voice:onyx:') else 'local-yuri'}
 
     async def claim(request):
         authorize(request)
@@ -88,7 +115,7 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
             if not isinstance(body, dict) or not isinstance(body.get('claim_token'), str):
                 raise ValueError('invalid result')
             job = queue.finish(request.match_info['job_id'], WORKER, body['claim_token'],
-                               body.get('status'), body.get('result'))
+                               body.get('status'), body.get('result'), body.get('voice'))
         except PermissionError:
             raise web.HTTPForbidden() from None
         except (ValueError, TypeError):
@@ -109,6 +136,25 @@ async def mac_result_notifications(bot, queue: MacQueue):
                 result = job['result']
                 for start in range(0, len(result), 3000):
                     await bot.send_message(job['owner'], header + result[start:start + 3000], parse_mode=None)
+                if job['source'].startswith('voice:onyx:'):
+                    try:
+                        from report_bot.onyx_voice import cached_onyx
+                        audio = await cached_onyx(queue.path.parent, 'result-' + job['id'], result)
+                        await bot.send_voice(job['owner'], BufferedInputFile(audio, filename='result.ogg'),
+                            caption=f'Голосовой результат · Джарвас · Onyx (ИИ) · {job["id"]}')
+                    except Exception as exc:
+                        logger.warning('Could not deliver Onyx result %s (%s)', job['id'], type(exc).__name__)
+                        await bot.send_message(job['owner'], 'Озвучка Onyx недоступна. Результат выше — текстом. Платная генерация автоматически не повторяется.')
+                elif job.get('voice'):
+                    try:
+                        await bot.send_voice(job['owner'], BufferedInputFile(
+                            base64.b64decode(job['voice']), filename='result.ogg'),
+                            caption=f'Голосовой результат · Оникс · Юрий · {job["id"]}')
+                    except Exception:
+                        logger.warning('Could not deliver spoken result %s', job['id'])
+                        await bot.send_message(job['owner'], 'Не удалось отправить голосовой ответ. Результат выше — текстом.')
+                elif job['source'].startswith('voice:'):
+                    await bot.send_message(job['owner'], 'Озвучка Юрия недоступна. Результат выше — текстом; платный Onyx не запускался.')
                 queue.mark_notified(job['id'])
             except Exception:
                 logger.warning('Could not deliver Mac result %s', job['id'])
