@@ -69,8 +69,8 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         from report_bot.voice_preview import cached_preview
         parts = (message.text or '').split()
         voice = parts[1].casefold() if len(parts) == 2 else 'cedar'
-        if len(parts) > 2 or voice not in {'cedar', 'onyx', 'ash'}:
-            await message.answer('Для сравнения: /voicetest cedar, /voicetest onyx или /voicetest ash')
+        if len(parts) > 2 or voice not in {'cedar', 'onyx', 'ash', 'echo', 'fable'}:
+            await message.answer('Для сравнения: /voicetest cedar, /voicetest onyx, /voicetest ash, /voicetest echo или /voicetest fable')
             return
         try:
             audio = await cached_preview(queue.path.parent, voice)

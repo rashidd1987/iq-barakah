@@ -8,12 +8,27 @@ TEXT = ('Привет, Рашид. Поручение принято. Я про�
         'Ты можешь отправлять задачи голосом — я приму их и сообщу результат в этом чате.')
 
 
+def preview_instructions(voice):
+    if voice == 'echo':
+        return ('Speak Russian in a natural male voice. Be energetic, friendly and quick-witted: '
+                'a capable personal assistant with a smile in the voice and understated dry humor. '
+                'Crisp, nimble pacing with natural pauses; confident and reassuring. '
+                'Avoid flat robotic rhythm, announcer delivery, shouting or exaggerated acting.')
+    if voice == 'fable':
+        return ('Speak Russian in a warm expressive male voice. Sound upbeat, charming and friendly, '
+                'like a trusted teammate who enjoys solving problems. Lively intonation, subtle playful '
+                'wit and a relaxed conversational smile. Moderately brisk pace, clear natural pauses. '
+                'Avoid robotic delivery, a sales pitch, shouting or exaggerated acting.')
+    return ('Speak in Russian with a natural male conversational voice. Warm, calm, confident. '
+            'Medium pace, short natural pauses. No announcer delivery, no exaggerated emotion.')
+
+
 async def synthesize_preview(api_key, voice="cedar"):
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as session:
         async with session.post('https://api.openai.com/v1/audio/speech',
                 headers={'Authorization': 'Bearer ' + api_key},
                 json={'model': 'gpt-4o-mini-tts', 'voice': voice, 'input': TEXT,
-                      'instructions': 'Speak in Russian with a natural male conversational voice. Warm, calm, confident. Medium pace, short natural pauses. No announcer delivery, no exaggerated emotion.',
+                      'instructions': preview_instructions(voice),
                       'response_format': 'opus'}) as response:
             if response.status != 200:
                 raise RuntimeError('Voice preview provider returned HTTP ' + str(response.status))
@@ -29,7 +44,7 @@ async def synthesize_preview(api_key, voice="cedar"):
 
 
 async def cached_preview(directory, voice="cedar"):
-    if voice not in {'cedar', 'onyx', 'ash'}:
+    if voice not in {'cedar', 'onyx', 'ash', 'echo', 'fable'}:
         raise ValueError('Unsupported preview voice')
     root = Path(directory)
     root.mkdir(parents=True, exist_ok=True)

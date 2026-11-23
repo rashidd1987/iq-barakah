@@ -26,3 +26,15 @@ class VoicePreviewTests(unittest.IsolatedAsyncioTestCase):
             for name in ['../../secret', 'unknown', '']:
                 with self.assertRaises(ValueError): await cached_preview(folder, name)
             self.assertEqual(call.await_count, 2)
+
+    async def test_energetic_voices_have_distinct_style_and_cached_output(self):
+        from report_bot.voice_preview import preview_instructions
+        self.assertIn('energetic', preview_instructions('echo'))
+        self.assertIn('upbeat', preview_instructions('fable'))
+        self.assertNotEqual(preview_instructions('echo'), preview_instructions('fable'))
+        self.assertIn('calm', preview_instructions('cedar'))
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, OPENAI_API_KEY='test'), patch('report_bot.voice_preview.synthesize_preview', new_callable=AsyncMock, side_effect=[b'echo', b'fable']) as call:
+            for _ in range(2):
+                self.assertEqual(await cached_preview(folder, 'echo'), b'echo')
+                self.assertEqual(await cached_preview(folder, 'fable'), b'fable')
+            self.assertEqual(call.await_count, 2)
