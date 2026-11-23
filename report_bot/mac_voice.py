@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from aiogram import F
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, FSInputFile
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile
 
 from report_bot.mac_queue import MacQueue
 
@@ -82,7 +82,9 @@ def register_mac_voice(router, config, queue: MacQueue, ready):
 
         if queue.claim_ack(job['id']):
             try:
-                await message.answer_voice(FSInputFile(Path(__file__).parent / 'assets' / 'mac_accepted.ogg'))
+                from report_bot.onyx_voice import cached_onyx, ACCEPTED
+                audio = await cached_onyx(queue.path.parent, 'acceptance-v1', ACCEPTED)
+                await message.answer_voice(BufferedInputFile(audio, filename='accepted.ogg'))
             except Exception:
                 logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])
 
@@ -109,7 +111,9 @@ async def auto_accept_voice(message, transcript, config, queue):
         await message.answer('🖥 Принято на Mac: ' + html.escape(transcript.strip())
                              + f'\nЗадача <code>{job["id"]}</code>. Результат придёт текстом и голосом.')
         try:
-            await message.answer_voice(FSInputFile(Path(__file__).parent / 'assets' / 'mac_accepted.ogg'))
+            from report_bot.onyx_voice import cached_onyx, ACCEPTED
+            audio = await cached_onyx(queue.path.parent, 'acceptance-v1', ACCEPTED)
+            await message.answer_voice(BufferedInputFile(audio, filename='accepted.ogg'))
         except Exception:
             logging.getLogger(__name__).warning('Could not send spoken acceptance %s', job['id'])
     return True

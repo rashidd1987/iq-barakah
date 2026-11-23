@@ -31,6 +31,9 @@ class MacVoiceTests(unittest.IsolatedAsyncioTestCase):
         self.queue = MacQueue(self.temp.name)
         self.env = patch.dict(os.environ, MAC_WORKER_SECRET='test-' + 'a' * 40)
         self.env.start()
+        self.speech = patch('report_bot.onyx_voice.cached_onyx', new_callable=AsyncMock, return_value=b'audio')
+        self.speech.start()
+        self.addCleanup(self.speech.stop)
         self.addCleanup(self.env.stop)
         router = build_mac_router(SimpleNamespace(owner_ids={123}), self.queue)
         self.prepare, self.confirm = [h.callback for h in router.callback_query.handlers]

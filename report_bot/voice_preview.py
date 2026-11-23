@@ -23,11 +23,11 @@ def preview_instructions(voice):
             'Medium pace, short natural pauses. No announcer delivery, no exaggerated emotion.')
 
 
-async def synthesize_preview(api_key, voice="cedar"):
+async def synthesize_text(api_key, voice, text):
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=90)) as session:
         async with session.post('https://api.openai.com/v1/audio/speech',
                 headers={'Authorization': 'Bearer ' + api_key},
-                json={'model': 'gpt-4o-mini-tts', 'voice': voice, 'input': TEXT,
+                json={'model': 'gpt-4o-mini-tts', 'voice': voice, 'input': text,
                       'instructions': preview_instructions(voice),
                       'response_format': 'opus'}) as response:
             if response.status != 200:
@@ -41,6 +41,10 @@ async def synthesize_preview(api_key, voice="cedar"):
     if len(audio) < 500 or not audio.startswith(b'OggS') or b'OpusHead' not in audio[:128]:
         raise ValueError('Invalid voice preview format')
     return audio
+
+
+async def synthesize_preview(api_key, voice="cedar"):
+    return await synthesize_text(api_key, voice, TEXT)
 
 
 async def cached_preview(directory, voice="cedar"):

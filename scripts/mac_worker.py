@@ -98,7 +98,7 @@ def process(config, job, state_dir):
         result_path.replace(folder / 'result.corrupt')
         result = {'status': 'unknown', 'result': 'Сохранённый результат задачи повреждён. Проверьте рабочую папку; повторное выполнение отключено.'}
         atomic_json(result_path, result)
-    if job.get('voice_reply') and 'voice' not in result and not result.get('voice_error'):
+    if job.get('voice_reply') and job.get('voice_engine') != 'server-onyx' and 'voice' not in result and not result.get('voice_error'):
         try:
             from spoken_result import render_voice
             result['voice'] = render_voice(result['result'])
