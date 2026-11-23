@@ -13,7 +13,7 @@ from report_bot.mac_queue import MacQueue
 
 class VoiceModeTests(unittest.IsolatedAsyncioTestCase):
     async def test_only_explicit_leading_onyx_selects_paid_voice(self):
-        for text in ['Оникс, проверь Gmail', 'ONYX проверь Gmail', 'Оникс — проверь Gmail']:
+        for text in ['Джарвас, проверь Gmail', 'JARVAS проверь Gmail', 'Джарвас — проверь Gmail']:
             self.assertEqual(select_voice_task(text), ('проверь Gmail', True))
         for text in ['Проверь Gmail', 'Расскажи про Onyx', 'ониксовый камень']:
             self.assertEqual(select_voice_task(text), (text, False))
@@ -29,7 +29,7 @@ class VoiceModeTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(first['source'].startswith('voice:onyx:'))
             queue.finish(first['id'], 'test', first['claim_token'], 'done', 'Готово')
             message.message_id = 2
-            await auto_accept_voice(message, 'Оникс, проверь Gmail', config, queue)
+            await auto_accept_voice(message, 'Джарвас, проверь Gmail', config, queue)
             cloud.assert_awaited_once()
             second = queue.claim('test')
             self.assertEqual(second['task'], 'проверь Gmail')
@@ -44,7 +44,7 @@ class VoiceModeTests(unittest.IsolatedAsyncioTestCase):
             first = queue.claim('test')
             self.assertFalse(first['source'].startswith('voice:onyx:'))
             queue.finish(first['id'], 'test', first['claim_token'], 'done', 'Готово')
-            message.message_id=2; message.text='/onyx Проверь Gmail'
+            message.message_id=2; message.text='/jarvas Проверь Gmail'
             await handler(message)
             self.assertTrue(queue.claim('test')['source'].startswith('voice:onyx:'))
 
@@ -56,3 +56,18 @@ class VoiceModeTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(asyncio.CancelledError): await mac_result_notifications(bot,queue)
             cloud.assert_not_awaited()
             self.assertIn('Юрий',bot.send_voice.call_args.kwargs['caption'])
+
+    async def test_onyx_name_and_command_now_select_free_voice(self):
+        for text in ['Оникс, проверь Gmail', 'ONYX проверь Gmail']:
+            self.assertEqual(select_voice_task(text), ('проверь Gmail', False))
+        self.assertEqual(select_voice_task('Расскажи про Джарвас'), ('Расскажи про Джарвас', False))
+        with tempfile.TemporaryDirectory() as folder, patch.dict('os.environ', MAC_WORKER_SECRET='x'*40, MAC_VOICE_AUTO_RUN='1'), patch('report_bot.onyx_voice.cached_onyx',new_callable=AsyncMock) as cloud:
+            queue=MacQueue(folder); config=SimpleNamespace(owner_ids={123})
+            message=SimpleNamespace(from_user=SimpleNamespace(id=123),chat=SimpleNamespace(id=123,type='private'),message_id=1,text='/onyx Проверь Gmail',answer=AsyncMock(),answer_voice=AsyncMock())
+            await auto_accept_voice(message,'Оникс, проверь Gmail',config,queue)
+            first=queue.claim('test'); self.assertFalse(first['source'].startswith('voice:onyx:'))
+            queue.finish(first['id'],'test',first['claim_token'],'done','Готово')
+            message.message_id=2
+            await build_mac_router(config,queue).message.handlers[0].callback(message)
+            self.assertFalse(queue.claim('test')['source'].startswith('voice:onyx:'))
+            cloud.assert_not_awaited()

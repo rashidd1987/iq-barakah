@@ -126,7 +126,7 @@ async def auto_accept_voice(message, transcript, config, queue):
         return True
     if queue.claim_ack(job['id']):
         await message.answer('🖥 Принято на Mac: ' + html.escape(transcript.strip())
-                             + f'\nЗадача <code>{job["id"]}</code>. Голос: {"Onyx (платный)" if paid else "Юрий (локально)"}. Результат придёт текстом и голосом.')
+                             + f'\nЗадача <code>{job["id"]}</code>. Голос: {"Джарвас / Onyx (платный)" if paid else "Оникс / Юрий (локально)"}. Результат придёт текстом и голосом.')
         try:
             await answer_acceptance(message, queue, paid)
         except Exception:

@@ -1,10 +1,12 @@
-"""Paid Onyx is selected only by an explicit leading invocation."""
+"""Jarvas selects paid Onyx; the name Onyx selects free local speech."""
 import re
 
 
 def select_voice_task(task):
-    match = re.match(r'^\s*(?:оникс|onyx)(?=$|[\s,:.!—-])[\s,:.!—-]*', task, re.I)
-    return (task[match.end():].strip(), True) if match else (task.strip(), False)
+    match = re.match(r'^\s*(джарвас|jarvas|оникс|onyx)(?=$|[\s,:.!—-])[\s,:.!—-]*', task, re.I)
+    if not match:
+        return task.strip(), False
+    return task[match.end():].strip(), match.group(1).casefold() in {'джарвас', 'jarvas'}
 
 
 def uses_onyx(source):
