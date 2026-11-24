@@ -25,7 +25,7 @@ def main():
     for directory in ('inbox', 'outbox', 'code'):
         (workspace / directory).mkdir(parents=True, exist_ok=True)
     source = Path(__file__).parent
-    for filename in ('mac_worker.py', 'mac_assistant.py', 'project_report.py', 'install_mac_worker.py'):
+    for filename in ('spoken_result.py', 'mac_worker.py', 'mac_assistant.py', 'project_report.py', 'account_readers.py', 'connect_gmail.py', 'connect_instagram.py', 'install_mac_worker.py'):
         destination = runtime / filename
         if source / filename != destination:
             shutil.copy2(source / filename, destination)

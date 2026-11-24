@@ -13,6 +13,7 @@ class ProjectReportTests(unittest.TestCase):
     def test_recognizes_real_voice_spelling_without_routing_mail(self):
         self.assertTrue(module.wants_project_report('Зайди и проверь мой проект IQBarak, что там творится'))
         self.assertTrue(module.wants_project_report('Сделай отчёт IQ Barakah'))
+        self.assertTrue(module.wants_project_report('Проверь проект IQ Барака'))
         self.assertFalse(module.wants_project_report('Проверь почту'))
         self.assertFalse(module.wants_project_report('Напиши пост для IQ Barakah'))
 

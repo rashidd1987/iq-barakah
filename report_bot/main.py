@@ -686,6 +686,7 @@ def build_router(
     task_store: TaskStore,
     day_plan_store: DayPlanStore,
     idea_store: IdeaStore,
+    mac_queue: MacQueue | None = None,
 ) -> Router:
     router = Router(name="owner_reports")
 
@@ -859,6 +860,9 @@ def build_router(
             await message.answer(f"⚠️ {html.escape(str(exc))}", reply_markup=MENU)
             return
         await state.clear()
+        from report_bot.mac_voice import auto_accept_voice
+        if await auto_accept_voice(message, transcript, config, mac_queue):
+            return
         await state.update_data(
             voice_transcript=transcript,
             voice_project_key=knowledge.active_project,
@@ -2956,6 +2960,7 @@ async def main() -> None:
                 task_store,
                 day_plan_store,
                 idea_store,
+                mac_queue,
             )
         )
         health_runner = await run_health_server(

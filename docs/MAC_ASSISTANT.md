@@ -1,5 +1,10 @@
 # Mizan: local Mac executor
 
+Current server migration (2026-11-24): see [SERVER_ASSISTANT.md](SERVER_ASSISTANT.md).
+Gmail/Instagram and project checks are prepared for a dedicated VPS executor;
+the historical setup below describes the Mac-only installation. Owner voice
+tasks are now accepted automatically. Free voice: Оникс; paid voice: Джарвас.
+
 The existing `@mizan_project_reports_bot` remains the only Telegram listener.
 `/mac <task>` queues a task for the owner's Mac. `/macstatus` shows recent tasks
 and the last poll. Existing reminders, approvals and Codex PR workflows are unchanged.
@@ -92,3 +97,41 @@ and provider error payloads are not sent to Telegram.
 Mail, social accounts, calendars and task stores require separately implemented
 connectors and owner authorization; Codex app connections are not automatically
 available to the background Mac worker.
+
+### Mac HTTPS transport
+
+During the owner smoke test, Python TLS handshakes intermittently timed out while
+macOS curl could reach the same verified HTTPS origin. The worker uses the built-in
+`/usr/bin/curl` SecureTransport client with certificate validation, HTTPS-only
+protocols, no redirects, no user curl config, bounded retries, response size and
+time limits. Bearer credentials and result payloads are supplied through stdin,
+never process arguments. Existing queue idempotency and saved-result recovery
+remain in force. Network outages can still delay a result.
+
+## Account readers (authorization pending)
+
+The local worker has explicit Gmail and Instagram read-only routes. A connected
+Gmail app in Codex does not authorize the background worker. Neither account is
+considered connected until its local helper completes a real API capability check.
+
+- Gmail: user creates a Desktop OAuth client, enables Gmail API, adds only the
+  owner's account as a test user, then runs `connect_gmail.py --client PATH`.
+  The helper binds only to loopback, verifies OAuth state and PKCE, requests only
+  gmail.readonly and verifies rashidd1987@gmail.com. Credentials stay outside the
+  model workspace with private permissions. The first reader shows unread inbox
+  subjects/senders only (up to 10), hiding security-code subjects. Message bodies
+  and attachments are not currently included.
+- Instagram: existing Meta app IQ Barakah Publisher has the current optional
+  instagram_business_manage_insights permission available. Prefer Instagram Login
+  with instagram_business_basic and instagram_business_manage_insights, authorizing
+  only @rashidiqmizan. The helper defaults to this path and checks a real Insights
+  response before saving the owner-entered token. Facebook Login is an optional
+  separately authorized fallback, not a required grant. The reader reports daily
+  reach for seven completed UTC days and does not sum daily unique counts.
+- Both readers have fixed provider hosts, no redirect following, no write endpoints,
+  and return a clear failure when authorization is absent. Mail/post content never
+  becomes an instruction to the agent. Tokens are not exposed in process args.
+- Mizan personal tasks already use the server's owner-only voice flow: voice note,
+  «Моя задача», review the draft and date, then «Создать». Select «Выполнить на Mac»
+  for account reports, not for creating an owner task. A text create/complete smoke
+  passed on 2026-11-22 (task PLd0H1u9); the voice creation smoke remains pending.

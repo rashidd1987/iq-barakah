@@ -4,12 +4,12 @@ import fcntl
 import json
 import logging
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
 import time
 from urllib.parse import urlsplit
-from urllib.request import Request
 
 ROOT = Path.home() / '.openjarvis'
 logger = logging.getLogger('mizan.mac')
@@ -26,16 +26,37 @@ def atomic_json(path: Path, value):
 
 
 def api(config, route: str, body=None):
-    url = config['reports_url'].rstrip('/') + route
-    request = Request(url, data=json.dumps(body).encode() if body is not None else None,
-                      headers={'Authorization': 'Bearer ' + config['secret'], 'Content-Type': 'application/json'})
-    # Refuse redirects: bearer credentials must only go to the configured origin.
-    from urllib.request import HTTPRedirectHandler, build_opener, HTTPSHandler
-    class NoRedirect(HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
-            return None
-    with build_opener(NoRedirect(), HTTPSHandler()).open(request, timeout=20) as response:
-        return json.loads(response.read(100000))
+    validate_config(config)
+    if not route.startswith('/mac-worker/') or any(c in route for c in ('\n', '\r', '?', '#')):
+        raise ValueError('invalid worker route')
+    # macOS SecureTransport works on networks where Python TLS handshakes stall.
+    # Curl config is supplied via stdin: secrets never appear in process arguments.
+    def quoted(value):
+        return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r') + '"'
+    settings = [
+        'url = ' + quoted(config['reports_url'].rstrip('/') + route),
+        'header = ' + quoted('Authorization: Bearer ' + config['secret']),
+        'header = "Content-Type: application/json"',
+    ]
+    if config.get('worker') == 'cloud-readers':
+        settings.append('header = "X-Mizan-Worker: cloud-readers"')
+    if config.get("reports_interface"):
+        settings.append("interface = " + quoted(config["reports_interface"]))
+    if body is not None:
+        settings += ['request = "POST"', 'data = ' + quoted(json.dumps(body))]
+    response = subprocess.run(
+        ['/usr/bin/curl', '--disable', '--config', '-', '--silent', '--show-error',
+         '--fail', '--proto', '=https', '--proto-redir', '=https', '--max-redirs', '0',
+         '--ipv4', '--http1.1', '--retry', '2', '--retry-all-errors', '--retry-delay', '1',
+         '--connect-timeout', '8', '--max-time', '20', '--max-filesize', '100000'],
+        input='\n'.join(settings) + '\n', capture_output=True, text=True, timeout=70,
+    )
+    if response.returncode:
+        raise OSError('Reports HTTPS transport failed')
+    payload = json.loads(response.stdout)
+    if config.get('worker') == 'cloud-readers' and payload.get('worker') != 'cloud-readers':
+        raise ValueError('Reports does not confirm cloud worker identity')
+    return payload
 
 
 def validate_config(config):
@@ -44,6 +65,11 @@ def validate_config(config):
         raise ValueError('reports_url must be an HTTPS origin')
     if len(config['secret']) < 32:
         raise ValueError('worker secret is too short')
+    if config.get('worker', 'owner-mac') not in {'owner-mac', 'cloud-readers'}:
+        raise ValueError('invalid worker identity')
+    interface = config.get("reports_interface")
+    if interface is not None and (not isinstance(interface, str) or not re.fullmatch(r"en[0-9]{1,2}", interface)):
+        raise ValueError("reports_interface must name a physical Mac network interface")
     workspace = Path(config['workspace']).expanduser().resolve()
     if not workspace.is_dir():
         raise ValueError('workspace does not exist')
@@ -63,7 +89,7 @@ def process(config, job, state_dir):
         atomic_json(request_path, {'task': job['task'], 'workspace': config['workspace']})
         started.touch(mode=0o600)
         try:
-            subprocess.run([sys.executable, str(Path(__file__).with_name('mac_assistant.py')),
+            subprocess.run([sys.executable, str(Path(__file__).with_name('cloud_assistant.py' if config.get('worker') == 'cloud-readers' else 'mac_assistant.py')),
                             str(request_path), str(result_path)], timeout=900,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
         except (subprocess.SubprocessError, OSError):
@@ -78,6 +104,16 @@ def process(config, job, state_dir):
     except (ValueError, TypeError):
         result_path.replace(folder / 'result.corrupt')
         result = {'status': 'unknown', 'result': 'Сохранённый результат задачи повреждён. Проверьте рабочую папку; повторное выполнение отключено.'}
+        atomic_json(result_path, result)
+    if job.get('voice_reply') and job.get('voice_engine') != 'server-onyx' and 'voice' not in result and not result.get('voice_error'):
+        try:
+            if config.get('worker') == 'cloud-readers':
+                from cloud_spoken_result import render_voice
+            else:
+                from spoken_result import render_voice
+            result['voice'] = render_voice(result['result'])
+        except (OSError, ValueError, subprocess.SubprocessError):
+            result['voice_error'] = True
         atomic_json(result_path, result)
     api(config, f'/mac-worker/jobs/{job["id"]}/result', {**result, 'claim_token': job['claim_token']})
     logger.info('Reported job %s (%s)', job['id'], result['status'])

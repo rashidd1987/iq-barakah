@@ -65,6 +65,23 @@ class MacBridgeTests(unittest.IsolatedAsyncioTestCase):
             json={'claim_token': 'wrong', 'status': 'done', 'result': 'x'})
         self.assertEqual(response.status, 403)
 
+    async def test_cloud_http_identity_isolated_from_mac_and_unknown_workers(self):
+        original = self.queue.enqueue(123, 'cloud', 'Проверь Gmail')
+        response = await self.client.post('/mac-worker/claim', headers=self.headers)
+        self.assertIsNone((await response.json())['job'])
+        cloud = {**self.headers, 'X-Mizan-Worker': 'cloud-readers'}
+        response = await self.client.post('/mac-worker/claim', headers=cloud)
+        job = (await response.json())['job']
+        self.assertEqual(job['id'], original['id'])
+        result = {'claim_token': job['claim_token'], 'status': 'done', 'result': 'API result'}
+        route = f'/mac-worker/jobs/{job["id"]}/result'
+        response = await self.client.post(route, headers=self.headers, json=result)
+        self.assertEqual(response.status, 403)
+        response = await self.client.post(route, headers=cloud, json=result)
+        self.assertEqual(response.status, 200)
+        response = await self.client.post('/mac-worker/claim', headers={**cloud, 'X-Mizan-Worker': 'unknown'})
+        self.assertEqual(response.status, 403)
+
     async def test_only_owner_in_private_chat_can_enqueue(self):
         router = build_mac_router(SimpleNamespace(owner_ids={123}), self.queue)
         handler = router.message.handlers[0].callback

@@ -16,7 +16,7 @@ ROOT = Path.home() / '.openjarvis' / 'projects' / 'iq-barakah.git'
 
 def wants_project_report(task):
     text = re.sub(r'[\s_-]+', '', task.casefold())
-    project = any(name in text for name in ('iqbarak', 'iqbarakah', 'айкьюбарак', 'икьюбарак'))
+    project = any(name in text for name in ('iqbarak', 'iqbarakah', 'айкьюбарак', 'икьюбарак', 'iqбарак', 'айкюбарак'))
     return project and any(word in text for word in ('провер', 'аудит', 'отч', 'состояни', 'ошиб', 'check', 'audit', 'report'))
 
 
@@ -127,7 +127,7 @@ def report(workspace):
         with urlopen(Request('https://iq-barakah.ru/', headers={'User-Agent': 'Mizan-owner-project-report/1'}), timeout=15) as response:
             lines += ['', f'Сайт iq-barakah.ru: HTTP {response.status}. Это проверка доступности, не пользовательских сценариев.']
     except Exception:
-        lines += ['', 'Сайт iq-barakah.ru: доступность не подтверждена из сети Mac.']
+        lines += ['', 'Сайт iq-barakah.ru: доступность не подтверждена из сети исполнителя.']
     lines += ['', '## Границы проверки', 'Код только читался: не запускался и не изменялся. Тесты проекта локально не выполнялись.',
               'Не проверялись: незакоммиченные локальные правки, production-база, закрытая CRM, пользовательские сценарии и зависимости на уязвимости.',
               'Это базовый технический отчёт, а не полный аудит. Для глубокого анализа и исправлений используйте задачу Codex.']
