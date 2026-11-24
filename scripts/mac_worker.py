@@ -53,7 +53,10 @@ def api(config, route: str, body=None):
     )
     if response.returncode:
         raise OSError('Reports HTTPS transport failed')
-    return json.loads(response.stdout)
+    payload = json.loads(response.stdout)
+    if config.get('worker') == 'cloud-readers' and payload.get('worker') != 'cloud-readers':
+        raise ValueError('Reports does not confirm cloud worker identity')
+    return payload
 
 
 def validate_config(config):

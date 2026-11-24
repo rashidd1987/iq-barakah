@@ -112,11 +112,12 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
         authorize(request)
         worker = identity(request)
         job = queue.claim(worker, target='cloud' if worker == 'cloud-readers' else 'mac')
-        return web.json_response({'job': payload(job) if job else None})
+        return web.json_response({'job': payload(job) if job else None, 'worker': worker})
 
     async def recover(request):
         authorize(request)
-        return web.json_response({'jobs': [payload(job) for job in queue.recover(identity(request))]})
+        worker = identity(request)
+        return web.json_response({'jobs': [payload(job) for job in queue.recover(worker)], 'worker': worker})
 
     async def finish(request):
         authorize(request)
@@ -130,7 +131,7 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
             raise web.HTTPForbidden() from None
         except (ValueError, TypeError):
             raise web.HTTPBadRequest(text='invalid result') from None
-        return web.json_response({'id': job['id'], 'status': job['status']})
+        return web.json_response({'id': job['id'], 'status': job['status'], 'worker': identity(request)})
 
     app.router.add_post('/mac-worker/claim', claim)
     app.router.add_get('/mac-worker/running', recover)

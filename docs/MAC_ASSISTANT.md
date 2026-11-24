@@ -1,5 +1,10 @@
 # Mizan: local Mac executor
 
+Current server migration (2026-11-24): see [SERVER_ASSISTANT.md](SERVER_ASSISTANT.md).
+Gmail/Instagram and project checks are prepared for a dedicated VPS executor;
+the historical setup below describes the Mac-only installation. Owner voice
+tasks are now accepted automatically. Free voice: Оникс; paid voice: Джарвас.
+
 The existing `@mizan_project_reports_bot` remains the only Telegram listener.
 `/mac <task>` queues a task for the owner's Mac. `/macstatus` shows recent tasks
 and the last poll. Existing reminders, approvals and Codex PR workflows are unchanged.

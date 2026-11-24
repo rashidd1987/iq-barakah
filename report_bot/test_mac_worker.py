@@ -74,6 +74,17 @@ class MacWorkerTests(unittest.TestCase):
             with self.assertRaises(OSError) as caught:api(self.config,'/mac-worker/running')
         self.assertNotIn(self.config['secret'],str(caught.exception))
 
+    def test_cloud_worker_refuses_old_server_before_claiming_jobs(self):
+        from scripts.mac_worker import api
+        from types import SimpleNamespace
+        config = {**self.config, 'worker': 'cloud-readers'}
+        with patch('scripts.mac_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout='{"jobs":[]}')):
+            with self.assertRaises(ValueError):
+                api(config, '/mac-worker/running')
+        with patch('scripts.mac_worker.subprocess.run', return_value=SimpleNamespace(returncode=0, stdout='{"jobs":[],"worker":"cloud-readers"}')) as run:
+            self.assertEqual(api(config, '/mac-worker/running')['jobs'], [])
+            self.assertIn('X-Mizan-Worker: cloud-readers', run.call_args.kwargs['input'])
+
     def test_reports_interface_is_optional_and_restricted(self):
         from scripts.mac_worker import api
         from types import SimpleNamespace
