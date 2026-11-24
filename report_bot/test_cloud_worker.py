@@ -15,9 +15,9 @@ class CloudRoutingTests(unittest.TestCase):
         from scripts.cloud_spoken_result import speech_chunks
         text = ' '.join(['Проверка длинного русского отчёта.'] * 30)
         chunks = speech_chunks(text)
-        self.assertTrue(all(len(chunk) <= 150 for chunk in chunks))
+        self.assertTrue(all(len(chunk) <= 75 for chunk in chunks))
         self.assertEqual(' '.join(chunks), text)
-        self.assertTrue(all(len(chunk) <= 150 for chunk in speech_chunks('x' * 450)))
+        self.assertTrue(all(len(chunk) <= 75 for chunk in speech_chunks('x' * 450)))
 
     def test_account_reads_and_blocked_writes_go_to_narrow_server(self):
         for text in ('Проверь Gmail', 'Посмотри статистику Instagram', 'Удали письма Gmail', 'Проверь проект IQ Barakah'):

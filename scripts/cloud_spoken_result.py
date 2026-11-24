@@ -42,7 +42,7 @@ def render_voice(text):
         return base64.b64encode(audio).decode('ascii')
 
 
-def speech_chunks(text, limit=150):
+def speech_chunks(text, limit=75):
     chunks = []
     while text:
         end = min(len(text), limit)

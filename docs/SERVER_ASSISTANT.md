@@ -69,6 +69,12 @@ migration is included in this bounded server-reader release.
 
 ## Verification status
 
-Local initial suite: 156 tests passed, including migration, executor isolation,
+Local suite: 157 tests passed, including migration, executor isolation,
 crash recovery and result idempotency. Live server credentials/TTS and Telegram
 proof must be recorded after verification; staging does not establish readiness.
+
+VPS proof: Gmail and Instagram both returned real API reports. Both were rendered
+as valid Ogg Opus using free Piper. An initial long-input OOM was found and
+inference was bounded to short chunks; hard service-limit validation is separate.
+Account credentials were transferred only after explicit owner consent. Polling
+remains disabled until approval and deployment of the identity-aware Reports API.
