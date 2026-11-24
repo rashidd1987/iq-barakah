@@ -29,7 +29,7 @@ class MacQueue:
                 worker TEXT PRIMARY KEY, seen REAL NOT NULL
             )""")
             columns = {r[1] for r in db.execute('PRAGMA table_info(jobs)')}
-            for name, definition in [('voice', 'TEXT'), ('ack_sent', 'INTEGER NOT NULL DEFAULT 0')]:
+            for name, definition in [('voice', 'TEXT'), ('ack_sent', 'INTEGER NOT NULL DEFAULT 0'), ('target', "TEXT NOT NULL DEFAULT 'mac'")]:
                 if name not in columns:
                     db.execute(f'ALTER TABLE jobs ADD COLUMN {name} {definition}')
         self.path.chmod(0o600)
@@ -55,20 +55,22 @@ class MacQueue:
             count = db.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','running')").fetchone()[0]
             if count >= 20:
                 raise ValueError("В очереди уже 20 задач. Дождитесь завершения")
+            from report_bot.task_routing import task_target
+            target = task_target(task)
             job_id = secrets.token_hex(6)
-            db.execute("INSERT INTO jobs(id,source,owner,task,created) VALUES (?,?,?,?,?)",
-                       (job_id, source, owner, task.strip(), time.time()))
+            db.execute("INSERT INTO jobs(id,source,owner,task,created,target) VALUES (?,?,?,?,?,?)",
+                       (job_id, source, owner, task.strip(), time.time(), target))
             return dict(db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone())
 
-    def claim(self, worker: str) -> dict | None:
+    def claim(self, worker: str, target: str | None = None) -> dict | None:
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             db.execute("INSERT INTO heartbeat VALUES (?,?) ON CONFLICT(worker) DO UPDATE SET seen=excluded.seen",
                        (worker, time.time()))
             # One task at a time, including across multiple processes.
-            if db.execute("SELECT 1 FROM jobs WHERE status='running'").fetchone():
+            if db.execute("SELECT 1 FROM jobs WHERE status='running' AND (? IS NULL OR target=?)", (target, target)).fetchone():
                 return None
-            row = db.execute("SELECT * FROM jobs WHERE status='queued' ORDER BY created LIMIT 1").fetchone()
+            row = db.execute("SELECT * FROM jobs WHERE status='queued' AND (? IS NULL OR target=?) ORDER BY created LIMIT 1", (target, target)).fetchone()
             if row is None:
                 return None
             token = secrets.token_urlsafe(24)
@@ -106,11 +108,11 @@ class MacQueue:
 
     def recent(self, owner: int) -> list[dict]:
         with self.connection() as db:
-            return [dict(r) for r in db.execute("SELECT id,status,task FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 8", (owner,))]
+            return [dict(r) for r in db.execute("SELECT id,status,task,target FROM jobs WHERE owner=? ORDER BY created DESC LIMIT 8", (owner,))]
 
-    def last_seen(self) -> float | None:
+    def last_seen(self, worker=None) -> float | None:
         with self.connection() as db:
-            return db.execute('SELECT max(seen) FROM heartbeat').fetchone()[0]
+            return db.execute('SELECT max(seen) FROM heartbeat WHERE (? IS NULL OR worker=?)', (worker, worker)).fetchone()[0]
 
     def unnotified(self) -> list[dict]:
         with self.connection() as db:

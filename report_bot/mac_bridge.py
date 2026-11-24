@@ -15,6 +15,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 
 from report_bot.mac_queue import MacQueue
+from report_bot.task_routing import executor_label
 
 logger = logging.getLogger(__name__)
 WORKER = 'owner-mac'
@@ -53,17 +54,19 @@ def build_mac_router(config, queue: MacQueue) -> Router:
         except ValueError as exc:
             await message.answer(html.escape(str(exc)))
             return
-        await message.answer(f'Задача Mac <code>{job["id"]}</code>: {job["status"]}.\nРезультат придёт сюда. Если Mac спит, задача будет ждать.')
+        await message.answer(f'{executor_label(job)} · <code>{job["id"]}</code>: {job["status"]}.\nРезультат придёт сюда.' + (' Если Mac спит, задача будет ждать.' if job.get('target') != 'cloud' else ' Mac может быть выключен.'))
 
     @router.message(Command('macstatus'))
     async def mac_status(message: Message):
         if not owner_private(message):
             return
-        last = queue.last_seen()
+        last = queue.last_seen(WORKER)
+        cloud_seen = queue.last_seen('cloud-readers')
+        cloud_status = 'ещё не подключался' if cloud_seen is None else f'последний контакт {int(time.time() - cloud_seen)} сек. назад'
         status = 'ещё не подключался' if last is None else f'последний контакт {int(time.time() - last)} сек. назад'
         rows = queue.recent(message.from_user.id)
         text = '\n'.join(f'{row["id"]}: {row["status"]} — {row["task"][:100]}' for row in rows)
-        await message.answer(html.escape(f'Mac: {status}\n\n{text or "Задач пока нет"}'))
+        await message.answer(html.escape(f'Mac: {status}\nСервер: {cloud_status}\n\n{text or "Задач пока нет"}'))
 
     @router.message(Command('voicetest'))
     async def voice_preview(message: Message):
@@ -94,6 +97,12 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
         if len(secret) < 32 or not hmac.compare_digest(supplied.encode(), f'Bearer {secret}'.encode()):
             raise web.HTTPUnauthorized()
 
+    def identity(request):
+        worker = request.headers.get('X-Mizan-Worker', WORKER)
+        if worker not in {WORKER, 'cloud-readers'}:
+            raise web.HTTPForbidden()
+        return worker
+
     def payload(job):
         return {**{key: job[key] for key in ('id', 'task', 'claim_token')},
                 'voice_reply': job['source'].startswith('voice:'),
@@ -101,12 +110,13 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
 
     async def claim(request):
         authorize(request)
-        job = queue.claim(WORKER)
+        worker = identity(request)
+        job = queue.claim(worker, target='cloud' if worker == 'cloud-readers' else 'mac')
         return web.json_response({'job': payload(job) if job else None})
 
     async def recover(request):
         authorize(request)
-        return web.json_response({'jobs': [payload(job) for job in queue.recover(WORKER)]})
+        return web.json_response({'jobs': [payload(job) for job in queue.recover(identity(request))]})
 
     async def finish(request):
         authorize(request)
@@ -114,7 +124,7 @@ def add_mac_routes(app: web.Application, queue: MacQueue):
             body = await request.json()
             if not isinstance(body, dict) or not isinstance(body.get('claim_token'), str):
                 raise ValueError('invalid result')
-            job = queue.finish(request.match_info['job_id'], WORKER, body['claim_token'],
+            job = queue.finish(request.match_info['job_id'], identity(request), body['claim_token'],
                                body.get('status'), body.get('result'), body.get('voice'))
         except PermissionError:
             raise web.HTTPForbidden() from None
@@ -132,7 +142,7 @@ async def mac_result_notifications(bot, queue: MacQueue):
         for job in queue.unnotified():
             try:
                 # Plain text avoids malformed model-generated HTML.
-                header = f'Mac · {job["id"]} · {job["status"]}\n\n'
+                header = f'{executor_label(job)} · {job["id"]} · {job["status"]}\n\n'
                 result = job['result']
                 for start in range(0, len(result), 3000):
                     await bot.send_message(job['owner'], header + result[start:start + 3000], parse_mode=None)
@@ -149,12 +159,12 @@ async def mac_result_notifications(bot, queue: MacQueue):
                     try:
                         await bot.send_voice(job['owner'], BufferedInputFile(
                             base64.b64decode(job['voice']), filename='result.ogg'),
-                            caption=f'Голосовой результат · Оникс · Юрий · {job["id"]}')
+                            caption=f'Голосовой результат · Оникс · {"Piper (сервер)" if job.get("target") == "cloud" else "Юрий"} · {job["id"]}')
                     except Exception:
                         logger.warning('Could not deliver spoken result %s', job['id'])
                         await bot.send_message(job['owner'], 'Не удалось отправить голосовой ответ. Результат выше — текстом.')
                 elif job['source'].startswith('voice:'):
-                    await bot.send_message(job['owner'], 'Озвучка Юрия недоступна. Результат выше — текстом; платный Onyx не запускался.')
+                    await bot.send_message(job['owner'], 'Бесплатная озвучка недоступна. Результат выше — текстом; платный Onyx не запускался.')
                 queue.mark_notified(job['id'])
             except Exception:
                 logger.warning('Could not deliver Mac result %s', job['id'])

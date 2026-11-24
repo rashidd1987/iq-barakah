@@ -38,6 +38,8 @@ def api(config, route: str, body=None):
         'header = ' + quoted('Authorization: Bearer ' + config['secret']),
         'header = "Content-Type: application/json"',
     ]
+    if config.get('worker') == 'cloud-readers':
+        settings.append('header = "X-Mizan-Worker: cloud-readers"')
     if config.get("reports_interface"):
         settings.append("interface = " + quoted(config["reports_interface"]))
     if body is not None:
@@ -60,6 +62,8 @@ def validate_config(config):
         raise ValueError('reports_url must be an HTTPS origin')
     if len(config['secret']) < 32:
         raise ValueError('worker secret is too short')
+    if config.get('worker', 'owner-mac') not in {'owner-mac', 'cloud-readers'}:
+        raise ValueError('invalid worker identity')
     interface = config.get("reports_interface")
     if interface is not None and (not isinstance(interface, str) or not re.fullmatch(r"en[0-9]{1,2}", interface)):
         raise ValueError("reports_interface must name a physical Mac network interface")
@@ -82,7 +86,7 @@ def process(config, job, state_dir):
         atomic_json(request_path, {'task': job['task'], 'workspace': config['workspace']})
         started.touch(mode=0o600)
         try:
-            subprocess.run([sys.executable, str(Path(__file__).with_name('mac_assistant.py')),
+            subprocess.run([sys.executable, str(Path(__file__).with_name('cloud_assistant.py' if config.get('worker') == 'cloud-readers' else 'mac_assistant.py')),
                             str(request_path), str(result_path)], timeout=900,
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
         except (subprocess.SubprocessError, OSError):
@@ -100,7 +104,10 @@ def process(config, job, state_dir):
         atomic_json(result_path, result)
     if job.get('voice_reply') and job.get('voice_engine') != 'server-onyx' and 'voice' not in result and not result.get('voice_error'):
         try:
-            from spoken_result import render_voice
+            if config.get('worker') == 'cloud-readers':
+                from cloud_spoken_result import render_voice
+            else:
+                from spoken_result import render_voice
             result['voice'] = render_voice(result['result'])
         except (OSError, ValueError, subprocess.SubprocessError):
             result['voice_error'] = True

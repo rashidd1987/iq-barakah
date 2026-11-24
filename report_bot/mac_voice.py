@@ -9,6 +9,7 @@ from aiogram import F
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile, FSInputFile
 
 from report_bot.mac_queue import MacQueue
+from report_bot.task_routing import executor_label
 
 
 async def answer_acceptance(message, queue, paid):
@@ -125,8 +126,8 @@ async def auto_accept_voice(message, transcript, config, queue):
         await message.answer(html.escape(str(exc)))
         return True
     if queue.claim_ack(job['id']):
-        await message.answer('🖥 Принято на Mac: ' + html.escape(transcript.strip())
-                             + f'\nЗадача <code>{job["id"]}</code>. Голос: {"Джарвас / Onyx (платный)" if paid else "Оникс / Юрий (локально)"}. Результат придёт текстом и голосом.')
+        await message.answer(f'{executor_label(job)} · Принято: ' + html.escape(transcript.strip())
+                             + f'\nЗадача <code>{job["id"]}</code>. Голос: {"Джарвас / Onyx (платный)" if paid else ("Оникс / Piper (сервер)" if job.get("target") == "cloud" else "Оникс / Юрий (локально)")}. Результат придёт текстом и голосом.')
         try:
             await answer_acceptance(message, queue, paid)
         except Exception:

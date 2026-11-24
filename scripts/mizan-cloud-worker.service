@@ -1,0 +1,29 @@
+[Unit]
+Description=Mizan server account reader
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=mizan-worker
+Group=mizan-worker
+Environment=HOME=/var/lib/mizan-worker
+Environment=OMP_NUM_THREADS=1
+Environment=OPENBLAS_NUM_THREADS=1
+WorkingDirectory=/opt/mizan-worker
+ExecStart=/opt/mizan-worker/venv/bin/python /opt/mizan-worker/mac_worker.py
+Restart=always
+RestartSec=15
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/mizan-worker
+MemoryMax=400M
+CPUQuota=60%
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

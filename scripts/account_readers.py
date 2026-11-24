@@ -137,4 +137,4 @@ def account_report(task):
         if instagram:sections.append(instagram_report())
         return {'status':'done','result':'\n\n'.join(sections)[:14000]}
     except (OSError,ValueError,KeyError,subprocess.SubprocessError):
-        return {'status':'failed','result':'Доступ к аккаунту ещё не подтверждён или провайдер недоступен. Нужна настройка Gmail readonly / Instagram Insights на Mac. Данные не выдумывались.'}
+        return {'status':'failed','result':'Доступ к аккаунту ещё не подтверждён или провайдер недоступен. Нужна проверка авторизации Gmail readonly / Instagram Insights. Данные не выдумывались.'}
