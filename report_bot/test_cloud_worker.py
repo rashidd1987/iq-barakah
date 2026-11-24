@@ -11,6 +11,14 @@ from report_bot.task_routing import task_target
 
 
 class CloudRoutingTests(unittest.TestCase):
+    def test_server_speech_bounds_memory_without_losing_words(self):
+        from scripts.cloud_spoken_result import speech_chunks
+        text = ' '.join(['Проверка длинного русского отчёта.'] * 30)
+        chunks = speech_chunks(text)
+        self.assertTrue(all(len(chunk) <= 150 for chunk in chunks))
+        self.assertEqual(' '.join(chunks), text)
+        self.assertTrue(all(len(chunk) <= 150 for chunk in speech_chunks('x' * 450)))
+
     def test_account_reads_and_blocked_writes_go_to_narrow_server(self):
         for text in ('Проверь Gmail', 'Посмотри статистику Instagram', 'Удали письма Gmail', 'Проверь проект IQ Barakah'):
             self.assertEqual(task_target(text), 'cloud')
