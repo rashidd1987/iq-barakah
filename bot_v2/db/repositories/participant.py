@@ -21,11 +21,16 @@ class ParticipantRepo:
         return await self.get(user_id)
 
     async def activate(self, user_id: int, level: str, week: int = 1, vakt_level: str | None = None) -> Participant:
-        existing = await self.get(user_id)
+        # An inactive/graduated participant still owns the unique user_id row.
+        result = await self.session.execute(
+            select(Participant).where(Participant.user_id == user_id)
+        )
+        existing = result.scalar_one_or_none()
         if existing:
             existing.level = level
             existing.week = week
-            existing.vakt_level = vakt_level
+            if vakt_level is not None:
+                existing.vakt_level = vakt_level
             existing.activated_at = datetime.now(timezone.utc)
             existing.graduated_at = None
             existing.is_active = True
