@@ -12,6 +12,7 @@ import HomeScreen from '../screens/HomeScreen'
 import LessonDetailScreen from '../screens/LessonDetailScreen'
 import LessonsScreen from '../screens/LessonsScreen'
 import LoginScreen from '../screens/LoginScreen'
+import TelegramLinkScreen from '../screens/TelegramLinkScreen'
 import MuhasabaScreen from '../screens/MuhasabaScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import TrackerScreen from '../screens/TrackerScreen'
@@ -100,7 +101,7 @@ function Tabs() {
 }
 
 export default function RootNavigator() {
-  const { isLoggedIn, isLoading, onboarding, advanceOnboarding } = useAuth()
+  const { isLoggedIn, isLoading, authStage, onboarding, advanceOnboarding } = useAuth()
   const { colors, isDark } = useTheme()
   const navigationTheme = useMemo(
     () => ({
@@ -128,7 +129,7 @@ export default function RootNavigator() {
 
   let content
   if (!isLoggedIn) {
-    content = <LoginScreen />
+    content = authStage === 'signed_out' ? <LoginScreen /> : <TelegramLinkScreen />
   } else if (onboarding === 'diagnostic') {
     content = <DiagnosticScreen onContinue={() => advanceOnboarding('vision')} />
   } else if (onboarding === 'vision') {
